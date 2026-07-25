@@ -1,0 +1,53 @@
+{
+  "name": "pronto",
+  "version": "1.0.0",
+  "description": "A local-first portfolio command center for Git repositories.",
+  "private": true,
+  "scripts": {
+    "dev": "tauri dev",
+    "dev:web": "vite",
+    "build": "tauri build",
+    "build:web": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml && vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "cli": "cargo run --manifest-path src-tauri/Cargo.toml --bin pronto_cli --",
+    "cli:json": "cargo run --manifest-path src-tauri/Cargo.toml --bin pronto_cli -- status --json"
+  },
+  "bin": {
+    "pronto": "./bin/pronto.mjs"
+  },
+  "keywords": [
+    "git",
+    "desktop",
+    "developer-tools"
+  ],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@11.9.0",
+  "type": "module",
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-dialog": "^2.7.2",
+    "lucide-react": "^1.26.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.65.0",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10"
+  }
+}

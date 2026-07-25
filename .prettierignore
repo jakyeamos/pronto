@@ -1,0 +1,8 @@
+node_modules
+out
+dist
+src-tauri/gen
+pnpm-lock.yaml
+docs/pronto-behavior-spec.xlsx
+.aios/**
+.pre-cr/**
