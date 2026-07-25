@@ -1,43 +1,41 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  Activity,
   AlertTriangle,
-  Archive,
-  ChevronDown,
+  Activity,
   ChevronRight,
   Command,
-  Copy,
   FolderGit2,
   FolderPlus,
   GitBranch,
   LayoutDashboard,
   LoaderCircle,
-  MoreHorizontal,
   PackageOpen,
   RefreshCw,
   Search,
   Settings2,
   ShieldCheck,
-  Sparkles,
   X,
 } from "lucide-react";
 import * as api from "./api";
+import {
+  CommandCenterSurface,
+  type Filter,
+} from "./components/CommandCenterSurface";
 import { DetailDrawer, EvidenceDrawer } from "./components/Drawers";
 import {
-  EmptyState,
+  formatTime,
   IconButton,
   StatusPill,
 } from "./components/ConsolePrimitives";
 import {
-  AttentionQueue,
-  RepositoryRow,
-  Timeline,
-} from "./components/PortfolioComponents";
+  ActivitySurface,
+  DeferredSurface,
+  SettingsSurface,
+} from "./components/WorkspaceSurfaces";
 import type { Condition, PortfolioSnapshot, RepositorySnapshot } from "./types";
 import "./styles.css";
 
-type Filter = "all" | "attention" | "dirty" | "sync";
 type NavItem =
   "command" | "products" | "groups" | "remote" | "activity" | "settings";
 
@@ -53,6 +51,42 @@ const navItems: Array<{
   { id: "activity", label: "Activity", icon: Activity },
   { id: "settings", label: "Settings", icon: Settings2 },
 ];
+
+const pageCopy: Record<
+  NavItem,
+  { eyebrow: string; title: string; body: string }
+> = {
+  command: {
+    eyebrow: "Local evidence",
+    title: "Know what needs attention.",
+    body: "A factual view of your projects, workspaces, and Git state—freshness included.",
+  },
+  products: {
+    eyebrow: "Manual configuration",
+    title: "Give the portfolio a shape.",
+    body: "Products will group repositories by the work you choose to name and maintain.",
+  },
+  groups: {
+    eyebrow: "Manual configuration",
+    title: "Keep related work together.",
+    body: "Groups will provide an intentional view across repositories without guessing your organization.",
+  },
+  remote: {
+    eyebrow: "Read-only provider boundary",
+    title: "Remote context comes second.",
+    body: "The local portfolio is ready first; a read-only GitHub catalog will add remote context after durable state is in place.",
+  },
+  activity: {
+    eyebrow: "Transition-only history",
+    title: "See what changed.",
+    body: "Pronto records meaningful local state transitions, not a noisy scan log.",
+  },
+  settings: {
+    eyebrow: "Local configuration",
+    title: "Keep the boundary visible.",
+    body: "Manage discovery roots and understand where Pronto keeps its private local snapshot.",
+  },
+};
 
 export function App(): ReactElement {
   const [snapshot, setSnapshot] = useState<PortfolioSnapshot>({
@@ -73,6 +107,7 @@ export function App(): ReactElement {
   } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const loadSnapshot = useCallback(
     async (operation: () => Promise<PortfolioSnapshot>): Promise<void> => {
@@ -96,6 +131,21 @@ export function App(): ReactElement {
   useEffect(() => {
     void loadSnapshot(api.getSnapshot);
   }, [loadSnapshot]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if (event.key === "Escape") {
+        if (selectedEvidence) setSelectedEvidence(null);
+        else if (selectedRepository) setSelectedRepository(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedEvidence, selectedRepository]);
 
   const handleAddRoot = useCallback(async (): Promise<void> => {
     try {
@@ -147,6 +197,15 @@ export function App(): ReactElement {
   const unsyncedCount = snapshot.repositories.filter(
     (repository) => repository.workspace.sync_state !== "Synced",
   ).length;
+  const activePage = pageCopy[activeNav];
+  const activeNavLabel = navItems.find((item) => item.id === activeNav)?.label;
+  const dateLabel = new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date());
+  const isCommandCenter = activeNav === "command";
 
   const handleCondition = (
     repository: RepositorySnapshot,
@@ -180,7 +239,12 @@ export function App(): ReactElement {
               className={`nav-item ${activeNav === id ? "nav-item-active" : ""}`}
               type="button"
               key={id}
-              onClick={() => setActiveNav(id)}
+              aria-current={activeNav === id ? "page" : undefined}
+              onClick={() => {
+                setActiveNav(id);
+                setSelectedRepository(null);
+                setSelectedEvidence(null);
+              }}
             >
               <Icon size={17} />
               <span>{label}</span>
@@ -215,14 +279,19 @@ export function App(): ReactElement {
           <div className="breadcrumbs">
             <span>Workspace</span>
             <ChevronRight size={13} />
-            <strong>Command center</strong>
+            <strong>{activeNavLabel}</strong>
           </div>
           <div className="topbar-actions">
             <label className="search-box">
               <Search size={15} />
               <input
+                ref={searchInputRef}
                 aria-label="Search repositories"
-                placeholder="Search repos, branches, paths"
+                placeholder={
+                  isCommandCenter
+                    ? "Search repos, branches, paths"
+                    : "Search local portfolio"
+                }
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -247,25 +316,31 @@ export function App(): ReactElement {
         <div className="content-scroll">
           <section className="page-intro">
             <div>
-              <p className="eyebrow">Saturday · July 25, 2026</p>
-              <h1>Know what needs attention.</h1>
-              <p className="intro-copy">
-                A factual view of your projects, workspaces, and Git
-                state—freshness included.
+              <p className="eyebrow">
+                {isCommandCenter ? dateLabel : activePage.eyebrow}
               </p>
+              <h1>{activePage.title}</h1>
+              <p className="intro-copy">{activePage.body}</p>
             </div>
             <div className="intro-actions">
+              {isCommandCenter && (
+                <span className="snapshot-freshness">
+                  Snapshot {formatTime(snapshot.generated_at)}
+                </span>
+              )}
               <StatusPill tone="mint" icon={<ShieldCheck size={12} />}>
-                No cloud account
+                Local only
               </StatusPill>
-              <button
-                className="button button-secondary"
-                type="button"
-                onClick={handleAddRoot}
-              >
-                <FolderPlus size={15} />
-                Add root
-              </button>
+              {(isCommandCenter || activeNav === "settings") && (
+                <button
+                  className="button button-secondary"
+                  type="button"
+                  onClick={handleAddRoot}
+                >
+                  <FolderPlus size={15} />
+                  Add root
+                </button>
+              )}
             </div>
           </section>
           {error && (
@@ -281,132 +356,69 @@ export function App(): ReactElement {
               </button>
             </div>
           )}
-          <section className="metric-grid">
-            <div className="metric-card metric-card-accent">
-              <span>Active conditions</span>
-              <strong>{activeConditionCount}</strong>
-              <small>Grouped by repository</small>
-              <AlertTriangle size={18} />
-            </div>
-            <div className="metric-card">
-              <span>Dirty workspaces</span>
-              <strong>{dirtyCount}</strong>
-              <small>Aggregate line deltas only</small>
-              <FolderGit2 size={18} />
-            </div>
-            <div className="metric-card">
-              <span>Unsynced branches</span>
-              <strong>{unsyncedCount}</strong>
-              <small>Remote freshness visible</small>
-              <GitBranch size={18} />
-            </div>
-            <div className="metric-card">
-              <span>Repositories</span>
-              <strong>{snapshot.repositories.length}</strong>
-              <small>
-                {snapshot.roots.length} registered root
-                {snapshot.roots.length === 1 ? "" : "s"}
-              </small>
-              <Archive size={18} />
-            </div>
-          </section>
-          <div className="content-grid">
-            <section className="portfolio-panel">
-              <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">Portfolio first</p>
-                  <h2>
-                    Repository portfolio <span>{repositories.length}</span>
-                  </h2>
-                </div>
-                <div className="panel-heading-actions">
-                  <button
-                    className="button button-quiet"
-                    type="button"
-                    disabled
-                  >
-                    <MoreHorizontal size={16} />
-                    Customize
-                  </button>
-                </div>
-              </div>
-              <div className="filter-bar">
-                <div className="filter-tabs">
-                  {(["all", "attention", "dirty", "sync"] as Filter[]).map(
-                    (item) => (
-                      <button
-                        className={
-                          filter === item
-                            ? "filter-tab filter-tab-active"
-                            : "filter-tab"
-                        }
-                        type="button"
-                        key={item}
-                        onClick={() => setFilter(item)}
-                      >
-                        {item === "all"
-                          ? "All repositories"
-                          : item === "attention"
-                            ? "Needs attention"
-                            : item === "dirty"
-                              ? "Dirty"
-                              : "Sync state"}
-                      </button>
-                    ),
-                  )}
-                </div>
-                <button className="sort-button" type="button" disabled>
-                  <span>Priority</span>
-                  <ChevronDown size={14} />
-                </button>
-              </div>
-              {repositories.length === 0 ? (
-                <EmptyState
-                  onAddRoot={handleAddRoot}
-                  hasRoots={snapshot.roots.length > 0}
-                />
-              ) : (
-                <div className="repository-list">
-                  {repositories.map((repository) => (
-                    <RepositoryRow
-                      key={repository.id}
-                      repository={repository}
-                      onOpen={() => setSelectedRepository(repository)}
-                      onCondition={(condition) =>
-                        handleCondition(repository, condition)
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-              <div className="panel-footnote">
-                <Copy size={13} />
-                Facts are scanned locally. Pronto never shows filenames or
-                uncommitted diff content in this view.
-              </div>
-            </section>
-            <aside className="right-rail">
-              <AttentionQueue
-                repositories={snapshot.repositories}
-                onCondition={handleCondition}
-              />
-              <Timeline events={snapshot.events} />
-              <section className="provider-card">
-                <div className="provider-icon">
-                  <Sparkles size={17} />
-                </div>
-                <div>
-                  <p className="eyebrow">Next boundary</p>
-                  <h3>GitHub stays explicit</h3>
-                  <p>
-                    Provider refresh, pull requests, and release rules will
-                    appear here once an identity is connected.
-                  </p>
-                </div>
-                <ChevronRight size={16} />
-              </section>
-            </aside>
-          </div>
+          {isCommandCenter ? (
+            <CommandCenterSurface
+              activeConditionCount={activeConditionCount}
+              dirtyCount={dirtyCount}
+              unsyncedCount={unsyncedCount}
+              repositoryCount={snapshot.repositories.length}
+              rootCount={snapshot.roots.length}
+              repositories={repositories}
+              allRepositories={snapshot.repositories}
+              events={snapshot.events}
+              filter={filter}
+              onFilterChange={setFilter}
+              onClearFilters={() => {
+                setQuery("");
+                setFilter("all");
+              }}
+              onAddRoot={handleAddRoot}
+              onOpenRepository={setSelectedRepository}
+              onCondition={handleCondition}
+            />
+          ) : activeNav === "activity" ? (
+            <ActivitySurface events={snapshot.events} />
+          ) : activeNav === "settings" ? (
+            <SettingsSurface
+              roots={snapshot.roots}
+              storagePath={snapshot.storage_path}
+              generatedAt={snapshot.generated_at}
+              onAddRoot={handleAddRoot}
+            />
+          ) : activeNav === "products" ? (
+            <DeferredSurface
+              eyebrow="Accepted product decision"
+              title="Products will be manual first."
+              body="Pronto will let you name the work that matters to you and attach repositories intentionally. Inference can follow once the durable model is stable."
+              icon={<PackageOpen size={19} />}
+              details={[
+                { label: "Authority", value: "User-defined" },
+                { label: "State", value: "Planned after SQLite" },
+              ]}
+            />
+          ) : activeNav === "groups" ? (
+            <DeferredSurface
+              eyebrow="Accepted group decision"
+              title="Groups will stay explicit."
+              body="Related repositories will be grouped by configuration, not inferred silently. The first release will favor predictable structure over automation."
+              icon={<FolderGit2 size={19} />}
+              details={[
+                { label: "Authority", value: "User-defined" },
+                { label: "State", value: "Planned after SQLite" },
+              ]}
+            />
+          ) : (
+            <DeferredSurface
+              eyebrow="Accepted provider decision"
+              title="Read-only GitHub comes later."
+              body="Remote context will be additive and read-only at first. No credentials, network refresh, pull request mutation, or release publishing is active in this local slice."
+              icon={<GitBranch size={19} />}
+              details={[
+                { label: "Permission", value: "Read-only" },
+                { label: "Prerequisite", value: "SQLite state" },
+              ]}
+            />
+          )}
         </div>
       </main>
       {selectedRepository && (

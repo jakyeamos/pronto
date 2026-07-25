@@ -29,6 +29,10 @@ The PRD recommends Tauri with a React/TypeScript interface and Rust backend. Rus
 
 The provider, release, process, and AI boundaries remain explicit deferred states while the local evidence slice is validated.
 
+## Accepted product decisions
+
+The next slices follow [`product-decisions.md`](./product-decisions.md): local desktop UX comes first; SQLite precedes provider data; GitHub starts read-only; local actions are non-destructive; macOS is the first live shell target; AI remains disabled; and products/groups are manually configured before any inference is considered.
+
 ## Phase plan
 
 ### Phase 1 — Local evidence foundation (this implementation)
@@ -52,7 +56,8 @@ The provider, release, process, and AI boundaries remain explicit deferred state
 
 ### Phase 2 — Provider and durable state expansion
 
-- Replace or complement the JSON store with SQLite while preserving the domain contracts.
+- Polish local navigation, freshness, settings, keyboard access, and empty states before expanding the data boundary.
+- Replace or complement the JSON store with versioned SQLite while preserving the domain contracts and CLI/renderer snapshot shapes.
 - Add GitHub identities, explicit per-repository mapping, refresh freshness, remote-only catalog, and clone preflight.
 - Add process/terminal metadata adapters and structured agent manifests.
 - Add real action policies, fresh preflight execution, local audit records, and safe bounded actions.

@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
-import { CircleDot, FolderPlus } from "lucide-react";
+import { CircleDot, FolderPlus, SearchX } from "lucide-react";
 import type { Condition } from "../types";
 
 export function formatTime(value?: string): string {
@@ -115,6 +115,32 @@ export function EmptyState({
       >
         <FolderPlus size={16} />
         Add discovery root
+      </button>
+    </div>
+  );
+}
+
+export function NoMatchesState({
+  onClear,
+}: {
+  onClear: () => void;
+}): ReactElement {
+  return (
+    <div className="empty-state empty-state-compact">
+      <div className="empty-state-icon">
+        <SearchX size={22} />
+      </div>
+      <div>
+        <p className="eyebrow">No matching evidence</p>
+        <h2>Nothing matches this view.</h2>
+        <p>Try a different search or return to the full local portfolio.</p>
+      </div>
+      <button
+        className="button button-secondary"
+        type="button"
+        onClick={onClear}
+      >
+        Clear filters
       </button>
     </div>
   );
