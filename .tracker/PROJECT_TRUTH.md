@@ -10,7 +10,7 @@
 ## Current Position
 
 - Branch: `main`
-- Implementation commit: `1817527`
+- Implementation commits: `1817527`, `ef6ea99`
 - Verification at commit: `GIT_INDEX_FILE=.git/index pnpm test`; five Rust regression tests passed, Vitest had no test files, and the commit-time Pre-CR gate passed.
 - Next deliverable: canonical behavior-spec workbook and final release/build verification.
 
@@ -25,7 +25,8 @@
 
 ## Recent Progress
 
-| Date | Change | Evidence |
-| --- | --- | --- |
-| 2026-07-25 | Implemented local-first Tauri/Rust/React slice and committed it. | `1817527` |
-| 2026-07-25 | Fixed inherited `GIT_INDEX_FILE` contamination in native Git calls. | Hook-mode `pnpm test` passed |
+| Date       | Change                                                              | Evidence                        |
+| ---------- | ------------------------------------------------------------------- | ------------------------------- |
+| 2026-07-25 | Implemented local-first Tauri/Rust/React slice and committed it.    | `1817527`                       |
+| 2026-07-25 | Fixed inherited `GIT_INDEX_FILE` contamination in native Git calls. | Hook-mode `pnpm test` passed    |
+| 2026-07-25 | Fixed the Pre-CR adapter's strict ESLint global reference.          | `ef6ea99`; lint and hook passed |
