@@ -27,7 +27,7 @@
 ## Current Position
 
 - Branch: `main`
-- Implementation and documentation commits: `1817527`, `ef6ea99`, `73c28e5`, `533c2f5`, `885fe1e`, `faf0d99`, `d332573`, `f01c627`, `b13de08`, `5a0b120`, `42e8b54`, `853faa6`, `ed8d05f`, `6fde71e`, `8be4771`, `75889f3`, `3ad1451`, `6ed50bb`, `c3c9391`, `c0bf758`, `6a3cd19`, `2b0a0db`, `57501b5`, `4fb3083`, `e58e91c`, `9ece39f`, `39d5b80`
+- Implementation and documentation commits: `1817527`, `ef6ea99`, `73c28e5`, `533c2f5`, `885fe1e`, `faf0d99`, `d332573`, `f01c627`, `b13de08`, `5a0b120`, `42e8b54`, `853faa6`, `ed8d05f`, `6fde71e`, `8be4771`, `75889f3`, `3ad1451`, `6ed50bb`, `c3c9391`, `c0bf758`, `6a3cd19`, `2b0a0db`, `57501b5`, `4fb3083`, `e58e91c`, `9ece39f`, `39d5b80`, `865b35a`
 - Verification for `b13de08` and `5a0b120`: 9 Rust tests, hook-mode `pnpm test`, cargo fmt, offline cargo test/check, typecheck, lint, Prettier, CLI JSON smoke, renderer production build, full Tauri app/DMG build, workbook inspect with zero formula errors, three-sheet visual review, `git diff --check`, and the source commit-time Pre-CR gate all passed. The final docs/workbook-only Pre-CR run produced no changed-line result because those paths are configured as ignored surfaces.
 - Verification for `42e8b54`: 11 Rust tests, offline cargo check/test, typecheck, lint, Prettier, renderer production build, `git diff --check`, and the source commit-time Pre-CR gate all passed.
 - Verification for `853faa6`: 11 Rust tests, CLI JSON smoke, offline cargo check/test, cargo fmt, `git diff --check`, and the source commit-time Pre-CR gate all passed.
@@ -42,6 +42,7 @@
 - Verification for `e58e91c`: `cargo fmt --check`, 31 Rust tests, `pnpm typecheck`, `git diff --check`, source commit-time gates, and a successful `pnpm cli root add /Users/jakyeamos/projects --json` scan with a completed read-only refresh audit.
 - Verification for `9ece39f`: `cargo fmt --check`, 31 Rust tests, authenticated `gh auth status`, read-only `gh api user`, and `pnpm cli refresh-github` all passed; the provider reported Ready and refreshed 59 repositories.
 - Verification for `39d5b80`: `pnpm build` produced a release bundle whose executable is `pronto`, the bundle was installed at `/Applications/Pronto.app`, and `open /Applications/Pronto.app` succeeded; Spotlight validation was unavailable because `mdutil` reports the Spotlight server disabled in this execution environment.
+- Verification for `865b35a`: Cargo metadata reports `default_run: pronto`, `pnpm build` selected the desktop target, direct launch no longer emitted CLI status output, and the installed `/Applications/Pronto.app` remained a live process after `open`.
 - Next deliverable: complete the live desktop verification boundary where the local environment permits; provider mutations, external AI execution, and publication remain deferred.
 
 ## Blockers
@@ -66,7 +67,6 @@
 
 | Date       | Change                                                                                                                                                               | Evidence                                                     |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| 2026-07-25 | Refreshed the canonical behavior workbook and plans for the read-only action boundary.                                                                               | `5a0b120`; 35 rows, zero formula errors                      |
 | 2026-07-25 | Added durable products/groups, lifecycle confirmation, root policies, retention settings, and submodule summaries.                                                   | `42e8b54`; 11 Rust tests, web gates, and Pre-CR passed       |
 | 2026-07-25 | Aligned the companion CLI with portfolio filters, scoped refresh, desktop opening, JSON, and blocked clone audit.                                                    | `853faa6`; 11 Rust tests, CLI JSON smoke, and Pre-CR passed  |
 | 2026-07-25 | Added provider-neutral GitHub identity/repository snapshots and the read-only Remote catalog surface.                                                                | `ed8d05f`; 14 Rust tests, web gates, and Pre-CR passed       |
@@ -81,3 +81,4 @@
 | 2026-07-26 | Added `pronto root add <folder>` and configured `/Users/jakyeamos/projects` through the CLI with a completed read-only scan.                                          | `e58e91c`; 31 Rust tests and CLI scan passed                  |
 | 2026-07-26 | Added the authenticated `pronto refresh-github` CLI path and refreshed live GitHub/check-run evidence for the configured portfolio.                               | `9ece39f`; provider Ready, 59 repositories                      |
 | 2026-07-26 | Corrected Tauri packaging to select the desktop binary and installed the current Pronto.app into `/Applications`.                                                   | `39d5b80`; release build and launch verification passed          |
+| 2026-07-26 | Set Cargo's default run target so Tauri launches the desktop app instead of the CLI binary.                                                                         | `865b35a`; app remained live after launch                       |
