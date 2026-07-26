@@ -51,16 +51,17 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
    - branch role, target, confidence, and local integration state.
 6. Derive grouped conditions with deterministic priorities and evidence.
 7. Persist transition-only events and expected-condition fingerprints.
-8. Build the command center, repository detail drawer, evidence panel, onboarding, and unavailable provider/release states.
-9. Expose `pronto status` and JSON output through the same core modules.
+8. Persist explicit read-only action preflights and audit outcomes, including rejected unsupported actions and exact local target IDs; keep modifying Git/provider actions absent.
+9. Build the command center, repository detail drawer, evidence panel, onboarding, and unavailable provider/release states.
+10. Expose `pronto status` and JSON output through the same core modules.
 
 ### Phase 2 — Provider and durable state expansion
 
 - Polish local navigation, freshness, settings, keyboard access, and empty states before expanding the data boundary.
-- Replace the initial JSON store with versioned SQLite while preserving the domain contracts and CLI/renderer snapshot shapes. The implementation includes a non-destructive legacy JSON import.
+- Continue the versioned SQLite contract while preserving the domain contracts and CLI/renderer snapshot shapes; the initial JSON store has already been imported non-destructively.
 - Add GitHub identities, explicit per-repository mapping, refresh freshness, remote-only catalog, and clone preflight.
 - Add process/terminal metadata adapters and structured agent manifests.
-- Add real action policies, fresh preflight execution, local audit records, and safe bounded actions.
+- Extend the read-only action contract into authorized bounded workspace actions only after permission, target, failure, and review semantics are explicit; destructive/history-rewriting Git operations remain prohibited.
 
 ### Phase 3 — Pull requests and releases
 
@@ -83,6 +84,6 @@ Every change must keep Git execution structured (`spawnFile` with argument array
 
 ## PRD coverage at the end of this slice
 
-Implemented or substantially exercised: FR-001–004, FR-006, FR-016–022, FR-027–039, FR-040–043, FR-048–055 (local evidence subset), FR-064, FR-070, FR-102/104/106/107 (privacy boundary), FR-109–112, and FR-113/115/116 (read-only CLI subset).
+Implemented or substantially exercised: FR-001–004, FR-006, FR-016–022, FR-027–039, FR-040–043, FR-048–055 (local evidence subset), FR-064–070 (read-only action subset), FR-102/104/106/107 (privacy boundary), FR-109–112, and FR-113/115/116 (read-only CLI subset).
 
 Explicitly deferred or environment-blocked: GitHub accounts and provider refresh, remote-only import/clone, pull requests, merge actions, release preparation, process inspection, coordinated products/releases, credential-store integration, and packaging/signing.
