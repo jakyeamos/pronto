@@ -6147,6 +6147,31 @@ pub fn run_cli(arguments: Vec<String>) {
                 }
             }
         }
+        "root" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if positionals.len() != 2 || positionals[0] != "add" {
+                eprintln!("Usage: pronto root add <folder> [--json]");
+                std::process::exit(2);
+            }
+            let root_path = &positionals[1];
+            match register_root_and_scan(&path, root_path) {
+                Ok(snapshot) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&snapshot).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(snapshot) => {
+                    println!("Configured discovery root: {root_path}");
+                    print_human_status(&snapshot);
+                }
+                Err(error) => {
+                    eprintln!("Pronto could not configure the discovery root: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
         "clone" => {
             let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
@@ -6229,7 +6254,7 @@ pub fn run_cli(arguments: Vec<String>) {
         }
         _ => {
             eprintln!(
-                "Usage: pronto . | pronto status [--product <name> | --group <name>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto clone <owner/repository> [--json]"
+                "Usage: pronto . | pronto root add <folder> [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto clone <owner/repository> [--json]"
             );
             std::process::exit(2);
         }
@@ -6288,6 +6313,32 @@ mod tests {
         git(&repository, &["add", "tracked.txt"]);
         git(&repository, &["commit", "-m", "Initial fixture"]);
         repository
+    }
+
+    #[test]
+    fn registers_root_and_scans_from_cli_path() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        let store = root.join("registry.db");
+        let snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("cli root registration should scan the folder");
+
+        assert_eq!(snapshot.roots.len(), 1);
+        assert_eq!(
+            snapshot.roots[0].path,
+            canonical_path(&root)
+                .expect("fixture root should be canonical")
+                .to_string_lossy()
+        );
+        assert_eq!(snapshot.repositories.len(), 1);
+        assert_eq!(
+            snapshot.repositories[0].path,
+            canonical_path(&repository)
+                .expect("fixture repository should be canonical")
+                .to_string_lossy()
+        );
+
+        fs::remove_dir_all(root).expect("cli root fixture should be removable");
     }
 
     #[test]
