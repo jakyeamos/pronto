@@ -3,6 +3,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   GitBranch,
+  MoveHorizontal,
   ShieldCheck,
 } from "lucide-react";
 import type { PortfolioSnapshot, RepositorySnapshot } from "../types";
@@ -117,7 +118,12 @@ export function QualityGatesSurface({
               command runs from this surface.
             </p>
           </div>
-          <StatusPill tone="slate">6 canonical · custom discovered</StatusPill>
+          <div className="quality-matrix-heading-meta">
+            <StatusPill tone="slate">
+              6 canonical · custom discovered
+            </StatusPill>
+            <span>{columns.length} gates · horizontal comparison</span>
+          </div>
         </div>
         {repositories.length === 0 ? (
           <div className="surface-empty quality-empty">
@@ -125,18 +131,65 @@ export function QualityGatesSurface({
             <span>Register a repository root to compare quality evidence.</span>
           </div>
         ) : (
-          <div className="quality-matrix-scroll">
+          <div
+            className="quality-matrix-scroll"
+            role="region"
+            aria-label="Quality gate comparison"
+            tabIndex={0}
+          >
+            <div className="quality-matrix-scroll-hint">
+              <MoveHorizontal size={14} />
+              <span>
+                Scroll horizontally to compare all {columns.length} gates.
+              </span>
+            </div>
             <table className="quality-matrix">
+              <colgroup>
+                <col className="quality-matrix-repository-column" />
+                <col className="quality-matrix-maturity-column" />
+                <col className="quality-matrix-findings-column" />
+                {columns.map((column) => (
+                  <col className="quality-matrix-gate-column" key={column} />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
-                  <th scope="col">Repository</th>
-                  <th scope="col">Maturity / audit</th>
-                  <th scope="col">QR findings</th>
+                  <th
+                    scope="col"
+                    className="quality-matrix-sticky quality-matrix-repository-column"
+                  >
+                    Repository
+                  </th>
+                  <th
+                    scope="col"
+                    className="quality-matrix-sticky quality-matrix-maturity-column"
+                  >
+                    Maturity / audit
+                  </th>
+                  <th
+                    scope="col"
+                    className="quality-matrix-sticky quality-matrix-findings-column"
+                  >
+                    QR findings
+                  </th>
                   {columns.map((column) => (
-                    <th scope="col" key={column}>
-                      {repositories
-                        .flatMap((repository) => repository.quality.gates)
-                        .find((gate) => gate.id === column)?.label ?? column}
+                    <th
+                      scope="col"
+                      className="quality-matrix-gate-column"
+                      key={column}
+                    >
+                      <span
+                        className="quality-matrix-gate-heading"
+                        title={
+                          repositories
+                            .flatMap((repository) => repository.quality.gates)
+                            .find((gate) => gate.id === column)?.label ?? column
+                        }
+                      >
+                        {repositories
+                          .flatMap((repository) => repository.quality.gates)
+                          .find((gate) => gate.id === column)?.label ?? column}
+                      </span>
                     </th>
                   ))}
                 </tr>
@@ -144,7 +197,10 @@ export function QualityGatesSurface({
               <tbody>
                 {repositories.map((repository) => (
                   <tr key={repository.id}>
-                    <th scope="row" className="quality-repository-cell">
+                    <th
+                      scope="row"
+                      className="quality-repository-cell quality-matrix-sticky quality-matrix-repository-column"
+                    >
                       <button
                         className="quality-repository-button"
                         type="button"
@@ -158,14 +214,14 @@ export function QualityGatesSurface({
                         </small>
                       </button>
                     </th>
-                    <td>
+                    <td className="quality-matrix-sticky quality-matrix-maturity-column">
                       <QualityMaturitySummary
                         maturity={repository.quality.maturity}
                         compact
                         onOpenReport={onOpenReport}
                       />
                     </td>
-                    <td>
+                    <td className="quality-matrix-sticky quality-matrix-findings-column">
                       <QualityFindingsSummary
                         findings={repository.quality.findings}
                         onOpenReport={onOpenReport}
@@ -176,7 +232,7 @@ export function QualityGatesSurface({
                         (candidate) => candidate.id === column,
                       );
                       return (
-                        <td key={column}>
+                        <td key={column} className="quality-matrix-gate-column">
                           {gate ? (
                             <QualityGateCell
                               gate={gate}
