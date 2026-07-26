@@ -23,12 +23,14 @@ export function DetailDrawer({
   repository,
   onClose,
   onOpenWorkspace,
+  onPrepareRepository,
   onLifecycleChange,
   onCondition,
 }: {
   repository: RepositorySnapshot;
   onClose: () => void;
   onOpenWorkspace: (workspaceId: string, tool: ExternalTool) => Promise<void>;
+  onPrepareRepository: (workspaceId?: string) => Promise<void>;
   onLifecycleChange: (lifecycle: string) => Promise<void>;
   onCondition: (condition: Condition) => void;
 }): ReactElement {
@@ -155,6 +157,13 @@ export function DetailDrawer({
                       {label}
                     </button>
                   ))}
+                  <button
+                    className="button button-quiet"
+                    type="button"
+                    onClick={() => void onPrepareRepository(workspace.id)}
+                  >
+                    Review preparation
+                  </button>
                 </div>
               </div>
             ))}
@@ -241,9 +250,13 @@ export function DetailDrawer({
           <StatusPill tone="slate" icon={<GitBranch size={11} />}>
             {repository.provider_state}
           </StatusPill>
-          <button className="button button-secondary" type="button" disabled>
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={() => void onPrepareRepository(repository.workspace.id)}
+          >
             <TerminalSquare size={15} />
-            Open externally <span className="button-note">coming next</span>
+            Review PR / release evidence
           </button>
         </div>
       </aside>

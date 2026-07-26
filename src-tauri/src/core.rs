@@ -1,7 +1,7 @@
 use chrono::{DateTime, SecondsFormat, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -78,6 +78,52 @@ pub struct RemoteRepositorySnapshot {
     pub locality: String,
     pub identity_id: String,
     pub last_refreshed_at: String,
+    #[serde(default)]
+    pub pull_requests: Vec<PullRequestSnapshot>,
+    #[serde(default)]
+    pub releases: Vec<ReleaseSnapshot>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CheckSnapshot {
+    pub context: String,
+    pub state: String,
+    pub required: bool,
+    pub conclusion: Option<String>,
+    pub last_refreshed_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PullRequestSnapshot {
+    pub id: String,
+    pub provider: String,
+    pub repository_id: String,
+    pub number: u64,
+    pub html_url: String,
+    pub title: String,
+    pub head_branch: String,
+    pub base_branch: String,
+    pub state: String,
+    pub draft: bool,
+    pub checks_state: String,
+    pub reviews_state: String,
+    pub mergeability: String,
+    pub checks: Vec<CheckSnapshot>,
+    pub last_refreshed_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ReleaseSnapshot {
+    pub id: String,
+    pub provider: String,
+    pub repository_id: String,
+    pub tag: String,
+    pub name: String,
+    pub target_commit: Option<String>,
+    pub published_at: Option<String>,
+    pub draft: bool,
+    pub prerelease: bool,
+    pub last_refreshed_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,6 +155,10 @@ impl Default for ProviderStatus {
 pub struct ProviderRefresh {
     pub identities: Vec<ProviderIdentity>,
     pub repositories: Vec<RemoteRepositorySnapshot>,
+    #[serde(default)]
+    pub pull_requests: Vec<PullRequestSnapshot>,
+    #[serde(default)]
+    pub releases: Vec<ReleaseSnapshot>,
     pub refreshed_at: String,
 }
 
@@ -258,6 +308,10 @@ pub struct RepositorySnapshot {
     pub branches: Vec<BranchSummary>,
     #[serde(default)]
     pub submodules: Vec<SubmoduleSummary>,
+    #[serde(default)]
+    pub pull_requests: Vec<PullRequestSnapshot>,
+    #[serde(default)]
+    pub releases: Vec<ReleaseSnapshot>,
     pub conditions: Vec<Condition>,
     pub last_scan_at: String,
     pub last_fetch_at: Option<String>,
@@ -291,6 +345,68 @@ pub struct ActionPreflight {
     pub audit: ActionAudit,
     pub allowed: bool,
     pub target_label: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PullRequestPreparation {
+    pub repository_id: String,
+    pub workspace_id: String,
+    pub head_branch: String,
+    pub base_branch: Option<String>,
+    pub commit_count: u64,
+    pub dirty: bool,
+    pub ahead: u64,
+    pub behind: u64,
+    pub upstream: Option<String>,
+    pub provider_state: String,
+    pub checks_state: String,
+    pub reviews_state: String,
+    pub mergeability: String,
+    pub status: String,
+    pub reasons: Vec<String>,
+    pub evidence: Vec<EvidenceItem>,
+    pub existing_pull_request: Option<PullRequestSnapshot>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseCommitSummary {
+    pub sha: String,
+    pub subject: String,
+    pub category: String,
+    pub bump: Option<String>,
+    pub committed_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseNoteSection {
+    pub category: String,
+    pub commits: Vec<ReleaseCommitSummary>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleasePreparation {
+    pub repository_id: String,
+    pub target_branch: Option<String>,
+    pub baseline_status: String,
+    pub baseline: Option<ReleaseSnapshot>,
+    pub commits_since_baseline: Vec<ReleaseCommitSummary>,
+    pub rule_status: String,
+    pub threshold_label: Option<String>,
+    pub candidate_bump: Option<String>,
+    pub candidate_version: Option<String>,
+    pub version_status: String,
+    pub notes: Vec<ReleaseNoteSection>,
+    pub status: String,
+    pub reasons: Vec<String>,
+    pub evidence: Vec<EvidenceItem>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RepositoryPreparation {
+    pub repository_id: String,
+    pub pull_request: PullRequestPreparation,
+    pub release: ReleasePreparation,
+    pub generated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1198,11 +1314,53 @@ impl ProviderAdapter for GitHubCliAdapter {
             updated_at: refreshed_at.clone(),
         };
         let repositories_payload = self.json(&["api", "user/repos", "--paginate", "--slurp"])?;
-        let repositories =
+        let mut repositories =
             parse_github_repositories(&repositories_payload, &identity_id, &refreshed_at)?;
+        let mut pull_requests = Vec::new();
+        let mut releases = Vec::new();
+        for repository in &repositories {
+            let pull_request_endpoint = format!(
+                "repos/{}/pulls?state=all&per_page=100",
+                repository.full_name
+            );
+            if let Ok(payload) = self.json(&[
+                "api",
+                pull_request_endpoint.as_str(),
+                "--paginate",
+                "--slurp",
+            ]) {
+                if let Ok(parsed) =
+                    parse_github_pull_requests(&payload, &repository.id, &refreshed_at)
+                {
+                    pull_requests.extend(parsed);
+                }
+            }
+            let release_endpoint = format!("repos/{}/releases?per_page=100", repository.full_name);
+            if let Ok(payload) =
+                self.json(&["api", release_endpoint.as_str(), "--paginate", "--slurp"])
+            {
+                if let Ok(parsed) = parse_github_releases(&payload, &repository.id, &refreshed_at) {
+                    releases.extend(parsed);
+                }
+            }
+        }
+        for repository in &mut repositories {
+            repository.pull_requests = pull_requests
+                .iter()
+                .filter(|pull_request| pull_request.repository_id == repository.id)
+                .cloned()
+                .collect();
+            repository.releases = releases
+                .iter()
+                .filter(|release| release.repository_id == repository.id)
+                .cloned()
+                .collect();
+        }
         Ok(ProviderRefresh {
             identities: vec![identity],
             repositories,
+            pull_requests,
+            releases,
             refreshed_at,
         })
     }
@@ -1213,18 +1371,7 @@ fn parse_github_repositories(
     identity_id: &str,
     refreshed_at: &str,
 ) -> Result<Vec<RemoteRepositorySnapshot>, String> {
-    let pages = match payload {
-        serde_json::Value::Array(values) if values.iter().all(serde_json::Value::is_array) => {
-            values
-                .iter()
-                .flat_map(|page| page.as_array().into_iter().flatten())
-                .collect::<Vec<_>>()
-        }
-        serde_json::Value::Array(values) => values.iter().collect::<Vec<_>>(),
-        _ => {
-            return Err("GitHub repository response was not an array.".to_string());
-        }
-    };
+    let pages = github_array_items(payload, "repository")?;
     Ok(pages
         .into_iter()
         .filter_map(|repository| {
@@ -1269,6 +1416,143 @@ fn parse_github_repositories(
                 locality: "Remote only".to_string(),
                 identity_id: identity_id.to_string(),
                 last_refreshed_at: refreshed_at.to_string(),
+                pull_requests: Vec::new(),
+                releases: Vec::new(),
+            })
+        })
+        .collect())
+}
+
+fn github_array_items<'a>(
+    payload: &'a serde_json::Value,
+    resource: &str,
+) -> Result<Vec<&'a serde_json::Value>, String> {
+    match payload {
+        serde_json::Value::Array(values) if values.iter().all(serde_json::Value::is_array) => {
+            Ok(values
+                .iter()
+                .flat_map(|page| page.as_array().into_iter().flatten())
+                .collect::<Vec<_>>())
+        }
+        serde_json::Value::Array(values) => Ok(values.iter().collect::<Vec<_>>()),
+        _ => Err(format!("GitHub {resource} response was not an array.")),
+    }
+}
+
+fn parse_github_pull_requests(
+    payload: &serde_json::Value,
+    repository_id: &str,
+    refreshed_at: &str,
+) -> Result<Vec<PullRequestSnapshot>, String> {
+    Ok(github_array_items(payload, "pull-request")?
+        .into_iter()
+        .filter_map(|pull_request| {
+            let number = pull_request
+                .get("number")
+                .and_then(serde_json::Value::as_u64)?;
+            let head_branch = pull_request
+                .get("head")
+                .and_then(|value| value.get("ref"))
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            let base_branch = pull_request
+                .get("base")
+                .and_then(|value| value.get("ref"))
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            Some(PullRequestSnapshot {
+                id: format!("github:pr:{repository_id}:{number}"),
+                provider: "github".to_string(),
+                repository_id: repository_id.to_string(),
+                number,
+                html_url: pull_request
+                    .get("html_url")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default()
+                    .to_string(),
+                title: pull_request
+                    .get("title")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default()
+                    .to_string(),
+                head_branch,
+                base_branch,
+                state: pull_request
+                    .get("state")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("unknown")
+                    .to_string(),
+                draft: pull_request
+                    .get("draft")
+                    .and_then(serde_json::Value::as_bool)
+                    .unwrap_or(false),
+                checks_state: "Unknown — provider snapshot unavailable".to_string(),
+                reviews_state: "Unknown — provider snapshot unavailable".to_string(),
+                mergeability: pull_request
+                    .get("mergeable_state")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("Unknown — provider snapshot unavailable")
+                    .to_string(),
+                checks: Vec::new(),
+                last_refreshed_at: refreshed_at.to_string(),
+            })
+        })
+        .collect())
+}
+
+fn parse_github_releases(
+    payload: &serde_json::Value,
+    repository_id: &str,
+    refreshed_at: &str,
+) -> Result<Vec<ReleaseSnapshot>, String> {
+    Ok(github_array_items(payload, "release")?
+        .into_iter()
+        .filter_map(|release| {
+            let id = release
+                .get("id")
+                .and_then(serde_json::Value::as_i64)
+                .map(|value| value.to_string())
+                .or_else(|| {
+                    release
+                        .get("tag_name")
+                        .and_then(serde_json::Value::as_str)
+                        .map(str::to_string)
+                })?;
+            Some(ReleaseSnapshot {
+                id: format!("github:release:{repository_id}:{id}"),
+                provider: "github".to_string(),
+                repository_id: repository_id.to_string(),
+                tag: release
+                    .get("tag_name")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default()
+                    .to_string(),
+                name: release
+                    .get("name")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default()
+                    .to_string(),
+                target_commit: release
+                    .get("target_commitish")
+                    .and_then(serde_json::Value::as_str)
+                    .filter(|value| !value.is_empty())
+                    .map(str::to_string),
+                published_at: release
+                    .get("published_at")
+                    .and_then(serde_json::Value::as_str)
+                    .filter(|value| !value.is_empty())
+                    .map(str::to_string),
+                draft: release
+                    .get("draft")
+                    .and_then(serde_json::Value::as_bool)
+                    .unwrap_or(false),
+                prerelease: release
+                    .get("prerelease")
+                    .and_then(serde_json::Value::as_bool)
+                    .unwrap_or(false),
+                last_refreshed_at: refreshed_at.to_string(),
             })
         })
         .collect())
@@ -1311,6 +1595,18 @@ fn apply_provider_refresh_at(
         if let Some(remote) = remote_by_name.get(&remote_name) {
             local.provider_state = format!("GitHub connected as {}", remote.identity_id);
             local.locality = "Local and remote".to_string();
+            local.pull_requests = refresh
+                .pull_requests
+                .iter()
+                .filter(|pull_request| pull_request.repository_id == remote.id)
+                .cloned()
+                .collect();
+            local.releases = refresh
+                .releases
+                .iter()
+                .filter(|release| release.repository_id == remote.id)
+                .cloned()
+                .collect();
         } else if remote_name.starts_with("github.com/") || local.provider_state.contains("GitHub")
         {
             local.provider_state =
@@ -2278,6 +2574,411 @@ fn unique_commits(path: &Path, branch: &str, target: Option<&str>) -> u64 {
     .unwrap_or(0)
 }
 
+fn release_commit_details(subject: &str) -> (String, Option<String>) {
+    let header = subject.split(':').next().unwrap_or(subject).trim();
+    let breaking = header.contains('!') || subject.contains("BREAKING CHANGE");
+    let commit_type = header
+        .trim_end_matches('!')
+        .split('(')
+        .next()
+        .unwrap_or(header)
+        .to_ascii_lowercase();
+    let (category, bump) = if breaking {
+        ("Breaking", Some("major"))
+    } else {
+        match commit_type.as_str() {
+            "feat" => ("Features", Some("minor")),
+            "fix" => ("Fixes", Some("patch")),
+            "perf" => ("Performance", Some("patch")),
+            _ => ("Other", None),
+        }
+    };
+    (category.to_string(), bump.map(str::to_string))
+}
+
+fn release_commits(path: &Path, base: &str, head: &str) -> Vec<ReleaseCommitSummary> {
+    let range = format!("{base}..{head}");
+    let raw = git_owned(
+        path,
+        vec![
+            "log".to_string(),
+            range,
+            "--format=%H%x09%s%x09%cI".to_string(),
+        ],
+    )
+    .unwrap_or_default();
+    raw.lines()
+        .filter_map(|line| {
+            let mut fields = line.split('\t');
+            let sha = fields.next()?.trim();
+            let subject = fields.next()?.trim();
+            let committed_at = fields.next()?.trim();
+            if sha.is_empty() || subject.is_empty() || committed_at.is_empty() {
+                return None;
+            }
+            let (category, bump) = release_commit_details(subject);
+            Some(ReleaseCommitSummary {
+                sha: sha.to_string(),
+                subject: subject.to_string(),
+                category,
+                bump,
+                committed_at: committed_at.to_string(),
+            })
+        })
+        .collect()
+}
+
+fn latest_published_release(repository: &RepositorySnapshot) -> Option<ReleaseSnapshot> {
+    repository
+        .releases
+        .iter()
+        .filter(|release| !release.draft && !release.prerelease && release.published_at.is_some())
+        .max_by(|left, right| left.published_at.cmp(&right.published_at))
+        .cloned()
+}
+
+fn parse_release_version(tag: &str) -> Option<(u64, u64, u64)> {
+    let trimmed = tag.trim().trim_start_matches('v');
+    let mut parts = trimmed.split('.');
+    let major = parts.next()?.parse::<u64>().ok()?;
+    let minor = parts.next()?.parse::<u64>().ok()?;
+    let patch = parts.next()?.parse::<u64>().ok()?;
+    if parts.next().is_some() {
+        return None;
+    }
+    Some((major, minor, patch))
+}
+
+fn highest_release_bump(commits: &[ReleaseCommitSummary]) -> Option<String> {
+    commits
+        .iter()
+        .filter_map(|commit| commit.bump.as_deref())
+        .max_by_key(|bump| match *bump {
+            "major" => 3,
+            "minor" => 2,
+            "patch" => 1,
+            _ => 0,
+        })
+        .map(str::to_string)
+}
+
+fn candidate_version(release: &ReleaseSnapshot, bump: Option<&str>) -> Option<String> {
+    let (mut major, mut minor, mut patch) = parse_release_version(&release.tag)?;
+    match bump {
+        Some("major") => {
+            major += 1;
+            minor = 0;
+            patch = 0;
+        }
+        Some("minor") => {
+            minor += 1;
+            patch = 0;
+        }
+        Some("patch") => patch += 1,
+        _ => return None,
+    }
+    Some(format!("v{major}.{minor}.{patch}"))
+}
+
+fn provider_context_available(repository: &RepositorySnapshot, provider_ready: bool) -> bool {
+    provider_ready && repository.provider_state.starts_with("GitHub connected")
+}
+
+fn prepare_pull_request(
+    repository: &RepositorySnapshot,
+    workspace: &WorkspaceSummary,
+    provider_available: bool,
+) -> PullRequestPreparation {
+    let observed_at = iso_now();
+    let base_branch = workspace.target_branch.clone();
+    let commit_count = unique_commits(
+        Path::new(&workspace.path),
+        &workspace.branch,
+        base_branch.as_deref(),
+    );
+    let existing_pull_request = repository
+        .pull_requests
+        .iter()
+        .filter(|pull_request| {
+            pull_request.state.eq_ignore_ascii_case("open")
+                && pull_request.head_branch == workspace.branch
+                && base_branch
+                    .as_deref()
+                    .is_some_and(|base| pull_request.base_branch == base)
+        })
+        .max_by_key(|pull_request| pull_request.number)
+        .cloned();
+    let checks_state = existing_pull_request
+        .as_ref()
+        .map(|pull_request| pull_request.checks_state.clone())
+        .unwrap_or_else(|| "Unknown — provider snapshot unavailable".to_string());
+    let reviews_state = existing_pull_request
+        .as_ref()
+        .map(|pull_request| pull_request.reviews_state.clone())
+        .unwrap_or_else(|| "Unknown — provider snapshot unavailable".to_string());
+    let mergeability = existing_pull_request
+        .as_ref()
+        .map(|pull_request| pull_request.mergeability.clone())
+        .unwrap_or_else(|| "Unknown — provider snapshot unavailable".to_string());
+    let mut reasons = Vec::new();
+    if base_branch.is_none() {
+        reasons.push("Target branch is unknown".to_string());
+    }
+    if commit_count == 0 {
+        reasons.push("Branch has no unique commits relative to the target".to_string());
+    }
+    if workspace.dirty {
+        reasons.push("Workspace has uncommitted changes".to_string());
+    }
+    if !provider_available {
+        reasons.push(
+            "GitHub provider context is unavailable; pull request creation remains blocked"
+                .to_string(),
+        );
+    }
+    let mut evidence_items = vec![
+        evidence(
+            "Head branch",
+            workspace.branch.clone(),
+            "Local workspace scan",
+            &observed_at,
+        ),
+        evidence(
+            "Base branch",
+            base_branch.clone().unwrap_or_else(|| "Unknown".to_string()),
+            "Workspace target inference",
+            &observed_at,
+        ),
+        evidence(
+            "Commit count",
+            commit_count.to_string(),
+            "git rev-list",
+            &observed_at,
+        ),
+        evidence(
+            "Workspace",
+            if workspace.dirty {
+                "Dirty · commit preparation blocked".to_string()
+            } else {
+                "Clean".to_string()
+            },
+            "git status --porcelain=v2",
+            &observed_at,
+        ),
+        evidence(
+            "Push state",
+            workspace.sync_state.clone(),
+            "git status --porcelain=v2",
+            &observed_at,
+        ),
+        evidence(
+            "Provider",
+            repository.provider_state.clone(),
+            "Local provider snapshot",
+            &observed_at,
+        ),
+    ];
+    if let Some(pull_request) = existing_pull_request.as_ref() {
+        evidence_items.push(evidence(
+            "Existing pull request",
+            format!("#{} · {}", pull_request.number, pull_request.title),
+            "Stored provider snapshot",
+            &observed_at,
+        ));
+    }
+    PullRequestPreparation {
+        repository_id: repository.id.clone(),
+        workspace_id: workspace.id.clone(),
+        head_branch: workspace.branch.clone(),
+        base_branch,
+        commit_count,
+        dirty: workspace.dirty,
+        ahead: workspace.ahead,
+        behind: workspace.behind,
+        upstream: workspace.upstream.clone(),
+        provider_state: repository.provider_state.clone(),
+        checks_state,
+        reviews_state,
+        mergeability,
+        status: if reasons.is_empty() {
+            "Evidence ready".to_string()
+        } else {
+            "Blocked".to_string()
+        },
+        reasons,
+        evidence: evidence_items,
+        existing_pull_request,
+    }
+}
+
+fn prepare_release(
+    repository: &RepositorySnapshot,
+    workspace: &WorkspaceSummary,
+    provider_available: bool,
+) -> ReleasePreparation {
+    let observed_at = iso_now();
+    let target_branch = repository
+        .default_branch
+        .clone()
+        .or_else(|| workspace.target_branch.clone());
+    let connected = provider_context_available(repository, provider_available);
+    let baseline = connected
+        .then(|| latest_published_release(repository))
+        .flatten();
+    let baseline_status = if !connected {
+        "Provider release data unavailable".to_string()
+    } else if baseline.is_some() {
+        "Published release baseline".to_string()
+    } else {
+        "No published release baseline".to_string()
+    };
+    let range_base = baseline
+        .as_ref()
+        .and_then(|release| release.target_commit.as_deref())
+        .or(target_branch.as_deref());
+    let commits_since_baseline = range_base
+        .map(|base| release_commits(Path::new(&workspace.path), base, &workspace.branch))
+        .unwrap_or_default();
+    let candidate_bump = highest_release_bump(&commits_since_baseline);
+    let candidate_version = baseline
+        .as_ref()
+        .and_then(|release| candidate_version(release, candidate_bump.as_deref()));
+    let mut grouped = BTreeMap::<String, Vec<ReleaseCommitSummary>>::new();
+    for commit in &commits_since_baseline {
+        grouped
+            .entry(commit.category.clone())
+            .or_default()
+            .push(commit.clone());
+    }
+    let notes = grouped
+        .into_iter()
+        .map(|(category, commits)| ReleaseNoteSection { category, commits })
+        .collect::<Vec<_>>();
+    let rule_status = "Not configured — commits are shown without threshold evaluation".to_string();
+    let mut reasons = Vec::new();
+    if target_branch.is_none() {
+        reasons.push("Target branch is unknown".to_string());
+    }
+    if !connected {
+        reasons.push(
+            "Published GitHub release data is unavailable; no release threshold is evaluated"
+                .to_string(),
+        );
+    } else if baseline.is_none() {
+        reasons.push("First-release rule is not confirmed".to_string());
+    }
+    if workspace.dirty {
+        reasons.push(
+            "Workspace has uncommitted changes; release preparation cannot start".to_string(),
+        );
+    }
+    let mut evidence_items = vec![
+        evidence(
+            "Target branch",
+            target_branch
+                .clone()
+                .unwrap_or_else(|| "Unknown".to_string()),
+            "Local default branch and workspace target",
+            &observed_at,
+        ),
+        evidence(
+            "Baseline",
+            baseline_status.clone(),
+            "Published GitHub Release snapshot",
+            &observed_at,
+        ),
+        evidence(
+            "Commits since baseline",
+            commits_since_baseline.len().to_string(),
+            "git log",
+            &observed_at,
+        ),
+        evidence(
+            "Rule",
+            rule_status.clone(),
+            "Local release configuration",
+            &observed_at,
+        ),
+    ];
+    if let Some(bump) = candidate_bump.as_ref() {
+        evidence_items.push(evidence(
+            "Candidate bump",
+            bump.clone(),
+            "Deterministic conventional-commit mapping",
+            &observed_at,
+        ));
+    }
+    if workspace.dirty {
+        evidence_items.push(evidence(
+            "Starting state",
+            "Dirty · release preparation blocked".to_string(),
+            "git status --porcelain=v2",
+            &observed_at,
+        ));
+    }
+    let has_candidate_version = candidate_version.is_some();
+    let missing_baseline = baseline.is_none();
+    ReleasePreparation {
+        repository_id: repository.id.clone(),
+        target_branch,
+        baseline_status,
+        baseline,
+        commits_since_baseline,
+        rule_status,
+        threshold_label: None,
+        candidate_bump,
+        candidate_version,
+        version_status: if has_candidate_version {
+            "Candidate requires user confirmation".to_string()
+        } else {
+            "Candidate unavailable until a published baseline and deterministic bump exist"
+                .to_string()
+        },
+        notes,
+        status: if reasons.is_empty() {
+            "Evidence ready".to_string()
+        } else if connected && missing_baseline {
+            "First-release rule not confirmed".to_string()
+        } else {
+            "Blocked".to_string()
+        },
+        reasons,
+        evidence: evidence_items,
+    }
+}
+
+fn prepare_repository_at(
+    path: &Path,
+    repository_id: &str,
+    workspace_id: Option<&str>,
+) -> Result<RepositoryPreparation, String> {
+    let state = load_store(path)?;
+    let repository = state
+        .repositories
+        .iter()
+        .find(|repository| repository.id == repository_id)
+        .ok_or_else(|| "Repository is not registered".to_string())?;
+    let workspace = match workspace_id.filter(|value| !value.trim().is_empty()) {
+        Some(workspace_id) => repository
+            .workspaces
+            .iter()
+            .find(|workspace| workspace.id == workspace_id)
+            .ok_or_else(|| "Workspace is not registered for this repository".to_string())?,
+        None => &repository.workspace,
+    };
+    if !Path::new(&workspace.path).is_dir() {
+        return Err("The workspace path is not an accessible folder".to_string());
+    }
+    let provider_available =
+        provider_context_available(repository, state.provider_status.state == "Ready");
+    Ok(RepositoryPreparation {
+        repository_id: repository.id.clone(),
+        pull_request: prepare_pull_request(repository, workspace, provider_available),
+        release: prepare_release(repository, workspace, provider_available),
+        generated_at: iso_now(),
+    })
+}
+
 fn branch_integration_state(
     path: &Path,
     branch: &str,
@@ -2786,8 +3487,6 @@ fn scan_repository(
         default_branch.as_deref(),
         Some(&primary),
     );
-    primary_for_conditions.target_branch =
-        target_for_branch(&primary.branch, default_branch.as_deref()).0;
     let conditions = build_conditions(
         &repository_id,
         &primary_for_conditions,
@@ -2831,6 +3530,12 @@ fn scan_repository(
         workspaces,
         branches,
         submodules,
+        pull_requests: existing
+            .map(|repository| repository.pull_requests.clone())
+            .unwrap_or_default(),
+        releases: existing
+            .map(|repository| repository.releases.clone())
+            .unwrap_or_default(),
         conditions,
         last_scan_at: observed_at,
         last_fetch_at: existing_last_fetch,
@@ -3577,6 +4282,14 @@ pub fn open_workspace(
 }
 
 #[tauri::command]
+pub fn prepare_repository(
+    repository_id: String,
+    workspace_id: Option<String>,
+) -> Result<RepositoryPreparation, String> {
+    prepare_repository_at(&store_path(), &repository_id, workspace_id.as_deref())
+}
+
+#[tauri::command]
 pub fn preflight_action(
     action: String,
     repository_id: Option<String>,
@@ -4286,6 +4999,144 @@ mod tests {
     }
 
     #[test]
+    fn prepares_pull_request_and_release_evidence_deterministically() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        let initial_commit =
+            String::from_utf8_lossy(&git(&repository, &["rev-parse", "main"]).stdout)
+                .trim()
+                .to_string();
+        git(&repository, &["switch", "-c", "feature/release-preview"]);
+        fs::write(repository.join("feature.txt"), "feature\n")
+            .expect("feature file should be writable");
+        git(&repository, &["add", "feature.txt"]);
+        git(&repository, &["commit", "-m", "feat: add release preview"]);
+        fs::write(repository.join("feature.txt"), "feature\nfix\n")
+            .expect("feature file should be writable");
+        git(&repository, &["add", "feature.txt"]);
+        git(
+            &repository,
+            &["commit", "-m", "fix: correct release preview"],
+        );
+        fs::write(repository.join("breaking.txt"), "breaking\n")
+            .expect("breaking file should be writable");
+        git(&repository, &["add", "breaking.txt"]);
+        git(
+            &repository,
+            &["commit", "-m", "feat!: change release contract"],
+        );
+
+        let database = root.join("registry.db");
+        let root_config = RootConfig {
+            id: path_id("root", &root),
+            path: root.to_string_lossy().to_string(),
+            label: "fixture".to_string(),
+            ignore_patterns: Vec::new(),
+            refresh_policy: default_refresh_policy(),
+            background_monitoring: false,
+            registered_at: iso_now(),
+        };
+        let mut state = StoreState {
+            roots: vec![root_config],
+            ..StoreState::default()
+        };
+        scan_and_persist_scoped(&database, &mut state, None)
+            .expect("release fixture should persist");
+        let mut persisted = load_store(&database).expect("release fixture should reload");
+        let (repository_id, workspace_id) = {
+            let stored_repository = persisted
+                .repositories
+                .first_mut()
+                .expect("fixture repository should be registered");
+            stored_repository.provider_state = "GitHub connected as github:fixture".to_string();
+            stored_repository.releases = vec![ReleaseSnapshot {
+                id: "github:release-1".to_string(),
+                provider: "github".to_string(),
+                repository_id: "github:repo-1".to_string(),
+                tag: "v1.2.3".to_string(),
+                name: "v1.2.3".to_string(),
+                target_commit: Some(initial_commit),
+                published_at: Some("2026-07-25T12:00:00Z".to_string()),
+                draft: false,
+                prerelease: false,
+                last_refreshed_at: "2026-07-26T12:00:00Z".to_string(),
+            }];
+            stored_repository.pull_requests = vec![PullRequestSnapshot {
+                id: "github:pr-1".to_string(),
+                provider: "github".to_string(),
+                repository_id: "github:repo-1".to_string(),
+                number: 7,
+                html_url: "https://github.com/fixture/repository/pull/7".to_string(),
+                title: "Release preview".to_string(),
+                head_branch: "feature/release-preview".to_string(),
+                base_branch: "main".to_string(),
+                state: "OPEN".to_string(),
+                draft: true,
+                checks_state: "Pending".to_string(),
+                reviews_state: "Required review unavailable".to_string(),
+                mergeability: "Unknown — provider snapshot unavailable".to_string(),
+                checks: Vec::new(),
+                last_refreshed_at: "2026-07-26T12:00:00Z".to_string(),
+            }];
+            (
+                stored_repository.id.clone(),
+                stored_repository.workspace.id.clone(),
+            )
+        };
+        persisted.provider_status = ProviderStatus {
+            provider: "GitHub".to_string(),
+            state: "Ready".to_string(),
+            message: "fixture".to_string(),
+            last_refresh_at: Some("2026-07-26T12:00:00Z".to_string()),
+            identity_count: 1,
+            repository_count: 1,
+        };
+        save_store(&database, &persisted).expect("release evidence should persist");
+
+        let preparation = prepare_repository_at(&database, &repository_id, Some(&workspace_id))
+            .expect("preparation should be deterministic");
+        assert_eq!(preparation.pull_request.status, "Evidence ready");
+        assert_eq!(
+            preparation.pull_request.base_branch.as_deref(),
+            Some("main")
+        );
+        assert_eq!(preparation.pull_request.commit_count, 3);
+        assert_eq!(preparation.pull_request.checks_state, "Pending");
+        assert_eq!(
+            preparation
+                .pull_request
+                .existing_pull_request
+                .as_ref()
+                .map(|pull_request| pull_request.number),
+            Some(7)
+        );
+        assert_eq!(
+            preparation.release.baseline_status,
+            "Published release baseline"
+        );
+        assert_eq!(preparation.release.commits_since_baseline.len(), 3);
+        assert_eq!(preparation.release.candidate_bump.as_deref(), Some("major"));
+        assert_eq!(
+            preparation.release.candidate_version.as_deref(),
+            Some("v2.0.0")
+        );
+        assert_eq!(
+            preparation.release.rule_status,
+            "Not configured — commits are shown without threshold evaluation"
+        );
+        assert_eq!(
+            preparation
+                .release
+                .notes
+                .iter()
+                .map(|section| section.category.as_str())
+                .collect::<Vec<_>>(),
+            vec!["Breaking", "Features", "Fixes"]
+        );
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
     fn parses_github_repository_pages_into_remote_snapshots() {
         let payload = serde_json::json!([
             [{
@@ -4314,6 +5165,62 @@ mod tests {
         assert_eq!(repositories[0].locality, "Remote only");
         assert_eq!(repositories[1].name, "Archive");
         assert!(repositories[1].archived);
+    }
+
+    #[test]
+    fn parses_github_pull_requests_and_published_release_snapshots() {
+        let pull_requests = parse_github_pull_requests(
+            &serde_json::json!([
+                [{
+                    "number": 12,
+                    "html_url": "https://github.com/Acme/Portfolio/pull/12",
+                    "title": "Release preview",
+                    "state": "open",
+                    "draft": true,
+                    "head": {"ref": "feature/release"},
+                    "base": {"ref": "main"},
+                    "mergeable_state": "unknown"
+                }]
+            ]),
+            "github:42",
+            "2026-07-26T12:00:00Z",
+        )
+        .expect("pull-request pages should parse");
+        assert_eq!(pull_requests.len(), 1);
+        assert_eq!(pull_requests[0].number, 12);
+        assert_eq!(pull_requests[0].head_branch, "feature/release");
+        assert_eq!(
+            pull_requests[0].checks_state,
+            "Unknown — provider snapshot unavailable"
+        );
+
+        let releases = parse_github_releases(
+            &serde_json::json!([
+                {
+                    "id": 9,
+                    "tag_name": "v1.4.0",
+                    "name": "Version 1.4.0",
+                    "target_commitish": "abc123",
+                    "published_at": "2026-07-25T12:00:00Z",
+                    "draft": false,
+                    "prerelease": false
+                },
+                {
+                    "id": 10,
+                    "tag_name": "v1.5.0-rc.1",
+                    "published_at": "2026-07-26T12:00:00Z",
+                    "draft": false,
+                    "prerelease": true
+                }
+            ]),
+            "github:42",
+            "2026-07-26T12:00:00Z",
+        )
+        .expect("release response should parse");
+        assert_eq!(releases.len(), 2);
+        assert_eq!(releases[0].tag, "v1.4.0");
+        assert!(!releases[0].prerelease);
+        assert!(releases[1].prerelease);
     }
 
     #[test]
@@ -4368,7 +5275,11 @@ mod tests {
                 locality: "Remote only".to_string(),
                 identity_id: "github:jakyeamos".to_string(),
                 last_refreshed_at: "2026-07-25T12:00:00Z".to_string(),
+                pull_requests: Vec::new(),
+                releases: Vec::new(),
             }],
+            pull_requests: Vec::new(),
+            releases: Vec::new(),
             refreshed_at: "2026-07-25T12:00:00Z".to_string(),
         };
         let snapshot = apply_provider_refresh_at(&database, refresh)

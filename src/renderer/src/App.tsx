@@ -17,7 +17,8 @@ import {
   CommandCenterSurface,
   type Filter,
 } from "./components/CommandCenterSurface";
-import { DetailDrawer, EvidenceDrawer } from "./components/Drawers";
+import { AppOverlays } from "./components/AppOverlays";
+import { AppSidebar } from "./components/AppSidebar";
 import {
   formatTime,
   IconButton,
@@ -35,6 +36,7 @@ import type {
   Condition,
   ExternalTool,
   PortfolioSnapshot,
+  RepositoryPreparation,
   RepositorySnapshot,
 } from "./types";
 import "./styles.css";
@@ -69,6 +71,10 @@ export function App(): ReactElement {
   const [selectedEvidence, setSelectedEvidence] = useState<{
     repository: RepositorySnapshot;
     condition: Condition;
+  } | null>(null);
+  const [selectedPreparation, setSelectedPreparation] = useState<{
+    repository: RepositorySnapshot;
+    preparation: RepositoryPreparation;
   } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,12 +111,13 @@ export function App(): ReactElement {
       }
       if (event.key === "Escape") {
         if (selectedEvidence) setSelectedEvidence(null);
+        else if (selectedPreparation) setSelectedPreparation(null);
         else if (selectedRepository) setSelectedRepository(null);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedEvidence, selectedRepository]);
+  }, [selectedEvidence, selectedPreparation, selectedRepository]);
 
   const handleAddRoot = useCallback(async (): Promise<void> => {
     try {
@@ -210,6 +217,29 @@ export function App(): ReactElement {
     [selectedRepository],
   );
 
+  const handlePrepareRepository = useCallback(
+    async (workspaceId?: string): Promise<void> => {
+      if (!selectedRepository) return;
+      try {
+        const preparation = await api.prepareRepository(
+          selectedRepository.id,
+          workspaceId,
+        );
+        setSelectedPreparation({
+          repository: selectedRepository,
+          preparation,
+        });
+      } catch (caught) {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Pronto could not prepare that evidence preview.",
+        );
+      }
+    },
+    [selectedRepository],
+  );
+
   const repositories = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return snapshot.repositories
@@ -274,56 +304,17 @@ export function App(): ReactElement {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-mark">P</div>
-          <div>
-            <strong>Pronto</strong>
-            <span>Portfolio command center</span>
-          </div>
-        </div>
-        <div className="sidebar-rule" />
-        <nav className="primary-nav" aria-label="Primary navigation">
-          {navItems.map(({ id, label, icon: Icon }) => (
-            <button
-              className={`nav-item ${activeNav === id ? "nav-item-active" : ""}`}
-              type="button"
-              key={id}
-              aria-current={activeNav === id ? "page" : undefined}
-              onClick={() => {
-                setActiveNav(id);
-                setSelectedRepository(null);
-                setSelectedEvidence(null);
-              }}
-            >
-              <Icon size={17} />
-              <span>{label}</span>
-              {id === "command" && activeConditionCount > 0 && (
-                <span className="nav-count">{activeConditionCount}</span>
-              )}
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <div className="local-status">
-            <span className="status-beacon" />
-            <div>
-              <strong>Local evidence only</strong>
-              <span>
-                {snapshot.roots.length} discovery root
-                {snapshot.roots.length === 1 ? "" : "s"}
-              </span>
-            </div>
-          </div>
-          <div className="privacy-card">
-            <ShieldCheck size={16} />
-            <p>
-              <strong>Private by default</strong>
-              <span>Source and uncommitted diff content stay local.</span>
-            </p>
-          </div>
-        </div>
-      </aside>
+      <AppSidebar
+        activeNav={activeNav}
+        activeConditionCount={activeConditionCount}
+        rootCount={snapshot.roots.length}
+        onNavigate={(nav) => {
+          setActiveNav(nav);
+          setSelectedRepository(null);
+          setSelectedEvidence(null);
+          setSelectedPreparation(null);
+        }}
+      />
       <main className="main-content">
         <header className="topbar">
           <div className="breadcrumbs">
@@ -479,31 +470,32 @@ export function App(): ReactElement {
           )}
         </div>
       </main>
-      {selectedRepository && (
-        <DetailDrawer
-          repository={selectedRepository}
-          onClose={() => setSelectedRepository(null)}
-          onOpenWorkspace={handleOpenWorkspace}
-          onLifecycleChange={async (lifecycle) => {
-            await loadSnapshot(() =>
-              api.setRepositoryLifecycle(selectedRepository.id, lifecycle),
-            );
-            setSelectedRepository(null);
-          }}
-          onCondition={(condition) => {
-            setSelectedRepository(null);
-            handleCondition(selectedRepository, condition);
-          }}
-        />
-      )}
-      {selectedEvidence && (
-        <EvidenceDrawer
-          repository={selectedEvidence.repository}
-          condition={selectedEvidence.condition}
-          onClose={() => setSelectedEvidence(null)}
-          onExpected={() => void handleExpected()}
-        />
-      )}
+      <AppOverlays
+        selectedRepository={selectedRepository}
+        selectedEvidence={selectedEvidence}
+        selectedPreparation={selectedPreparation}
+        onCloseRepository={() => {
+          setSelectedRepository(null);
+          setSelectedPreparation(null);
+        }}
+        onOpenWorkspace={handleOpenWorkspace}
+        onPrepareRepository={handlePrepareRepository}
+        onLifecycleChange={async (lifecycle) => {
+          if (!selectedRepository) return;
+          await loadSnapshot(() =>
+            api.setRepositoryLifecycle(selectedRepository.id, lifecycle),
+          );
+          setSelectedRepository(null);
+        }}
+        onCondition={(condition) => {
+          if (!selectedRepository) return;
+          setSelectedRepository(null);
+          handleCondition(selectedRepository, condition);
+        }}
+        onCloseEvidence={() => setSelectedEvidence(null)}
+        onExpected={() => void handleExpected()}
+        onClosePreparation={() => setSelectedPreparation(null)}
+      />
     </div>
   );
 }

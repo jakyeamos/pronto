@@ -47,6 +47,47 @@ export interface RemoteRepositorySnapshot {
   locality: string;
   identity_id: string;
   last_refreshed_at: string;
+  pull_requests: PullRequestSnapshot[];
+  releases: ReleaseSnapshot[];
+}
+
+export interface CheckSnapshot {
+  context: string;
+  state: string;
+  required: boolean;
+  conclusion?: string;
+  last_refreshed_at: string;
+}
+
+export interface PullRequestSnapshot {
+  id: string;
+  provider: string;
+  repository_id: string;
+  number: number;
+  html_url: string;
+  title: string;
+  head_branch: string;
+  base_branch: string;
+  state: string;
+  draft: boolean;
+  checks_state: string;
+  reviews_state: string;
+  mergeability: string;
+  checks: CheckSnapshot[];
+  last_refreshed_at: string;
+}
+
+export interface ReleaseSnapshot {
+  id: string;
+  provider: string;
+  repository_id: string;
+  tag: string;
+  name: string;
+  target_commit?: string;
+  published_at?: string;
+  draft: boolean;
+  prerelease: boolean;
+  last_refreshed_at: string;
 }
 
 export interface ProviderStatus {
@@ -166,10 +207,69 @@ export interface RepositorySnapshot {
   workspaces: WorkspaceSummary[];
   branches: BranchSummary[];
   submodules: SubmoduleSummary[];
+  pull_requests: PullRequestSnapshot[];
+  releases: ReleaseSnapshot[];
   conditions: Condition[];
   last_scan_at: string;
   last_fetch_at?: string;
   last_activity_at?: string;
+}
+
+export interface PullRequestPreparation {
+  repository_id: string;
+  workspace_id: string;
+  head_branch: string;
+  base_branch?: string;
+  commit_count: number;
+  dirty: boolean;
+  ahead: number;
+  behind: number;
+  upstream?: string;
+  provider_state: string;
+  checks_state: string;
+  reviews_state: string;
+  mergeability: string;
+  status: string;
+  reasons: string[];
+  evidence: EvidenceItem[];
+  existing_pull_request?: PullRequestSnapshot;
+}
+
+export interface ReleaseCommitSummary {
+  sha: string;
+  subject: string;
+  category: string;
+  bump?: string;
+  committed_at: string;
+}
+
+export interface ReleaseNoteSection {
+  category: string;
+  commits: ReleaseCommitSummary[];
+}
+
+export interface ReleasePreparation {
+  repository_id: string;
+  target_branch?: string;
+  baseline_status: string;
+  baseline?: ReleaseSnapshot;
+  commits_since_baseline: ReleaseCommitSummary[];
+  rule_status: string;
+  threshold_label?: string;
+  candidate_bump?: string;
+  candidate_version?: string;
+  version_status: string;
+  notes: ReleaseNoteSection[];
+  status: string;
+  reasons: string[];
+  evidence: EvidenceItem[];
+}
+
+export interface RepositoryPreparation {
+  repository_id: string;
+  pull_request: PullRequestPreparation;
+  release: ReleasePreparation;
+  generated_at: string;
 }
 
 export interface SubmoduleSummary {

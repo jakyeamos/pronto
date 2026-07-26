@@ -1,6 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { ActionPreflight, ExternalTool, PortfolioSnapshot } from "./types";
+import type {
+  ActionPreflight,
+  ExternalTool,
+  PortfolioSnapshot,
+  RepositoryPreparation,
+} from "./types";
 
 const emptySnapshot: PortfolioSnapshot = {
   roots: [],
@@ -61,6 +66,21 @@ export async function openWorkspace(
     repository_id: repositoryId,
     workspace_id: workspaceId,
     tool,
+  });
+}
+
+export async function prepareRepository(
+  repositoryId: string,
+  workspaceId?: string,
+): Promise<RepositoryPreparation> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error(
+      "Preparation previews are available in the Pronto desktop app.",
+    );
+  }
+  return invoke<RepositoryPreparation>("prepare_repository", {
+    repository_id: repositoryId,
+    workspace_id: workspaceId,
   });
 }
 
