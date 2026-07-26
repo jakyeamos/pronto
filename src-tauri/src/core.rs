@@ -868,6 +868,11 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
     if !path.exists() {
         if let Some(mut legacy_state) = load_legacy_store(path)? {
             legacy_state.version = legacy_state.version.max(STORE_VERSION);
+            legacy_state.remote_repositories = filter_linked_remote_repositories(
+                &legacy_state.repositories,
+                legacy_state.remote_repositories,
+            );
+            legacy_state.provider_status.repository_count = legacy_state.remote_repositories.len();
             save_store(path, &legacy_state)?;
             return Ok(legacy_state);
         }
@@ -881,7 +886,7 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
     let retention_days = metadata_value(&connection, "retention_days")?
         .and_then(|value| value.parse::<i64>().ok())
         .unwrap_or(DEFAULT_RETENTION_DAYS);
-    let provider_status = match metadata_value(&connection, "provider_status_json")? {
+    let mut provider_status = match metadata_value(&connection, "provider_status_json")? {
         Some(payload) => serde_json::from_str(&payload)
             .map_err(|error| format!("Could not decode provider status: {error}"))?,
         None => ProviderStatus::default(),
@@ -1054,6 +1059,8 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
                 .map_err(|error| format!("Could not decode repository snapshot: {error}"))
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let remote_repositories = filter_linked_remote_repositories(&repositories, remote_repositories);
+    provider_status.repository_count = remote_repositories.len();
 
     let expected_conditions = connection
         .prepare(
@@ -1865,6 +1872,33 @@ fn normalize_remote_name(value: &str) -> Option<String> {
     Some(normalized.trim_end_matches(".git").to_string())
 }
 
+fn filter_linked_remote_repositories(
+    repositories: &[RepositorySnapshot],
+    remote_repositories: Vec<RemoteRepositorySnapshot>,
+) -> Vec<RemoteRepositorySnapshot> {
+    let local_names = repositories
+        .iter()
+        .filter_map(|repository| {
+            repository
+                .remote_url
+                .as_deref()
+                .and_then(normalize_remote_name)
+        })
+        .collect::<HashSet<_>>();
+
+    remote_repositories
+        .into_iter()
+        .filter_map(|mut remote| {
+            let normalized_name = normalize_remote_name(&remote.full_name)?;
+            if !local_names.contains(&normalized_name) {
+                return None;
+            }
+            remote.locality = "Local and remote".to_string();
+            Some(remote)
+        })
+        .collect()
+}
+
 fn apply_provider_refresh_at(
     path: &Path,
     refresh: ProviderRefresh,
@@ -1902,30 +1936,14 @@ fn apply_provider_refresh_at(
                 "GitHub repository unavailable to the connected identity".to_string();
         }
     }
-    let local_names = state
-        .repositories
-        .iter()
-        .filter_map(|repository| {
-            repository
-                .remote_url
-                .as_deref()
-                .and_then(normalize_remote_name)
-        })
-        .collect::<HashSet<_>>();
-    let mut remote_repositories = refresh.repositories;
-    for remote in &mut remote_repositories {
-        let normalized_name = normalize_remote_name(&remote.full_name)
-            .unwrap_or_else(|| remote.full_name.to_ascii_lowercase());
-        if local_names.contains(&normalized_name) {
-            remote.locality = "Local and remote".to_string();
-        }
-    }
+    let remote_repositories =
+        filter_linked_remote_repositories(&state.repositories, refresh.repositories);
     state.provider_identities = refresh.identities;
     state.remote_repositories = remote_repositories;
     state.provider_status = ProviderStatus {
         provider: "GitHub".to_string(),
         state: "Ready".to_string(),
-        message: "Read-only GitHub context refreshed from the authenticated CLI.".to_string(),
+        message: "Read-only GitHub context refreshed for connected local repositories.".to_string(),
         last_refresh_at: Some(refresh.refreshed_at),
         identity_count: state.provider_identities.len(),
         repository_count: state.remote_repositories.len(),
@@ -7164,24 +7182,44 @@ mod tests {
                 credential_state: "Authenticated".to_string(),
                 updated_at: "2026-07-25T12:00:00Z".to_string(),
             }],
-            repositories: vec![RemoteRepositorySnapshot {
-                id: "github:42".to_string(),
-                provider: "github".to_string(),
-                full_name: "acme/portfolio-repository".to_string(),
-                name: "portfolio-repository".to_string(),
-                owner: "acme".to_string(),
-                html_url: "https://github.com/acme/portfolio-repository".to_string(),
-                default_branch: Some("main".to_string()),
-                archived: false,
-                locality: "Remote only".to_string(),
-                identity_id: "github:jakyeamos".to_string(),
-                last_refreshed_at: "2026-07-25T12:00:00Z".to_string(),
-                pull_requests: Vec::new(),
-                releases: Vec::new(),
-                ci_checks: Vec::new(),
-                ci_branch: None,
-                ci_commit: None,
-            }],
+            repositories: vec![
+                RemoteRepositorySnapshot {
+                    id: "github:42".to_string(),
+                    provider: "github".to_string(),
+                    full_name: "acme/portfolio-repository".to_string(),
+                    name: "portfolio-repository".to_string(),
+                    owner: "acme".to_string(),
+                    html_url: "https://github.com/acme/portfolio-repository".to_string(),
+                    default_branch: Some("main".to_string()),
+                    archived: false,
+                    locality: "Remote only".to_string(),
+                    identity_id: "github:jakyeamos".to_string(),
+                    last_refreshed_at: "2026-07-25T12:00:00Z".to_string(),
+                    pull_requests: Vec::new(),
+                    releases: Vec::new(),
+                    ci_checks: Vec::new(),
+                    ci_branch: None,
+                    ci_commit: None,
+                },
+                RemoteRepositorySnapshot {
+                    id: "github:99".to_string(),
+                    provider: "github".to_string(),
+                    full_name: "acme/remote-only".to_string(),
+                    name: "remote-only".to_string(),
+                    owner: "acme".to_string(),
+                    html_url: "https://github.com/acme/remote-only".to_string(),
+                    default_branch: Some("main".to_string()),
+                    archived: false,
+                    locality: "Remote only".to_string(),
+                    identity_id: "github:jakyeamos".to_string(),
+                    last_refreshed_at: "2026-07-25T12:00:00Z".to_string(),
+                    pull_requests: Vec::new(),
+                    releases: Vec::new(),
+                    ci_checks: Vec::new(),
+                    ci_branch: None,
+                    ci_commit: None,
+                },
+            ],
             pull_requests: Vec::new(),
             releases: Vec::new(),
             refreshed_at: "2026-07-25T12:00:00Z".to_string(),
@@ -7192,6 +7230,10 @@ mod tests {
         assert_eq!(snapshot.provider_status.state, "Ready");
         assert_eq!(snapshot.provider_identities.len(), 1);
         assert_eq!(snapshot.remote_repositories.len(), 1);
+        assert_eq!(
+            snapshot.remote_repositories[0].full_name,
+            "acme/portfolio-repository"
+        );
         assert_eq!(snapshot.remote_repositories[0].locality, "Local and remote");
         assert_eq!(snapshot.repositories[0].locality, "Local and remote");
         assert_eq!(

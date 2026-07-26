@@ -33,8 +33,8 @@ export function RemoteCatalogSurface({
             <p className="eyebrow">Read-only provider boundary</p>
             <h2>GitHub remote catalog</h2>
             <p>
-              Remote context is stored locally as a snapshot. It never implies
-              that a working copy exists.
+              Only GitHub repositories connected to an in-scope local checkout
+              are shown here.
             </p>
           </div>
           <button
@@ -89,7 +89,8 @@ export function RemoteCatalogSurface({
             <p className="eyebrow">Provider snapshot</p>
             <h2>{repositories.length} repositories</h2>
             <p>
-              Local matches are labeled separately from remote-only records.
+              Remote-only GitHub repositories are omitted until a matching local
+              checkout is discovered.
             </p>
           </div>
         </div>
@@ -97,8 +98,8 @@ export function RemoteCatalogSurface({
           <div className="surface-empty">
             <Github size={18} />
             <span>
-              Refresh GitHub after authenticating to load repositories you can
-              access.
+              Refresh GitHub after authenticating and connecting local
+              repositories to their remotes.
             </span>
           </div>
         ) : (
@@ -108,13 +109,7 @@ export function RemoteCatalogSurface({
                 <div>
                   <div className="remote-repository-heading">
                     <strong>{repository.full_name}</strong>
-                    <StatusPill
-                      tone={
-                        repository.locality === "Remote only" ? "amber" : "mint"
-                      }
-                    >
-                      {repository.locality}
-                    </StatusPill>
+                    <StatusPill tone="mint">{repository.locality}</StatusPill>
                   </div>
                   <small>
                     {repository.archived ? "Archived" : "Active"} · default{" "}
