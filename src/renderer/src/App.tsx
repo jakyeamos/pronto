@@ -393,7 +393,7 @@ export function App(): ReactElement {
               icon={<PackageOpen size={19} />}
               details={[
                 { label: "Authority", value: "User-defined" },
-                { label: "State", value: "Planned after SQLite" },
+                { label: "State", value: "Planned manual configuration" },
               ]}
             />
           ) : activeNav === "groups" ? (
@@ -404,7 +404,7 @@ export function App(): ReactElement {
               icon={<FolderGit2 size={19} />}
               details={[
                 { label: "Authority", value: "User-defined" },
-                { label: "State", value: "Planned after SQLite" },
+                { label: "State", value: "Planned manual configuration" },
               ]}
             />
           ) : (
@@ -415,7 +415,7 @@ export function App(): ReactElement {
               icon={<GitBranch size={19} />}
               details={[
                 { label: "Permission", value: "Read-only" },
-                { label: "Prerequisite", value: "SQLite state" },
+                { label: "Prerequisite", value: "Read-only provider contract" },
               ]}
             />
           )}

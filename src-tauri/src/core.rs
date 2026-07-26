@@ -1,13 +1,14 @@
 use chrono::{DateTime, SecondsFormat, Utc};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
 use std::fs;
-use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const STORE_VERSION: u8 = 1;
+const SQLITE_SCHEMA_VERSION: i64 = 1;
 const DEFAULT_RETENTION_DAYS: i64 = 90;
 const DEFAULT_MAX_UNTRACKED_BYTES: u64 = 2_000_000;
 
@@ -211,31 +212,329 @@ fn data_directory() -> PathBuf {
 }
 
 fn store_path() -> PathBuf {
-    data_directory().join("registry.json")
+    data_directory().join("registry.db")
+}
+
+fn legacy_store_path(path: &Path) -> PathBuf {
+    path.with_file_name("registry.json")
+}
+
+fn ensure_store_parent(path: &Path) -> Result<(), String> {
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .ok_or_else(|| "Pronto storage path has no parent directory".to_string())?;
+    fs::create_dir_all(parent)
+        .map_err(|error| format!("Could not create Pronto storage directory: {error}"))
+}
+
+fn metadata_value(connection: &Connection, key: &str) -> Result<Option<String>, String> {
+    connection
+        .query_row(
+            "SELECT value FROM metadata WHERE key = ?1",
+            params![key],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|error| format!("Could not read Pronto database metadata: {error}"))
+}
+
+fn initialize_store(connection: &Connection) -> Result<(), String> {
+    connection
+        .execute_batch(
+            "PRAGMA foreign_keys = ON;
+             CREATE TABLE IF NOT EXISTS metadata (
+                 key TEXT PRIMARY KEY,
+                 value TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS roots (
+                 id TEXT PRIMARY KEY,
+                 path TEXT NOT NULL,
+                 label TEXT NOT NULL,
+                 ignore_patterns_json TEXT NOT NULL,
+                 registered_at TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS repositories (
+                 id TEXT PRIMARY KEY,
+                 payload_json TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS expected_conditions (
+                 repository_id TEXT NOT NULL,
+                 condition_id TEXT NOT NULL,
+                 fingerprint TEXT NOT NULL,
+                 marked_at TEXT NOT NULL,
+                 PRIMARY KEY (repository_id, condition_id)
+             );
+             CREATE TABLE IF NOT EXISTS events (
+                 id TEXT PRIMARY KEY,
+                 repository_id TEXT NOT NULL,
+                 kind TEXT NOT NULL,
+                 summary TEXT NOT NULL,
+                 fingerprint TEXT NOT NULL,
+                 created_at TEXT NOT NULL
+             );",
+        )
+        .map_err(|error| format!("Could not initialize Pronto database: {error}"))?;
+
+    let schema_version = metadata_value(connection, "schema_version")?;
+    match schema_version {
+        Some(value) => {
+            let version = value.parse::<i64>().map_err(|error| {
+                format!("Could not parse Pronto database schema version: {error}")
+            })?;
+            if version != SQLITE_SCHEMA_VERSION {
+                return Err(format!(
+                    "Unsupported Pronto database schema version {version}; expected {SQLITE_SCHEMA_VERSION}"
+                ));
+            }
+        }
+        None => {
+            connection
+                .execute(
+                    "INSERT INTO metadata (key, value) VALUES (?1, ?2)",
+                    params!["schema_version", SQLITE_SCHEMA_VERSION.to_string()],
+                )
+                .map_err(|error| {
+                    format!("Could not record Pronto database schema version: {error}")
+                })?;
+        }
+    }
+
+    if metadata_value(connection, "store_version")?.is_none() {
+        connection
+            .execute(
+                "INSERT INTO metadata (key, value) VALUES (?1, ?2)",
+                params!["store_version", STORE_VERSION.to_string()],
+            )
+            .map_err(|error| format!("Could not record Pronto store version: {error}"))?;
+    }
+
+    Ok(())
+}
+
+fn open_store(path: &Path) -> Result<Connection, String> {
+    ensure_store_parent(path)?;
+    let connection = Connection::open(path)
+        .map_err(|error| format!("Could not open local Pronto database: {error}"))?;
+    initialize_store(&connection)?;
+    Ok(connection)
+}
+
+fn load_legacy_store(path: &Path) -> Result<Option<StoreState>, String> {
+    let legacy_path = legacy_store_path(path);
+    if legacy_path == path || !legacy_path.exists() {
+        return Ok(None);
+    }
+    let contents = fs::read_to_string(&legacy_path)
+        .map_err(|error| format!("Could not read legacy Pronto state: {error}"))?;
+    serde_json::from_str(&contents)
+        .map(Some)
+        .map_err(|error| format!("Could not decode legacy Pronto state: {error}"))
 }
 
 fn load_store(path: &Path) -> Result<StoreState, String> {
-    match fs::read_to_string(path) {
-        Ok(contents) => serde_json::from_str(&contents)
-            .map_err(|error| format!("Could not read local Pronto state: {error}")),
-        Err(error) if error.kind() == ErrorKind::NotFound => Ok(StoreState::default()),
-        Err(error) => Err(format!("Could not read local Pronto state: {error}")),
+    if !path.exists() {
+        if let Some(legacy_state) = load_legacy_store(path)? {
+            save_store(path, &legacy_state)?;
+            return Ok(legacy_state);
+        }
     }
+
+    let connection = open_store(path)?;
+    let version = metadata_value(&connection, "store_version")?
+        .and_then(|value| value.parse::<u8>().ok())
+        .unwrap_or(STORE_VERSION);
+    let retention_days = metadata_value(&connection, "retention_days")?
+        .and_then(|value| value.parse::<i64>().ok())
+        .unwrap_or(DEFAULT_RETENTION_DAYS);
+
+    let root_rows = connection
+        .prepare(
+            "SELECT id, path, label, ignore_patterns_json, registered_at
+             FROM roots ORDER BY id",
+        )
+        .map_err(|error| format!("Could not prepare Pronto roots query: {error}"))?
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+            ))
+        })
+        .map_err(|error| format!("Could not read Pronto roots: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode Pronto roots: {error}"))?;
+    let roots = root_rows
+        .into_iter()
+        .map(|(id, path, label, ignore_patterns_json, registered_at)| {
+            let ignore_patterns = serde_json::from_str(&ignore_patterns_json)
+                .map_err(|error| format!("Could not decode root ignore patterns: {error}"))?;
+            Ok(RootConfig {
+                id,
+                path,
+                label,
+                ignore_patterns,
+                registered_at,
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+
+    let repository_payloads = connection
+        .prepare("SELECT payload_json FROM repositories ORDER BY id")
+        .map_err(|error| format!("Could not prepare Pronto repositories query: {error}"))?
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(|error| format!("Could not read Pronto repositories: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode Pronto repositories: {error}"))?;
+    let repositories = repository_payloads
+        .into_iter()
+        .map(|payload| {
+            serde_json::from_str(&payload)
+                .map_err(|error| format!("Could not decode repository snapshot: {error}"))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+
+    let expected_conditions = connection
+        .prepare(
+            "SELECT repository_id, condition_id, fingerprint, marked_at
+             FROM expected_conditions ORDER BY repository_id, condition_id",
+        )
+        .map_err(|error| format!("Could not prepare Pronto expected conditions query: {error}"))?
+        .query_map([], |row| {
+            Ok(ExpectedCondition {
+                repository_id: row.get(0)?,
+                condition_id: row.get(1)?,
+                fingerprint: row.get(2)?,
+                marked_at: row.get(3)?,
+            })
+        })
+        .map_err(|error| format!("Could not read Pronto expected conditions: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode Pronto expected conditions: {error}"))?;
+
+    let events = connection
+        .prepare(
+            "SELECT id, repository_id, kind, summary, fingerprint, created_at
+             FROM events ORDER BY created_at, id",
+        )
+        .map_err(|error| format!("Could not prepare Pronto events query: {error}"))?
+        .query_map([], |row| {
+            Ok(EventRecord {
+                id: row.get(0)?,
+                repository_id: row.get(1)?,
+                kind: row.get(2)?,
+                summary: row.get(3)?,
+                fingerprint: row.get(4)?,
+                created_at: row.get(5)?,
+            })
+        })
+        .map_err(|error| format!("Could not read Pronto events: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode Pronto events: {error}"))?;
+
+    Ok(StoreState {
+        version,
+        roots,
+        repositories,
+        expected_conditions,
+        events,
+        retention_days,
+    })
 }
 
 fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
-    let parent = path
-        .parent()
-        .ok_or_else(|| "Pronto storage path has no parent directory".to_string())?;
-    fs::create_dir_all(parent)
-        .map_err(|error| format!("Could not create Pronto storage directory: {error}"))?;
-    let temporary_path = path.with_extension("json.tmp");
-    let encoded = serde_json::to_string_pretty(state)
-        .map_err(|error| format!("Could not encode Pronto state: {error}"))?;
-    fs::write(&temporary_path, encoded)
-        .map_err(|error| format!("Could not write Pronto state: {error}"))?;
-    fs::rename(&temporary_path, path)
-        .map_err(|error| format!("Could not commit Pronto state: {error}"))
+    let mut connection = open_store(path)?;
+    let transaction = connection
+        .transaction()
+        .map_err(|error| format!("Could not begin Pronto database transaction: {error}"))?;
+
+    for table in ["roots", "repositories", "expected_conditions", "events"] {
+        transaction
+            .execute(&format!("DELETE FROM {table}"), [])
+            .map_err(|error| format!("Could not clear Pronto {table} table: {error}"))?;
+    }
+
+    transaction
+        .execute(
+            "INSERT OR REPLACE INTO metadata (key, value) VALUES (?1, ?2)",
+            params!["store_version", state.version.to_string()],
+        )
+        .map_err(|error| format!("Could not save Pronto store version: {error}"))?;
+    transaction
+        .execute(
+            "INSERT OR REPLACE INTO metadata (key, value) VALUES (?1, ?2)",
+            params!["retention_days", state.retention_days.to_string()],
+        )
+        .map_err(|error| format!("Could not save Pronto retention setting: {error}"))?;
+
+    for root in &state.roots {
+        let ignore_patterns_json = serde_json::to_string(&root.ignore_patterns)
+            .map_err(|error| format!("Could not encode root ignore patterns: {error}"))?;
+        transaction
+            .execute(
+                "INSERT INTO roots (id, path, label, ignore_patterns_json, registered_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    root.id,
+                    root.path,
+                    root.label,
+                    ignore_patterns_json,
+                    root.registered_at
+                ],
+            )
+            .map_err(|error| format!("Could not save Pronto root: {error}"))?;
+    }
+
+    for repository in &state.repositories {
+        let payload = serde_json::to_string(repository)
+            .map_err(|error| format!("Could not encode repository snapshot: {error}"))?;
+        transaction
+            .execute(
+                "INSERT INTO repositories (id, payload_json) VALUES (?1, ?2)",
+                params![repository.id, payload],
+            )
+            .map_err(|error| format!("Could not save Pronto repository snapshot: {error}"))?;
+    }
+
+    for expected in &state.expected_conditions {
+        transaction
+            .execute(
+                "INSERT INTO expected_conditions
+                 (repository_id, condition_id, fingerprint, marked_at)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![
+                    expected.repository_id,
+                    expected.condition_id,
+                    expected.fingerprint,
+                    expected.marked_at
+                ],
+            )
+            .map_err(|error| format!("Could not save expected condition: {error}"))?;
+    }
+
+    for event in &state.events {
+        transaction
+            .execute(
+                "INSERT INTO events
+                 (id, repository_id, kind, summary, fingerprint, created_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    event.id,
+                    event.repository_id,
+                    event.kind,
+                    event.summary,
+                    event.fingerprint,
+                    event.created_at
+                ],
+            )
+            .map_err(|error| format!("Could not save Pronto event: {error}"))?;
+    }
+
+    transaction
+        .commit()
+        .map_err(|error| format!("Could not commit Pronto database transaction: {error}"))
 }
 
 fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
@@ -1707,7 +2006,7 @@ mod tests {
     fn persists_transition_events_without_duplicate_scans() {
         let root = fixture_root();
         let repository = fixture_repository(&root);
-        let store = root.join("registry.json");
+        let store = root.join("registry.db");
         let root_config = RootConfig {
             id: path_id("root", &root),
             path: root.to_string_lossy().to_string(),
@@ -1739,6 +2038,43 @@ mod tests {
         let persisted = load_store(&store).expect("persisted state should be readable");
         assert_eq!(persisted.repositories.len(), 1);
         assert_eq!(persisted.events.len(), 2);
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn migrates_legacy_json_store_to_versioned_sqlite() {
+        let root = fixture_root();
+        let database = root.join("registry.db");
+        let legacy = root.join("registry.json");
+        let state = StoreState {
+            roots: vec![RootConfig {
+                id: "root-1".to_string(),
+                path: root.to_string_lossy().to_string(),
+                label: "fixture".to_string(),
+                ignore_patterns: vec!["target".to_string()],
+                registered_at: iso_now(),
+            }],
+            ..StoreState::default()
+        };
+        let encoded = serde_json::to_string_pretty(&state).expect("legacy state should serialize");
+        fs::write(&legacy, encoded).expect("legacy state should be writable");
+
+        let migrated = load_store(&database).expect("legacy state should migrate");
+        assert_eq!(migrated.roots.len(), 1);
+        assert_eq!(migrated.roots[0].ignore_patterns, vec!["target"]);
+        assert!(database.exists());
+        assert!(legacy.exists());
+
+        let connection = Connection::open(&database).expect("database should open");
+        let schema_version: String = connection
+            .query_row(
+                "SELECT value FROM metadata WHERE key = 'schema_version'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("schema version should be recorded");
+        assert_eq!(schema_version, SQLITE_SCHEMA_VERSION.to_string());
+
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 }

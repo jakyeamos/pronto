@@ -38,7 +38,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 ### Phase 1 — Local evidence foundation (this implementation)
 
 1. Scaffold a strict TypeScript React renderer and Tauri/Rust application with reproducible scripts.
-2. Add versioned local JSON persistence under the platform user-data directory.
+2. Add versioned local persistence under the platform user-data directory; the initial JSON store is migrated to SQLite before provider data is introduced.
 3. Register one or more repository roots and recursively discover Git repositories.
 4. Canonicalize paths, deduplicate repositories, and attach linked worktrees to their parent repository.
 5. Scan local Git state with structured arguments only:
@@ -57,7 +57,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 ### Phase 2 — Provider and durable state expansion
 
 - Polish local navigation, freshness, settings, keyboard access, and empty states before expanding the data boundary.
-- Replace or complement the JSON store with versioned SQLite while preserving the domain contracts and CLI/renderer snapshot shapes.
+- Replace the initial JSON store with versioned SQLite while preserving the domain contracts and CLI/renderer snapshot shapes. The implementation includes a non-destructive legacy JSON import.
 - Add GitHub identities, explicit per-repository mapping, refresh freshness, remote-only catalog, and clone preflight.
 - Add process/terminal metadata adapters and structured agent manifests.
 - Add real action policies, fresh preflight execution, local audit records, and safe bounded actions.
@@ -85,4 +85,4 @@ Every change must keep Git execution structured (`spawnFile` with argument array
 
 Implemented or substantially exercised: FR-001–004, FR-006, FR-016–022, FR-027–039, FR-040–043, FR-048–055 (local evidence subset), FR-064, FR-070, FR-102/104/106/107 (privacy boundary), FR-109–112, and FR-113/115/116 (read-only CLI subset).
 
-Explicitly deferred or environment-blocked: GitHub accounts and provider refresh, remote-only import/clone, pull requests, merge actions, release preparation, process inspection, coordinated products/releases, credential-store integration, SQLite durability, and packaging/signing.
+Explicitly deferred or environment-blocked: GitHub accounts and provider refresh, remote-only import/clone, pull requests, merge actions, release preparation, process inspection, coordinated products/releases, credential-store integration, and packaging/signing.

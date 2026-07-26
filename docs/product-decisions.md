@@ -16,7 +16,7 @@ These decisions define the next implementation boundary. They are intentionally 
 
 ## Next sequence
 
-1. Finish the local UX pass and verify it against the existing local evidence contract.
-2. Replace the JSON registry with versioned SQLite persistence while preserving CLI and renderer snapshot shapes.
+1. Finish the local UX pass and verify it against the existing local evidence contract. (Complete.)
+2. Replace the JSON registry with versioned SQLite persistence while preserving CLI and renderer snapshot shapes. (Complete, including legacy JSON migration.)
 3. Add safe local action preflight and audit records without enabling destructive operations.
 4. Add read-only GitHub identity and remote context only after the durable-state and permission boundaries are verified.
