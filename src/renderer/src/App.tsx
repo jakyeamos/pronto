@@ -2,13 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
   AlertTriangle,
-  ChevronRight,
-  Command,
   FolderPlus,
   GitBranch,
-  LoaderCircle,
-  RefreshCw,
-  Search,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -19,14 +14,12 @@ import {
 } from "./components/CommandCenterSurface";
 import { AppOverlays } from "./components/AppOverlays";
 import { AppSidebar } from "./components/AppSidebar";
-import {
-  formatTime,
-  IconButton,
-  StatusPill,
-} from "./components/ConsolePrimitives";
+import { AppTopbar } from "./components/AppTopbar";
+import { formatTime, StatusPill } from "./components/ConsolePrimitives";
 import { PortfolioConfigSurface } from "./components/PortfolioConfigSurface";
 import { QualityGatesSurface } from "./components/QualityGatesSurface";
 import { RemoteCatalogSurface } from "./components/RemoteCatalogSurface";
+import { RefreshConfirmationDialog } from "./components/RefreshConfirmationDialog";
 import { useEvidenceActions } from "./hooks/useEvidenceActions";
 import { useAppKeyboardShortcuts } from "./hooks/useAppKeyboardShortcuts";
 import { usePreparationActions } from "./hooks/usePreparationActions";
@@ -68,6 +61,8 @@ export function App(): ReactElement {
     repository: RepositorySnapshot;
     preparation: RepositoryPreparation;
   } | null>(null);
+  const [isRefreshConfirmationOpen, setIsRefreshConfirmationOpen] =
+    useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -181,6 +176,11 @@ export function App(): ReactElement {
 
   const handleRefreshGithub = useCallback(async (): Promise<void> => {
     await loadSnapshot(api.refreshGithub);
+  }, [loadSnapshot]);
+
+  const handleConfirmRefresh = useCallback(async (): Promise<void> => {
+    await loadSnapshot(api.refresh);
+    setIsRefreshConfirmationOpen(false);
   }, [loadSnapshot]);
 
   const handleSaveAuditRoot = useCallback(
@@ -317,44 +317,15 @@ export function App(): ReactElement {
         }}
       />
       <main className="main-content">
-        <header className="topbar">
-          <div className="breadcrumbs">
-            <span>Workspace</span>
-            <ChevronRight size={13} />
-            <strong>{activeNavLabel}</strong>
-          </div>
-          <div className="topbar-actions">
-            <label className="search-box">
-              <Search size={15} />
-              <input
-                ref={searchInputRef}
-                aria-label="Search repositories"
-                placeholder={
-                  isCommandCenter
-                    ? "Search repos, branches, paths"
-                    : "Search local portfolio"
-                }
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-              <kbd>
-                <Command size={11} />K
-              </kbd>
-            </label>
-            <IconButton
-              label="Refresh local evidence"
-              onClick={() => void loadSnapshot(api.refresh)}
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? (
-                <LoaderCircle className="spin" size={17} />
-              ) : (
-                <RefreshCw size={17} />
-              )}
-            </IconButton>
-            <div className="avatar">JA</div>
-          </div>
-        </header>
+        <AppTopbar
+          activeNavLabel={activeNavLabel}
+          isCommandCenter={isCommandCenter}
+          query={query}
+          searchInputRef={searchInputRef}
+          isRefreshing={isRefreshing}
+          onQueryChange={setQuery}
+          onRefresh={() => setIsRefreshConfirmationOpen(true)}
+        />
         <div className="content-scroll">
           <section className="page-intro">
             <div>
@@ -486,6 +457,15 @@ export function App(): ReactElement {
           )}
         </div>
       </main>
+      {isRefreshConfirmationOpen && (
+        <RefreshConfirmationDialog
+          rootCount={snapshot.roots.length}
+          repositoryCount={snapshot.repositories.length}
+          isRefreshing={isRefreshing}
+          onCancel={() => setIsRefreshConfirmationOpen(false)}
+          onConfirm={handleConfirmRefresh}
+        />
+      )}
       <AppOverlays
         selectedRepository={selectedRepository}
         selectedEvidence={selectedEvidence}
