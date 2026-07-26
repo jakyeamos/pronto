@@ -2133,6 +2133,16 @@ h1 {
   gap: 5px;
   flex: 0 0 auto;
 }
+.quality-matrix-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.quality-matrix-custom-toggle {
+  white-space: nowrap;
+}
 .quality-matrix-heading-meta > span {
   color: var(--faint);
   font-size: 9px;
@@ -2204,6 +2214,10 @@ h1 {
 .quality-matrix-gate-column {
   width: 176px;
   min-width: 176px;
+}
+.quality-matrix-empty-cell {
+  display: block;
+  min-height: 34px;
 }
 .quality-matrix-sticky {
   position: sticky;

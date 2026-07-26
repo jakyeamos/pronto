@@ -24,6 +24,13 @@ const canonicalQualityGates: QualityGate[] = [
     evidence: [],
   },
   {
+    id: "tests",
+    label: "Tests",
+    status: "Not configured",
+    freshness: "Unknown",
+    evidence: [],
+  },
+  {
     id: "lint",
     label: "Lint",
     status: "Not configured",
@@ -47,6 +54,20 @@ const canonicalQualityGates: QualityGate[] = [
   {
     id: "dead_code",
     label: "Dead-code",
+    status: "Not configured",
+    freshness: "Unknown",
+    evidence: [],
+  },
+  {
+    id: "secrets_scan",
+    label: "Secrets scan",
+    status: "Not configured",
+    freshness: "Unknown",
+    evidence: [],
+  },
+  {
+    id: "dependency_audit",
+    label: "Dependency audit",
     status: "Not configured",
     freshness: "Unknown",
     evidence: [],

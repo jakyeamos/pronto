@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ReactElement } from "react";
 import {
   CheckCircle2,
@@ -17,11 +18,45 @@ import { formatTime, StatusPill } from "./ConsolePrimitives";
 const CANONICAL_GATE_IDS = [
   "build",
   "runtime_smoke",
+  "tests",
   "lint",
   "formatter",
   "typecheck",
   "dead_code",
-];
+  "secrets_scan",
+] as const;
+
+const CONDITIONAL_GATE_IDS = ["dependency_audit"] as const;
+
+function customGateColumns(repositories: RepositorySnapshot[]): string[] {
+  const knownGateIds = new Set<string>([
+    ...CANONICAL_GATE_IDS,
+    ...CONDITIONAL_GATE_IDS,
+  ]);
+  const ids = new Set<string>();
+  for (const repository of repositories) {
+    for (const gate of repository.quality.gates) {
+      if (!knownGateIds.has(gate.id)) ids.add(gate.id);
+    }
+  }
+  return Array.from(ids).sort((left, right) => left.localeCompare(right));
+}
+
+function matrixGateColumns(
+  repositories: RepositorySnapshot[],
+  includeCustomGates: boolean,
+): string[] {
+  const conditional = CONDITIONAL_GATE_IDS.filter((id) =>
+    repositories.some((repository) =>
+      repository.quality.gates.some((gate) => gate.id === id),
+    ),
+  );
+  return [
+    ...CANONICAL_GATE_IDS,
+    ...conditional,
+    ...(includeCustomGates ? customGateColumns(repositories) : []),
+  ];
+}
 
 function totalHighFindings(repositories: RepositorySnapshot[]): number {
   return repositories.reduce(
@@ -42,8 +77,18 @@ export function QualityGatesSurface({
   onOpenRepository: (repository: RepositorySnapshot) => void;
   onOpenReport?: (reportPath: string) => void;
 }): ReactElement {
-  const columns = CANONICAL_GATE_IDS;
+  const [showCustomGates, setShowCustomGates] = useState(false);
+  const discoveredCustomGates = customGateColumns(repositories);
+  const customGateCountLabel = `${discoveredCustomGates.length} custom gate${
+    discoveredCustomGates.length === 1 ? "" : "s"
+  }`;
+  const columns = matrixGateColumns(repositories, showCustomGates);
   const canonicalGateCount = CANONICAL_GATE_IDS.length;
+  const conditionalGateCount = columns.filter((column) =>
+    CONDITIONAL_GATE_IDS.includes(
+      column as (typeof CONDITIONAL_GATE_IDS)[number],
+    ),
+  ).length;
   const configuredGateCount = repositories.reduce(
     (total, repository) =>
       total +
@@ -105,10 +150,29 @@ export function QualityGatesSurface({
             </p>
           </div>
           <div className="quality-matrix-heading-meta">
-            <StatusPill tone="slate">
-              {canonicalGateCount} canonical gates
-            </StatusPill>
-            <span>Canonical release gates · horizontal comparison</span>
+            <div className="quality-matrix-controls">
+              <StatusPill tone="slate">
+                {canonicalGateCount} canonical
+                {conditionalGateCount > 0 ? " · dependency audit applies" : ""}
+              </StatusPill>
+              {discoveredCustomGates.length > 0 && (
+                <button
+                  className="button button-secondary quality-matrix-custom-toggle"
+                  type="button"
+                  aria-pressed={showCustomGates}
+                  onClick={() => setShowCustomGates((visible) => !visible)}
+                >
+                  {showCustomGates
+                    ? "Hide custom gates"
+                    : `Show ${customGateCountLabel}`}
+                </button>
+              )}
+            </div>
+            <span>
+              {showCustomGates
+                ? `${columns.length} gates visible · horizontal comparison`
+                : "Canonical release gates shown by default"}
+            </span>
           </div>
         </div>
         {repositories.length === 0 ? (
@@ -126,7 +190,9 @@ export function QualityGatesSurface({
             <div className="quality-matrix-scroll-hint">
               <MoveHorizontal size={14} />
               <span>
-                Scroll horizontally to compare the six canonical gates.
+                {showCustomGates
+                  ? `Scroll horizontally to compare all ${columns.length} gates.`
+                  : "Custom gates are hidden until you choose to compare them."}
               </span>
             </div>
             <table className="quality-matrix">
@@ -166,15 +232,18 @@ export function QualityGatesSurface({
                     >
                       <span
                         className="quality-matrix-gate-heading"
-                        title={
-                          repositories
-                            .flatMap((repository) => repository.quality.gates)
-                            .find((gate) => gate.id === column)?.label ?? column
-                        }
+                        title={column}
                       >
                         {repositories
                           .flatMap((repository) => repository.quality.gates)
-                          .find((gate) => gate.id === column)?.label ?? column}
+                          .find((gate) => gate.id === column)?.label ??
+                          (column === "tests"
+                            ? "Tests"
+                            : column === "secrets_scan"
+                              ? "Secrets scan"
+                              : column === "dependency_audit"
+                                ? "Dependency audit"
+                                : column)}
                       </span>
                     </th>
                   ))}
@@ -217,6 +286,9 @@ export function QualityGatesSurface({
                       const gate = repository.quality.gates.find(
                         (candidate) => candidate.id === column,
                       );
+                      const optionalColumn = !CANONICAL_GATE_IDS.includes(
+                        column as (typeof CANONICAL_GATE_IDS)[number],
+                      );
                       return (
                         <td key={column} className="quality-matrix-gate-column">
                           {gate ? (
@@ -225,6 +297,11 @@ export function QualityGatesSurface({
                               compact
                               showLabel={false}
                               onOpenReport={onOpenReport}
+                            />
+                          ) : optionalColumn ? (
+                            <span
+                              className="quality-matrix-empty-cell"
+                              aria-label="Not applicable for this repository"
                             />
                           ) : (
                             <QualityGateCell

@@ -28,10 +28,12 @@ import { QualityGatesSurface } from "./QualityGatesSurface";
 const canonicalGateDefinitions = [
   ["build", "Build"],
   ["runtime_smoke", "Smoke"],
+  ["tests", "Tests"],
   ["lint", "Lint"],
   ["formatter", "Formatter"],
   ["typecheck", "Typecheck"],
   ["dead_code", "Dead-code"],
+  ["secrets_scan", "Secrets scan"],
 ] as const;
 
 const workspace: WorkspaceSummary = {
@@ -311,7 +313,8 @@ describe("quality evidence surfaces", () => {
 
     expect(markup).toContain("Quality gate matrix");
     expect(markup).toContain("1.933");
-    expect(markup).toContain("6 canonical gates");
+    expect(markup).toContain("8 canonical");
+    expect(markup).toContain("Show 1 custom gate");
     expect(markup).not.toContain("Security Scan");
     expect(markup).toContain("4");
     expect(markup).toContain("critical");

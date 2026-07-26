@@ -8,14 +8,18 @@ use std::path::{Path, PathBuf};
 
 pub const MAX_EVIDENCE_AGE_DAYS: i64 = 7;
 
-const CANONICAL_GATE_DEFINITIONS: [(&str, &str); 6] = [
+const CANONICAL_GATE_DEFINITIONS: [(&str, &str); 8] = [
     ("build", "Build"),
     ("runtime_smoke", "Smoke"),
+    ("tests", "Tests"),
     ("lint", "Lint"),
     ("formatter", "Formatter"),
     ("typecheck", "Typecheck"),
     ("dead_code", "Dead-code"),
+    ("secrets_scan", "Secrets scan"),
 ];
+
+const CONDITIONAL_GATE_DEFINITIONS: [(&str, &str); 1] = [("dependency_audit", "Dependency audit")];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum QualityGateStatus {
@@ -257,13 +261,31 @@ pub fn normalize_gate_id(value: &str) -> String {
     let slug = slug(value);
     match slug.as_str() {
         "build" | "compile" | "bundle" => "build".to_string(),
+        "verify_and_build" => "build".to_string(),
         "smoke" | "smoke_test" | "runtime_smoke" | "runtime_smoke_test" | "runtime_test" => {
             "runtime_smoke".to_string()
         }
+        "test" | "tests" | "test_suite" | "unit_test" | "unit_tests" | "integration_test"
+        | "integration_tests" | "e2e_test" | "e2e_tests" | "full_suite" => "tests".to_string(),
         "lint" | "linting" => "lint".to_string(),
         "format" | "formatter" | "formatting" | "fmt" => "formatter".to_string(),
         "typecheck" | "type_check" | "typechecking" | "check_types" => "typecheck".to_string(),
         "dead_code" | "deadcode" | "unused_code" => "dead_code".to_string(),
+        "secrets_scan"
+        | "secret_scan"
+        | "secret_scanning"
+        | "security_secrets_scan"
+        | "secret_scanning_gitleaks"
+        | "gitleaks" => "secrets_scan".to_string(),
+        "dependency_audit"
+        | "dependency_scan"
+        | "dependency_check"
+        | "security_dependency_audit"
+        | "software_composition_analysis" => "dependency_audit".to_string(),
+        value if value.starts_with("unit_tests_") => "tests".to_string(),
+        value if value.starts_with("integration_tests_") => "tests".to_string(),
+        value if value.starts_with("e2e_tests_") => "tests".to_string(),
+        value if value.starts_with("full_suite_") => "tests".to_string(),
         _ => format!("custom:{slug}"),
     }
 }
@@ -271,6 +293,7 @@ pub fn normalize_gate_id(value: &str) -> String {
 pub fn gate_label(id: &str) -> String {
     CANONICAL_GATE_DEFINITIONS
         .iter()
+        .chain(CONDITIONAL_GATE_DEFINITIONS.iter())
         .find(|(candidate, _)| *candidate == id)
         .map(|(_, label)| (*label).to_string())
         .unwrap_or_else(|| {
@@ -664,11 +687,20 @@ fn add_evidence(gates: &mut Vec<QualityGate>, evidence: QualityEvidence) {
 }
 
 fn gate_sort_key(id: &str) -> (usize, String) {
-    let index = CANONICAL_GATE_DEFINITIONS
+    let canonical_index = CANONICAL_GATE_DEFINITIONS
         .iter()
-        .position(|(candidate, _)| *candidate == id)
-        .unwrap_or(CANONICAL_GATE_DEFINITIONS.len());
-    (index, id.to_string())
+        .position(|(candidate, _)| *candidate == id);
+    if let Some(index) = canonical_index {
+        return (index, id.to_string());
+    }
+    let conditional_index = CONDITIONAL_GATE_DEFINITIONS
+        .iter()
+        .position(|(candidate, _)| *candidate == id);
+    (
+        CANONICAL_GATE_DEFINITIONS.len()
+            + conditional_index.unwrap_or(CONDITIONAL_GATE_DEFINITIONS.len()),
+        id.to_string(),
+    )
 }
 
 fn evidence_freshness(evidence: &[&QualityEvidence]) -> QualityFreshness {
@@ -1361,7 +1393,33 @@ mod tests {
         assert_eq!(normalize_gate_id("runtime_smoke"), "runtime_smoke");
         assert_eq!(normalize_gate_id("smoke-test"), "runtime_smoke");
         assert_eq!(normalize_gate_id("dead_code"), "dead_code");
+        assert_eq!(normalize_gate_id("unit_tests_vitest"), "tests");
+        assert_eq!(
+            normalize_gate_id("secret_scanning_gitleaks"),
+            "secrets_scan"
+        );
+        assert_eq!(
+            normalize_gate_id("security_dependency_audit"),
+            "dependency_audit"
+        );
+        assert_eq!(normalize_gate_id("verify_and_build"), "build");
         assert_eq!(normalize_gate_id("security scan"), "custom:security_scan");
+        assert_eq!(
+            default_quality_gates()
+                .iter()
+                .map(|gate| gate.id.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "build",
+                "runtime_smoke",
+                "tests",
+                "lint",
+                "formatter",
+                "typecheck",
+                "dead_code",
+                "secrets_scan"
+            ]
+        );
     }
 
     #[test]
