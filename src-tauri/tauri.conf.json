@@ -3,6 +3,7 @@
   "productName": "Pronto",
   "version": "0.1.0",
   "identifier": "com.pronto.desktop",
+  "mainBinaryName": "pronto",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
