@@ -11,7 +11,7 @@ import {
   TerminalSquare,
   X,
 } from "lucide-react";
-import type { Condition, RepositorySnapshot } from "../types";
+import type { Condition, ExternalTool, RepositorySnapshot } from "../types";
 import {
   ConditionPill,
   formatTime,
@@ -22,11 +22,13 @@ import {
 export function DetailDrawer({
   repository,
   onClose,
+  onOpenWorkspace,
   onLifecycleChange,
   onCondition,
 }: {
   repository: RepositorySnapshot;
   onClose: () => void;
+  onOpenWorkspace: (workspaceId: string, tool: ExternalTool) => Promise<void>;
   onLifecycleChange: (lifecycle: string) => Promise<void>;
   onCondition: (condition: Condition) => void;
 }): ReactElement {
@@ -135,6 +137,25 @@ export function DetailDrawer({
                       "Structured agent task metadata"}
                   </small>
                 )}
+                <div className="workspace-actions">
+                  {(
+                    [
+                      ["file_browser", "Finder"],
+                      ["terminal", "Terminal"],
+                      ["editor", "Editor"],
+                      ["git_client", "Git client"],
+                    ] as Array<[ExternalTool, string]>
+                  ).map(([tool, label]) => (
+                    <button
+                      className="button button-quiet"
+                      type="button"
+                      key={tool}
+                      onClick={() => void onOpenWorkspace(workspace.id, tool)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             ))}
           </div>

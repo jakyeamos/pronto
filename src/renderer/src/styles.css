@@ -1692,6 +1692,17 @@ h1 {
   color: var(--faint);
   font-size: 9px;
 }
+.workspace-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+}
+.workspace-actions .button {
+  min-height: 24px;
+  padding: 0 5px;
+  font-size: 9px;
+}
 .drawer-condition {
   display: flex;
   align-items: center;

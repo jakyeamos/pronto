@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { ActionPreflight, PortfolioSnapshot } from "./types";
+import type { ActionPreflight, ExternalTool, PortfolioSnapshot } from "./types";
 
 const emptySnapshot: PortfolioSnapshot = {
   roots: [],
@@ -47,6 +47,21 @@ export async function refreshGithub(): Promise<PortfolioSnapshot> {
     throw new Error("GitHub refresh is available in the Pronto desktop app.");
   }
   return invoke<PortfolioSnapshot>("refresh_github");
+}
+
+export async function openWorkspace(
+  repositoryId: string,
+  workspaceId: string,
+  tool: ExternalTool,
+): Promise<PortfolioSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("External handoff is available in the Pronto desktop app.");
+  }
+  return invoke<PortfolioSnapshot>("open_workspace", {
+    repository_id: repositoryId,
+    workspace_id: workspaceId,
+    tool,
+  });
 }
 
 export async function preflightAction(

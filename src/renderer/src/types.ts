@@ -108,6 +108,9 @@ export interface WorkspaceActivity {
   manifest?: AgentManifest;
 }
 
+export type ExternalTool =
+  "file_browser" | "terminal" | "editor" | "git_client";
+
 export interface WorkspaceSummary {
   id: string;
   path: string;

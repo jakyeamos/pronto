@@ -19,6 +19,7 @@ pub fn run() {
             core::register_root,
             core::refresh,
             core::refresh_github,
+            core::open_workspace,
             core::preflight_action,
             core::mark_condition_expected,
             core::clear_condition_expected,

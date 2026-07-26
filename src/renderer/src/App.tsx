@@ -31,7 +31,12 @@ import {
   SettingsSurface,
 } from "./components/WorkspaceSurfaces";
 import { navItems, pageCopy, type NavItem } from "./navigation";
-import type { Condition, PortfolioSnapshot, RepositorySnapshot } from "./types";
+import type {
+  Condition,
+  ExternalTool,
+  PortfolioSnapshot,
+  RepositorySnapshot,
+} from "./types";
 import "./styles.css";
 
 export function App(): ReactElement {
@@ -188,6 +193,22 @@ export function App(): ReactElement {
   const handleRefreshGithub = useCallback(async (): Promise<void> => {
     await loadSnapshot(api.refreshGithub);
   }, [loadSnapshot]);
+
+  const handleOpenWorkspace = useCallback(
+    async (workspaceId: string, tool: ExternalTool): Promise<void> => {
+      if (!selectedRepository) return;
+      try {
+        await api.openWorkspace(selectedRepository.id, workspaceId, tool);
+      } catch (caught) {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Pronto could not open that external tool.",
+        );
+      }
+    },
+    [selectedRepository],
+  );
 
   const repositories = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -462,6 +483,7 @@ export function App(): ReactElement {
         <DetailDrawer
           repository={selectedRepository}
           onClose={() => setSelectedRepository(null)}
+          onOpenWorkspace={handleOpenWorkspace}
           onLifecycleChange={async (lifecycle) => {
             await loadSnapshot(() =>
               api.setRepositoryLifecycle(selectedRepository.id, lifecycle),

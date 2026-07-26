@@ -3472,6 +3472,77 @@ fn register_root_and_scan(path: &Path, root_path: &str) -> Result<PortfolioSnaps
     audited_scan_and_persist(path, &mut state)
 }
 
+fn open_external_tool(path: &Path, tool: &str) -> Result<(), String> {
+    let tool = tool.trim().to_ascii_lowercase();
+    let arguments = match tool.as_str() {
+        "file_browser" => vec![path.to_string_lossy().to_string()],
+        "terminal" => vec![
+            "-a".to_string(),
+            "Terminal".to_string(),
+            path.to_string_lossy().to_string(),
+        ],
+        "editor" => vec![
+            "-a".to_string(),
+            "Visual Studio Code".to_string(),
+            path.to_string_lossy().to_string(),
+        ],
+        "git_client" => vec![
+            "-a".to_string(),
+            "GitHub Desktop".to_string(),
+            path.to_string_lossy().to_string(),
+        ],
+        _ => return Err("Choose a supported external handoff tool".to_string()),
+    };
+
+    #[cfg(target_os = "macos")]
+    {
+        let output = Command::new("/usr/bin/open")
+            .args(arguments)
+            .output()
+            .map_err(|_| "Could not start the external handoff tool".to_string())?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(format!(
+                "The external handoff tool could not open {}",
+                path.display()
+            ))
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (path, arguments);
+        Err("External handoff is currently implemented for macOS only".to_string())
+    }
+}
+
+fn open_workspace_at(
+    path: &Path,
+    repository_id: &str,
+    workspace_id: &str,
+    tool: &str,
+) -> Result<PortfolioSnapshot, String> {
+    let state = load_store(path)?;
+    let repository = state
+        .repositories
+        .iter()
+        .find(|repository| repository.id == repository_id)
+        .ok_or_else(|| "Repository is not registered".to_string())?;
+    let workspace = repository
+        .workspaces
+        .iter()
+        .find(|workspace| workspace.id == workspace_id)
+        .ok_or_else(|| "Workspace is not registered for this repository".to_string())?;
+    let workspace_path = canonical_path(Path::new(&workspace.path))
+        .ok_or_else(|| "The workspace path is unavailable".to_string())?;
+    if !workspace_path.is_dir() {
+        return Err("The workspace path is not an accessible folder".to_string());
+    }
+    open_external_tool(&workspace_path, tool)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
 #[tauri::command]
 pub fn get_snapshot() -> Result<PortfolioSnapshot, String> {
     let path = store_path();
@@ -3494,6 +3565,15 @@ pub fn refresh() -> Result<PortfolioSnapshot, String> {
 #[tauri::command]
 pub fn refresh_github() -> Result<PortfolioSnapshot, String> {
     refresh_github_at(&store_path())
+}
+
+#[tauri::command]
+pub fn open_workspace(
+    repository_id: String,
+    workspace_id: String,
+    tool: String,
+) -> Result<PortfolioSnapshot, String> {
+    open_workspace_at(&store_path(), &repository_id, &workspace_id, &tool)
 }
 
 #[tauri::command]
@@ -4144,6 +4224,63 @@ mod tests {
                 Some(&workspace),
             ),
             "Blocked"
+        );
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn external_handoff_requires_exact_workspace_and_supported_tool() {
+        let root = fixture_root();
+        let _repository = fixture_repository(&root);
+        let database = root.join("registry.db");
+        let root_config = RootConfig {
+            id: path_id("root", &root),
+            path: root.to_string_lossy().to_string(),
+            label: "fixture".to_string(),
+            ignore_patterns: Vec::new(),
+            refresh_policy: default_refresh_policy(),
+            background_monitoring: false,
+            registered_at: iso_now(),
+        };
+        let mut state = StoreState {
+            roots: vec![root_config],
+            ..StoreState::default()
+        };
+        scan_and_persist_scoped(&database, &mut state, None)
+            .expect("workspace fixture should persist");
+        let persisted = load_store(&database).expect("workspace fixture should reload");
+        let stored_repository = persisted
+            .repositories
+            .first()
+            .expect("fixture repository should be registered");
+        let workspace_id = stored_repository.workspace.id.clone();
+
+        let missing_workspace = open_workspace_at(
+            &database,
+            &stored_repository.id,
+            "workspace-that-is-not-registered",
+            "file_browser",
+        )
+        .expect_err("handoff must reject an unknown workspace");
+        assert_eq!(
+            missing_workspace,
+            "Workspace is not registered for this repository"
+        );
+
+        let unsupported_tool = open_workspace_at(
+            &database,
+            &stored_repository.id,
+            &workspace_id,
+            "unsupported",
+        )
+        .expect_err("handoff must reject an unknown tool");
+        assert_eq!(unsupported_tool, "Choose a supported external handoff tool");
+        assert_eq!(
+            load_store(&database)
+                .expect("handoff fixture should remain readable")
+                .repositories
+                .len(),
+            1
         );
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
