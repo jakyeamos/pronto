@@ -25,6 +25,39 @@ export interface GroupConfig {
   updated_at: string;
 }
 
+export interface ProviderIdentity {
+  id: string;
+  provider: string;
+  login: string;
+  display_name?: string;
+  organizations: string[];
+  credential_state: string;
+  updated_at: string;
+}
+
+export interface RemoteRepositorySnapshot {
+  id: string;
+  provider: string;
+  full_name: string;
+  name: string;
+  owner: string;
+  html_url: string;
+  default_branch?: string;
+  archived: boolean;
+  locality: string;
+  identity_id: string;
+  last_refreshed_at: string;
+}
+
+export interface ProviderStatus {
+  provider: string;
+  state: string;
+  message: string;
+  last_refresh_at?: string;
+  identity_count: number;
+  repository_count: number;
+}
+
 export interface EvidenceItem {
   label: string;
   value: string;
@@ -146,6 +179,9 @@ export interface PortfolioSnapshot {
   groups: GroupConfig[];
   events: EventRecord[];
   action_audits: ActionAudit[];
+  provider_identities: ProviderIdentity[];
+  remote_repositories: RemoteRepositorySnapshot[];
+  provider_status: ProviderStatus;
   retention_days: number;
   generated_at: string;
   storage_path: string;

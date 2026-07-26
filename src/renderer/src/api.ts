@@ -9,6 +9,16 @@ const emptySnapshot: PortfolioSnapshot = {
   groups: [],
   events: [],
   action_audits: [],
+  provider_identities: [],
+  remote_repositories: [],
+  provider_status: {
+    provider: "GitHub",
+    state: "Not connected",
+    message:
+      "Connect GitHub through the existing credential manager to load remote context.",
+    identity_count: 0,
+    repository_count: 0,
+  },
   retention_days: 90,
   generated_at: new Date().toISOString(),
   storage_path: "",
@@ -30,6 +40,13 @@ export async function refresh(): Promise<PortfolioSnapshot> {
     throw new Error("Open Pronto as a desktop app to scan local repositories.");
   }
   return invoke<PortfolioSnapshot>("refresh");
+}
+
+export async function refreshGithub(): Promise<PortfolioSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("GitHub refresh is available in the Pronto desktop app.");
+  }
+  return invoke<PortfolioSnapshot>("refresh_github");
 }
 
 export async function preflightAction(

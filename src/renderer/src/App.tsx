@@ -24,6 +24,7 @@ import {
   StatusPill,
 } from "./components/ConsolePrimitives";
 import { PortfolioConfigSurface } from "./components/PortfolioConfigSurface";
+import { RemoteCatalogSurface } from "./components/RemoteCatalogSurface";
 import {
   ActivitySurface,
   DeferredSurface,
@@ -41,6 +42,16 @@ export function App(): ReactElement {
     action_audits: [],
     products: [],
     groups: [],
+    provider_identities: [],
+    remote_repositories: [],
+    provider_status: {
+      provider: "GitHub",
+      state: "Not connected",
+      message:
+        "Connect GitHub through the existing credential manager to load remote context.",
+      identity_count: 0,
+      repository_count: 0,
+    },
     retention_days: 90,
     generated_at: "",
     storage_path: "",
@@ -173,6 +184,10 @@ export function App(): ReactElement {
     },
     [loadSnapshot],
   );
+
+  const handleRefreshGithub = useCallback(async (): Promise<void> => {
+    await loadSnapshot(api.refreshGithub);
+  }, [loadSnapshot]);
 
   const repositories = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -420,6 +435,14 @@ export function App(): ReactElement {
               repositories={snapshot.repositories}
               onSave={handleSaveGroup}
               onDelete={handleDeleteGroup}
+            />
+          ) : activeNav === "remote" ? (
+            <RemoteCatalogSurface
+              status={snapshot.provider_status}
+              identities={snapshot.provider_identities}
+              repositories={snapshot.remote_repositories}
+              isRefreshing={isRefreshing}
+              onRefresh={handleRefreshGithub}
             />
           ) : (
             <DeferredSurface

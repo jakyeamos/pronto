@@ -1110,6 +1110,120 @@ h1 {
   font-size: 10px;
   line-height: 1.45;
 }
+.remote-catalog-layout {
+  display: grid;
+  gap: 14px;
+}
+.provider-status-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin: 0 20px 14px;
+  padding: 13px;
+  border: 1px solid rgba(119, 168, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(119, 168, 255, 0.06);
+}
+.provider-status-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  color: var(--blue);
+  background: rgba(119, 168, 255, 0.12);
+}
+.provider-status-card > div:last-child {
+  min-width: 0;
+}
+.provider-status-heading,
+.remote-repository-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.provider-status-heading strong,
+.remote-repository-heading strong {
+  color: #cfdbeb;
+  font-size: 11px;
+  font-weight: 650;
+}
+.provider-status-card p {
+  margin: 5px 0 4px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+.provider-status-card small,
+.remote-repository-card small {
+  color: var(--faint);
+  font-size: 9px;
+}
+.provider-identity-list {
+  display: grid;
+  gap: 7px;
+  padding: 0 20px 18px;
+}
+.provider-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--mint);
+  background: rgba(104, 214, 177, 0.05);
+}
+.provider-identity span {
+  min-width: 0;
+}
+.provider-identity strong,
+.provider-identity small {
+  display: block;
+}
+.provider-identity strong {
+  color: #cbd8ea;
+  font-size: 10px;
+  font-weight: 650;
+}
+.provider-identity small {
+  margin-top: 3px;
+  color: var(--faint);
+  font-size: 9px;
+}
+.remote-repository-list {
+  display: grid;
+  gap: 8px;
+  padding: 18px 20px 20px;
+}
+.remote-repository-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(21, 39, 64, 0.55);
+}
+.remote-repository-card > div {
+  min-width: 0;
+}
+.remote-repository-heading strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.remote-repository-card small {
+  display: block;
+  margin-top: 5px;
+}
+.remote-repository-card a {
+  flex: 0 0 auto;
+  text-decoration: none;
+}
 .surface-settings {
   display: grid;
   gap: 14px;

@@ -8,8 +8,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-const STORE_VERSION: u8 = 2;
-const SQLITE_SCHEMA_VERSION: i64 = 3;
+const STORE_VERSION: u8 = 3;
+const SQLITE_SCHEMA_VERSION: i64 = 4;
 const DEFAULT_RETENTION_DAYS: i64 = 90;
 const DEFAULT_MAX_UNTRACKED_BYTES: u64 = 2_000_000;
 
@@ -51,6 +51,69 @@ pub struct GroupConfig {
     pub repository_ids: Vec<String>,
     pub created_at: String,
     pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderIdentity {
+    pub id: String,
+    pub provider: String,
+    pub login: String,
+    pub display_name: Option<String>,
+    pub organizations: Vec<String>,
+    pub credential_state: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RemoteRepositorySnapshot {
+    pub id: String,
+    pub provider: String,
+    pub full_name: String,
+    pub name: String,
+    pub owner: String,
+    pub html_url: String,
+    pub default_branch: Option<String>,
+    pub archived: bool,
+    pub locality: String,
+    pub identity_id: String,
+    pub last_refreshed_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderStatus {
+    pub provider: String,
+    pub state: String,
+    pub message: String,
+    pub last_refresh_at: Option<String>,
+    pub identity_count: usize,
+    pub repository_count: usize,
+}
+
+impl Default for ProviderStatus {
+    fn default() -> Self {
+        Self {
+            provider: "GitHub".to_string(),
+            state: "Not connected".to_string(),
+            message:
+                "Connect GitHub through the existing credential manager to load remote context."
+                    .to_string(),
+            last_refresh_at: None,
+            identity_count: 0,
+            repository_count: 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderRefresh {
+    pub identities: Vec<ProviderIdentity>,
+    pub repositories: Vec<RemoteRepositorySnapshot>,
+    pub refreshed_at: String,
+}
+
+pub trait ProviderAdapter {
+    fn provider_id(&self) -> &str;
+    fn refresh(&self) -> Result<ProviderRefresh, String>;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -198,6 +261,12 @@ pub struct StoreState {
     pub events: Vec<EventRecord>,
     #[serde(default)]
     pub action_audits: Vec<ActionAudit>,
+    #[serde(default)]
+    pub provider_identities: Vec<ProviderIdentity>,
+    #[serde(default)]
+    pub remote_repositories: Vec<RemoteRepositorySnapshot>,
+    #[serde(default)]
+    pub provider_status: ProviderStatus,
     pub retention_days: i64,
 }
 
@@ -212,6 +281,9 @@ impl Default for StoreState {
             expected_conditions: Vec::new(),
             events: Vec::new(),
             action_audits: Vec::new(),
+            provider_identities: Vec::new(),
+            remote_repositories: Vec::new(),
+            provider_status: ProviderStatus::default(),
             retention_days: DEFAULT_RETENTION_DAYS,
         }
     }
@@ -225,6 +297,9 @@ pub struct PortfolioSnapshot {
     pub groups: Vec<GroupConfig>,
     pub events: Vec<EventRecord>,
     pub action_audits: Vec<ActionAudit>,
+    pub provider_identities: Vec<ProviderIdentity>,
+    pub remote_repositories: Vec<RemoteRepositorySnapshot>,
+    pub provider_status: ProviderStatus,
     pub retention_days: i64,
     pub generated_at: String,
     pub storage_path: String,
@@ -385,6 +460,14 @@ fn initialize_store(connection: &Connection) -> Result<(), String> {
                  summary TEXT NOT NULL,
                  created_at TEXT NOT NULL,
                  completed_at TEXT
+             );
+             CREATE TABLE IF NOT EXISTS provider_identities (
+                 id TEXT PRIMARY KEY,
+                 payload_json TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS remote_repositories (
+                 id TEXT PRIMARY KEY,
+                 payload_json TEXT NOT NULL
              );",
         )
         .map_err(|error| format!("Could not initialize Pronto database: {error}"))?;
@@ -486,6 +569,11 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
     let retention_days = metadata_value(&connection, "retention_days")?
         .and_then(|value| value.parse::<i64>().ok())
         .unwrap_or(DEFAULT_RETENTION_DAYS);
+    let provider_status = match metadata_value(&connection, "provider_status_json")? {
+        Some(payload) => serde_json::from_str(&payload)
+            .map_err(|error| format!("Could not decode provider status: {error}"))?,
+        None => ProviderStatus::default(),
+    };
 
     let root_rows = connection
         .prepare(
@@ -605,6 +693,36 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
         })
         .collect::<Result<Vec<_>, String>>()?;
 
+    let provider_identity_payloads = connection
+        .prepare("SELECT payload_json FROM provider_identities ORDER BY id")
+        .map_err(|error| format!("Could not prepare provider identities query: {error}"))?
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(|error| format!("Could not read provider identities: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode provider identities: {error}"))?;
+    let provider_identities = provider_identity_payloads
+        .into_iter()
+        .map(|payload| {
+            serde_json::from_str(&payload)
+                .map_err(|error| format!("Could not decode provider identity: {error}"))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+
+    let remote_repository_payloads = connection
+        .prepare("SELECT payload_json FROM remote_repositories ORDER BY id")
+        .map_err(|error| format!("Could not prepare remote repositories query: {error}"))?
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(|error| format!("Could not read remote repositories: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode remote repositories: {error}"))?;
+    let remote_repositories = remote_repository_payloads
+        .into_iter()
+        .map(|payload| {
+            serde_json::from_str(&payload)
+                .map_err(|error| format!("Could not decode remote repository: {error}"))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+
     let repository_payloads = connection
         .prepare("SELECT payload_json FROM repositories ORDER BY id")
         .map_err(|error| format!("Could not prepare Pronto repositories query: {error}"))?
@@ -708,6 +826,9 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
         expected_conditions,
         events,
         action_audits,
+        provider_identities,
+        remote_repositories,
+        provider_status,
         retention_days,
     })
 }
@@ -726,6 +847,8 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
         "expected_conditions",
         "events",
         "action_audits",
+        "provider_identities",
+        "remote_repositories",
     ] {
         transaction
             .execute(&format!("DELETE FROM {table}"), [])
@@ -744,6 +867,14 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
             params!["retention_days", state.retention_days.to_string()],
         )
         .map_err(|error| format!("Could not save Pronto retention setting: {error}"))?;
+    let provider_status_json = serde_json::to_string(&state.provider_status)
+        .map_err(|error| format!("Could not encode provider status: {error}"))?;
+    transaction
+        .execute(
+            "INSERT OR REPLACE INTO metadata (key, value) VALUES (?1, ?2)",
+            params!["provider_status_json", provider_status_json],
+        )
+        .map_err(|error| format!("Could not save provider status: {error}"))?;
 
     for root in &state.roots {
         let ignore_patterns_json = serde_json::to_string(&root.ignore_patterns)
@@ -873,6 +1004,28 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
             .map_err(|error| format!("Could not save Pronto action audit: {error}"))?;
     }
 
+    for identity in &state.provider_identities {
+        let payload = serde_json::to_string(identity)
+            .map_err(|error| format!("Could not encode provider identity: {error}"))?;
+        transaction
+            .execute(
+                "INSERT INTO provider_identities (id, payload_json) VALUES (?1, ?2)",
+                params![identity.id, payload],
+            )
+            .map_err(|error| format!("Could not save provider identity: {error}"))?;
+    }
+
+    for repository in &state.remote_repositories {
+        let payload = serde_json::to_string(repository)
+            .map_err(|error| format!("Could not encode remote repository: {error}"))?;
+        transaction
+            .execute(
+                "INSERT INTO remote_repositories (id, payload_json) VALUES (?1, ?2)",
+                params![repository.id, payload],
+            )
+            .map_err(|error| format!("Could not save remote repository: {error}"))?;
+    }
+
     transaction
         .commit()
         .map_err(|error| format!("Could not commit Pronto database transaction: {error}"))
@@ -886,6 +1039,9 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
         groups: state.groups.clone(),
         events: state.events.iter().rev().take(24).cloned().collect(),
         action_audits: state.action_audits.iter().rev().take(24).cloned().collect(),
+        provider_identities: state.provider_identities.clone(),
+        remote_repositories: state.remote_repositories.clone(),
+        provider_status: state.provider_status.clone(),
         retention_days: state.retention_days,
         generated_at: iso_now(),
         storage_path: path.to_string_lossy().to_string(),
@@ -927,6 +1083,236 @@ fn git_static(path: &Path, arguments: &[&str]) -> Option<String> {
         Some(result.stdout.trim().to_string())
     } else {
         None
+    }
+}
+
+#[derive(Debug, Clone)]
+struct GitHubCliAdapter {
+    executable: String,
+}
+
+impl Default for GitHubCliAdapter {
+    fn default() -> Self {
+        Self {
+            executable: "gh".to_string(),
+        }
+    }
+}
+
+impl GitHubCliAdapter {
+    fn json(&self, arguments: &[&str]) -> Result<serde_json::Value, String> {
+        let output = Command::new(&self.executable)
+            .args(arguments)
+            .output()
+            .map_err(|_| {
+                "GitHub provider unavailable: install GitHub CLI and authenticate it before refreshing."
+                    .to_string()
+            })?;
+        if !output.status.success() {
+            return Err(
+                "GitHub provider unavailable: GitHub CLI authentication is missing or expired."
+                    .to_string(),
+            );
+        }
+        serde_json::from_slice(&output.stdout)
+            .map_err(|_| "GitHub provider returned invalid JSON.".to_string())
+    }
+}
+
+impl ProviderAdapter for GitHubCliAdapter {
+    fn provider_id(&self) -> &str {
+        "github"
+    }
+
+    fn refresh(&self) -> Result<ProviderRefresh, String> {
+        let refreshed_at = iso_now();
+        let identity_payload = self.json(&["api", "user"])?;
+        let login = identity_payload
+            .get("login")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| "GitHub provider did not return an authenticated login.".to_string())?;
+        let identity_id = format!("github:{login}");
+        let identity = ProviderIdentity {
+            id: identity_id.clone(),
+            provider: self.provider_id().to_string(),
+            login: login.to_string(),
+            display_name: identity_payload
+                .get("name")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_string),
+            organizations: Vec::new(),
+            credential_state: "Authenticated".to_string(),
+            updated_at: refreshed_at.clone(),
+        };
+        let repositories_payload = self.json(&["api", "user/repos", "--paginate", "--slurp"])?;
+        let repositories =
+            parse_github_repositories(&repositories_payload, &identity_id, &refreshed_at)?;
+        Ok(ProviderRefresh {
+            identities: vec![identity],
+            repositories,
+            refreshed_at,
+        })
+    }
+}
+
+fn parse_github_repositories(
+    payload: &serde_json::Value,
+    identity_id: &str,
+    refreshed_at: &str,
+) -> Result<Vec<RemoteRepositorySnapshot>, String> {
+    let pages = match payload {
+        serde_json::Value::Array(values) if values.iter().all(serde_json::Value::is_array) => {
+            values
+                .iter()
+                .flat_map(|page| page.as_array().into_iter().flatten())
+                .collect::<Vec<_>>()
+        }
+        serde_json::Value::Array(values) => values.iter().collect::<Vec<_>>(),
+        _ => {
+            return Err("GitHub repository response was not an array.".to_string());
+        }
+    };
+    Ok(pages
+        .into_iter()
+        .filter_map(|repository| {
+            let full_name = repository.get("full_name")?.as_str()?.to_string();
+            let owner = repository
+                .get("owner")
+                .and_then(|value| value.get("login"))
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            let name = repository
+                .get("name")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or_else(|| full_name.rsplit('/').next().unwrap_or_default())
+                .to_string();
+            Some(RemoteRepositorySnapshot {
+                id: format!(
+                    "github:{}",
+                    repository
+                        .get("id")
+                        .and_then(serde_json::Value::as_i64)
+                        .map(|value| value.to_string())
+                        .unwrap_or_else(|| full_name.clone())
+                ),
+                provider: "github".to_string(),
+                full_name,
+                name,
+                owner,
+                html_url: repository
+                    .get("html_url")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default()
+                    .to_string(),
+                default_branch: repository
+                    .get("default_branch")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string),
+                archived: repository
+                    .get("archived")
+                    .and_then(serde_json::Value::as_bool)
+                    .unwrap_or(false),
+                locality: "Remote only".to_string(),
+                identity_id: identity_id.to_string(),
+                last_refreshed_at: refreshed_at.to_string(),
+            })
+        })
+        .collect())
+}
+
+fn normalize_remote_name(value: &str) -> Option<String> {
+    let mut normalized = value.trim().trim_end_matches('/').to_ascii_lowercase();
+    if normalized.is_empty() {
+        return None;
+    }
+    if let Some(value) = normalized.strip_prefix("git@github.com:") {
+        normalized = value.to_string();
+    } else {
+        for prefix in ["https://github.com/", "http://github.com/", "github.com/"] {
+            if let Some(value) = normalized.strip_prefix(prefix) {
+                normalized = value.to_string();
+                break;
+            }
+        }
+    }
+    Some(normalized.trim_end_matches(".git").to_string())
+}
+
+fn apply_provider_refresh_at(
+    path: &Path,
+    refresh: ProviderRefresh,
+) -> Result<PortfolioSnapshot, String> {
+    let mut state = load_store(path)?;
+    let remote_by_name = refresh
+        .repositories
+        .iter()
+        .filter_map(|repository| {
+            normalize_remote_name(&repository.full_name).map(|name| (name, repository))
+        })
+        .collect::<HashMap<_, _>>();
+    for local in &mut state.repositories {
+        let Some(remote_name) = local.remote_url.as_deref().and_then(normalize_remote_name) else {
+            continue;
+        };
+        if let Some(remote) = remote_by_name.get(&remote_name) {
+            local.provider_state = format!("GitHub connected as {}", remote.identity_id);
+            local.locality = "Local and remote".to_string();
+        } else if remote_name.starts_with("github.com/") || local.provider_state.contains("GitHub")
+        {
+            local.provider_state =
+                "GitHub repository unavailable to the connected identity".to_string();
+        }
+    }
+    let local_names = state
+        .repositories
+        .iter()
+        .filter_map(|repository| {
+            repository
+                .remote_url
+                .as_deref()
+                .and_then(normalize_remote_name)
+        })
+        .collect::<HashSet<_>>();
+    let mut remote_repositories = refresh.repositories;
+    for remote in &mut remote_repositories {
+        let normalized_name = normalize_remote_name(&remote.full_name)
+            .unwrap_or_else(|| remote.full_name.to_ascii_lowercase());
+        if local_names.contains(&normalized_name) {
+            remote.locality = "Local and remote".to_string();
+        }
+    }
+    state.provider_identities = refresh.identities;
+    state.remote_repositories = remote_repositories;
+    state.provider_status = ProviderStatus {
+        provider: "GitHub".to_string(),
+        state: "Ready".to_string(),
+        message: "Read-only GitHub context refreshed from the authenticated CLI.".to_string(),
+        last_refresh_at: Some(refresh.refreshed_at),
+        identity_count: state.provider_identities.len(),
+        repository_count: state.remote_repositories.len(),
+    };
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn refresh_github_at(path: &Path) -> Result<PortfolioSnapshot, String> {
+    let adapter = GitHubCliAdapter::default();
+    match adapter.refresh() {
+        Ok(refresh) => apply_provider_refresh_at(path, refresh),
+        Err(error) => {
+            let mut state = load_store(path)?;
+            state.provider_status = ProviderStatus {
+                provider: "GitHub".to_string(),
+                state: "Unavailable".to_string(),
+                message: error.clone(),
+                last_refresh_at: state.provider_status.last_refresh_at.clone(),
+                identity_count: state.provider_identities.len(),
+                repository_count: state.remote_repositories.len(),
+            };
+            save_store(path, &state)?;
+            Ok(snapshot_from_store(path, &state))
+        }
     }
 }
 
@@ -2651,6 +3037,11 @@ pub fn refresh() -> Result<PortfolioSnapshot, String> {
 }
 
 #[tauri::command]
+pub fn refresh_github() -> Result<PortfolioSnapshot, String> {
+    refresh_github_at(&store_path())
+}
+
+#[tauri::command]
 pub fn preflight_action(
     action: String,
     repository_id: Option<String>,
@@ -3096,6 +3487,9 @@ pub fn run_cli(arguments: Vec<String>) {
                     groups: Vec::new(),
                     events: Vec::new(),
                     action_audits: Vec::new(),
+                    provider_identities: Vec::new(),
+                    remote_repositories: Vec::new(),
+                    provider_status: ProviderStatus::default(),
                     retention_days: DEFAULT_RETENTION_DAYS,
                     generated_at: iso_now(),
                     storage_path: path.to_string_lossy().to_string(),
@@ -3214,6 +3608,124 @@ mod tests {
         assert_eq!(totals.added, 4);
         assert_eq!(totals.removed, 2);
         assert!(totals.partial);
+    }
+
+    #[test]
+    fn normalizes_github_remote_names_without_exposing_credentials() {
+        assert_eq!(
+            normalize_remote_name("git@github.com:Acme/Portfolio.git").as_deref(),
+            Some("acme/portfolio")
+        );
+        assert_eq!(
+            normalize_remote_name("https://github.com/Acme/Portfolio/").as_deref(),
+            Some("acme/portfolio")
+        );
+        assert_eq!(normalize_remote_name("  ").as_deref(), None);
+    }
+
+    #[test]
+    fn parses_github_repository_pages_into_remote_snapshots() {
+        let payload = serde_json::json!([
+            [{
+                "id": 42,
+                "full_name": "Acme/Portfolio",
+                "name": "Portfolio",
+                "owner": {"login": "Acme"},
+                "html_url": "https://github.com/Acme/Portfolio",
+                "default_branch": "main",
+                "archived": false
+            }],
+            [{
+                "full_name": "Acme/Archive",
+                "html_url": "https://github.com/Acme/Archive",
+                "archived": true
+            }]
+        ]);
+        let repositories =
+            parse_github_repositories(&payload, "github:jakyeamos", "2026-07-25T12:00:00Z")
+                .expect("GitHub pages should parse");
+
+        assert_eq!(repositories.len(), 2);
+        assert_eq!(repositories[0].id, "github:42");
+        assert_eq!(repositories[0].full_name, "Acme/Portfolio");
+        assert_eq!(repositories[0].owner, "Acme");
+        assert_eq!(repositories[0].locality, "Remote only");
+        assert_eq!(repositories[1].name, "Archive");
+        assert!(repositories[1].archived);
+    }
+
+    #[test]
+    fn applies_provider_refresh_and_marks_local_matches() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        git(
+            &repository,
+            &[
+                "remote",
+                "add",
+                "origin",
+                "git@github.com:Acme/Portfolio-Repository.git",
+            ],
+        );
+        let database = root.join("registry.db");
+        let root_config = RootConfig {
+            id: path_id("root", &root),
+            path: root.to_string_lossy().to_string(),
+            label: "fixture".to_string(),
+            ignore_patterns: Vec::new(),
+            refresh_policy: default_refresh_policy(),
+            background_monitoring: false,
+            registered_at: iso_now(),
+        };
+        let mut state = StoreState {
+            roots: vec![root_config],
+            ..StoreState::default()
+        };
+        scan_and_persist_scoped(&database, &mut state, None)
+            .expect("local fixture should persist before provider refresh");
+
+        let refresh = ProviderRefresh {
+            identities: vec![ProviderIdentity {
+                id: "github:jakyeamos".to_string(),
+                provider: "github".to_string(),
+                login: "jakyeamos".to_string(),
+                display_name: Some("Jakye Amos".to_string()),
+                organizations: Vec::new(),
+                credential_state: "Authenticated".to_string(),
+                updated_at: "2026-07-25T12:00:00Z".to_string(),
+            }],
+            repositories: vec![RemoteRepositorySnapshot {
+                id: "github:42".to_string(),
+                provider: "github".to_string(),
+                full_name: "acme/portfolio-repository".to_string(),
+                name: "portfolio-repository".to_string(),
+                owner: "acme".to_string(),
+                html_url: "https://github.com/acme/portfolio-repository".to_string(),
+                default_branch: Some("main".to_string()),
+                archived: false,
+                locality: "Remote only".to_string(),
+                identity_id: "github:jakyeamos".to_string(),
+                last_refreshed_at: "2026-07-25T12:00:00Z".to_string(),
+            }],
+            refreshed_at: "2026-07-25T12:00:00Z".to_string(),
+        };
+        let snapshot = apply_provider_refresh_at(&database, refresh)
+            .expect("provider refresh should persist locally");
+
+        assert_eq!(snapshot.provider_status.state, "Ready");
+        assert_eq!(snapshot.provider_identities.len(), 1);
+        assert_eq!(snapshot.remote_repositories.len(), 1);
+        assert_eq!(snapshot.remote_repositories[0].locality, "Local and remote");
+        assert_eq!(snapshot.repositories[0].locality, "Local and remote");
+        assert_eq!(
+            snapshot.repositories[0].provider_state,
+            "GitHub connected as github:jakyeamos"
+        );
+
+        let persisted = load_store(&database).expect("provider snapshot should reload");
+        assert_eq!(persisted.provider_status.state, "Ready");
+        assert_eq!(persisted.remote_repositories.len(), 1);
+        fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
     #[test]
@@ -3487,6 +3999,14 @@ mod tests {
             )
             .expect("action audit table should exist after migration");
         assert_eq!(action_table, "action_audits");
+        let provider_identity_table: String = connection
+            .query_row(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'provider_identities'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("provider identity table should exist after migration");
+        assert_eq!(provider_identity_table, "provider_identities");
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
