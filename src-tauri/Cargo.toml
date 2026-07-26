@@ -1,6 +1,7 @@
 [package]
 name = "pronto"
 version = "0.1.0"
+default-run = "pronto"
 description = "A local-first portfolio command center for Git repositories"
 authors = ["Pronto"]
 license = "MIT"
