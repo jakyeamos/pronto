@@ -6,7 +6,7 @@
 - Tauri + React/TypeScript provides the desktop shell and portfolio console.
 - Native Rust discovers repositories and linked worktrees, scans structured Git state, persists snapshots, transition events, and action audits, and exposes Tauri plus read-only CLI commands.
 - The repository-selection Git environment is sanitized before native Git calls so hook variables cannot redirect scans or fixtures.
-- A canonical PRD behavior inventory, coverage boundary sheet, delivery plan, and verification matrix are committed at `docs/pronto-behavior-spec.xlsx`; the workbook now tracks 34 behaviors through implementation snapshot `d332573`.
+- A canonical PRD behavior inventory, coverage boundary sheet, delivery plan, and verification matrix are committed at `docs/pronto-behavior-spec.xlsx`; the workbook now tracks 35 behaviors through implementation snapshot `b13de08`.
 - The local desktop surface now has truthful navigation boundaries, Activity and Settings views, Cmd/Ctrl-K search focus, Escape drawer dismissal, freshness copy, and distinct filtered-empty states.
 - Local durable state now uses a versioned SQLite database with non-destructive import from the legacy JSON registry; renderer and CLI snapshot contracts are unchanged.
 - Safe local refresh/inspect preflights now use an explicit allowlist, exact root/repository target IDs, blocked-action records, and durable SQLite audit history; no destructive Git or provider-write action is exposed.
@@ -14,8 +14,8 @@
 ## Current Position
 
 - Branch: `main`
-- Implementation and documentation commits: `1817527`, `ef6ea99`, `73c28e5`, `533c2f5`, `885fe1e`, `faf0d99`, `d332573`, `f01c627`, `b13de08`
-- Verification for `b13de08`: 9 Rust tests, hook-mode `pnpm test`, cargo fmt, offline cargo check, typecheck, lint, Prettier, renderer production build, `git diff --check`, and commit-time source-delta Pre-CR all passed. The full Tauri app/DMG build and refreshed workbook remain final handoff gates.
+- Implementation and documentation commits: `1817527`, `ef6ea99`, `73c28e5`, `533c2f5`, `885fe1e`, `faf0d99`, `d332573`, `f01c627`, `b13de08`, `5a0b120`
+- Verification for `b13de08` and `5a0b120`: 9 Rust tests, hook-mode `pnpm test`, cargo fmt, offline cargo test/check, typecheck, lint, Prettier, CLI JSON smoke, renderer production build, full Tauri app/DMG build, workbook inspect with zero formula errors, three-sheet visual review, `git diff --check`, and the source commit-time Pre-CR gate all passed. The final docs/workbook-only Pre-CR run produced no changed-line result because those paths are configured as ignored surfaces.
 - Next deliverable: read-only provider context after the local action boundary is reviewed; modifying Git actions remain deferred.
 
 ## Blockers
@@ -31,15 +31,16 @@
 
 ## Recent Progress
 
-| Date       | Change                                                                            | Evidence                                |
-| ---------- | --------------------------------------------------------------------------------- | --------------------------------------- |
-| 2026-07-25 | Implemented local-first Tauri/Rust/React slice and committed it.                  | `1817527`                               |
-| 2026-07-25 | Fixed inherited `GIT_INDEX_FILE` contamination in native Git calls.               | Hook-mode `pnpm test` passed            |
-| 2026-07-25 | Fixed the Pre-CR adapter's strict ESLint global reference.                        | `ef6ea99`; lint and hook passed         |
-| 2026-07-25 | Added PRD behavior inventory and verification workbook.                           | `533c2f5`; artifact inspect passed      |
-| 2026-07-25 | Added truthful local navigation, settings/activity surfaces, and keyboard UX.     | `885fe1e`; Pre-CR passed                |
-| 2026-07-25 | Refreshed the behavior workbook for the UX slice and accepted delivery decisions. | `faf0d99`; 34 rows, zero formula errors |
-| 2026-07-25 | Replaced JSON persistence with versioned SQLite and added legacy import coverage. | `d332573`; 6 Rust tests passed          |
-| 2026-07-25 | Refreshed behavior coverage for SQLite and updated the next action gate.          | `f01c627`; artifact inspect passed      |
-| 2026-07-25 | Verified the full Tauri app/DMG build and hook-mode test path.                    | Release bundle; 6 Rust tests passed     |
+| Date       | Change                                                                                                      | Evidence                                        |
+| ---------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| 2026-07-25 | Implemented local-first Tauri/Rust/React slice and committed it.                                            | `1817527`                                       |
+| 2026-07-25 | Fixed inherited `GIT_INDEX_FILE` contamination in native Git calls.                                         | Hook-mode `pnpm test` passed                    |
+| 2026-07-25 | Fixed the Pre-CR adapter's strict ESLint global reference.                                                  | `ef6ea99`; lint and hook passed                 |
+| 2026-07-25 | Added PRD behavior inventory and verification workbook.                                                     | `533c2f5`; artifact inspect passed              |
+| 2026-07-25 | Added truthful local navigation, settings/activity surfaces, and keyboard UX.                               | `885fe1e`; Pre-CR passed                        |
+| 2026-07-25 | Refreshed the behavior workbook for the UX slice and accepted delivery decisions.                           | `faf0d99`; 34 rows, zero formula errors         |
+| 2026-07-25 | Replaced JSON persistence with versioned SQLite and added legacy import coverage.                           | `d332573`; 6 Rust tests passed                  |
+| 2026-07-25 | Refreshed behavior coverage for SQLite and updated the next action gate.                                    | `f01c627`; artifact inspect passed              |
+| 2026-07-25 | Verified the full Tauri app/DMG build and hook-mode test path.                                              | Release bundle; 6 Rust tests passed             |
 | 2026-07-25 | Added read-only action preflight, durable audit records, schema v2 migration, and collision-safe event IDs. | `b13de08`; 9 Rust tests and commit gates passed |
+| 2026-07-25 | Refreshed the canonical behavior workbook and plans for the read-only action boundary.                      | `5a0b120`; 35 rows, zero formula errors         |
