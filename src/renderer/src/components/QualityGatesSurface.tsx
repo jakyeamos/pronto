@@ -14,29 +14,14 @@ import {
 } from "./QualityComponents";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
 
-function gateColumns(repositories: RepositorySnapshot[]): string[] {
-  const ids = new Set<string>();
-  for (const repository of repositories) {
-    for (const gate of repository.quality.gates) ids.add(gate.id);
-  }
-  return Array.from(ids).sort((left, right) => {
-    const canonical = [
-      "build",
-      "runtime_smoke",
-      "lint",
-      "formatter",
-      "typecheck",
-      "dead_code",
-    ];
-    const leftIndex = canonical.indexOf(left);
-    const rightIndex = canonical.indexOf(right);
-    return (
-      (leftIndex < 0 ? canonical.length : leftIndex) -
-        (rightIndex < 0 ? canonical.length : rightIndex) ||
-      left.localeCompare(right)
-    );
-  });
-}
+const CANONICAL_GATE_IDS = [
+  "build",
+  "runtime_smoke",
+  "lint",
+  "formatter",
+  "typecheck",
+  "dead_code",
+];
 
 function totalHighFindings(repositories: RepositorySnapshot[]): number {
   return repositories.reduce(
@@ -57,7 +42,8 @@ export function QualityGatesSurface({
   onOpenRepository: (repository: RepositorySnapshot) => void;
   onOpenReport?: (reportPath: string) => void;
 }): ReactElement {
-  const columns = gateColumns(repositories);
+  const columns = CANONICAL_GATE_IDS;
+  const canonicalGateCount = CANONICAL_GATE_IDS.length;
   const configuredGateCount = repositories.reduce(
     (total, repository) =>
       total +
@@ -120,9 +106,9 @@ export function QualityGatesSurface({
           </div>
           <div className="quality-matrix-heading-meta">
             <StatusPill tone="slate">
-              6 canonical · custom discovered
+              {canonicalGateCount} canonical gates
             </StatusPill>
-            <span>{columns.length} gates · horizontal comparison</span>
+            <span>Canonical release gates · horizontal comparison</span>
           </div>
         </div>
         {repositories.length === 0 ? (
@@ -140,7 +126,7 @@ export function QualityGatesSurface({
             <div className="quality-matrix-scroll-hint">
               <MoveHorizontal size={14} />
               <span>
-                Scroll horizontally to compare all {columns.length} gates.
+                Scroll horizontally to compare the six canonical gates.
               </span>
             </div>
             <table className="quality-matrix">

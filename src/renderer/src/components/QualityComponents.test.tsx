@@ -248,7 +248,7 @@ function aiPreview(): AiPayloadPreview {
 
 // quality-gate: allow static-ui-test: verifies the read-only evidence contract and release-source copy
 describe("quality evidence surfaces", () => {
-  it("renders the matrix, exact maturity, QR severity, and expandable source evidence", () => {
+  it("renders the canonical matrix, maturity, QR severity, and source evidence", () => {
     const repository = makeRepository({
       quality: makeQuality({
         gates: [
@@ -311,7 +311,8 @@ describe("quality evidence surfaces", () => {
 
     expect(markup).toContain("Quality gate matrix");
     expect(markup).toContain("1.933");
-    expect(markup).toContain("Security Scan");
+    expect(markup).toContain("6 canonical gates");
+    expect(markup).not.toContain("Security Scan");
     expect(markup).toContain("4");
     expect(markup).toContain("critical");
     expect(markup).toContain("CI · GitHub check · build");
