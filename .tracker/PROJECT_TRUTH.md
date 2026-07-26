@@ -12,24 +12,27 @@
 - Safe local refresh/inspect preflights now use an explicit allowlist, exact root/repository target IDs, blocked-action records, and durable SQLite audit history; no destructive Git or provider-write action is exposed.
 - Local portfolio configuration is now durable and editable: discovery-root ignore/fetch/monitoring settings, explicit product and group membership, product release modes, repository lifecycle confirmation, retention days, and recursive submodule summaries are stored in SQLite schema v3 and surfaced in the desktop UI.
 - The companion CLI now shares the local registry and action boundary for product/group status filters, scoped read-only refreshes, structured JSON output, repository/app opening, and an audited blocked clone command.
+- A provider-neutral remote snapshot contract now persists GitHub identities, remote repositories, locality matches, freshness, and unavailable states in SQLite schema v4; the desktop Remote catalog is read-only and never stores provider credentials.
 
 ## Current Position
 
 - Branch: `main`
-- Implementation and documentation commits: `1817527`, `ef6ea99`, `73c28e5`, `533c2f5`, `885fe1e`, `faf0d99`, `d332573`, `f01c627`, `b13de08`, `5a0b120`, `42e8b54`, `853faa6`
+- Implementation and documentation commits: `1817527`, `ef6ea99`, `73c28e5`, `533c2f5`, `885fe1e`, `faf0d99`, `d332573`, `f01c627`, `b13de08`, `5a0b120`, `42e8b54`, `853faa6`, `ed8d05f`
 - Verification for `b13de08` and `5a0b120`: 9 Rust tests, hook-mode `pnpm test`, cargo fmt, offline cargo test/check, typecheck, lint, Prettier, CLI JSON smoke, renderer production build, full Tauri app/DMG build, workbook inspect with zero formula errors, three-sheet visual review, `git diff --check`, and the source commit-time Pre-CR gate all passed. The final docs/workbook-only Pre-CR run produced no changed-line result because those paths are configured as ignored surfaces.
 - Verification for `42e8b54`: 11 Rust tests, offline cargo check/test, typecheck, lint, Prettier, renderer production build, `git diff --check`, and the source commit-time Pre-CR gate all passed.
 - Verification for `853faa6`: 11 Rust tests, CLI JSON smoke, offline cargo check/test, cargo fmt, `git diff --check`, and the source commit-time Pre-CR gate all passed.
-- Next deliverable: provider-neutral read-only remote context with an explicit GitHub adapter boundary; modifying Git/provider actions remain deferred.
+- Verification for `ed8d05f`: 14 Rust tests, offline cargo check/test, cargo fmt, typecheck, lint, renderer production build, `git diff --check`, and the source commit-time Pre-CR gate all passed.
+- Next deliverable: agent-workspace/process evidence and deterministic PR/release preparation contracts; provider mutations remain deferred.
 
 ## Blockers
 
-- GitHub identity/provider refresh, remote catalog and clone, modifying action execution, pull requests, releases, process/terminal integration, and opt-in AI remain explicit deferred boundaries from the implementation plan.
+- Live GitHub refresh is environment-limited because the existing `gh` credential is invalid; remote-only clone, modifying action execution, pull requests, releases, process/terminal integration, and opt-in AI remain explicit deferred boundaries from the implementation plan.
 
 ## Risks
 
 - Folder-picker and full Tauri UI interaction still need live desktop verification.
-- The SQLite schema is now at version 3 with explicit migrations for action audits plus root/product/group configuration; future schema migrations still need explicit migration steps rather than silent compatibility assumptions.
+- The SQLite schema is now at version 4 with explicit migrations for action audits, root/product/group configuration, and provider snapshots; future schema migrations still need explicit migration steps rather than silent compatibility assumptions.
+- Provider refresh uses the existing GitHub CLI credential path and persists only sanitized identity/repository snapshots; credential repair and live remote evidence still need an authenticated environment.
 - Action audit identifiers and transition event identifiers use process-local sequences to avoid same-second collisions; cross-process concurrency is not yet a supported store mode.
 - Pre-CR is configured with a zero-threshold no-instrumentation adapter; functional tests, typechecks, and builds are the evidence gates until a real coverage instrumenter is added.
 
@@ -50,3 +53,4 @@
 | 2026-07-25 | Refreshed the canonical behavior workbook and plans for the read-only action boundary.                      | `5a0b120`; 35 rows, zero formula errors         |
 | 2026-07-25 | Added durable products/groups, lifecycle confirmation, root policies, retention settings, and submodule summaries. | `42e8b54`; 11 Rust tests, web gates, and Pre-CR passed |
 | 2026-07-25 | Aligned the companion CLI with portfolio filters, scoped refresh, desktop opening, JSON, and blocked clone audit. | `853faa6`; 11 Rust tests, CLI JSON smoke, and Pre-CR passed |
+| 2026-07-25 | Added provider-neutral GitHub identity/repository snapshots and the read-only Remote catalog surface. | `ed8d05f`; 14 Rust tests, web gates, and Pre-CR passed |
