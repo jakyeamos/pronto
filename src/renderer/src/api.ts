@@ -6,6 +6,7 @@ import type {
   ExternalTool,
   PortfolioSnapshot,
   RepositoryPreparation,
+  ReleaseRecipeConfig,
   ReleaseRuleConfig,
 } from "./types";
 
@@ -96,6 +97,34 @@ export async function setReleaseRule(
   return invoke<PortfolioSnapshot>("set_release_rule", {
     repository_id: repositoryId,
     release_rule: releaseRule,
+  });
+}
+
+export async function setReleaseRecipe(
+  repositoryId: string,
+  releaseRecipe: ReleaseRecipeConfig | null,
+): Promise<PortfolioSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Release recipes are available in the Pronto desktop app.");
+  }
+  return invoke<PortfolioSnapshot>("set_release_recipe", {
+    repository_id: repositoryId,
+    release_recipe: releaseRecipe,
+  });
+}
+
+export async function setReleaseVersion(
+  repositoryId: string,
+  releaseVersion: string | null,
+): Promise<PortfolioSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error(
+      "Release version confirmation is available in the Pronto desktop app.",
+    );
+  }
+  return invoke<PortfolioSnapshot>("set_release_version", {
+    repository_id: repositoryId,
+    release_version: releaseVersion,
   });
 }
 

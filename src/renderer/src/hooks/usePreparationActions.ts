@@ -4,6 +4,7 @@ import * as api from "../api";
 import type {
   AiPayloadPreview,
   PortfolioSnapshot,
+  ReleaseRecipeConfig,
   ReleaseRuleConfig,
   RepositoryPreparation,
   RepositorySnapshot,
@@ -34,6 +35,10 @@ export function usePreparationActions({
   handleSaveReleaseRule: (
     releaseRule: ReleaseRuleConfig | null,
   ) => Promise<void>;
+  handleSaveReleaseRecipe: (
+    releaseRecipe: ReleaseRecipeConfig | null,
+  ) => Promise<void>;
+  handleConfirmReleaseVersion: (version: string | null) => Promise<void>;
   handleSaveAiPermission: (permission: string) => Promise<void>;
   handlePreviewAiSummary: () => Promise<AiPayloadPreview>;
 } {
@@ -51,6 +56,69 @@ export function usePreparationActions({
       selectedRepository,
       setSelectedPreparation,
       setSelectedRepository,
+    ],
+  );
+
+  const handleSaveReleaseRecipe = useCallback(
+    async (releaseRecipe: ReleaseRecipeConfig | null): Promise<void> => {
+      if (!selectedRepository) return;
+      await loadSnapshot(() =>
+        api.setReleaseRecipe(selectedRepository.id, releaseRecipe),
+      );
+      setSelectedPreparation(null);
+      setSelectedRepository(null);
+    },
+    [
+      loadSnapshot,
+      selectedRepository,
+      setSelectedPreparation,
+      setSelectedRepository,
+    ],
+  );
+
+  const handleConfirmReleaseVersion = useCallback(
+    async (version: string | null): Promise<void> => {
+      if (!selectedRepository || !selectedPreparation) return;
+      try {
+        const nextSnapshot = await api.setReleaseVersion(
+          selectedRepository.id,
+          version,
+        );
+        setSnapshot(nextSnapshot);
+        const nextRepository =
+          nextSnapshot.repositories.find(
+            (repository) => repository.id === selectedRepository.id,
+          ) ?? null;
+        if (!nextRepository) {
+          setSelectedRepository(null);
+          setSelectedPreparation(null);
+          return;
+        }
+        const preparation = await api.prepareRepository(
+          nextRepository.id,
+          selectedPreparation.preparation.pull_request.workspace_id,
+        );
+        setSelectedRepository(nextRepository);
+        setSelectedPreparation({
+          repository: nextRepository,
+          preparation,
+        });
+      } catch (caught) {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Pronto could not save the release version confirmation.",
+        );
+        throw caught;
+      }
+    },
+    [
+      selectedPreparation,
+      selectedRepository,
+      setError,
+      setSelectedPreparation,
+      setSelectedRepository,
+      setSnapshot,
     ],
   );
 
@@ -115,6 +183,8 @@ export function usePreparationActions({
 
   return {
     handleSaveReleaseRule,
+    handleSaveReleaseRecipe,
+    handleConfirmReleaseVersion,
     handleSaveAiPermission,
     handlePreviewAiSummary,
   };

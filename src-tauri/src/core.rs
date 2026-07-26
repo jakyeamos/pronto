@@ -61,6 +61,15 @@ pub struct ReleaseRuleConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseRecipeConfig {
+    pub name: String,
+    pub validation_commands: Vec<String>,
+    pub release_commands: Vec<String>,
+    pub generated_paths: Vec<String>,
+    pub commit_message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GroupConfig {
     pub id: String,
     pub name: String,
@@ -329,6 +338,10 @@ pub struct RepositorySnapshot {
     pub releases: Vec<ReleaseSnapshot>,
     #[serde(default)]
     pub release_rule: Option<ReleaseRuleConfig>,
+    #[serde(default)]
+    pub release_recipe: Option<ReleaseRecipeConfig>,
+    #[serde(default)]
+    pub confirmed_release_version: Option<String>,
     #[serde(default = "default_ai_permission")]
     pub ai_permission: String,
     pub conditions: Vec<Condition>,
@@ -430,6 +443,27 @@ pub struct ReleasePreparation {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseRecipeStep {
+    pub order: u8,
+    pub label: String,
+    pub status: String,
+    pub detail: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseRecipePreview {
+    pub repository_id: String,
+    pub recipe_name: String,
+    pub candidate_version: Option<String>,
+    pub version_status: String,
+    pub status: String,
+    pub reasons: Vec<String>,
+    pub steps: Vec<ReleaseRecipeStep>,
+    pub actions_performed: bool,
+    pub generated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AiPayloadCategory {
     pub category: String,
     pub included: bool,
@@ -468,6 +502,7 @@ pub struct RepositoryPreparation {
     pub repository_id: String,
     pub pull_request: PullRequestPreparation,
     pub release: ReleasePreparation,
+    pub recipe: ReleaseRecipePreview,
     pub generated_at: String,
 }
 
@@ -1703,6 +1738,7 @@ fn apply_provider_refresh_at(
         identity_count: state.provider_identities.len(),
         repository_count: state.remote_repositories.len(),
     };
+    apply_release_threshold_conditions(&mut state);
     save_store(path, &state)?;
     Ok(snapshot_from_store(path, &state))
 }
@@ -1721,6 +1757,7 @@ fn refresh_github_at(path: &Path) -> Result<PortfolioSnapshot, String> {
                 identity_count: state.provider_identities.len(),
                 repository_count: state.remote_repositories.len(),
             };
+            apply_release_threshold_conditions(&mut state);
             save_store(path, &state)?;
             Ok(snapshot_from_store(path, &state))
         }
@@ -1906,6 +1943,97 @@ fn normalize_release_rule(rule: ReleaseRuleConfig) -> Result<ReleaseRuleConfig, 
         min_elapsed_days: rule.min_elapsed_days,
         required_commit_types,
         allow_first_release: rule.allow_first_release,
+    })
+}
+
+fn default_release_recipe() -> ReleaseRecipeConfig {
+    ReleaseRecipeConfig {
+        name: "Single repository release".to_string(),
+        validation_commands: Vec::new(),
+        release_commands: Vec::new(),
+        generated_paths: Vec::new(),
+        commit_message: "chore(release): prepare {version}".to_string(),
+    }
+}
+
+fn normalize_release_commands(commands: Vec<String>, label: &str) -> Result<Vec<String>, String> {
+    let mut normalized = Vec::new();
+    for command in commands {
+        let value = command.trim();
+        if value.is_empty() {
+            continue;
+        }
+        if value.contains('\0') || value.contains('\n') || value.contains('\r') {
+            return Err(format!("{label} cannot contain line breaks or null bytes"));
+        }
+        if value.chars().count() > 500 {
+            return Err(format!(
+                "{label} must be 500 characters or fewer per command"
+            ));
+        }
+        let value = value.to_string();
+        if !normalized.contains(&value) {
+            normalized.push(value);
+        }
+    }
+    Ok(normalized)
+}
+
+fn normalize_generated_paths(paths: Vec<String>) -> Result<Vec<String>, String> {
+    let mut normalized = Vec::new();
+    for path in paths {
+        let value = path.trim();
+        if value.is_empty() {
+            continue;
+        }
+        if value.starts_with('/')
+            || value.contains('\\')
+            || value.contains(':')
+            || value
+                .split('/')
+                .any(|part| part.is_empty() || part == "." || part == "..")
+        {
+            return Err(format!(
+                "Generated path '{value}' must be a repository-relative file path"
+            ));
+        }
+        if value.chars().count() > 240 {
+            return Err("Generated paths must be 240 characters or fewer".to_string());
+        }
+        let value = value.to_string();
+        if !normalized.contains(&value) {
+            normalized.push(value);
+        }
+    }
+    Ok(normalized)
+}
+
+fn normalize_release_recipe(recipe: ReleaseRecipeConfig) -> Result<ReleaseRecipeConfig, String> {
+    let name = normalize_name(&recipe.name, "Release recipe")?;
+    let commit_message = recipe.commit_message.trim();
+    if commit_message.is_empty() {
+        return Err("Release recipe commit message cannot be empty".to_string());
+    }
+    if commit_message.contains('\0')
+        || commit_message.contains('\n')
+        || commit_message.contains('\r')
+    {
+        return Err(
+            "Release recipe commit message cannot contain line breaks or null bytes".to_string(),
+        );
+    }
+    if commit_message.chars().count() > 160 {
+        return Err("Release recipe commit message must be 160 characters or fewer".to_string());
+    }
+    Ok(ReleaseRecipeConfig {
+        name,
+        validation_commands: normalize_release_commands(
+            recipe.validation_commands,
+            "Validation commands",
+        )?,
+        release_commands: normalize_release_commands(recipe.release_commands, "Release commands")?,
+        generated_paths: normalize_generated_paths(recipe.generated_paths)?,
+        commit_message: commit_message.to_string(),
     })
 }
 
@@ -2958,6 +3086,12 @@ fn parse_release_version(tag: &str) -> Option<(u64, u64, u64)> {
     Some((major, minor, patch))
 }
 
+fn normalize_release_version(value: &str) -> Result<String, String> {
+    let (major, minor, patch) = parse_release_version(value)
+        .ok_or_else(|| "Release version must use the form vMAJOR.MINOR.PATCH".to_string())?;
+    Ok(format!("v{major}.{minor}.{patch}"))
+}
+
 fn highest_release_bump(commits: &[ReleaseCommitSummary]) -> Option<String> {
     commits
         .iter()
@@ -3150,6 +3284,85 @@ fn evaluate_release_rule(
         combine_release_rule_results(&rule.operator, &results),
         trace,
     )
+}
+
+fn release_threshold_condition(
+    repository: &RepositorySnapshot,
+    provider_ready: bool,
+    expected: &[ExpectedCondition],
+    observed_at: &str,
+) -> Option<Condition> {
+    let rule = repository.release_rule.as_ref()?;
+    if !provider_context_available(repository, provider_ready) {
+        return None;
+    }
+    let baseline = latest_published_release(repository);
+    let base = baseline
+        .as_ref()
+        .and_then(|release| release.target_commit.as_deref())
+        .or(repository.workspace.target_branch.as_deref())?;
+    let commits = release_commits(
+        Path::new(&repository.workspace.path),
+        base,
+        &repository.workspace.branch,
+    );
+    let (result, trace) = evaluate_release_rule(rule, baseline.as_ref(), &commits);
+    if result != ReleaseRuleResult::Passed {
+        return None;
+    }
+    let trace_evidence = trace
+        .iter()
+        .map(|item| {
+            evidence(
+                item.label.as_str(),
+                format!("{} · {}", item.status, item.value),
+                "Deterministic release rule trace",
+                observed_at,
+            )
+        })
+        .collect::<Vec<_>>();
+    Some(condition(
+        &repository.id,
+        "release-threshold",
+        "Configured release threshold met",
+        format!("{} passed for {}.", rule.name, repository.name),
+        4,
+        condition_fingerprint(
+            "release-threshold",
+            &[
+                rule.name.clone(),
+                rule.operator.clone(),
+                base.to_string(),
+                repository.workspace.branch.clone(),
+                commits.len().to_string(),
+            ],
+        ),
+        "A user-configured deterministic release rule evaluated true using the published baseline, committed range, and configured clauses.",
+        trace_evidence,
+        Vec::new(),
+        Some("High"),
+        repository.last_fetch_at.clone(),
+        expected,
+    ))
+}
+
+fn apply_release_threshold_conditions(state: &mut StoreState) {
+    let observed_at = iso_now();
+    let provider_ready = state.provider_status.state == "Ready";
+    for repository in &mut state.repositories {
+        repository
+            .conditions
+            .retain(|condition| condition.kind != "release-threshold");
+        if let Some(threshold) = release_threshold_condition(
+            repository,
+            provider_ready,
+            &state.expected_conditions,
+            &observed_at,
+        ) {
+            repository.conditions.push(threshold);
+            repository.conditions.sort_by_key(|item| item.priority);
+        }
+    }
 }
 
 fn provider_context_available(repository: &RepositorySnapshot, provider_ready: bool) -> bool {
@@ -3416,7 +3629,38 @@ fn prepare_release(
             &observed_at,
         ));
     }
-    let has_candidate_version = candidate_version.is_some();
+    let version_status = match (
+        candidate_version.as_ref(),
+        repository.confirmed_release_version.as_ref(),
+    ) {
+        (Some(candidate), Some(confirmed)) if candidate == confirmed => {
+            "Candidate version confirmed".to_string()
+        }
+        (Some(_), Some(_)) => "Confirmed version does not match current candidate".to_string(),
+        (Some(_), None) => "Candidate requires user confirmation".to_string(),
+        (None, Some(_)) => "Confirmed version has no current candidate".to_string(),
+        (None, None) => {
+            "Candidate unavailable until a published baseline and deterministic bump exist"
+                .to_string()
+        }
+    };
+    if candidate_version.is_some() {
+        if repository.confirmed_release_version.is_none() {
+            reasons.push("Candidate version requires explicit user confirmation".to_string());
+        } else if repository.confirmed_release_version != candidate_version {
+            reasons.push(
+                "Stored release version confirmation does not match the candidate".to_string(),
+            );
+        }
+    } else if repository.confirmed_release_version.is_some() {
+        reasons.push("Stored release version confirmation has no current candidate".to_string());
+    }
+    evidence_items.push(evidence(
+        "Version confirmation",
+        version_status.clone(),
+        "Deterministic candidate and local user confirmation",
+        &observed_at,
+    ));
     let missing_baseline = baseline.is_none();
     let blocked = target_branch.is_none()
         || !connected
@@ -3435,12 +3679,7 @@ fn prepare_release(
         rule_trace,
         candidate_bump,
         candidate_version,
-        version_status: if has_candidate_version {
-            "Candidate requires user confirmation".to_string()
-        } else {
-            "Candidate unavailable until a published baseline and deterministic bump exist"
-                .to_string()
-        },
+        version_status,
         notes,
         status: if blocked {
             if connected && missing_baseline && configured_rule.is_none() {
@@ -3455,6 +3694,177 @@ fn prepare_release(
         },
         reasons,
         evidence: evidence_items,
+    }
+}
+
+fn prepare_release_recipe(
+    repository: &RepositorySnapshot,
+    workspace: &WorkspaceSummary,
+    release: &ReleasePreparation,
+) -> ReleaseRecipePreview {
+    let recipe = repository
+        .release_recipe
+        .clone()
+        .unwrap_or_else(default_release_recipe);
+    let starting_state_ready =
+        !workspace.dirty && workspace.operation.is_none() && workspace.activity.state != "Active";
+    let release_evidence_ready = release.status == "Evidence ready";
+    let version_confirmed = release.version_status == "Candidate version confirmed";
+    let has_release_changes =
+        !recipe.release_commands.is_empty() || !recipe.generated_paths.is_empty();
+    let has_validation = !recipe.validation_commands.is_empty();
+    let mut reasons = release.reasons.clone();
+    if !starting_state_ready {
+        if workspace.dirty {
+            reasons.push("Workspace has uncommitted changes".to_string());
+        }
+        if let Some(operation) = workspace.operation.as_ref() {
+            reasons.push(format!("Git operation is active: {operation}"));
+        }
+        if workspace.activity.state == "Active" {
+            reasons.push("Associated agent or process activity is active".to_string());
+        }
+    }
+    if !release_evidence_ready {
+        reasons.push(format!("Release evidence is not ready: {}", release.status));
+    }
+    if release.candidate_version.is_none() {
+        reasons.push(release.version_status.clone());
+    } else if !version_confirmed {
+        reasons.push(release.version_status.clone());
+    }
+    if !has_release_changes {
+        reasons.push(
+            "Release recipe has no release commands or generated paths configured".to_string(),
+        );
+    }
+    if !has_validation {
+        reasons.push("Release recipe has no validation commands configured".to_string());
+    }
+    reasons.push(
+        "Preview only; no worktree, script, commit, push, pull request, or release publication is performed."
+            .to_string(),
+    );
+    reasons.dedup();
+
+    let mut steps = Vec::new();
+    steps.push(ReleaseRecipeStep {
+        order: 1,
+        label: "Starting-state check".to_string(),
+        status: if starting_state_ready {
+            "Passed".to_string()
+        } else {
+            "Blocked".to_string()
+        },
+        detail: if starting_state_ready {
+            format!(
+                "Workspace is clean; operation is clear; activity state is {}.",
+                workspace.activity.state
+            )
+        } else {
+            "Release preparation cannot start until the workspace is safe to isolate.".to_string()
+        },
+    });
+    steps.push(ReleaseRecipeStep {
+        order: 2,
+        label: "Create clean isolated release worktree".to_string(),
+        status: "Deferred".to_string(),
+        detail: "Preview only; no worktree was created.".to_string(),
+    });
+    steps.push(ReleaseRecipeStep {
+        order: 3,
+        label: "Confirm candidate version".to_string(),
+        status: if version_confirmed {
+            "Passed".to_string()
+        } else {
+            "Blocked".to_string()
+        },
+        detail: release.version_status.clone(),
+    });
+    steps.push(ReleaseRecipeStep {
+        order: 4,
+        label: "Apply configured release changes".to_string(),
+        status: if has_release_changes {
+            "Configured".to_string()
+        } else {
+            "Needs configuration".to_string()
+        },
+        detail: format!(
+            "{} release command(s), {} generated path(s); commit message template: {}",
+            recipe.release_commands.len(),
+            recipe.generated_paths.len(),
+            recipe.commit_message
+        ),
+    });
+    steps.push(ReleaseRecipeStep {
+        order: 5,
+        label: "Run configured validation".to_string(),
+        status: if has_validation {
+            "Configured".to_string()
+        } else {
+            "Needs configuration".to_string()
+        },
+        detail: if has_validation {
+            format!(
+                "{} validation command(s) would be reviewed before execution.",
+                recipe.validation_commands.len()
+            )
+        } else {
+            "Add at least one validation command before release preparation.".to_string()
+        },
+    });
+    let blocked = !starting_state_ready
+        || !release_evidence_ready
+        || release.candidate_version.is_none()
+        || !version_confirmed;
+    steps.push(ReleaseRecipeStep {
+        order: 6,
+        label: "Review exact generated diff".to_string(),
+        status: if blocked {
+            "Blocked".to_string()
+        } else if has_release_changes && has_validation {
+            "Pending".to_string()
+        } else {
+            "Needs configuration".to_string()
+        },
+        detail: "A user must inspect the exact generated files before any commit.".to_string(),
+    });
+    steps.push(ReleaseRecipeStep {
+        order: 7,
+        label: "Commit generated files only".to_string(),
+        status: "Deferred".to_string(),
+        detail: "No commit is created by this preview.".to_string(),
+    });
+    steps.push(ReleaseRecipeStep {
+        order: 8,
+        label: "Push and open pull request".to_string(),
+        status: "Deferred".to_string(),
+        detail: "Provider mutation remains outside this local preview.".to_string(),
+    });
+    steps.push(ReleaseRecipeStep {
+        order: 9,
+        label: "Prepare draft GitHub Release".to_string(),
+        status: "Deferred".to_string(),
+        detail: "Release publication is not enabled in V1.".to_string(),
+    });
+
+    let status = if blocked {
+        "Blocked"
+    } else if !has_release_changes || !has_validation {
+        "Needs configuration"
+    } else {
+        "Ready for user review"
+    };
+    ReleaseRecipePreview {
+        repository_id: repository.id.clone(),
+        recipe_name: recipe.name,
+        candidate_version: release.candidate_version.clone(),
+        version_status: release.version_status.clone(),
+        status: status.to_string(),
+        reasons,
+        steps,
+        actions_performed: false,
+        generated_at: iso_now(),
     }
 }
 
@@ -3482,10 +3892,14 @@ fn prepare_repository_at(
     }
     let provider_available =
         provider_context_available(repository, state.provider_status.state == "Ready");
+    let pull_request = prepare_pull_request(repository, workspace, provider_available);
+    let release = prepare_release(repository, workspace, provider_available);
+    let recipe = prepare_release_recipe(repository, workspace, &release);
     Ok(RepositoryPreparation {
         repository_id: repository.id.clone(),
-        pull_request: prepare_pull_request(repository, workspace, provider_available),
-        release: prepare_release(repository, workspace, provider_available),
+        pull_request,
+        release,
+        recipe,
         generated_at: iso_now(),
     })
 }
@@ -4048,6 +4462,9 @@ fn scan_repository(
             .map(|repository| repository.releases.clone())
             .unwrap_or_default(),
         release_rule: existing.and_then(|repository| repository.release_rule.clone()),
+        release_recipe: existing.and_then(|repository| repository.release_recipe.clone()),
+        confirmed_release_version: existing
+            .and_then(|repository| repository.confirmed_release_version.clone()),
         ai_permission: existing
             .map(|repository| repository.ai_permission.clone())
             .unwrap_or_else(default_ai_permission),
@@ -4454,6 +4871,7 @@ fn scan_and_persist_scoped(
     }
     repositories.sort_by(|left, right| left.name.to_lowercase().cmp(&right.name.to_lowercase()));
     state.repositories = repositories;
+    apply_release_threshold_conditions(state);
     prune_events(state);
     save_store(path, state)?;
     Ok(snapshot_from_store(path, state))
@@ -4561,6 +4979,61 @@ fn set_release_rule_at(
         .find(|repository| repository.id == repository_id)
         .ok_or_else(|| "Repository is not registered".to_string())?;
     repository.release_rule = normalized_rule;
+    apply_release_threshold_conditions(&mut state);
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn set_release_recipe_at(
+    path: &Path,
+    repository_id: &str,
+    release_recipe: Option<ReleaseRecipeConfig>,
+) -> Result<PortfolioSnapshot, String> {
+    let normalized_recipe = release_recipe.map(normalize_release_recipe).transpose()?;
+    let mut state = load_store(path)?;
+    let repository = state
+        .repositories
+        .iter_mut()
+        .find(|repository| repository.id == repository_id)
+        .ok_or_else(|| "Repository is not registered".to_string())?;
+    repository.release_recipe = normalized_recipe;
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn set_release_version_at(
+    path: &Path,
+    repository_id: &str,
+    release_version: Option<String>,
+) -> Result<PortfolioSnapshot, String> {
+    let normalized_version = match release_version {
+        Some(value) if value.trim().is_empty() => None,
+        Some(value) => Some(normalize_release_version(&value)?),
+        None => None,
+    };
+    let mut state = load_store(path)?;
+    let repository = state
+        .repositories
+        .iter()
+        .find(|repository| repository.id == repository_id)
+        .ok_or_else(|| "Repository is not registered".to_string())?;
+    if let Some(version) = normalized_version.as_ref() {
+        let provider_available =
+            provider_context_available(repository, state.provider_status.state == "Ready");
+        let candidate = prepare_release(repository, &repository.workspace, provider_available)
+            .candidate_version;
+        if candidate.as_ref() != Some(version) {
+            return Err(
+                "Release version must match the current deterministic candidate".to_string(),
+            );
+        }
+    }
+    let repository = state
+        .repositories
+        .iter_mut()
+        .find(|repository| repository.id == repository_id)
+        .ok_or_else(|| "Repository is not registered".to_string())?;
+    repository.confirmed_release_version = normalized_version;
     save_store(path, &state)?;
     Ok(snapshot_from_store(path, &state))
 }
@@ -4892,6 +5365,22 @@ pub fn set_release_rule(
     release_rule: Option<ReleaseRuleConfig>,
 ) -> Result<PortfolioSnapshot, String> {
     set_release_rule_at(&store_path(), &repository_id, release_rule)
+}
+
+#[tauri::command]
+pub fn set_release_recipe(
+    repository_id: String,
+    release_recipe: Option<ReleaseRecipeConfig>,
+) -> Result<PortfolioSnapshot, String> {
+    set_release_recipe_at(&store_path(), &repository_id, release_recipe)
+}
+
+#[tauri::command]
+pub fn set_release_version(
+    repository_id: String,
+    release_version: Option<String>,
+) -> Result<PortfolioSnapshot, String> {
+    set_release_version_at(&store_path(), &repository_id, release_version)
 }
 
 #[tauri::command]
@@ -5726,6 +6215,10 @@ mod tests {
                 .map(|rule| rule.operator.as_str()),
             Some("AND")
         );
+        assert!(configured_snapshot.repositories[0]
+            .conditions
+            .iter()
+            .any(|condition| condition.title == "Configured release threshold met"));
         let configured_preparation =
             prepare_repository_at(&database, &repository_id, Some(&workspace_id))
                 .expect("configured preparation should be deterministic");
@@ -5739,6 +6232,62 @@ mod tests {
             .rule_trace
             .iter()
             .all(|trace| trace.status == "Passed"));
+        assert_eq!(configured_preparation.recipe.status, "Blocked");
+        assert_eq!(configured_preparation.recipe.steps[2].status, "Blocked");
+        let mismatched_version =
+            set_release_version_at(&database, &repository_id, Some("9.9.9".to_string()))
+                .expect_err("stale version confirmations should be rejected");
+        assert_eq!(
+            mismatched_version,
+            "Release version must match the current deterministic candidate"
+        );
+        let invalid_recipe = set_release_recipe_at(
+            &database,
+            &repository_id,
+            Some(ReleaseRecipeConfig {
+                name: "Unsafe recipe".to_string(),
+                validation_commands: vec!["pnpm test\nrm -rf .".to_string()],
+                release_commands: Vec::new(),
+                generated_paths: vec!["../outside.txt".to_string()],
+                commit_message: "chore(release): prepare {version}".to_string(),
+            }),
+        )
+        .expect_err("unsafe recipe paths and commands should be rejected");
+        assert!(invalid_recipe.contains("line breaks"));
+        let confirmed_snapshot =
+            set_release_version_at(&database, &repository_id, Some("2.0.0".to_string()))
+                .expect("candidate version should require and accept explicit confirmation");
+        assert_eq!(
+            confirmed_snapshot.repositories[0]
+                .confirmed_release_version
+                .as_deref(),
+            Some("v2.0.0")
+        );
+        set_release_recipe_at(
+            &database,
+            &repository_id,
+            Some(ReleaseRecipeConfig {
+                name: "Fixture release".to_string(),
+                validation_commands: vec!["pnpm test".to_string()],
+                release_commands: vec!["pnpm release:version".to_string()],
+                generated_paths: vec!["CHANGELOG.md".to_string()],
+                commit_message: "chore(release): prepare {version}".to_string(),
+            }),
+        )
+        .expect("release recipe should persist");
+        let ready_recipe_preparation =
+            prepare_repository_at(&database, &repository_id, Some(&workspace_id))
+                .expect("configured recipe should be readable");
+        assert_eq!(
+            ready_recipe_preparation.release.version_status,
+            "Candidate version confirmed"
+        );
+        assert_eq!(
+            ready_recipe_preparation.recipe.status,
+            "Ready for user review"
+        );
+        assert!(!ready_recipe_preparation.recipe.actions_performed);
+        assert_eq!(ready_recipe_preparation.recipe.steps.len(), 9);
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 

@@ -26,6 +26,7 @@ import {
 } from "./components/ConsolePrimitives";
 import { PortfolioConfigSurface } from "./components/PortfolioConfigSurface";
 import { RemoteCatalogSurface } from "./components/RemoteCatalogSurface";
+import { useEvidenceActions } from "./hooks/useEvidenceActions";
 import { usePreparationActions } from "./hooks/usePreparationActions";
 import {
   ActivitySurface,
@@ -243,6 +244,8 @@ export function App(): ReactElement {
 
   const {
     handleSaveReleaseRule,
+    handleSaveReleaseRecipe,
+    handleConfirmReleaseVersion,
     handleSaveAiPermission,
     handlePreviewAiSummary,
   } = usePreparationActions({
@@ -253,6 +256,12 @@ export function App(): ReactElement {
     setSelectedRepository,
     setSelectedPreparation,
     setError,
+  });
+  const { handleCondition, handleExpected } = useEvidenceActions({
+    selectedEvidence,
+    loadSnapshot,
+    setSelectedRepository,
+    setSelectedEvidence,
   });
 
   const repositories = useMemo(() => {
@@ -301,21 +310,6 @@ export function App(): ReactElement {
     year: "numeric",
   }).format(new Date());
   const isCommandCenter = activeNav === "command";
-
-  const handleCondition = (
-    repository: RepositorySnapshot,
-    condition: Condition,
-  ): void => setSelectedEvidence({ repository, condition });
-  const handleExpected = async (): Promise<void> => {
-    if (!selectedEvidence) return;
-    const { repository, condition } = selectedEvidence;
-    await loadSnapshot(() =>
-      condition.status === "Expected"
-        ? api.clearExpected(repository.id, condition.id)
-        : api.markExpected(repository.id, condition.id),
-    );
-    setSelectedEvidence(null);
-  };
 
   return (
     <div className="app-shell">
@@ -496,6 +490,8 @@ export function App(): ReactElement {
         onOpenWorkspace={handleOpenWorkspace}
         onPrepareRepository={handlePrepareRepository}
         onSaveReleaseRule={handleSaveReleaseRule}
+        onSaveReleaseRecipe={handleSaveReleaseRecipe}
+        onConfirmReleaseVersion={handleConfirmReleaseVersion}
         onSaveAiPermission={handleSaveAiPermission}
         onPreviewAiSummary={handlePreviewAiSummary}
         onLifecycleChange={async (lifecycle) => {
@@ -505,11 +501,7 @@ export function App(): ReactElement {
           );
           setSelectedRepository(null);
         }}
-        onCondition={(condition) => {
-          if (!selectedRepository) return;
-          setSelectedRepository(null);
-          handleCondition(selectedRepository, condition);
-        }}
+        onCondition={handleCondition}
         onCloseEvidence={() => setSelectedEvidence(null)}
         onExpected={() => void handleExpected()}
         onClosePreparation={() => setSelectedPreparation(null)}

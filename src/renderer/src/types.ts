@@ -26,6 +26,14 @@ export interface ReleaseRuleConfig {
   allow_first_release: boolean;
 }
 
+export interface ReleaseRecipeConfig {
+  name: string;
+  validation_commands: string[];
+  release_commands: string[];
+  generated_paths: string[];
+  commit_message: string;
+}
+
 export interface AiPayloadCategory {
   category: string;
   included: boolean;
@@ -250,6 +258,8 @@ export interface RepositorySnapshot {
   pull_requests: PullRequestSnapshot[];
   releases: ReleaseSnapshot[];
   release_rule?: ReleaseRuleConfig;
+  release_recipe?: ReleaseRecipeConfig;
+  confirmed_release_version?: string;
   ai_permission: string;
   conditions: Condition[];
   last_scan_at: string;
@@ -315,10 +325,30 @@ export interface ReleasePreparation {
   evidence: EvidenceItem[];
 }
 
+export interface ReleaseRecipeStep {
+  order: number;
+  label: string;
+  status: string;
+  detail: string;
+}
+
+export interface ReleaseRecipePreview {
+  repository_id: string;
+  recipe_name: string;
+  candidate_version?: string;
+  version_status: string;
+  status: string;
+  reasons: string[];
+  steps: ReleaseRecipeStep[];
+  actions_performed: boolean;
+  generated_at: string;
+}
+
 export interface RepositoryPreparation {
   repository_id: string;
   pull_request: PullRequestPreparation;
   release: ReleasePreparation;
+  recipe: ReleaseRecipePreview;
   generated_at: string;
 }
 

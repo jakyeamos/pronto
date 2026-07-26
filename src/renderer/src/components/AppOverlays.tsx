@@ -5,6 +5,7 @@ import type {
   AiPayloadPreview,
   Condition,
   ExternalTool,
+  ReleaseRecipeConfig,
   ReleaseRuleConfig,
   RepositoryPreparation,
   RepositorySnapshot,
@@ -28,6 +29,8 @@ export function AppOverlays({
   onOpenWorkspace,
   onPrepareRepository,
   onSaveReleaseRule,
+  onSaveReleaseRecipe,
+  onConfirmReleaseVersion,
   onSaveAiPermission,
   onPreviewAiSummary,
   onLifecycleChange,
@@ -43,10 +46,12 @@ export function AppOverlays({
   onOpenWorkspace: (workspaceId: string, tool: ExternalTool) => Promise<void>;
   onPrepareRepository: (workspaceId?: string) => Promise<void>;
   onSaveReleaseRule: (rule: ReleaseRuleConfig | null) => Promise<void>;
+  onSaveReleaseRecipe: (recipe: ReleaseRecipeConfig | null) => Promise<void>;
+  onConfirmReleaseVersion: (version: string | null) => Promise<void>;
   onSaveAiPermission: (permission: string) => Promise<void>;
   onPreviewAiSummary: () => Promise<AiPayloadPreview>;
   onLifecycleChange: (lifecycle: string) => Promise<void>;
-  onCondition: (condition: Condition) => void;
+  onCondition: (repository: RepositorySnapshot, condition: Condition) => void;
   onCloseEvidence: () => void;
   onExpected: () => void;
   onClosePreparation: () => void;
@@ -60,7 +65,10 @@ export function AppOverlays({
           onOpenWorkspace={onOpenWorkspace}
           onPrepareRepository={onPrepareRepository}
           onLifecycleChange={onLifecycleChange}
-          onCondition={onCondition}
+          onCondition={(condition) => {
+            if (!selectedRepository) return;
+            onCondition(selectedRepository, condition);
+          }}
         />
       )}
       {selectedEvidence && (
@@ -77,6 +85,8 @@ export function AppOverlays({
           preparation={selectedPreparation.preparation}
           onClose={onClosePreparation}
           onSaveReleaseRule={onSaveReleaseRule}
+          onSaveReleaseRecipe={onSaveReleaseRecipe}
+          onConfirmReleaseVersion={onConfirmReleaseVersion}
           onSaveAiPermission={onSaveAiPermission}
           onPreviewAiSummary={onPreviewAiSummary}
         />

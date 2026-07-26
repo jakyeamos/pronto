@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import { Save, X } from "lucide-react";
 import { AiSummaryPreview } from "./AiSummaryPreview";
+import { ReleaseRecipePanel } from "./ReleaseRecipePanel";
 import type {
   AiPayloadPreview,
   ReleaseRuleConfig,
+  ReleaseRecipeConfig,
   RepositoryPreparation,
   RepositorySnapshot,
 } from "../types";
@@ -237,6 +239,8 @@ export function PreparationDrawer({
   preparation,
   onClose,
   onSaveReleaseRule,
+  onSaveReleaseRecipe,
+  onConfirmReleaseVersion,
   onSaveAiPermission,
   onPreviewAiSummary,
 }: {
@@ -244,6 +248,8 @@ export function PreparationDrawer({
   preparation: RepositoryPreparation;
   onClose: () => void;
   onSaveReleaseRule: (rule: ReleaseRuleConfig | null) => Promise<void>;
+  onSaveReleaseRecipe: (recipe: ReleaseRecipeConfig | null) => Promise<void>;
+  onConfirmReleaseVersion: (version: string | null) => Promise<void>;
   onSaveAiPermission: (permission: string) => Promise<void>;
   onPreviewAiSummary: () => Promise<AiPayloadPreview>;
 }): ReactElement {
@@ -274,6 +280,31 @@ export function PreparationDrawer({
           No PR, branch, worktree, commit, push, or release publication is
           performed.
         </p>
+
+        <div className="drawer-section">
+          <div className="drawer-section-title">
+            <div>
+              <h3>Release recipe preview</h3>
+              <small>
+                Version confirmation and a deterministic handoff plan with every
+                mutating step held for user review.
+              </small>
+            </div>
+            <StatusPill
+              tone={preparation.recipe.status === "Blocked" ? "coral" : "amber"}
+            >
+              {preparation.recipe.status}
+            </StatusPill>
+          </div>
+          <ReleaseRecipePanel
+            recipe={preparation.recipe}
+            configuredRecipe={repository.release_recipe}
+            candidateVersion={release.candidate_version}
+            confirmedVersion={repository.confirmed_release_version}
+            onSave={onSaveReleaseRecipe}
+            onConfirmVersion={onConfirmReleaseVersion}
+          />
+        </div>
 
         <div className="drawer-section">
           <div className="drawer-section-title">
