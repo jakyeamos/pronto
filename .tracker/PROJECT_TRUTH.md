@@ -14,21 +14,23 @@
 - The companion CLI now shares the local registry and action boundary for product/group status filters, scoped read-only refreshes, structured JSON output, repository/app opening, and an audited blocked clone command.
 - A provider-neutral remote snapshot contract now persists GitHub identities, remote repositories, locality matches, freshness, and unavailable states in SQLite schema v4; the desktop Remote catalog is read-only and never stores provider credentials.
 - Workspaces now expose provider-neutral agent activity signals from process metadata and optional `.pronto/agent.json` manifests, with explicit `Active`, interrupted, recently active, and `Unknown` states; active evidence blocks integration eligibility without capturing terminal contents or command arguments.
+- Workspace detail cards now provide permission-safe external handoff buttons for the exact registered workspace, opening Finder, Terminal, Visual Studio Code, or GitHub Desktop through structured macOS `/usr/bin/open` arguments without staging, committing, or changing registry state.
 
 ## Current Position
 
 - Branch: `main`
-- Implementation and documentation commits: `1817527`, `ef6ea99`, `73c28e5`, `533c2f5`, `885fe1e`, `faf0d99`, `d332573`, `f01c627`, `b13de08`, `5a0b120`, `42e8b54`, `853faa6`, `ed8d05f`, `6fde71e`
+- Implementation and documentation commits: `1817527`, `ef6ea99`, `73c28e5`, `533c2f5`, `885fe1e`, `faf0d99`, `d332573`, `f01c627`, `b13de08`, `5a0b120`, `42e8b54`, `853faa6`, `ed8d05f`, `6fde71e`, `8be4771`
 - Verification for `b13de08` and `5a0b120`: 9 Rust tests, hook-mode `pnpm test`, cargo fmt, offline cargo test/check, typecheck, lint, Prettier, CLI JSON smoke, renderer production build, full Tauri app/DMG build, workbook inspect with zero formula errors, three-sheet visual review, `git diff --check`, and the source commit-time Pre-CR gate all passed. The final docs/workbook-only Pre-CR run produced no changed-line result because those paths are configured as ignored surfaces.
 - Verification for `42e8b54`: 11 Rust tests, offline cargo check/test, typecheck, lint, Prettier, renderer production build, `git diff --check`, and the source commit-time Pre-CR gate all passed.
 - Verification for `853faa6`: 11 Rust tests, CLI JSON smoke, offline cargo check/test, cargo fmt, `git diff --check`, and the source commit-time Pre-CR gate all passed.
 - Verification for `ed8d05f`: 14 Rust tests, offline cargo check/test, cargo fmt, typecheck, lint, renderer production build, `git diff --check`, and the source commit-time Pre-CR gate all passed.
 - Verification for `6fde71e`: 16 Rust tests, offline cargo check/test, cargo fmt, typecheck, lint, Prettier, `git diff --check`, and the source commit-time Pre-CR gate all passed.
-- Next deliverable: generic external-tool handoff plus deterministic PR/release preparation contracts; provider mutations remain deferred.
+- Verification for `8be4771`: 17 Rust tests, offline cargo check/test, cargo fmt, typecheck, lint, Prettier, renderer production build, `git diff --check`, and the source commit-time Pre-CR gate all passed.
+- Next deliverable: deterministic PR/release preparation contracts; provider mutations and publication remain deferred.
 
 ## Blockers
 
-- Live GitHub refresh is environment-limited because the existing `gh` credential is invalid; remote-only clone, modifying action execution, pull requests, releases, process/terminal integration, and opt-in AI remain explicit deferred boundaries from the implementation plan.
+- Live GitHub refresh is environment-limited because the existing `gh` credential is invalid; remote-only clone, modifying action execution, provider-backed pull requests/releases, publication, and opt-in AI remain explicit deferred boundaries from the implementation plan.
 
 ## Risks
 
@@ -36,6 +38,7 @@
 - The SQLite schema is now at version 4 with explicit migrations for action audits, root/product/group configuration, and provider snapshots; future schema migrations still need explicit migration steps rather than silent compatibility assumptions.
 - Provider refresh uses the existing GitHub CLI credential path and persists only sanitized identity/repository snapshots; credential repair and live remote evidence still need an authenticated environment.
 - Process inspection is intentionally metadata-only and may report `Activity state uncertain` when OS permissions or platform support prevent working-directory correlation.
+- External handoff currently targets macOS and fixed application names; live desktop launch proof and configurable/non-macOS tool mappings remain open.
 - Action audit identifiers and transition event identifiers use process-local sequences to avoid same-second collisions; cross-process concurrency is not yet a supported store mode.
 - Pre-CR is configured with a zero-threshold no-instrumentation adapter; functional tests, typechecks, and builds are the evidence gates until a real coverage instrumenter is added.
 
@@ -58,3 +61,4 @@
 | 2026-07-25 | Aligned the companion CLI with portfolio filters, scoped refresh, desktop opening, JSON, and blocked clone audit. | `853faa6`; 11 Rust tests, CLI JSON smoke, and Pre-CR passed |
 | 2026-07-25 | Added provider-neutral GitHub identity/repository snapshots and the read-only Remote catalog surface. | `ed8d05f`; 14 Rust tests, web gates, and Pre-CR passed |
 | 2026-07-26 | Added provider-neutral agent/process/manifest evidence and activity-aware integration blocking. | `6fde71e`; 16 Rust tests, web gates, and Pre-CR passed |
+| 2026-07-26 | Added exact-workspace external handoff buttons with unsupported-tool and target-lookup tests. | `8be4771`; 17 Rust tests, web gates, and Pre-CR passed |
