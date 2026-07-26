@@ -6265,6 +6265,52 @@ pub fn run_cli(arguments: Vec<String>) {
                 }
             }
         }
+        "quality" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if positionals.len() != 2 || positionals[0] != "audit-root" {
+                eprintln!("Usage: pronto quality audit-root <folder|clear> [--json]");
+                std::process::exit(2);
+            }
+            let audit_root = if positionals[1].eq_ignore_ascii_case("clear") {
+                None
+            } else {
+                Some(positionals[1].as_str())
+            };
+            match set_maturity_audit_root_at(&path, audit_root) {
+                Ok(snapshot) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&snapshot).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(snapshot) => {
+                    println!(
+                        "Maturity audit root: {}",
+                        snapshot
+                            .quality
+                            .audit_root
+                            .as_deref()
+                            .unwrap_or("Not configured")
+                    );
+                    println!(
+                        "Maturity audit: {} · {} matched · fleet mean {}",
+                        snapshot.quality.audit_status,
+                        snapshot.quality.matched_repository_count,
+                        snapshot
+                            .quality
+                            .maturity_score_display
+                            .as_deref()
+                            .map(|value| format!("{value} / 4"))
+                            .unwrap_or_else(|| "Not scored".to_string())
+                    );
+                }
+                Err(error) => {
+                    eprintln!("Pronto could not configure the maturity audit root: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
         "root" => {
             let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
@@ -6398,7 +6444,7 @@ pub fn run_cli(arguments: Vec<String>) {
         }
         _ => {
             eprintln!(
-                "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto clone <owner/repository> [--json]"
+                "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality audit-root <folder|clear> [--json] | pronto clone <owner/repository> [--json]"
             );
             std::process::exit(2);
         }
