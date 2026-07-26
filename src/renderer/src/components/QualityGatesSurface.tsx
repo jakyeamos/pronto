@@ -12,6 +12,7 @@ import {
   QualityFindingsSummary,
   QualityGateCell,
   QualityMaturitySummary,
+  qualityGateDisplayLabel,
 } from "./QualityComponents";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
 
@@ -66,6 +67,23 @@ function totalHighFindings(repositories: RepositorySnapshot[]): number {
   );
 }
 
+function readinessGapSummary(quality: PortfolioSnapshot["quality"]): string {
+  if (quality.ci_readiness_score == null) return "CI readiness not assessed";
+  const entries = Object.entries(quality.ci_readiness_open_gate_counts ?? {})
+    .sort(
+      ([leftId, leftCount], [rightId, rightCount]) =>
+        rightCount - leftCount || leftId.localeCompare(rightId),
+    )
+    .slice(0, 3);
+  return entries.length > 0
+    ? `Open updates: ${entries
+        .map(
+          ([gateId, count]) => `${qualityGateDisplayLabel(gateId)} (${count})`,
+        )
+        .join(" · ")}`
+    : "No open gate updates";
+}
+
 export function QualityGatesSurface({
   snapshot,
   repositories,
@@ -113,6 +131,19 @@ export function QualityGatesSurface({
               : ""}
             {portfolioQuality.audit_status}
           </small>
+          <div className="quality-overview-secondary">
+            <span>CI readiness</span>
+            <strong>
+              {portfolioQuality.ci_readiness_score_display ?? "—"}
+              <small>/4</small>
+            </strong>
+            <small>
+              {portfolioQuality.ci_readiness_score == null
+                ? "Not assessed; refresh to evaluate repositories"
+                : `${portfolioQuality.ci_readiness_full_repository_count ?? 0}/${portfolioQuality.ci_readiness_repository_count ?? 0} repositories at full readiness`}
+            </small>
+            <small>{readinessGapSummary(portfolioQuality)}</small>
+          </div>
           <ClipboardCheck size={18} />
         </div>
         <div className="quality-overview-card">
@@ -272,6 +303,7 @@ export function QualityGatesSurface({
                     <td className="quality-matrix-sticky quality-matrix-maturity-column">
                       <QualityMaturitySummary
                         maturity={repository.quality.maturity}
+                        readiness={repository.quality.ci_readiness}
                         compact
                         onOpenReport={onOpenReport}
                       />

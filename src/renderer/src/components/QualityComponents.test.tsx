@@ -9,6 +9,7 @@ import type {
   QualityGate,
   QualityMaturity,
   QualityPortfolioSnapshot,
+  QualityReadiness,
   QualitySnapshot,
   QualityGateStatus,
   ReleaseRuleConfig,
@@ -105,6 +106,26 @@ function makeMaturity(
   };
 }
 
+function makeReadiness(
+  overrides: Partial<QualityReadiness> = {},
+): QualityReadiness {
+  return {
+    applicable_gate_ids: [
+      "build",
+      "tests",
+      "lint",
+      "formatter",
+      "typecheck",
+      "secrets_scan",
+    ],
+    missing_gate_ids: [],
+    stale_gate_ids: [],
+    failed_gate_ids: [],
+    blocked_gate_ids: [],
+    ...overrides,
+  };
+}
+
 function makeQuality(
   overrides: Partial<QualitySnapshot> = {},
 ): QualitySnapshot {
@@ -112,6 +133,7 @@ function makeQuality(
     gates: canonicalGateDefinitions.map(([id, label]) => makeGate(id, label)),
     findings: makeFindings(),
     maturity: makeMaturity(),
+    ci_readiness: makeReadiness(),
     ingestion_status: "No evidence",
     ingestion_message: "No imported evidence",
     ...overrides,
@@ -291,6 +313,11 @@ describe("quality evidence surfaces", () => {
           observed_at: "2026-07-26T11:00:00Z",
           freshness: "Fresh",
         }),
+        ci_readiness: makeReadiness({
+          score: 2.67,
+          score_display: "2.67",
+          missing_gate_ids: ["tests"],
+        }),
         ingestion_status: "Available",
         last_ingested_at: "2026-07-26T11:00:00Z",
       }),
@@ -304,6 +331,10 @@ describe("quality evidence surfaces", () => {
           scored_dimension_count: 10,
           matched_repository_count: 1,
           latest_audit_at: "2026-07-26T11:00:00Z",
+          ci_readiness_score: 2.67,
+          ci_readiness_score_display: "2.67",
+          ci_readiness_full_repository_count: 0,
+          ci_readiness_repository_count: 1,
         })}
         repositories={[repository]}
         onOpenRepository={noopRepository}
@@ -313,6 +344,9 @@ describe("quality evidence surfaces", () => {
 
     expect(markup).toContain("Quality gate matrix");
     expect(markup).toContain("1.933");
+    expect(markup).toContain("CI readiness");
+    expect(markup).toContain("2.67");
+    expect(markup).toContain("Tests");
     expect(markup).toContain("8 canonical");
     expect(markup).toContain("Show 1 custom gate");
     expect(markup).not.toContain("Security Scan");
@@ -343,6 +377,9 @@ describe("quality evidence surfaces", () => {
     );
     expect(unconfigured).toContain("Not configured");
     expect(unconfigured).toContain("No CI, local, or QR gate evidence");
+    expect(unconfigured).toContain(
+      "Not assessed; refresh to evaluate gate updates",
+    );
   });
 
   it("filters attention to failed, stale, high-severity, and required missing evidence", () => {

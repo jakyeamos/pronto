@@ -20,6 +20,16 @@ const CANONICAL_GATE_DEFINITIONS: [(&str, &str); 8] = [
 ];
 
 const CONDITIONAL_GATE_DEFINITIONS: [(&str, &str); 1] = [("dependency_audit", "Dependency audit")];
+const CI_READINESS_BASELINE_GATE_IDS: [&str; 6] = [
+    "build",
+    "tests",
+    "lint",
+    "formatter",
+    "typecheck",
+    "secrets_scan",
+];
+const CI_READINESS_CONDITIONAL_GATE_IDS: [&str; 3] =
+    ["runtime_smoke", "dead_code", "dependency_audit"];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum QualityGateStatus {
@@ -187,10 +197,38 @@ impl Default for QualityMaturity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct QualityReadiness {
+    pub score: Option<f64>,
+    pub score_display: Option<String>,
+    pub applicable_gate_ids: Vec<String>,
+    pub missing_gate_ids: Vec<String>,
+    pub stale_gate_ids: Vec<String>,
+    pub failed_gate_ids: Vec<String>,
+    pub blocked_gate_ids: Vec<String>,
+}
+
+impl Default for QualityReadiness {
+    fn default() -> Self {
+        Self {
+            score: None,
+            score_display: None,
+            applicable_gate_ids: Vec::new(),
+            missing_gate_ids: Vec::new(),
+            stale_gate_ids: Vec::new(),
+            failed_gate_ids: Vec::new(),
+            blocked_gate_ids: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QualitySnapshot {
     pub gates: Vec<QualityGate>,
     pub findings: QualityFindings,
     pub maturity: QualityMaturity,
+    #[serde(default)]
+    pub ci_readiness: QualityReadiness,
     pub last_ingested_at: Option<String>,
     pub ingestion_status: String,
     pub ingestion_message: Option<String>,
@@ -202,6 +240,7 @@ impl Default for QualitySnapshot {
             gates: default_quality_gates(),
             findings: QualityFindings::default(),
             maturity: QualityMaturity::default(),
+            ci_readiness: QualityReadiness::default(),
             last_ingested_at: None,
             ingestion_status: "No evidence".to_string(),
             ingestion_message: None,
@@ -220,6 +259,16 @@ pub struct QualityPortfolioSnapshot {
     pub maturity_score_display: Option<String>,
     pub scored_dimension_count: Option<u64>,
     pub audit_status: String,
+    #[serde(default)]
+    pub ci_readiness_score: Option<f64>,
+    #[serde(default)]
+    pub ci_readiness_score_display: Option<String>,
+    #[serde(default)]
+    pub ci_readiness_full_repository_count: usize,
+    #[serde(default)]
+    pub ci_readiness_repository_count: usize,
+    #[serde(default)]
+    pub ci_readiness_open_gate_counts: BTreeMap<String, u64>,
 }
 
 impl Default for QualityPortfolioSnapshot {
@@ -234,6 +283,11 @@ impl Default for QualityPortfolioSnapshot {
             maturity_score_display: None,
             scored_dimension_count: None,
             audit_status: "Not configured".to_string(),
+            ci_readiness_score: None,
+            ci_readiness_score_display: None,
+            ci_readiness_full_repository_count: 0,
+            ci_readiness_repository_count: 0,
+            ci_readiness_open_gate_counts: BTreeMap::new(),
         }
     }
 }
@@ -255,6 +309,99 @@ pub fn default_quality_gates() -> Vec<QualityGate> {
             evidence: Vec::new(),
         })
         .collect()
+}
+
+pub fn evaluate_ci_readiness(gates: &[QualityGate]) -> QualityReadiness {
+    let mut applicable_gate_ids = CI_READINESS_BASELINE_GATE_IDS
+        .iter()
+        .map(|id| (*id).to_string())
+        .collect::<Vec<_>>();
+    applicable_gate_ids.extend(
+        CI_READINESS_CONDITIONAL_GATE_IDS
+            .iter()
+            .filter(|id| {
+                gates
+                    .iter()
+                    .find(|gate| gate.id == **id)
+                    .is_some_and(|gate| !gate.evidence.is_empty())
+            })
+            .map(|id| (*id).to_string()),
+    );
+
+    let mut readiness = QualityReadiness {
+        applicable_gate_ids: applicable_gate_ids.clone(),
+        ..QualityReadiness::default()
+    };
+    let mut passing_gate_count = 0usize;
+
+    for gate_id in &applicable_gate_ids {
+        let Some(gate) = gates.iter().find(|gate| gate.id == *gate_id) else {
+            readiness.missing_gate_ids.push(gate_id.clone());
+            continue;
+        };
+        match gate.status {
+            QualityGateStatus::Passed if gate.freshness == QualityFreshness::Fresh => {
+                passing_gate_count += 1;
+            }
+            QualityGateStatus::Passed => readiness.stale_gate_ids.push(gate_id.clone()),
+            QualityGateStatus::Failed => readiness.failed_gate_ids.push(gate_id.clone()),
+            QualityGateStatus::Blocked => readiness.blocked_gate_ids.push(gate_id.clone()),
+            QualityGateStatus::NotConfigured => readiness.missing_gate_ids.push(gate_id.clone()),
+        }
+    }
+
+    let applicable_gate_count = applicable_gate_ids.len();
+    if applicable_gate_count > 0 {
+        let score = (passing_gate_count as f64 / applicable_gate_count as f64) * 4.0;
+        let score = (score * 100.0).round() / 100.0;
+        readiness.score = Some(score);
+        readiness.score_display = Some(format_quality_score(score));
+    }
+    readiness
+}
+
+pub fn update_ci_readiness_summary(
+    portfolio: &mut QualityPortfolioSnapshot,
+    repositories: &[RepositorySnapshot],
+) {
+    let scores = repositories
+        .iter()
+        .filter_map(|repository| repository.quality.ci_readiness.score)
+        .collect::<Vec<_>>();
+    portfolio.ci_readiness_repository_count = scores.len();
+    portfolio.ci_readiness_full_repository_count =
+        scores.iter().filter(|score| **score >= 4.0).count();
+    portfolio.ci_readiness_score = if scores.is_empty() {
+        None
+    } else {
+        let score = scores.iter().sum::<f64>() / scores.len() as f64;
+        Some((score * 100.0).round() / 100.0)
+    };
+    portfolio.ci_readiness_score_display = portfolio.ci_readiness_score.map(format_quality_score);
+    portfolio.ci_readiness_open_gate_counts = BTreeMap::new();
+    for repository in repositories {
+        let readiness = &repository.quality.ci_readiness;
+        for gate_id in readiness
+            .missing_gate_ids
+            .iter()
+            .chain(readiness.stale_gate_ids.iter())
+            .chain(readiness.failed_gate_ids.iter())
+            .chain(readiness.blocked_gate_ids.iter())
+        {
+            *portfolio
+                .ci_readiness_open_gate_counts
+                .entry(gate_id.clone())
+                .or_default() += 1;
+        }
+    }
+}
+
+fn format_quality_score(score: f64) -> String {
+    if score.fract() == 0.0 {
+        format!("{score:.1}")
+    } else {
+        format!("{score:.2}")
+    }
 }
 
 pub fn normalize_gate_id(value: &str) -> String {
@@ -445,6 +592,7 @@ pub fn ingest_repository_quality(
         gate.status = status;
         gate.freshness = freshness;
     }
+    let ci_readiness = evaluate_ci_readiness(&gates);
     let maturity_available = maturity.is_some();
     let evidence_available =
         gates.iter().any(|gate| !gate.evidence.is_empty()) || findings.total > 0;
@@ -452,6 +600,7 @@ pub fn ingest_repository_quality(
         gates,
         findings,
         maturity: maturity.unwrap_or_default(),
+        ci_readiness,
         last_ingested_at,
         ingestion_status: if evidence_available || maturity_available {
             "Available".to_string()
@@ -1420,6 +1569,85 @@ mod tests {
                 "secrets_scan"
             ]
         );
+    }
+
+    fn readiness_gate(
+        id: &str,
+        status: QualityGateStatus,
+        freshness: QualityFreshness,
+        with_evidence: bool,
+    ) -> QualityGate {
+        QualityGate {
+            id: id.to_string(),
+            label: gate_label(id),
+            status: status.clone(),
+            freshness: freshness.clone(),
+            evidence: with_evidence
+                .then(|| QualityEvidence {
+                    id: id.to_string(),
+                    source: QualitySource::Ci,
+                    status,
+                    freshness,
+                    observed_at: None,
+                    scanned_commit: None,
+                    scanned_branch: None,
+                    command: None,
+                    source_label: "fixture".to_string(),
+                    report_path: None,
+                    report_url: None,
+                    report_kind: None,
+                    detail: "fixture".to_string(),
+                })
+                .into_iter()
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn ci_readiness_reaches_four_only_for_fresh_baseline_and_applicable_gates() {
+        let baseline = [
+            "build",
+            "tests",
+            "lint",
+            "formatter",
+            "typecheck",
+            "secrets_scan",
+        ]
+        .into_iter()
+        .map(|id| readiness_gate(id, QualityGateStatus::Passed, QualityFreshness::Fresh, true))
+        .collect::<Vec<_>>();
+        let complete = evaluate_ci_readiness(&baseline);
+        assert_eq!(complete.score, Some(4.0));
+        assert_eq!(complete.score_display.as_deref(), Some("4.0"));
+        assert_eq!(complete.applicable_gate_ids.len(), 6);
+        assert!(complete.missing_gate_ids.is_empty());
+
+        let mut incomplete = baseline;
+        let tests = incomplete
+            .iter_mut()
+            .find(|gate| gate.id == "tests")
+            .unwrap();
+        tests.status = QualityGateStatus::NotConfigured;
+        tests.evidence.clear();
+        let lint = incomplete
+            .iter_mut()
+            .find(|gate| gate.id == "lint")
+            .unwrap();
+        lint.freshness = QualityFreshness::Stale;
+        lint.evidence[0].freshness = QualityFreshness::Stale;
+        incomplete.push(readiness_gate(
+            "dependency_audit",
+            QualityGateStatus::Passed,
+            QualityFreshness::Fresh,
+            true,
+        ));
+        let result = evaluate_ci_readiness(&incomplete);
+        assert_eq!(result.score, Some(2.86));
+        assert_eq!(result.missing_gate_ids, vec!["tests"]);
+        assert_eq!(result.stale_gate_ids, vec!["lint"]);
+        assert!(result
+            .applicable_gate_ids
+            .contains(&"dependency_audit".to_string()));
     }
 
     #[test]

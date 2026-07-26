@@ -1974,6 +1974,7 @@ fn apply_quality_evidence(state: &mut StoreState) {
         let maturity = audit.maturities.get(&repository.id).cloned();
         repository.quality = quality::ingest_repository_quality(repository, remote, maturity);
     }
+    quality::update_ci_readiness_summary(&mut state.quality, &state.repositories);
 }
 
 fn refresh_github_at(path: &Path) -> Result<PortfolioSnapshot, String> {

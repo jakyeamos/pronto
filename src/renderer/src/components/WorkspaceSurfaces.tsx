@@ -235,6 +235,8 @@ function MaturityAuditCard({
           <p>
             Import the latest valid workspace audit without executing an audit
             or recalculating its scores.
+            CI readiness is a separate
+            Pronto-derived score for tracking gate updates.
           </p>
         </div>
         <ClipboardCheck size={18} className="muted-icon" />
@@ -294,6 +296,18 @@ function MaturityAuditCard({
             {quality.scored_dimension_count
               ? `${quality.scored_dimension_count} dimensions`
               : "Exact audit value"}
+          </small>
+        </div>
+        <div>
+          <span>CI readiness</span>
+          <strong>
+            {quality.ci_readiness_score_display
+              ? `${quality.ci_readiness_score_display} / 4`
+              : "Not assessed"}
+          </strong>
+          <small>
+            {quality.ci_readiness_full_repository_count ?? 0}/
+            {quality.ci_readiness_repository_count ?? 0} repositories at 4/4
           </small>
         </div>
       </div>

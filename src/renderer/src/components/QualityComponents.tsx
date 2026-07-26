@@ -7,6 +7,7 @@ import type {
   QualityGate,
   QualityGateStatus,
   QualityMaturity,
+  QualityReadiness,
   RepositorySnapshot,
 } from "../types";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
@@ -234,12 +235,85 @@ export function QualityFindingsSummary({
   );
 }
 
+const QUALITY_GATE_LABELS: Record<string, string> = {
+  build: "Build",
+  runtime_smoke: "Smoke",
+  tests: "Tests",
+  lint: "Lint",
+  formatter: "Formatter",
+  typecheck: "Typecheck",
+  dead_code: "Dead-code",
+  secrets_scan: "Secrets scan",
+  dependency_audit: "Dependency audit",
+};
+
+function readinessOpenGateIds(readiness: QualityReadiness): string[] {
+  return Array.from(
+    new Set([
+      ...readiness.missing_gate_ids,
+      ...readiness.stale_gate_ids,
+      ...readiness.failed_gate_ids,
+      ...readiness.blocked_gate_ids,
+    ]),
+  );
+}
+
+export function qualityGateDisplayLabel(gateId: string): string {
+  return (
+    QUALITY_GATE_LABELS[gateId] ??
+    gateId
+      .replace(/^custom:/, "")
+      .split("_")
+      .filter(Boolean)
+      .map((part) => `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`)
+      .join(" ")
+  );
+}
+
+export function QualityReadinessSummary({
+  readiness,
+  compact = false,
+}: {
+  readiness: QualityReadiness;
+  compact?: boolean;
+}): ReactElement {
+  const openGateIds = readinessOpenGateIds(readiness);
+  return (
+    <div
+      className={`quality-readiness${compact ? " quality-readiness-compact" : ""}`}
+    >
+      <div className="quality-readiness-heading">
+        <span>CI readiness</span>
+        <strong>
+          {readiness.score_display ?? "—"}
+          <small>/4</small>
+        </strong>
+      </div>
+      {readiness.score == null ? (
+        <small>Not assessed; refresh to evaluate gate updates</small>
+      ) : openGateIds.length > 0 ? (
+        <details className="quality-readiness-disclosure">
+          <summary>
+            {openGateIds.length} gate update
+            {openGateIds.length === 1 ? "" : "s"} needed
+          </summary>
+          <span>{openGateIds.map(qualityGateDisplayLabel).join(", ")}</span>
+        </details>
+      ) : (
+        <small>All applicable gates have fresh passes</small>
+      )}
+    </div>
+  );
+}
+
 export function QualityMaturitySummary({
   maturity,
+  readiness,
   compact = false,
   onOpenReport,
 }: {
   maturity: QualityMaturity;
+  readiness: QualityReadiness;
   compact?: boolean;
   onOpenReport?: (reportPath: string) => void;
 }): ReactElement {
@@ -257,6 +331,7 @@ export function QualityMaturitySummary({
           : ""}
         {maturity.audit_id ?? "No audit run"} · {maturity.freshness}
       </small>
+      <QualityReadinessSummary readiness={readiness} compact={compact} />
       {maturity.report_path && onOpenReport && (
         <button
           className="quality-report-link"

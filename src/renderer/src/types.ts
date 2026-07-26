@@ -83,10 +83,21 @@ export interface QualityMaturity {
   report_path?: string;
 }
 
+export interface QualityReadiness {
+  score?: number;
+  score_display?: string;
+  applicable_gate_ids: string[];
+  missing_gate_ids: string[];
+  stale_gate_ids: string[];
+  failed_gate_ids: string[];
+  blocked_gate_ids: string[];
+}
+
 export interface QualitySnapshot {
   gates: QualityGate[];
   findings: QualityFindings;
   maturity: QualityMaturity;
+  ci_readiness: QualityReadiness;
   last_ingested_at?: string;
   ingestion_status: string;
   ingestion_message?: string;
@@ -102,6 +113,11 @@ export interface QualityPortfolioSnapshot {
   maturity_score_display?: string;
   scored_dimension_count?: number;
   audit_status: string;
+  ci_readiness_score?: number;
+  ci_readiness_score_display?: string;
+  ci_readiness_full_repository_count?: number;
+  ci_readiness_repository_count?: number;
+  ci_readiness_open_gate_counts?: Record<string, number>;
 }
 
 export interface ReleaseRecipeConfig {

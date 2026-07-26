@@ -118,6 +118,7 @@ export function DetailDrawer({
           <div className="quality-detail-overview">
             <QualityMaturitySummary
               maturity={repository.quality.maturity}
+              readiness={repository.quality.ci_readiness}
               onOpenReport={onOpenReport}
             />
             <QualityFindingsSummary
