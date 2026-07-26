@@ -10,22 +10,24 @@
 - The local desktop surface now has truthful navigation boundaries, Activity and Settings views, Cmd/Ctrl-K search focus, Escape drawer dismissal, freshness copy, and distinct filtered-empty states.
 - Local durable state now uses a versioned SQLite database with non-destructive import from the legacy JSON registry; renderer and CLI snapshot contracts are unchanged.
 - Safe local refresh/inspect preflights now use an explicit allowlist, exact root/repository target IDs, blocked-action records, and durable SQLite audit history; no destructive Git or provider-write action is exposed.
+- Local portfolio configuration is now durable and editable: discovery-root ignore/fetch/monitoring settings, explicit product and group membership, product release modes, repository lifecycle confirmation, retention days, and recursive submodule summaries are stored in SQLite schema v3 and surfaced in the desktop UI.
 
 ## Current Position
 
 - Branch: `main`
-- Implementation and documentation commits: `1817527`, `ef6ea99`, `73c28e5`, `533c2f5`, `885fe1e`, `faf0d99`, `d332573`, `f01c627`, `b13de08`, `5a0b120`
+- Implementation and documentation commits: `1817527`, `ef6ea99`, `73c28e5`, `533c2f5`, `885fe1e`, `faf0d99`, `d332573`, `f01c627`, `b13de08`, `5a0b120`, `42e8b54`
 - Verification for `b13de08` and `5a0b120`: 9 Rust tests, hook-mode `pnpm test`, cargo fmt, offline cargo test/check, typecheck, lint, Prettier, CLI JSON smoke, renderer production build, full Tauri app/DMG build, workbook inspect with zero formula errors, three-sheet visual review, `git diff --check`, and the source commit-time Pre-CR gate all passed. The final docs/workbook-only Pre-CR run produced no changed-line result because those paths are configured as ignored surfaces.
-- Next deliverable: read-only provider context after the local action boundary is reviewed; modifying Git actions remain deferred.
+- Verification for `42e8b54`: 11 Rust tests, offline cargo check/test, typecheck, lint, Prettier, renderer production build, `git diff --check`, and the source commit-time Pre-CR gate all passed.
+- Next deliverable: CLI parity and provider-neutral read-only remote context; modifying Git/provider actions remain deferred.
 
 ## Blockers
 
-- GitHub identity/provider refresh, remote catalog and clone, modifying action execution, pull requests, releases, process/terminal integration, products/groups, and opt-in AI remain explicit deferred boundaries from the implementation plan.
+- GitHub identity/provider refresh, remote catalog and clone, modifying action execution, pull requests, releases, process/terminal integration, and opt-in AI remain explicit deferred boundaries from the implementation plan.
 
 ## Risks
 
 - Folder-picker and full Tauri UI interaction still need live desktop verification.
-- The SQLite schema is now at version 2 with an explicit v1 migration for action audits and rejects unknown versions; future schema migrations still need explicit migration steps rather than silent compatibility assumptions.
+- The SQLite schema is now at version 3 with explicit migrations for action audits plus root/product/group configuration; future schema migrations still need explicit migration steps rather than silent compatibility assumptions.
 - Action audit identifiers and transition event identifiers use process-local sequences to avoid same-second collisions; cross-process concurrency is not yet a supported store mode.
 - Pre-CR is configured with a zero-threshold no-instrumentation adapter; functional tests, typechecks, and builds are the evidence gates until a real coverage instrumenter is added.
 
@@ -44,3 +46,4 @@
 | 2026-07-25 | Verified the full Tauri app/DMG build and hook-mode test path.                                              | Release bundle; 6 Rust tests passed             |
 | 2026-07-25 | Added read-only action preflight, durable audit records, schema v2 migration, and collision-safe event IDs. | `b13de08`; 9 Rust tests and commit gates passed |
 | 2026-07-25 | Refreshed the canonical behavior workbook and plans for the read-only action boundary.                      | `5a0b120`; 35 rows, zero formula errors         |
+| 2026-07-25 | Added durable products/groups, lifecycle confirmation, root policies, retention settings, and submodule summaries. | `42e8b54`; 11 Rust tests, web gates, and Pre-CR passed |
