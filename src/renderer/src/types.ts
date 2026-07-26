@@ -80,6 +80,34 @@ export interface Condition {
   freshness?: string;
 }
 
+export interface AgentManifest {
+  task_id?: string;
+  title?: string;
+  target_branch?: string;
+  agent_type?: string;
+  start_time?: string;
+  status?: string;
+  source_session_id?: string;
+}
+
+export interface ActivitySignal {
+  source: string;
+  summary: string;
+  confidence: string;
+  observed_at: string;
+  process_name?: string;
+  process_id?: number;
+  started_at?: string;
+  working_directory?: string;
+}
+
+export interface WorkspaceActivity {
+  state: string;
+  confidence: string;
+  signals: ActivitySignal[];
+  manifest?: AgentManifest;
+}
+
 export interface WorkspaceSummary {
   id: string;
   path: string;
@@ -103,6 +131,7 @@ export interface WorkspaceSummary {
   target_confidence: string;
   role: string;
   role_confidence: string;
+  activity: WorkspaceActivity;
 }
 
 export interface BranchSummary {

@@ -12,6 +12,7 @@ const STORE_VERSION: u8 = 3;
 const SQLITE_SCHEMA_VERSION: i64 = 4;
 const DEFAULT_RETENTION_DAYS: i64 = 90;
 const DEFAULT_MAX_UNTRACKED_BYTES: u64 = 2_000_000;
+const DEFAULT_MAX_MANIFEST_BYTES: u64 = 64 * 1024;
 
 static NEXT_ACTION_AUDIT_ID: AtomicU64 = AtomicU64::new(0);
 static NEXT_EVENT_ID: AtomicU64 = AtomicU64::new(0);
@@ -140,6 +141,56 @@ pub struct Condition {
     pub freshness: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AgentManifest {
+    #[serde(default, alias = "taskId")]
+    pub task_id: Option<String>,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default, alias = "targetBranch")]
+    pub target_branch: Option<String>,
+    #[serde(default, alias = "agentType")]
+    pub agent_type: Option<String>,
+    #[serde(default, alias = "startTime")]
+    pub start_time: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default, alias = "sourceSessionId")]
+    pub source_session_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivitySignal {
+    pub source: String,
+    pub summary: String,
+    pub confidence: String,
+    pub observed_at: String,
+    pub process_name: Option<String>,
+    pub process_id: Option<u32>,
+    pub started_at: Option<String>,
+    pub working_directory: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkspaceActivity {
+    pub state: String,
+    pub confidence: String,
+    pub signals: Vec<ActivitySignal>,
+    #[serde(default)]
+    pub manifest: Option<AgentManifest>,
+}
+
+impl Default for WorkspaceActivity {
+    fn default() -> Self {
+        Self {
+            state: "Unknown".to_string(),
+            confidence: "Low".to_string(),
+            signals: Vec::new(),
+            manifest: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceSummary {
     pub id: String,
@@ -164,6 +215,8 @@ pub struct WorkspaceSummary {
     pub target_confidence: String,
     pub role: String,
     pub role_confidence: String,
+    #[serde(default)]
+    pub activity: WorkspaceActivity,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1868,6 +1921,347 @@ fn target_for_branch(branch: &str, default_branch: Option<&str>) -> (Option<Stri
     }
 }
 
+fn activity_signal(
+    source: &str,
+    summary: &str,
+    confidence: &str,
+    process_name: Option<&str>,
+    process_id: Option<u32>,
+    started_at: Option<&str>,
+    working_directory: Option<&Path>,
+) -> ActivitySignal {
+    ActivitySignal {
+        source: source.to_string(),
+        summary: summary.to_string(),
+        confidence: confidence.to_string(),
+        observed_at: iso_now(),
+        process_name: process_name.map(str::to_string),
+        process_id,
+        started_at: started_at.map(str::to_string),
+        working_directory: working_directory.map(|path| path.to_string_lossy().to_string()),
+    }
+}
+
+fn manifest_value_is_safe(value: &Option<String>) -> bool {
+    value
+        .as_ref()
+        .map(|value| value.chars().count() <= 512 && !value.contains('\0'))
+        .unwrap_or(true)
+}
+
+fn manifest_is_safe(manifest: &AgentManifest) -> bool {
+    [
+        &manifest.task_id,
+        &manifest.title,
+        &manifest.target_branch,
+        &manifest.agent_type,
+        &manifest.start_time,
+        &manifest.status,
+        &manifest.source_session_id,
+    ]
+    .into_iter()
+    .all(manifest_value_is_safe)
+}
+
+fn read_agent_manifest(path: &Path) -> (Option<AgentManifest>, Option<ActivitySignal>) {
+    let candidates = [
+        path.join(".pronto").join("agent.json"),
+        path.join(".pronto").join("agent-manifest.json"),
+    ];
+    for manifest_path in candidates {
+        let Ok(metadata) = fs::metadata(&manifest_path) else {
+            continue;
+        };
+        if !metadata.is_file() {
+            continue;
+        }
+        if metadata.len() > DEFAULT_MAX_MANIFEST_BYTES {
+            return (
+                None,
+                Some(activity_signal(
+                    "Manifest",
+                    "Activity state uncertain",
+                    "Low",
+                    None,
+                    None,
+                    None,
+                    None,
+                )),
+            );
+        }
+        let payload = match fs::read_to_string(&manifest_path) {
+            Ok(payload) => payload,
+            Err(_) => {
+                return (
+                    None,
+                    Some(activity_signal(
+                        "Manifest",
+                        "Activity state uncertain",
+                        "Low",
+                        None,
+                        None,
+                        None,
+                        None,
+                    )),
+                );
+            }
+        };
+        let manifest = match serde_json::from_str::<AgentManifest>(&payload) {
+            Ok(manifest) if manifest_is_safe(&manifest) => manifest,
+            _ => {
+                return (
+                    None,
+                    Some(activity_signal(
+                        "Manifest",
+                        "Activity state uncertain",
+                        "Low",
+                        None,
+                        None,
+                        None,
+                        None,
+                    )),
+                );
+            }
+        };
+        let summary = if manifest.status.as_deref().is_some_and(|status| {
+            matches!(
+                status.to_ascii_lowercase().as_str(),
+                "active" | "running" | "started"
+            )
+        }) {
+            "Agent manifest reports active task"
+        } else {
+            "Agent manifest found"
+        };
+        return (
+            Some(manifest),
+            Some(activity_signal(
+                "Manifest", summary, "High", None, None, None, None,
+            )),
+        );
+    }
+    (None, None)
+}
+
+fn process_name_is_activity_candidate(name: &str) -> bool {
+    let normalized = Path::new(name)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or(name)
+        .to_ascii_lowercase();
+    [
+        "bash",
+        "zsh",
+        "fish",
+        "sh",
+        "pwsh",
+        "powershell",
+        "cmd",
+        "terminal",
+        "iterm",
+        "warp",
+        "alacritty",
+        "kitty",
+        "wezterm",
+        "codex",
+        "claude",
+        "aider",
+        "cursor",
+        "continue",
+        "opencode",
+    ]
+    .iter()
+    .any(|candidate| normalized == *candidate || normalized.contains(candidate))
+}
+
+#[cfg(not(target_os = "windows"))]
+fn process_working_directory_from_lsof(process_id: u32) -> Option<PathBuf> {
+    let output = Command::new("lsof")
+        .args(["-a", "-p", &process_id.to_string(), "-d", "cwd", "-Fn"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .find_map(|line| line.strip_prefix('n').map(PathBuf::from))
+}
+
+#[cfg(target_os = "linux")]
+fn process_working_directory(process_id: u32) -> Option<PathBuf> {
+    fs::read_link(format!("/proc/{process_id}/cwd"))
+        .ok()
+        .or_else(|| process_working_directory_from_lsof(process_id))
+}
+
+#[cfg(target_os = "macos")]
+fn process_working_directory(process_id: u32) -> Option<PathBuf> {
+    process_working_directory_from_lsof(process_id)
+}
+
+#[cfg(target_os = "windows")]
+fn process_working_directory(_process_id: u32) -> Option<PathBuf> {
+    None
+}
+
+fn workspace_contains(parent: &Path, candidate: &Path) -> bool {
+    let Some(parent) = canonical_path(parent) else {
+        return false;
+    };
+    let Some(candidate) = canonical_path(candidate) else {
+        return false;
+    };
+    candidate == parent || candidate.starts_with(parent)
+}
+
+fn process_activity_signals(path: &Path) -> (Vec<ActivitySignal>, bool) {
+    #[cfg(target_os = "windows")]
+    {
+        let _ = path;
+        return (
+            vec![activity_signal(
+                "Process",
+                "Activity state uncertain",
+                "Low",
+                None,
+                None,
+                None,
+                None,
+            )],
+            false,
+        );
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let output = match Command::new("ps")
+            .args(["-axo", "pid=,comm=,lstart="])
+            .output()
+        {
+            Ok(output) if output.status.success() => output,
+            _ => {
+                return (
+                    vec![activity_signal(
+                        "Process",
+                        "Activity state uncertain",
+                        "Low",
+                        None,
+                        None,
+                        None,
+                        None,
+                    )],
+                    false,
+                );
+            }
+        };
+        let mut signals = Vec::new();
+        let mut unresolved_candidate = false;
+        for line in String::from_utf8_lossy(&output.stdout).lines() {
+            let mut fields = line.split_whitespace();
+            let Some(process_id) = fields.next().and_then(|value| value.parse::<u32>().ok()) else {
+                continue;
+            };
+            let Some(process_name) = fields.next() else {
+                continue;
+            };
+            if !process_name_is_activity_candidate(process_name) {
+                continue;
+            }
+            let started_at = fields.collect::<Vec<_>>().join(" ");
+            let started_at = (!started_at.is_empty()).then_some(started_at);
+            let Some(working_directory) = process_working_directory(process_id) else {
+                unresolved_candidate = true;
+                continue;
+            };
+            if workspace_contains(path, &working_directory) {
+                signals.push(activity_signal(
+                    "Process",
+                    "Process evidence found",
+                    "Medium",
+                    Some(process_name),
+                    Some(process_id),
+                    started_at.as_deref(),
+                    Some(&working_directory),
+                ));
+            }
+        }
+        if signals.is_empty() && unresolved_candidate {
+            signals.push(activity_signal(
+                "Process",
+                "Activity state uncertain",
+                "Low",
+                None,
+                None,
+                None,
+                None,
+            ));
+            return (signals, false);
+        }
+        (signals, true)
+    }
+}
+
+fn collect_workspace_activity(path: &Path, dirty: bool, ahead: u64) -> WorkspaceActivity {
+    let (manifest, manifest_signal) = read_agent_manifest(path);
+    let (mut signals, process_inspection_complete) = process_activity_signals(path);
+    if let Some(signal) = manifest_signal {
+        signals.push(signal);
+    }
+    let manifest_active = manifest
+        .as_ref()
+        .and_then(|manifest| manifest.status.as_deref())
+        .is_some_and(|status| {
+            matches!(
+                status.to_ascii_lowercase().as_str(),
+                "active" | "running" | "started"
+            )
+        });
+    let process_active = signals
+        .iter()
+        .any(|signal| signal.summary == "Process evidence found");
+    let uncertain = signals
+        .iter()
+        .any(|signal| signal.summary == "Activity state uncertain");
+    if !process_active && process_inspection_complete && !uncertain {
+        signals.push(activity_signal(
+            "Process",
+            "No associated process detected",
+            "Medium",
+            None,
+            None,
+            None,
+            None,
+        ));
+    }
+    let state = if manifest_active || process_active {
+        "Active"
+    } else if dirty {
+        "Interrupted with dirty work"
+    } else if ahead > 0 {
+        "Interrupted with unpushed commits"
+    } else if manifest.is_some() {
+        "Recently active"
+    } else {
+        "Unknown"
+    };
+    let confidence = if manifest_active {
+        "High"
+    } else if process_active {
+        "Medium"
+    } else if uncertain {
+        "Low"
+    } else {
+        "Medium"
+    };
+    WorkspaceActivity {
+        state: state.to_string(),
+        confidence: confidence.to_string(),
+        signals,
+        manifest,
+    }
+}
+
 fn unique_commits(path: &Path, branch: &str, target: Option<&str>) -> u64 {
     let Some(target) = target else {
         return 0;
@@ -1901,7 +2295,8 @@ fn branch_integration_state(
         return "Already integrated".to_string();
     }
     if let Some(workspace) = current_workspace {
-        if workspace.operation.is_some() || workspace.dirty {
+        if workspace.operation.is_some() || workspace.dirty || workspace.activity.state == "Active"
+        {
             return "Blocked".to_string();
         }
     }
@@ -1919,6 +2314,7 @@ fn scan_workspace(
     let remote_freshness = existing
         .and_then(|repository| repository.last_fetch_at.clone())
         .unwrap_or_else(|| "Not fetched by Pronto".to_string());
+    let activity = collect_workspace_activity(path, status.dirty, status.ahead);
     let sync_state = if status.upstream.is_none() {
         "No upstream".to_string()
     } else if status.ahead > 0 && status.behind > 0 {
@@ -1933,10 +2329,21 @@ fn scan_workspace(
     } else {
         "Synced".to_string()
     };
-    let (role, role_confidence) = branch_role(&status.branch, default_branch);
-    let (target_branch, target_confidence) = target_for_branch(&status.branch, default_branch);
+    let (mut role, mut role_confidence) = branch_role(&status.branch, default_branch);
+    let (mut target_branch, mut target_confidence) =
+        target_for_branch(&status.branch, default_branch);
+    if let Some(manifest) = activity.manifest.as_ref() {
+        if let Some(manifest_target) = manifest.target_branch.as_ref() {
+            target_branch = Some(manifest_target.clone());
+            target_confidence = "High".to_string();
+        }
+        if manifest.agent_type.is_some() && role != "Production" {
+            role = "Agent task".to_string();
+            role_confidence = "High".to_string();
+        }
+    }
     let integration_state = branch_integration_state(path, &status.branch, default_branch, None);
-    WorkspaceSummary {
+    let mut workspace = WorkspaceSummary {
         id: path_id("workspace", path),
         path: path.to_string_lossy().to_string(),
         is_primary,
@@ -1959,7 +2366,11 @@ fn scan_workspace(
         target_confidence,
         role,
         role_confidence,
-    }
+        activity,
+    };
+    workspace.integration_state =
+        branch_integration_state(path, &workspace.branch, default_branch, Some(&workspace));
+    workspace
 }
 
 fn evidence(label: &str, value: String, source: &str, observed_at: &str) -> EvidenceItem {
@@ -2023,6 +2434,41 @@ fn build_conditions(
     observed_at: &str,
 ) -> Vec<Condition> {
     let mut conditions = Vec::new();
+    if workspace.activity.state == "Active" {
+        let signal_evidence = workspace
+            .activity
+            .signals
+            .iter()
+            .map(|signal| {
+                evidence(
+                    "Activity signal",
+                    format!("{} · {}", signal.source, signal.summary),
+                    "Local process and manifest metadata",
+                    observed_at,
+                )
+            })
+            .collect::<Vec<_>>();
+        conditions.push(condition(
+            repository_id,
+            "active-agent-workspace",
+            "Agent workspace active",
+            "Process or manifest evidence indicates this workspace is still active.".to_string(),
+            2,
+            condition_fingerprint(
+                "active-agent",
+                &[
+                    workspace.branch.clone(),
+                    workspace.activity.confidence.clone(),
+                ],
+            ),
+            "An associated process or active agent manifest was detected without capturing terminal contents, prompts, or source text.",
+            signal_evidence,
+            vec!["Wait for the activity signal to end before integration or cleanup.".to_string()],
+            Some(&workspace.activity.confidence),
+            None,
+            expected,
+        ));
+    }
     if let Some(operation) = &workspace.operation {
         conditions.push(condition(
             repository_id,
@@ -2292,12 +2738,20 @@ fn scan_repository(
     let branch_records = parse_branches(path);
     let mut branches = Vec::new();
     for record in branch_records {
-        let (role, role_confidence) = branch_role(&record.name, default_branch.as_deref());
-        let (target_branch, target_confidence) =
-            target_for_branch(&record.name, default_branch.as_deref());
         let current_workspace = workspaces
             .iter()
             .find(|workspace| workspace.branch == record.name);
+        let (role, role_confidence) = current_workspace
+            .map(|workspace| (workspace.role.clone(), workspace.role_confidence.clone()))
+            .unwrap_or_else(|| branch_role(&record.name, default_branch.as_deref()));
+        let (target_branch, target_confidence) = current_workspace
+            .map(|workspace| {
+                (
+                    workspace.target_branch.clone(),
+                    workspace.target_confidence.clone(),
+                )
+            })
+            .unwrap_or_else(|| target_for_branch(&record.name, default_branch.as_deref()));
         let integration_state = branch_integration_state(
             path,
             &record.name,
@@ -2392,12 +2846,13 @@ fn transition_fingerprint(repository: &RepositorySnapshot) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{}|{}|{}|{}|{}|{}",
+        "{}|{}|{}|{}|{}|{}|{}",
         repository.branch,
         repository.workspace.dirty,
         repository.workspace.added,
         repository.workspace.removed,
         repository.workspace.sync_state,
+        repository.workspace.activity.state,
         condition_state
     )
 }
@@ -3621,6 +4076,76 @@ mod tests {
             Some("acme/portfolio")
         );
         assert_eq!(normalize_remote_name("  ").as_deref(), None);
+    }
+
+    #[test]
+    fn reads_optional_agent_manifest_with_explicit_activity_language() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        git(&repository, &["switch", "-c", "agent/manifest-task"]);
+        let manifest_directory = repository.join(".pronto");
+        fs::create_dir_all(&manifest_directory).expect("manifest directory should be creatable");
+        fs::write(
+            manifest_directory.join("agent.json"),
+            serde_json::to_vec(&serde_json::json!({
+                "task_id": "task-42",
+                "title": "Document workspace recovery",
+                "target_branch": "main",
+                "agent_type": "codex",
+                "start_time": "2026-07-26T12:00:00Z",
+                "status": "active",
+                "source_session_id": "session-42"
+            }))
+            .expect("manifest should encode"),
+        )
+        .expect("manifest should be writable");
+
+        let workspace = scan_workspace(&repository, true, Some("main"), None);
+        assert_eq!(workspace.activity.state, "Active");
+        assert_eq!(workspace.activity.confidence, "High");
+        assert_eq!(
+            workspace
+                .activity
+                .manifest
+                .as_ref()
+                .and_then(|manifest| manifest.task_id.as_deref()),
+            Some("task-42")
+        );
+        assert_eq!(workspace.target_branch.as_deref(), Some("main"));
+        assert_eq!(workspace.target_confidence, "High");
+        assert_eq!(workspace.role, "Agent task");
+        assert!(workspace
+            .activity
+            .signals
+            .iter()
+            .any(|signal| signal.source == "Manifest"));
+
+        let encoded = serde_json::to_string(&workspace).expect("workspace should serialize");
+        assert!(!encoded.contains("terminal contents"));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn active_workspace_activity_blocks_integration_eligibility() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        git(&repository, &["switch", "-c", "feature/active"]);
+        fs::write(repository.join("feature.txt"), "feature\n")
+            .expect("feature file should be writable");
+        git(&repository, &["add", "feature.txt"]);
+        git(&repository, &["commit", "-m", "Feature commit"]);
+        let mut workspace = scan_workspace(&repository, true, Some("main"), None);
+        workspace.activity.state = "Active".to_string();
+        assert_eq!(
+            branch_integration_state(
+                &repository,
+                &workspace.branch,
+                Some("main"),
+                Some(&workspace),
+            ),
+            "Blocked"
+        );
+        fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
     #[test]

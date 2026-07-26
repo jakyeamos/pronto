@@ -109,6 +109,32 @@ export function DetailDrawer({
                 <small>
                   {workspace.sync_state} · {workspace.remote_freshness}
                 </small>
+                <div className="workspace-activity">
+                  <StatusPill
+                    tone={
+                      workspace.activity.state === "Active"
+                        ? "blue"
+                        : workspace.activity.state.startsWith("Interrupted")
+                          ? "coral"
+                          : "slate"
+                    }
+                  >
+                    {workspace.activity.state}
+                  </StatusPill>
+                  <span>{workspace.activity.confidence} confidence</span>
+                </div>
+                <small>
+                  {workspace.activity.signals
+                    .map((signal) => signal.summary)
+                    .join(" · ")}
+                </small>
+                {workspace.activity.manifest && (
+                  <small>
+                    {workspace.activity.manifest.title ||
+                      workspace.activity.manifest.task_id ||
+                      "Structured agent task metadata"}
+                  </small>
+                )}
               </div>
             ))}
           </div>

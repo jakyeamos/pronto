@@ -1681,6 +1681,17 @@ h1 {
 .workspace-card small {
   color: #8193ab;
 }
+.workspace-activity {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 2px;
+}
+.workspace-activity > span {
+  color: var(--faint);
+  font-size: 9px;
+}
 .drawer-condition {
   display: flex;
   align-items: center;
