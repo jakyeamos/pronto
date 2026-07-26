@@ -6,7 +6,7 @@ import {
   LockKeyhole,
   ShieldCheck,
 } from "lucide-react";
-import type { EventRecord, RootConfig } from "../types";
+import type { ActionAudit, EventRecord, RootConfig } from "../types";
 import { formatTime } from "./ConsolePrimitives";
 
 export function DeferredSurface({
@@ -44,29 +44,44 @@ export function DeferredSurface({
 
 export function ActivitySurface({
   events,
+  actionAudits,
 }: {
   events: EventRecord[];
+  actionAudits: ActionAudit[];
 }): ReactElement {
+  const hasActivity = events.length > 0 || actionAudits.length > 0;
   return (
     <section className="surface-panel">
       <div className="surface-heading">
         <div>
-          <p className="eyebrow">Transition-only history</p>
+          <p className="eyebrow">Local action history</p>
           <h2>Activity</h2>
-          <p>Only meaningful local state changes are retained.</p>
+          <p>Safe local actions and meaningful state changes are retained.</p>
         </div>
         <Activity size={18} className="muted-icon" />
       </div>
-      {events.length === 0 ? (
+      {!hasActivity ? (
         <div className="surface-empty">
           <ShieldCheck size={18} />
           <span>
-            Activity will appear after the first local scan changes a repository
-            state.
+            Activity will appear after a local refresh or a repository state
+            transition.
           </span>
         </div>
       ) : (
         <div className="surface-event-list">
+          {actionAudits.map((audit) => (
+            <article className="surface-event" key={audit.id}>
+              <span className="timeline-node" />
+              <div>
+                <strong>{audit.summary}</strong>
+                <p>
+                  {audit.action} · {audit.status.toLowerCase()} · {audit.risk}
+                </p>
+              </div>
+              <time>{formatTime(audit.created_at)}</time>
+            </article>
+          ))}
           {events.map((event) => (
             <article className="surface-event" key={event.id}>
               <span className="timeline-node" />

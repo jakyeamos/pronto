@@ -1,11 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { PortfolioSnapshot } from "./types";
+import type { ActionPreflight, PortfolioSnapshot } from "./types";
 
 const emptySnapshot: PortfolioSnapshot = {
   roots: [],
   repositories: [],
   events: [],
+  action_audits: [],
   generated_at: new Date().toISOString(),
   storage_path: "",
 };
@@ -26,6 +27,19 @@ export async function refresh(): Promise<PortfolioSnapshot> {
     throw new Error("Open Pronto as a desktop app to scan local repositories.");
   }
   return invoke<PortfolioSnapshot>("refresh");
+}
+
+export async function preflightAction(
+  action: string,
+  repositoryId?: string,
+): Promise<ActionPreflight> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Action preflight is available in the Pronto desktop app.");
+  }
+  return invoke<ActionPreflight>("preflight_action", {
+    action,
+    repository_id: repositoryId ?? null,
+  });
 }
 
 export async function pickRoot(): Promise<string | null> {

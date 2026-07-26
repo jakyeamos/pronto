@@ -77,9 +77,9 @@ const pageCopy: Record<
     body: "The local portfolio is ready first; a read-only GitHub catalog will add remote context after durable state is in place.",
   },
   activity: {
-    eyebrow: "Transition-only history",
+    eyebrow: "Local action history",
     title: "See what changed.",
-    body: "Pronto records meaningful local state transitions, not a noisy scan log.",
+    body: "Pronto records safe local actions and meaningful state transitions, not a noisy scan log.",
   },
   settings: {
     eyebrow: "Local configuration",
@@ -93,6 +93,7 @@ export function App(): ReactElement {
     roots: [],
     repositories: [],
     events: [],
+    action_audits: [],
     generated_at: "",
     storage_path: "",
   });
@@ -377,7 +378,10 @@ export function App(): ReactElement {
               onCondition={handleCondition}
             />
           ) : activeNav === "activity" ? (
-            <ActivitySurface events={snapshot.events} />
+            <ActivitySurface
+              events={snapshot.events}
+              actionAudits={snapshot.action_audits}
+            />
           ) : activeNav === "settings" ? (
             <SettingsSurface
               roots={snapshot.roots}

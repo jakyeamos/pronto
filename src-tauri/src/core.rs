@@ -6,11 +6,15 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 const STORE_VERSION: u8 = 1;
-const SQLITE_SCHEMA_VERSION: i64 = 1;
+const SQLITE_SCHEMA_VERSION: i64 = 2;
 const DEFAULT_RETENTION_DAYS: i64 = 90;
 const DEFAULT_MAX_UNTRACKED_BYTES: u64 = 2_000_000;
+
+static NEXT_ACTION_AUDIT_ID: AtomicU64 = AtomicU64::new(0);
+static NEXT_EVENT_ID: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RootConfig {
@@ -118,6 +122,25 @@ pub struct EventRecord {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActionAudit {
+    pub id: String,
+    pub action: String,
+    pub target_ids: Vec<String>,
+    pub risk: String,
+    pub status: String,
+    pub summary: String,
+    pub created_at: String,
+    pub completed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActionPreflight {
+    pub audit: ActionAudit,
+    pub allowed: bool,
+    pub target_label: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExpectedCondition {
     pub repository_id: String,
     pub condition_id: String,
@@ -132,6 +155,8 @@ pub struct StoreState {
     pub repositories: Vec<RepositorySnapshot>,
     pub expected_conditions: Vec<ExpectedCondition>,
     pub events: Vec<EventRecord>,
+    #[serde(default)]
+    pub action_audits: Vec<ActionAudit>,
     pub retention_days: i64,
 }
 
@@ -143,6 +168,7 @@ impl Default for StoreState {
             repositories: Vec::new(),
             expected_conditions: Vec::new(),
             events: Vec::new(),
+            action_audits: Vec::new(),
             retention_days: DEFAULT_RETENTION_DAYS,
         }
     }
@@ -153,6 +179,7 @@ pub struct PortfolioSnapshot {
     pub roots: Vec<RootConfig>,
     pub repositories: Vec<RepositorySnapshot>,
     pub events: Vec<EventRecord>,
+    pub action_audits: Vec<ActionAudit>,
     pub generated_at: String,
     pub storage_path: String,
 }
@@ -272,6 +299,16 @@ fn initialize_store(connection: &Connection) -> Result<(), String> {
                  summary TEXT NOT NULL,
                  fingerprint TEXT NOT NULL,
                  created_at TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS action_audits (
+                 id TEXT PRIMARY KEY,
+                 action TEXT NOT NULL,
+                 target_ids_json TEXT NOT NULL,
+                 risk TEXT NOT NULL,
+                 status TEXT NOT NULL,
+                 summary TEXT NOT NULL,
+                 created_at TEXT NOT NULL,
+                 completed_at TEXT
              );",
         )
         .map_err(|error| format!("Could not initialize Pronto database: {error}"))?;
@@ -282,7 +319,16 @@ fn initialize_store(connection: &Connection) -> Result<(), String> {
             let version = value.parse::<i64>().map_err(|error| {
                 format!("Could not parse Pronto database schema version: {error}")
             })?;
-            if version != SQLITE_SCHEMA_VERSION {
+            if version == 1 {
+                connection
+                    .execute(
+                        "UPDATE metadata SET value = ?1 WHERE key = 'schema_version'",
+                        params![SQLITE_SCHEMA_VERSION.to_string()],
+                    )
+                    .map_err(|error| {
+                        format!("Could not migrate Pronto database schema version: {error}")
+                    })?;
+            } else if version != SQLITE_SCHEMA_VERSION {
                 return Err(format!(
                     "Unsupported Pronto database schema version {version}; expected {SQLITE_SCHEMA_VERSION}"
                 ));
@@ -434,12 +480,54 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("Could not decode Pronto events: {error}"))?;
 
+    let action_audit_rows = connection
+        .prepare(
+            "SELECT id, action, target_ids_json, risk, status, summary, created_at, completed_at
+             FROM action_audits ORDER BY created_at, rowid",
+        )
+        .map_err(|error| format!("Could not prepare Pronto action audits query: {error}"))?
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
+                row.get::<_, Option<String>>(7)?,
+            ))
+        })
+        .map_err(|error| format!("Could not read Pronto action audits: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode Pronto action audits: {error}"))?;
+    let action_audits = action_audit_rows
+        .into_iter()
+        .map(
+            |(id, action, target_ids_json, risk, status, summary, created_at, completed_at)| {
+                let target_ids = serde_json::from_str(&target_ids_json)
+                    .map_err(|error| format!("Could not decode action audit targets: {error}"))?;
+                Ok(ActionAudit {
+                    id,
+                    action,
+                    target_ids,
+                    risk,
+                    status,
+                    summary,
+                    created_at,
+                    completed_at,
+                })
+            },
+        )
+        .collect::<Result<Vec<_>, String>>()?;
+
     Ok(StoreState {
         version,
         roots,
         repositories,
         expected_conditions,
         events,
+        action_audits,
         retention_days,
     })
 }
@@ -450,7 +538,13 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
         .transaction()
         .map_err(|error| format!("Could not begin Pronto database transaction: {error}"))?;
 
-    for table in ["roots", "repositories", "expected_conditions", "events"] {
+    for table in [
+        "roots",
+        "repositories",
+        "expected_conditions",
+        "events",
+        "action_audits",
+    ] {
         transaction
             .execute(&format!("DELETE FROM {table}"), [])
             .map_err(|error| format!("Could not clear Pronto {table} table: {error}"))?;
@@ -532,6 +626,28 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
             .map_err(|error| format!("Could not save Pronto event: {error}"))?;
     }
 
+    for audit in &state.action_audits {
+        let target_ids_json = serde_json::to_string(&audit.target_ids)
+            .map_err(|error| format!("Could not encode action audit targets: {error}"))?;
+        transaction
+            .execute(
+                "INSERT INTO action_audits
+                 (id, action, target_ids_json, risk, status, summary, created_at, completed_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![
+                    audit.id,
+                    audit.action,
+                    target_ids_json,
+                    audit.risk,
+                    audit.status,
+                    audit.summary,
+                    audit.created_at,
+                    audit.completed_at
+                ],
+            )
+            .map_err(|error| format!("Could not save Pronto action audit: {error}"))?;
+    }
+
     transaction
         .commit()
         .map_err(|error| format!("Could not commit Pronto database transaction: {error}"))
@@ -542,6 +658,7 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
         roots: state.roots.clone(),
         repositories: state.repositories.clone(),
         events: state.events.iter().rev().take(24).cloned().collect(),
+        action_audits: state.action_audits.iter().rev().take(24).cloned().collect(),
         generated_at: iso_now(),
         storage_path: path.to_string_lossy().to_string(),
     }
@@ -1563,8 +1680,9 @@ fn append_transition_event(
     if !changed {
         return;
     }
+    let sequence = NEXT_EVENT_ID.fetch_add(1, Ordering::Relaxed);
     state.events.push(EventRecord {
-        id: format!("event:{}:{}", new.id, new.last_scan_at),
+        id: format!("event:{}:{}:{}", new.id, new.last_scan_at, sequence),
         repository_id: new.id.clone(),
         kind: if old.is_some() {
             "state-transition".to_string()
@@ -1615,6 +1733,193 @@ fn prune_events(state: &mut StoreState) {
     if state.events.len() > 2_000 {
         let keep_from = state.events.len() - 2_000;
         state.events = state.events.split_off(keep_from);
+    }
+}
+
+fn prune_action_audits(state: &mut StoreState) {
+    let cutoff = Utc::now() - chrono::Duration::days(state.retention_days.max(1));
+    state.action_audits.retain(|audit| {
+        DateTime::parse_from_rfc3339(&audit.created_at)
+            .map(|date| date.with_timezone(&Utc) >= cutoff)
+            .unwrap_or(true)
+    });
+    if state.action_audits.len() > 2_000 {
+        let keep_from = state.action_audits.len() - 2_000;
+        state.action_audits = state.action_audits.split_off(keep_from);
+    }
+}
+
+fn action_audit_id(action: &str, created_at: &str) -> String {
+    let sequence = NEXT_ACTION_AUDIT_ID.fetch_add(1, Ordering::Relaxed);
+    format!("audit:{action}:{created_at}:{sequence}")
+}
+
+fn action_targets(
+    state: &StoreState,
+    action: &str,
+    repository_id: Option<&str>,
+) -> Result<(Vec<String>, String), String> {
+    match action {
+        "refresh" => {
+            if repository_id.is_some() {
+                return Err(
+                    "Refresh preflight targets all registered discovery roots; omit repository_id"
+                        .to_string(),
+                );
+            }
+            let target_ids = state
+                .roots
+                .iter()
+                .map(|root| root.id.clone())
+                .collect::<Vec<_>>();
+            let target_label = if target_ids.is_empty() {
+                "No registered discovery roots".to_string()
+            } else {
+                "All registered discovery roots".to_string()
+            };
+            Ok((target_ids, target_label))
+        }
+        "inspect" => {
+            if let Some(repository_id) = repository_id {
+                let repository = state
+                    .repositories
+                    .iter()
+                    .find(|repository| repository.id == repository_id)
+                    .ok_or_else(|| "Repository is not registered".to_string())?;
+                return Ok((
+                    vec![repository.id.clone()],
+                    format!("Repository {}", repository.name),
+                ));
+            }
+            let target_ids = state
+                .repositories
+                .iter()
+                .map(|repository| repository.id.clone())
+                .collect::<Vec<_>>();
+            let target_label = if target_ids.is_empty() {
+                "No scanned repositories".to_string()
+            } else {
+                "All scanned repositories".to_string()
+            };
+            Ok((target_ids, target_label))
+        }
+        _ => Ok((Vec::new(), "No target selected".to_string())),
+    }
+}
+
+fn build_action_preflight(
+    state: &StoreState,
+    action: &str,
+    repository_id: Option<&str>,
+) -> Result<ActionPreflight, String> {
+    let normalized_action = action.trim().to_ascii_lowercase();
+    let allowed = matches!(normalized_action.as_str(), "refresh" | "inspect");
+    let (target_ids, target_label) = if allowed {
+        action_targets(state, &normalized_action, repository_id)?
+    } else {
+        action_targets(state, "unsupported", None)?
+    };
+    let created_at = iso_now();
+    let risk = if allowed { "read-only" } else { "blocked" }.to_string();
+    let status = if allowed { "Preflighted" } else { "Rejected" }.to_string();
+    let summary = if allowed {
+        format!("Read-only {normalized_action} preflight for {target_label}.")
+    } else {
+        format!(
+            "Action '{normalized_action}' is not enabled; Git mutation and provider writes remain blocked."
+        )
+    };
+    let audit = ActionAudit {
+        id: action_audit_id(&normalized_action, &created_at),
+        action: normalized_action,
+        target_ids,
+        risk,
+        status,
+        summary,
+        created_at,
+        completed_at: None,
+    };
+    Ok(ActionPreflight {
+        audit,
+        allowed,
+        target_label,
+    })
+}
+
+fn append_action_audit(state: &mut StoreState, preflight: &ActionPreflight) {
+    state.action_audits.push(preflight.audit.clone());
+    prune_action_audits(state);
+}
+
+fn update_action_audit(
+    state: &mut StoreState,
+    audit_id: &str,
+    status: &str,
+    summary: String,
+) -> Result<(), String> {
+    let audit = state
+        .action_audits
+        .iter_mut()
+        .find(|audit| audit.id == audit_id)
+        .ok_or_else(|| "Action audit record is no longer available".to_string())?;
+    audit.status = status.to_string();
+    audit.summary = summary;
+    audit.completed_at = Some(iso_now());
+    Ok(())
+}
+
+fn preflight_action_at(
+    path: &Path,
+    action: &str,
+    repository_id: Option<&str>,
+) -> Result<ActionPreflight, String> {
+    let mut state = load_store(path)?;
+    let preflight = build_action_preflight(&state, action, repository_id)?;
+    append_action_audit(&mut state, &preflight);
+    save_store(path, &state)?;
+    Ok(preflight)
+}
+
+fn audited_scan_and_persist(
+    path: &Path,
+    state: &mut StoreState,
+) -> Result<PortfolioSnapshot, String> {
+    let preflight = build_action_preflight(state, "refresh", None)?;
+    if !preflight.allowed {
+        return Err("Local refresh action is not permitted".to_string());
+    }
+    let audit_id = preflight.audit.id.clone();
+    append_action_audit(state, &preflight);
+    save_store(path, state)?;
+
+    match scan_and_persist(path, state) {
+        Ok(_) => {
+            update_action_audit(
+                state,
+                &audit_id,
+                "Completed",
+                format!(
+                    "Read-only refresh completed for {}.",
+                    preflight.target_label
+                ),
+            )?;
+            prune_action_audits(state);
+            save_store(path, state)?;
+            Ok(snapshot_from_store(path, state))
+        }
+        Err(error) => {
+            if update_action_audit(
+                state,
+                &audit_id,
+                "Failed",
+                format!("Read-only refresh failed for {}.", preflight.target_label),
+            )
+            .is_ok()
+            {
+                let _ = save_store(path, state);
+            }
+            Err(error)
+        }
     }
 }
 
@@ -1727,7 +2032,7 @@ fn register_root_and_scan(path: &Path, root_path: &str) -> Result<PortfolioSnaps
             registered_at: iso_now(),
         });
     }
-    scan_and_persist(path, &mut state)
+    audited_scan_and_persist(path, &mut state)
 }
 
 #[tauri::command]
@@ -1746,7 +2051,15 @@ pub fn register_root(path: String) -> Result<PortfolioSnapshot, String> {
 pub fn refresh() -> Result<PortfolioSnapshot, String> {
     let path = store_path();
     let mut state = load_store(&path)?;
-    scan_and_persist(&path, &mut state)
+    audited_scan_and_persist(&path, &mut state)
+}
+
+#[tauri::command]
+pub fn preflight_action(
+    action: String,
+    repository_id: Option<String>,
+) -> Result<ActionPreflight, String> {
+    preflight_action_at(&store_path(), &action, repository_id.as_deref())
 }
 
 #[tauri::command]
@@ -1800,7 +2113,9 @@ pub fn run_cli(arguments: Vec<String>) {
     let path = store_path();
     let result = match command {
         "status" => load_store(&path).map(|state| snapshot_from_store(&path, &state)),
-        "refresh" => load_store(&path).and_then(|mut state| scan_and_persist(&path, &mut state)),
+        "refresh" => {
+            load_store(&path).and_then(|mut state| audited_scan_and_persist(&path, &mut state))
+        }
         "." | "open" => {
             println!("Pronto desktop focus is available from an installed bundle.");
             return;
@@ -2038,6 +2353,125 @@ mod tests {
         let persisted = load_store(&store).expect("persisted state should be readable");
         assert_eq!(persisted.repositories.len(), 1);
         assert_eq!(persisted.events.len(), 2);
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn records_allowed_and_rejected_action_preflights() {
+        let root = fixture_root();
+        let database = root.join("registry.db");
+        let root_config = RootConfig {
+            id: path_id("root", &root),
+            path: root.to_string_lossy().to_string(),
+            label: "fixture".to_string(),
+            ignore_patterns: Vec::new(),
+            registered_at: iso_now(),
+        };
+        let state = StoreState {
+            roots: vec![root_config.clone()],
+            ..StoreState::default()
+        };
+        save_store(&database, &state).expect("preflight store should be writable");
+
+        let allowed = preflight_action_at(&database, "refresh", None)
+            .expect("refresh preflight should be recorded");
+        assert!(allowed.allowed);
+        assert_eq!(allowed.audit.risk, "read-only");
+        assert_eq!(allowed.audit.status, "Preflighted");
+        assert_eq!(allowed.audit.target_ids, vec![root_config.id]);
+
+        let rejected = preflight_action_at(&database, "push", None)
+            .expect("blocked action should be recorded");
+        assert!(!rejected.allowed);
+        assert_eq!(rejected.audit.risk, "blocked");
+        assert_eq!(rejected.audit.status, "Rejected");
+        assert!(rejected
+            .audit
+            .summary
+            .contains("Git mutation and provider writes remain blocked"));
+
+        let persisted = load_store(&database).expect("action audits should persist");
+        assert_eq!(persisted.action_audits.len(), 2);
+        assert!(persisted
+            .action_audits
+            .iter()
+            .any(|audit| audit.id == allowed.audit.id && audit.status == "Preflighted"));
+        assert!(persisted
+            .action_audits
+            .iter()
+            .any(|audit| audit.id == rejected.audit.id && audit.status == "Rejected"));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn completes_refresh_action_audit_after_read_only_scan() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        let database = root.join("registry.db");
+        let root_config = RootConfig {
+            id: path_id("root", &root),
+            path: root.to_string_lossy().to_string(),
+            label: "fixture".to_string(),
+            ignore_patterns: Vec::new(),
+            registered_at: iso_now(),
+        };
+        let mut state = StoreState {
+            roots: vec![root_config],
+            ..StoreState::default()
+        };
+
+        let snapshot = audited_scan_and_persist(&database, &mut state)
+            .expect("audited refresh should scan local repositories");
+        assert_eq!(snapshot.repositories.len(), 1);
+        assert_eq!(snapshot.action_audits.len(), 1);
+        assert_eq!(snapshot.action_audits[0].action, "refresh");
+        assert_eq!(snapshot.action_audits[0].status, "Completed");
+        assert!(snapshot.action_audits[0].completed_at.is_some());
+
+        let persisted = load_store(&database).expect("completed audit should persist");
+        assert_eq!(persisted.action_audits[0].status, "Completed");
+        assert!(persisted.repositories[0].path.contains(
+            repository
+                .file_name()
+                .and_then(|name| name.to_str())
+                .expect("repository name should be valid UTF-8")
+        ));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn migrates_schema_v1_for_action_audits() {
+        let root = fixture_root();
+        let database = root.join("registry.db");
+        let connection = Connection::open(&database).expect("schema fixture should open");
+        connection
+            .execute_batch(
+                "CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                 INSERT INTO metadata (key, value) VALUES ('schema_version', '1');
+                 INSERT INTO metadata (key, value) VALUES ('store_version', '1');",
+            )
+            .expect("schema v1 fixture should be writable");
+        drop(connection);
+
+        let migrated = load_store(&database).expect("schema v1 should migrate");
+        assert!(migrated.action_audits.is_empty());
+        let connection = Connection::open(&database).expect("migrated database should open");
+        let schema_version: String = connection
+            .query_row(
+                "SELECT value FROM metadata WHERE key = 'schema_version'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("migrated schema version should be readable");
+        assert_eq!(schema_version, SQLITE_SCHEMA_VERSION.to_string());
+        let action_table: String = connection
+            .query_row(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'action_audits'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("action audit table should exist after migration");
+        assert_eq!(action_table, "action_audits");
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 

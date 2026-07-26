@@ -18,6 +18,7 @@ pub fn run() {
             core::get_snapshot,
             core::register_root,
             core::refresh,
+            core::preflight_action,
             core::mark_condition_expected,
             core::clear_condition_expected,
         ])

@@ -96,10 +96,28 @@ export interface EventRecord {
   created_at: string;
 }
 
+export interface ActionAudit {
+  id: string;
+  action: string;
+  target_ids: string[];
+  risk: string;
+  status: string;
+  summary: string;
+  created_at: string;
+  completed_at?: string | null;
+}
+
+export interface ActionPreflight {
+  audit: ActionAudit;
+  allowed: boolean;
+  target_label: string;
+}
+
 export interface PortfolioSnapshot {
   roots: RootConfig[];
   repositories: RepositorySnapshot[];
   events: EventRecord[];
+  action_audits: ActionAudit[];
   generated_at: string;
   storage_path: string;
 }
