@@ -8,11 +8,18 @@ import {
   FolderGit2,
   GitBranch,
   MoreHorizontal,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import type { Condition, EventRecord, RepositorySnapshot } from "../types";
+import type {
+  Condition,
+  EventRecord,
+  QualityPortfolioSnapshot,
+  RepositorySnapshot,
+} from "../types";
 import { EmptyState, NoMatchesState } from "./ConsolePrimitives";
 import { AttentionQueue, RepositoryRow, Timeline } from "./PortfolioComponents";
+import { qualityGateDisplayLabel } from "./QualityComponents";
 
 export type Filter = "all" | "attention" | "dirty" | "sync";
 
@@ -22,6 +29,7 @@ export function CommandCenterSurface({
   unsyncedCount,
   repositoryCount,
   rootCount,
+  quality,
   repositories,
   allRepositories,
   events,
@@ -38,6 +46,7 @@ export function CommandCenterSurface({
   unsyncedCount: number;
   repositoryCount: number;
   rootCount: number;
+  quality: QualityPortfolioSnapshot;
   repositories: RepositorySnapshot[];
   allRepositories: RepositorySnapshot[];
   events: EventRecord[];
@@ -49,6 +58,14 @@ export function CommandCenterSurface({
   onCondition: (repository: RepositorySnapshot, condition: Condition) => void;
   onOpenQualityReport?: (reportPath: string) => void;
 }): ReactElement {
+  const openGateSummary = Object.entries(
+    quality.ci_readiness_open_gate_counts ?? {},
+  )
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 3)
+    .map(([gateId, count]) => `${qualityGateDisplayLabel(gateId)} (${count})`)
+    .join(" · ");
+
   return (
     <>
       <section className="metric-grid">
@@ -78,6 +95,53 @@ export function CommandCenterSurface({
             {rootCount === 1 ? "" : "s"}
           </small>
           <Archive size={18} />
+        </div>
+      </section>
+      <section
+        className="command-quality-summary"
+        aria-label="Quality maturity"
+      >
+        <div className="command-quality-summary-heading">
+          <div>
+            <p className="eyebrow">Quality evidence</p>
+            <h2>CI maturity readiness</h2>
+            <p>
+              Imported maturity stays exact; CI readiness tracks the gate work
+              still needed for a full score.
+            </p>
+          </div>
+          <ShieldCheck size={19} />
+        </div>
+        <div className="command-quality-score-grid">
+          <div>
+            <span>Fleet maturity</span>
+            <strong>
+              {quality.maturity_score_display ?? "Not scored"}
+              {quality.maturity_score_display && <small>/4</small>}
+            </strong>
+            <small>Quality Runner audit</small>
+          </div>
+          <div>
+            <span>CI readiness</span>
+            <strong>
+              {quality.ci_readiness_score_display ?? "Not assessed"}
+              {quality.ci_readiness_score_display && <small>/4</small>}
+            </strong>
+            <small>
+              {quality.ci_readiness_score == null
+                ? "Refresh to evaluate gate updates"
+                : `${quality.ci_readiness_full_repository_count ?? 0}/${quality.ci_readiness_repository_count ?? 0} repositories at 4/4`}
+            </small>
+          </div>
+          <div>
+            <span>CI updates needed</span>
+            <strong>
+              {Object.values(
+                quality.ci_readiness_open_gate_counts ?? {},
+              ).reduce((total, count) => total + count, 0)}
+            </strong>
+            <small>{openGateSummary || "No open gate updates"}</small>
+          </div>
         </div>
       </section>
       <div className="content-grid">

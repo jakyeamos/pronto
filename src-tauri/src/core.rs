@@ -4931,34 +4931,6 @@ fn append_transition_event(
     });
 }
 
-fn unavailable_repository(old: &RepositorySnapshot) -> RepositorySnapshot {
-    let mut repository = old.clone();
-    let now = iso_now();
-    repository.locality = "Unavailable".to_string();
-    repository.provider_state = "Local path unavailable".to_string();
-    repository.last_scan_at = now.clone();
-    repository.conditions = vec![Condition {
-        id: format!("{}:unavailable", repository.id),
-        kind: "unavailable".to_string(),
-        title: "Local path unavailable".to_string(),
-        summary: "The registered workspace path could not be scanned.".to_string(),
-        priority: 1,
-        status: "Active".to_string(),
-        fingerprint: "unavailable".to_string(),
-        rule: "A registered local path no longer exists or is inaccessible.".to_string(),
-        evidence: vec![evidence(
-            "Path",
-            repository.path.clone(),
-            "Local registry",
-            &now,
-        )],
-        missing: vec!["Restore access to the path or remove the root from settings.".to_string()],
-        confidence: Some("High".to_string()),
-        freshness: None,
-    }];
-    repository
-}
-
 fn prune_events(state: &mut StoreState) {
     let cutoff = Utc::now() - chrono::Duration::days(state.retention_days.max(1));
     state.events.retain(|event| {
@@ -5256,10 +5228,6 @@ fn scan_and_persist_scoped(
                 let repository_path = PathBuf::from(&old.path);
                 let repository =
                     scan_repository(&repository_path, Some(&old), &state.expected_conditions);
-                append_transition_event(state, Some(&old), &repository);
-                repositories.push(repository);
-            } else {
-                let repository = unavailable_repository(&old);
                 append_transition_event(state, Some(&old), &repository);
                 repositories.push(repository);
             }
@@ -6577,6 +6545,30 @@ mod tests {
         );
 
         fs::remove_dir_all(root).expect("exclusion fixture should be removable");
+    }
+
+    #[test]
+    fn prunes_deleted_repositories_on_full_refresh() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        let store = root.join("registry.db");
+
+        let first = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("initial scan should discover the repository");
+        assert_eq!(first.repositories.len(), 1);
+
+        fs::remove_dir_all(&repository).expect("repository should be removable");
+        let mut state = load_store(&store).expect("initial store should be readable");
+        let refreshed =
+            scan_and_persist_scoped(&store, &mut state, None).expect("full refresh should succeed");
+
+        assert!(refreshed.repositories.is_empty());
+        assert!(load_store(&store)
+            .expect("refreshed store should be readable")
+            .repositories
+            .is_empty());
+
+        fs::remove_dir_all(root).expect("deleted repository fixture should be removable");
     }
 
     #[test]

@@ -376,6 +376,7 @@ export function App(): ReactElement {
               unsyncedCount={unsyncedCount}
               repositoryCount={snapshot.repositories.length}
               rootCount={snapshot.roots.length}
+              quality={snapshot.quality}
               repositories={repositories}
               allRepositories={snapshot.repositories}
               events={snapshot.events}

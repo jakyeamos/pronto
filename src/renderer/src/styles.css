@@ -535,6 +535,76 @@ h1 {
 .metric-card small {
   color: var(--faint);
 }
+.command-quality-summary {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 16px 17px;
+  border: 1px solid rgba(119, 168, 255, 0.22);
+  border-radius: 13px;
+  background: linear-gradient(
+    145deg,
+    rgba(29, 53, 87, 0.78),
+    rgba(14, 28, 48, 0.92)
+  );
+}
+.command-quality-summary-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.command-quality-summary-heading h2 {
+  margin: 3px 0 4px;
+  color: var(--text);
+  font-size: 17px;
+  letter-spacing: -0.03em;
+}
+.command-quality-summary-heading p:last-child {
+  max-width: 650px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.command-quality-summary-heading > svg {
+  flex: 0 0 auto;
+  color: var(--blue);
+}
+.command-quality-score-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.command-quality-score-grid > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(119, 168, 255, 0.14);
+}
+.command-quality-score-grid span,
+.command-quality-score-grid small {
+  color: var(--muted);
+  font-size: 9px;
+}
+.command-quality-score-grid strong {
+  color: var(--text);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+.command-quality-score-grid strong small {
+  margin-left: 2px;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 600;
+}
+.command-quality-score-grid small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.65fr) minmax(305px, 0.72fr);
@@ -3159,6 +3229,9 @@ h1 {
   }
   .metric-grid,
   .quality-overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .command-quality-score-grid {
     grid-template-columns: minmax(0, 1fr);
   }
   .quality-matrix {

@@ -19,6 +19,7 @@ import type {
 } from "../types";
 import { PreparationDrawer } from "./PreparationDrawer";
 import { qualityGateChoices } from "./ReleaseRuleEditor";
+import { CommandCenterSurface } from "./CommandCenterSurface";
 import {
   QualityAttentionList,
   QualityEvidenceList,
@@ -380,6 +381,44 @@ describe("quality evidence surfaces", () => {
     expect(unconfigured).toContain(
       "Not assessed; refresh to evaluate gate updates",
     );
+  });
+
+  it("surfaces maturity and CI readiness in the command center", () => {
+    const repository = makeRepository();
+    const markup = renderToStaticMarkup(
+      <CommandCenterSurface
+        activeConditionCount={0}
+        dirtyCount={0}
+        unsyncedCount={0}
+        repositoryCount={1}
+        rootCount={1}
+        quality={
+          makePortfolio([repository], {
+            maturity_score_display: "1.933",
+            ci_readiness_score: 2.67,
+            ci_readiness_score_display: "2.67",
+            ci_readiness_full_repository_count: 0,
+            ci_readiness_repository_count: 1,
+            ci_readiness_open_gate_counts: { tests: 1 },
+          }).quality
+        }
+        repositories={[repository]}
+        allRepositories={[repository]}
+        events={[]}
+        filter="all"
+        onFilterChange={() => undefined}
+        onClearFilters={() => undefined}
+        onAddRoot={() => undefined}
+        onOpenRepository={noopRepository}
+        onCondition={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain("CI maturity readiness");
+    expect(markup).toContain("1.933");
+    expect(markup).toContain("2.67");
+    expect(markup).toContain("CI updates needed");
+    expect(markup).toContain("Tests (1)");
   });
 
   it("filters attention to failed, stale, high-severity, and required missing evidence", () => {
