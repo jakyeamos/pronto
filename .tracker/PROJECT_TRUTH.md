@@ -27,11 +27,11 @@
 
 ## Recent Progress
 
-| Date       | Change                                                                        | Evidence                           |
-| ---------- | ----------------------------------------------------------------------------- | ---------------------------------- |
-| 2026-07-25 | Implemented local-first Tauri/Rust/React slice and committed it.              | `1817527`                          |
-| 2026-07-25 | Fixed inherited `GIT_INDEX_FILE` contamination in native Git calls.           | Hook-mode `pnpm test` passed       |
-| 2026-07-25 | Fixed the Pre-CR adapter's strict ESLint global reference.                    | `ef6ea99`; lint and hook passed    |
-| 2026-07-25 | Added PRD behavior inventory and verification workbook.                       | `533c2f5`; artifact inspect passed |
-| 2026-07-25 | Added truthful local navigation, settings/activity surfaces, and keyboard UX. | `885fe1e`; Pre-CR passed           |
+| Date       | Change                                                                            | Evidence                                |
+| ---------- | --------------------------------------------------------------------------------- | --------------------------------------- |
+| 2026-07-25 | Implemented local-first Tauri/Rust/React slice and committed it.                  | `1817527`                               |
+| 2026-07-25 | Fixed inherited `GIT_INDEX_FILE` contamination in native Git calls.               | Hook-mode `pnpm test` passed            |
+| 2026-07-25 | Fixed the Pre-CR adapter's strict ESLint global reference.                        | `ef6ea99`; lint and hook passed         |
+| 2026-07-25 | Added PRD behavior inventory and verification workbook.                           | `533c2f5`; artifact inspect passed      |
+| 2026-07-25 | Added truthful local navigation, settings/activity surfaces, and keyboard UX.     | `885fe1e`; Pre-CR passed                |
 | 2026-07-25 | Refreshed the behavior workbook for the UX slice and accepted delivery decisions. | `faf0d99`; 34 rows, zero formula errors |
