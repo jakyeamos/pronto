@@ -4,11 +4,18 @@ import {
   GitBranch,
   LayoutDashboard,
   PackageOpen,
+  ShieldCheck,
   Settings2,
 } from "lucide-react";
 
 export type NavItem =
-  "command" | "products" | "groups" | "remote" | "activity" | "settings";
+  | "command"
+  | "quality"
+  | "products"
+  | "groups"
+  | "remote"
+  | "activity"
+  | "settings";
 
 export const navItems: Array<{
   id: NavItem;
@@ -16,6 +23,7 @@ export const navItems: Array<{
   icon: typeof LayoutDashboard;
 }> = [
   { id: "command", label: "Command center", icon: LayoutDashboard },
+  { id: "quality", label: "Quality gates", icon: ShieldCheck },
   { id: "products", label: "Products", icon: PackageOpen },
   { id: "groups", label: "Groups", icon: FolderGit2 },
   { id: "remote", label: "Remote catalog", icon: GitBranch },
@@ -36,6 +44,11 @@ export const pageCopy: Record<
     eyebrow: "Manual configuration",
     title: "Give the portfolio a shape.",
     body: "Name operational products, attach repositories intentionally, and keep release modes explicit.",
+  },
+  quality: {
+    eyebrow: "Read-only quality evidence",
+    title: "See every gate in context.",
+    body: "Compare repository evidence, maturity, and release impact without running a command from the app.",
   },
   groups: {
     eyebrow: "Manual configuration",

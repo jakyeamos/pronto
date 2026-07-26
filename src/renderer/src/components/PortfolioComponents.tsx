@@ -16,6 +16,10 @@ import {
   StatusPill,
   toneForCondition,
 } from "./ConsolePrimitives";
+import {
+  QualityAttentionList,
+  qualityAttentionItems,
+} from "./QualityComponents";
 
 export function RepositoryRow({
   repository,
@@ -106,9 +110,13 @@ export function RepositoryRow({
 export function AttentionQueue({
   repositories,
   onCondition,
+  onOpenRepository,
+  onOpenReport,
 }: {
   repositories: RepositorySnapshot[];
   onCondition: (repository: RepositorySnapshot, condition: Condition) => void;
+  onOpenRepository?: (repository: RepositorySnapshot) => void;
+  onOpenReport?: (reportPath: string) => void;
 }): ReactElement {
   const attention = repositories
     .map((repository) => ({
@@ -118,6 +126,15 @@ export function AttentionQueue({
       ),
     }))
     .filter((group) => group.conditions.length > 0);
+  const qualityAttention = repositories
+    .map((repository) => ({
+      repository,
+      items: qualityAttentionItems(repository),
+    }))
+    .filter((group) => group.items.length > 0);
+  const attentionCount =
+    attention.reduce((total, group) => total + group.conditions.length, 0) +
+    qualityAttention.reduce((total, group) => total + group.items.length, 0);
   return (
     <section className="rail-section">
       <div className="section-heading">
@@ -125,14 +142,9 @@ export function AttentionQueue({
           <p className="eyebrow">Evidence-led queue</p>
           <h2>Attention queue</h2>
         </div>
-        <span className="section-count">
-          {attention.reduce(
-            (total, group) => total + group.conditions.length,
-            0,
-          )}
-        </span>
+        <span className="section-count">{attentionCount}</span>
       </div>
-      {attention.length === 0 ? (
+      {attention.length === 0 && qualityAttention.length === 0 ? (
         <div className="rail-empty">
           <ShieldCheck size={18} />
           <span>No active conditions in the current snapshot.</span>
@@ -172,6 +184,31 @@ export function AttentionQueue({
                   </button>
                 ))}
               </div>
+            </details>
+          ))}
+          {qualityAttention.map(({ repository, items }) => (
+            <details
+              className="attention-group quality-attention-group"
+              key={`quality-${repository.id}`}
+              open
+            >
+              <summary>
+                <span className="summary-repo">
+                  <span className="tiny-repo-mark">
+                    <GitBranch size={12} />
+                  </span>
+                  {repository.name} · quality
+                </span>
+                <span className="summary-count">
+                  {items.length}
+                  <ChevronDown size={13} />
+                </span>
+              </summary>
+              <QualityAttentionList
+                repository={repository}
+                onOpenRepository={() => onOpenRepository?.(repository)}
+                onOpenReport={onOpenReport}
+              />
             </details>
           ))}
         </div>

@@ -1,3 +1,7 @@
+use crate::quality::{
+    self, QualityFreshness, QualityGateRequirement, QualityGateStatus, QualityPortfolioSnapshot,
+    QualitySnapshot,
+};
 use chrono::{DateTime, SecondsFormat, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
@@ -8,8 +12,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-const STORE_VERSION: u8 = 3;
-const SQLITE_SCHEMA_VERSION: i64 = 4;
+const STORE_VERSION: u8 = 4;
+const SQLITE_SCHEMA_VERSION: i64 = 5;
 const DEFAULT_RETENTION_DAYS: i64 = 90;
 const DEFAULT_MAX_UNTRACKED_BYTES: u64 = 2_000_000;
 const DEFAULT_MAX_MANIFEST_BYTES: u64 = 64 * 1024;
@@ -58,6 +62,8 @@ pub struct ReleaseRuleConfig {
     pub min_elapsed_days: Option<u64>,
     pub required_commit_types: Vec<String>,
     pub allow_first_release: bool,
+    #[serde(default)]
+    pub required_quality_gates: Vec<QualityGateRequirement>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -106,6 +112,12 @@ pub struct RemoteRepositorySnapshot {
     pub pull_requests: Vec<PullRequestSnapshot>,
     #[serde(default)]
     pub releases: Vec<ReleaseSnapshot>,
+    #[serde(default)]
+    pub ci_checks: Vec<CheckSnapshot>,
+    #[serde(default)]
+    pub ci_branch: Option<String>,
+    #[serde(default)]
+    pub ci_commit: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -115,6 +127,10 @@ pub struct CheckSnapshot {
     pub required: bool,
     pub conclusion: Option<String>,
     pub last_refreshed_at: String,
+    #[serde(default)]
+    pub html_url: Option<String>,
+    #[serde(default)]
+    pub head_sha: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -134,6 +150,8 @@ pub struct PullRequestSnapshot {
     pub mergeability: String,
     pub checks: Vec<CheckSnapshot>,
     pub last_refreshed_at: String,
+    #[serde(default)]
+    pub head_commit: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -337,6 +355,8 @@ pub struct RepositorySnapshot {
     #[serde(default)]
     pub releases: Vec<ReleaseSnapshot>,
     #[serde(default)]
+    pub quality: QualitySnapshot,
+    #[serde(default)]
     pub release_rule: Option<ReleaseRuleConfig>,
     #[serde(default)]
     pub release_recipe: Option<ReleaseRecipeConfig>,
@@ -533,6 +553,8 @@ pub struct StoreState {
     pub remote_repositories: Vec<RemoteRepositorySnapshot>,
     #[serde(default)]
     pub provider_status: ProviderStatus,
+    #[serde(default)]
+    pub quality: QualityPortfolioSnapshot,
     pub retention_days: i64,
 }
 
@@ -550,6 +572,7 @@ impl Default for StoreState {
             provider_identities: Vec::new(),
             remote_repositories: Vec::new(),
             provider_status: ProviderStatus::default(),
+            quality: QualityPortfolioSnapshot::default(),
             retention_days: DEFAULT_RETENTION_DAYS,
         }
     }
@@ -566,6 +589,8 @@ pub struct PortfolioSnapshot {
     pub provider_identities: Vec<ProviderIdentity>,
     pub remote_repositories: Vec<RemoteRepositorySnapshot>,
     pub provider_status: ProviderStatus,
+    #[serde(default)]
+    pub quality: QualityPortfolioSnapshot,
     pub retention_days: i64,
     pub generated_at: String,
     pub storage_path: String,
@@ -788,13 +813,32 @@ fn initialize_store(connection: &Connection) -> Result<(), String> {
         }
     }
 
-    if metadata_value(connection, "store_version")?.is_none() {
-        connection
-            .execute(
-                "INSERT INTO metadata (key, value) VALUES (?1, ?2)",
-                params!["store_version", STORE_VERSION.to_string()],
-            )
-            .map_err(|error| format!("Could not record Pronto store version: {error}"))?;
+    match metadata_value(connection, "store_version")? {
+        Some(value) => {
+            let version = value
+                .parse::<u8>()
+                .map_err(|error| format!("Could not parse Pronto store version: {error}"))?;
+            if version < STORE_VERSION {
+                connection
+                    .execute(
+                        "UPDATE metadata SET value = ?1 WHERE key = 'store_version'",
+                        params![STORE_VERSION.to_string()],
+                    )
+                    .map_err(|error| format!("Could not migrate Pronto store version: {error}"))?;
+            } else if version > STORE_VERSION {
+                return Err(format!(
+                    "Unsupported Pronto store version {version}; expected {STORE_VERSION}"
+                ));
+            }
+        }
+        None => {
+            connection
+                .execute(
+                    "INSERT INTO metadata (key, value) VALUES (?1, ?2)",
+                    params!["store_version", STORE_VERSION.to_string()],
+                )
+                .map_err(|error| format!("Could not record Pronto store version: {error}"))?;
+        }
     }
 
     Ok(())
@@ -822,7 +866,8 @@ fn load_legacy_store(path: &Path) -> Result<Option<StoreState>, String> {
 
 fn load_store(path: &Path) -> Result<StoreState, String> {
     if !path.exists() {
-        if let Some(legacy_state) = load_legacy_store(path)? {
+        if let Some(mut legacy_state) = load_legacy_store(path)? {
+            legacy_state.version = legacy_state.version.max(STORE_VERSION);
             save_store(path, &legacy_state)?;
             return Ok(legacy_state);
         }
@@ -831,7 +876,8 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
     let connection = open_store(path)?;
     let version = metadata_value(&connection, "store_version")?
         .and_then(|value| value.parse::<u8>().ok())
-        .unwrap_or(STORE_VERSION);
+        .unwrap_or(STORE_VERSION)
+        .max(STORE_VERSION);
     let retention_days = metadata_value(&connection, "retention_days")?
         .and_then(|value| value.parse::<i64>().ok())
         .unwrap_or(DEFAULT_RETENTION_DAYS);
@@ -839,6 +885,11 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
         Some(payload) => serde_json::from_str(&payload)
             .map_err(|error| format!("Could not decode provider status: {error}"))?,
         None => ProviderStatus::default(),
+    };
+    let quality = match metadata_value(&connection, "quality_summary_json")? {
+        Some(payload) => serde_json::from_str(&payload)
+            .map_err(|error| format!("Could not decode quality summary: {error}"))?,
+        None => QualityPortfolioSnapshot::default(),
     };
 
     let root_rows = connection
@@ -1095,6 +1146,7 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
         provider_identities,
         remote_repositories,
         provider_status,
+        quality,
         retention_days,
     })
 }
@@ -1124,7 +1176,10 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
     transaction
         .execute(
             "INSERT OR REPLACE INTO metadata (key, value) VALUES (?1, ?2)",
-            params!["store_version", state.version.to_string()],
+            params![
+                "store_version",
+                state.version.max(STORE_VERSION).to_string()
+            ],
         )
         .map_err(|error| format!("Could not save Pronto store version: {error}"))?;
     transaction
@@ -1141,6 +1196,14 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
             params!["provider_status_json", provider_status_json],
         )
         .map_err(|error| format!("Could not save provider status: {error}"))?;
+    let quality_summary_json = serde_json::to_string(&state.quality)
+        .map_err(|error| format!("Could not encode quality summary: {error}"))?;
+    transaction
+        .execute(
+            "INSERT OR REPLACE INTO metadata (key, value) VALUES (?1, ?2)",
+            params!["quality_summary_json", quality_summary_json],
+        )
+        .map_err(|error| format!("Could not save quality summary: {error}"))?;
 
     for root in &state.roots {
         let ignore_patterns_json = serde_json::to_string(&root.ignore_patterns)
@@ -1308,6 +1371,7 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
         provider_identities: state.provider_identities.clone(),
         remote_repositories: state.remote_repositories.clone(),
         provider_status: state.provider_status.clone(),
+        quality: state.quality.clone(),
         retention_days: state.retention_days,
         generated_at: iso_now(),
         storage_path: path.to_string_lossy().to_string(),
@@ -1415,6 +1479,7 @@ impl ProviderAdapter for GitHubCliAdapter {
             parse_github_repositories(&repositories_payload, &identity_id, &refreshed_at)?;
         let mut pull_requests = Vec::new();
         let mut releases = Vec::new();
+        let mut ci_updates = HashMap::<String, (Vec<CheckSnapshot>, String, Option<String>)>::new();
         for repository in &repositories {
             let pull_request_endpoint = format!(
                 "repos/{}/pulls?state=all&per_page=100",
@@ -1429,7 +1494,40 @@ impl ProviderAdapter for GitHubCliAdapter {
                 if let Ok(parsed) =
                     parse_github_pull_requests(&payload, &repository.id, &refreshed_at)
                 {
+                    let mut parsed = parsed;
+                    for pull_request in &mut parsed {
+                        let Some(head_commit) = pull_request.head_commit.as_deref() else {
+                            continue;
+                        };
+                        let check_endpoint = format!(
+                            "repos/{}/commits/{head_commit}/check-runs?per_page=100",
+                            repository.full_name
+                        );
+                        if let Ok(check_payload) = self.json(&["api", check_endpoint.as_str()]) {
+                            if let Ok(checks) =
+                                parse_github_check_runs(&check_payload, &refreshed_at)
+                            {
+                                pull_request.checks_state = summarize_check_state(&checks);
+                                pull_request.checks = checks;
+                            }
+                        }
+                    }
                     pull_requests.extend(parsed);
+                }
+            }
+            if let Some(default_branch) = repository.default_branch.as_deref() {
+                let check_endpoint = format!(
+                    "repos/{}/commits/{default_branch}/check-runs?per_page=100",
+                    repository.full_name
+                );
+                if let Ok(payload) = self.json(&["api", check_endpoint.as_str()]) {
+                    if let Ok(checks) = parse_github_check_runs(&payload, &refreshed_at) {
+                        let ci_commit = checks.iter().find_map(|check| check.head_sha.clone());
+                        ci_updates.insert(
+                            repository.id.clone(),
+                            (checks, default_branch.to_string(), ci_commit),
+                        );
+                    }
                 }
             }
             let release_endpoint = format!("repos/{}/releases?per_page=100", repository.full_name);
@@ -1442,6 +1540,11 @@ impl ProviderAdapter for GitHubCliAdapter {
             }
         }
         for repository in &mut repositories {
+            if let Some((checks, branch, commit)) = ci_updates.remove(&repository.id) {
+                repository.ci_checks = checks;
+                repository.ci_branch = Some(branch);
+                repository.ci_commit = commit;
+            }
             repository.pull_requests = pull_requests
                 .iter()
                 .filter(|pull_request| pull_request.repository_id == repository.id)
@@ -1515,6 +1618,9 @@ fn parse_github_repositories(
                 last_refreshed_at: refreshed_at.to_string(),
                 pull_requests: Vec::new(),
                 releases: Vec::new(),
+                ci_checks: Vec::new(),
+                ci_branch: None,
+                ci_commit: None,
             })
         })
         .collect())
@@ -1559,6 +1665,11 @@ fn parse_github_pull_requests(
                 .and_then(serde_json::Value::as_str)
                 .unwrap_or_default()
                 .to_string();
+            let head_commit = pull_request
+                .get("head")
+                .and_then(|value| value.get("sha"))
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_string);
             Some(PullRequestSnapshot {
                 id: format!("github:pr:{repository_id}:{number}"),
                 provider: "github".to_string(),
@@ -1594,9 +1705,90 @@ fn parse_github_pull_requests(
                     .to_string(),
                 checks: Vec::new(),
                 last_refreshed_at: refreshed_at.to_string(),
+                head_commit,
             })
         })
         .collect())
+}
+
+fn parse_github_check_runs(
+    payload: &serde_json::Value,
+    refreshed_at: &str,
+) -> Result<Vec<CheckSnapshot>, String> {
+    let values = match payload {
+        serde_json::Value::Array(values) if values.iter().all(serde_json::Value::is_array) => {
+            values
+                .iter()
+                .flat_map(|page| page.as_array().into_iter().flatten())
+                .collect::<Vec<_>>()
+        }
+        serde_json::Value::Array(values) => values.iter().collect::<Vec<_>>(),
+        serde_json::Value::Object(_) => vec![payload],
+        _ => return Err("GitHub check-run response was not an object or array.".to_string()),
+    };
+    Ok(values
+        .into_iter()
+        .flat_map(|value| {
+            value
+                .get("check_runs")
+                .and_then(serde_json::Value::as_array)
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+        })
+        .filter_map(|check| {
+            let context = check
+                .get("name")
+                .or_else(|| check.get("context"))
+                .and_then(serde_json::Value::as_str)?
+                .to_string();
+            Some(CheckSnapshot {
+                context,
+                state: check
+                    .get("status")
+                    .or_else(|| check.get("state"))
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("unknown")
+                    .to_string(),
+                required: false,
+                conclusion: check
+                    .get("conclusion")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string),
+                last_refreshed_at: refreshed_at.to_string(),
+                html_url: check
+                    .get("html_url")
+                    .or_else(|| check.get("details_url"))
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string),
+                head_sha: check
+                    .get("head_sha")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string),
+            })
+        })
+        .collect())
+}
+
+fn summarize_check_state(checks: &[CheckSnapshot]) -> String {
+    if checks.is_empty() {
+        return "Not configured".to_string();
+    }
+    if checks.iter().any(|check| {
+        matches!(
+            check.conclusion.as_deref(),
+            Some("failure" | "timed_out" | "cancelled" | "action_required")
+        )
+    }) {
+        "Failed".to_string()
+    } else if checks
+        .iter()
+        .all(|check| matches!(check.conclusion.as_deref(), Some("success" | "neutral")))
+    {
+        "Passed".to_string()
+    } else {
+        "Blocked".to_string()
+    }
 }
 
 fn parse_github_releases(
@@ -1738,9 +1930,32 @@ fn apply_provider_refresh_at(
         identity_count: state.provider_identities.len(),
         repository_count: state.remote_repositories.len(),
     };
+    apply_quality_evidence(&mut state);
     apply_release_threshold_conditions(&mut state);
     save_store(path, &state)?;
     Ok(snapshot_from_store(path, &state))
+}
+
+fn apply_quality_evidence(state: &mut StoreState) {
+    let audit = quality::audit_import(
+        state.quality.audit_root.as_deref().map(Path::new),
+        &state.repositories,
+    );
+    state.quality = audit.portfolio;
+    let remote_by_name = state
+        .remote_repositories
+        .iter()
+        .filter_map(|remote| normalize_remote_name(&remote.full_name).map(|name| (name, remote)))
+        .collect::<HashMap<_, _>>();
+    for repository in &mut state.repositories {
+        let remote = repository
+            .remote_url
+            .as_deref()
+            .and_then(normalize_remote_name)
+            .and_then(|name| remote_by_name.get(&name).copied());
+        let maturity = audit.maturities.get(&repository.id).cloned();
+        repository.quality = quality::ingest_repository_quality(repository, remote, maturity);
+    }
 }
 
 fn refresh_github_at(path: &Path) -> Result<PortfolioSnapshot, String> {
@@ -1928,12 +2143,33 @@ fn normalize_release_rule(rule: ReleaseRuleConfig) -> Result<ReleaseRuleConfig, 
     {
         return Err(format!("Unsupported conventional commit type '{unknown}'"));
     }
+    let mut required_quality_gates = rule
+        .required_quality_gates
+        .into_iter()
+        .map(|requirement| QualityGateRequirement {
+            gate_id: crate::quality::normalize_gate_id(&requirement.gate_id),
+            source: requirement.source,
+        })
+        .collect::<Vec<_>>();
+    required_quality_gates.sort_by(|left, right| {
+        left.gate_id
+            .cmp(&right.gate_id)
+            .then_with(|| left.source.as_str().cmp(right.source.as_str()))
+    });
+    if required_quality_gates
+        .windows(2)
+        .any(|requirements| requirements[0].gate_id == requirements[1].gate_id)
+    {
+        return Err("Each release rule gate may specify only one evidence source".to_string());
+    }
     if rule.min_commits.is_none()
         && rule.min_elapsed_days.is_none()
         && required_commit_types.is_empty()
+        && required_quality_gates.is_empty()
     {
         return Err(
-            "Release rule needs a commit count, elapsed time, or commit type clause".to_string(),
+            "Release rule needs a commit count, elapsed time, commit type, or quality gate clause"
+                .to_string(),
         );
     }
     Ok(ReleaseRuleConfig {
@@ -1943,6 +2179,7 @@ fn normalize_release_rule(rule: ReleaseRuleConfig) -> Result<ReleaseRuleConfig, 
         min_elapsed_days: rule.min_elapsed_days,
         required_commit_types,
         allow_first_release: rule.allow_first_release,
+        required_quality_gates,
     })
 }
 
@@ -3127,6 +3364,7 @@ fn candidate_version(release: &ReleaseSnapshot, bump: Option<&str>) -> Option<St
 enum ReleaseRuleResult {
     Passed,
     Failed,
+    Blocked,
     Unknown,
 }
 
@@ -3134,6 +3372,9 @@ fn combine_release_rule_results(
     operator: &str,
     results: &[ReleaseRuleResult],
 ) -> ReleaseRuleResult {
+    if results.contains(&ReleaseRuleResult::Blocked) {
+        return ReleaseRuleResult::Blocked;
+    }
     if operator == "OR" {
         if results.contains(&ReleaseRuleResult::Passed) {
             ReleaseRuleResult::Passed
@@ -3158,8 +3399,15 @@ fn release_rule_status(result: ReleaseRuleResult) -> &'static str {
     match result {
         ReleaseRuleResult::Passed => "Passed",
         ReleaseRuleResult::Failed => "Failed",
+        ReleaseRuleResult::Blocked => "Blocked",
         ReleaseRuleResult::Unknown => "Unknown",
     }
+}
+
+fn release_rule_needs_baseline(rule: &ReleaseRuleConfig) -> bool {
+    rule.min_commits.is_some()
+        || rule.min_elapsed_days.is_some()
+        || !rule.required_commit_types.is_empty()
 }
 
 fn release_rule_commit_type_present(
@@ -3188,19 +3436,26 @@ fn evaluate_release_rule(
 ) -> (ReleaseRuleResult, Vec<ReleaseRuleTrace>) {
     let mut results = Vec::new();
     let mut trace = Vec::new();
-    let (baseline_result, baseline_value) = match baseline {
-        Some(release) => (
+    let (baseline_result, baseline_value) = if !release_rule_needs_baseline(rule) {
+        (
             ReleaseRuleResult::Passed,
-            format!("Published baseline {}", release.tag),
-        ),
-        None if rule.allow_first_release => (
-            ReleaseRuleResult::Passed,
-            "No published baseline · first-release path enabled".to_string(),
-        ),
-        None => (
-            ReleaseRuleResult::Failed,
-            "No published baseline · first-release path not enabled".to_string(),
-        ),
+            "No commit threshold clauses · quality evidence drives this rule".to_string(),
+        )
+    } else {
+        match baseline {
+            Some(release) => (
+                ReleaseRuleResult::Passed,
+                format!("Published baseline {}", release.tag),
+            ),
+            None if rule.allow_first_release => (
+                ReleaseRuleResult::Passed,
+                "No published baseline · first-release path enabled".to_string(),
+            ),
+            None => (
+                ReleaseRuleResult::Failed,
+                "No published baseline · first-release path not enabled".to_string(),
+            ),
+        }
     };
     results.push(baseline_result);
     trace.push(ReleaseRuleTrace {
@@ -3286,6 +3541,52 @@ fn evaluate_release_rule(
     )
 }
 
+fn evaluate_release_rule_with_quality(
+    repository: &RepositorySnapshot,
+    rule: &ReleaseRuleConfig,
+    baseline: Option<&ReleaseSnapshot>,
+    commits: &[ReleaseCommitSummary],
+) -> (ReleaseRuleResult, Vec<ReleaseRuleTrace>) {
+    let (base_result, mut trace) = evaluate_release_rule(rule, baseline, commits);
+    let mut quality_result = ReleaseRuleResult::Passed;
+    for requirement in &rule.required_quality_gates {
+        let (status, freshness, detail) = quality::evaluate_requirement(repository, requirement);
+        let result = match status {
+            QualityGateStatus::Failed => ReleaseRuleResult::Failed,
+            QualityGateStatus::Passed if freshness == QualityFreshness::Fresh => {
+                ReleaseRuleResult::Passed
+            }
+            QualityGateStatus::Passed => ReleaseRuleResult::Blocked,
+            QualityGateStatus::Blocked | QualityGateStatus::NotConfigured => {
+                ReleaseRuleResult::Blocked
+            }
+        };
+        if result == ReleaseRuleResult::Failed {
+            quality_result = ReleaseRuleResult::Failed;
+        } else if result == ReleaseRuleResult::Blocked
+            && quality_result == ReleaseRuleResult::Passed
+        {
+            quality_result = ReleaseRuleResult::Blocked;
+        }
+        trace.push(ReleaseRuleTrace {
+            label: format!(
+                "Quality gate · {} · {}",
+                quality::gate_label(&requirement.gate_id),
+                requirement.source.as_str()
+            ),
+            status: format!("{} · {}", status.as_str(), freshness.as_str()),
+            value: detail,
+            source: format!("Imported {} evidence", requirement.source.as_str()),
+        });
+    }
+    let result = if quality_result == ReleaseRuleResult::Passed {
+        base_result
+    } else {
+        quality_result
+    };
+    (result, trace)
+}
+
 fn release_threshold_condition(
     repository: &RepositorySnapshot,
     provider_ready: bool,
@@ -3293,20 +3594,27 @@ fn release_threshold_condition(
     observed_at: &str,
 ) -> Option<Condition> {
     let rule = repository.release_rule.as_ref()?;
-    if !provider_context_available(repository, provider_ready) {
+    if !provider_context_available(repository, provider_ready)
+        && rule.required_quality_gates.is_empty()
+    {
         return None;
     }
     let baseline = latest_published_release(repository);
     let base = baseline
         .as_ref()
         .and_then(|release| release.target_commit.as_deref())
-        .or(repository.workspace.target_branch.as_deref())?;
-    let commits = release_commits(
-        Path::new(&repository.workspace.path),
-        base,
-        &repository.workspace.branch,
-    );
-    let (result, trace) = evaluate_release_rule(rule, baseline.as_ref(), &commits);
+        .or(repository.workspace.target_branch.as_deref());
+    let commits = base
+        .map(|base| {
+            release_commits(
+                Path::new(&repository.workspace.path),
+                base,
+                &repository.workspace.branch,
+            )
+        })
+        .unwrap_or_default();
+    let (result, trace) =
+        evaluate_release_rule_with_quality(repository, rule, baseline.as_ref(), &commits);
     if result != ReleaseRuleResult::Passed {
         return None;
     }
@@ -3332,9 +3640,16 @@ fn release_threshold_condition(
             &[
                 rule.name.clone(),
                 rule.operator.clone(),
-                base.to_string(),
+                base.unwrap_or_default().to_string(),
                 repository.workspace.branch.clone(),
                 commits.len().to_string(),
+                rule.required_quality_gates
+                    .iter()
+                    .map(|requirement| {
+                        format!("{}:{}", requirement.gate_id, requirement.source.as_str())
+                    })
+                    .collect::<Vec<_>>()
+                    .join(","),
             ],
         ),
         "A user-configured deterministic release rule evaluated true using the published baseline, committed range, and configured clauses.",
@@ -3540,19 +3855,31 @@ fn prepare_release(
         .map(|(category, commits)| ReleaseNoteSection { category, commits })
         .collect::<Vec<_>>();
     let configured_rule = repository.release_rule.as_ref();
-    let (rule_result, rule_trace) = if connected {
+    let (rule_result, rule_trace) = if connected
+        || configured_rule.is_some_and(|rule| !rule.required_quality_gates.is_empty())
+    {
         configured_rule
-            .map(|rule| evaluate_release_rule(rule, baseline.as_ref(), &commits_since_baseline))
+            .map(|rule| {
+                evaluate_release_rule_with_quality(
+                    repository,
+                    rule,
+                    baseline.as_ref(),
+                    &commits_since_baseline,
+                )
+            })
             .map_or((None, Vec::new()), |(result, trace)| (Some(result), trace))
     } else {
         (None, Vec::new())
     };
-    let rule_status = if !connected {
+    let rule_status = if !connected
+        && !configured_rule.is_some_and(|rule| !rule.required_quality_gates.is_empty())
+    {
         "Unknown — provider release data unavailable".to_string()
     } else if let Some(result) = rule_result {
         match result {
             ReleaseRuleResult::Passed => "Configured release threshold met".to_string(),
             ReleaseRuleResult::Failed => "Configured release threshold not met".to_string(),
+            ReleaseRuleResult::Blocked => "Release rule blocked by quality evidence".to_string(),
             ReleaseRuleResult::Unknown => "Release threshold evidence incomplete".to_string(),
         }
     } else {
@@ -3567,7 +3894,7 @@ fn prepare_release(
             "Published GitHub release data is unavailable; no release threshold is evaluated"
                 .to_string(),
         );
-    } else if baseline.is_none() {
+    } else if baseline.is_none() && configured_rule.is_some_and(release_rule_needs_baseline) {
         if configured_rule.is_none() {
             reasons.push("First-release rule is not confirmed".to_string());
         } else if configured_rule.is_some_and(|rule| !rule.allow_first_release) {
@@ -3579,8 +3906,13 @@ fn prepare_release(
             "Workspace has uncommitted changes; release preparation cannot start".to_string(),
         );
     }
-    if rule_result == Some(ReleaseRuleResult::Failed) && baseline.is_some() {
+    if rule_result == Some(ReleaseRuleResult::Failed) {
         reasons.push("Configured release threshold did not pass".to_string());
+    }
+    if rule_result == Some(ReleaseRuleResult::Blocked) {
+        reasons.push(
+            "Required quality evidence is blocked, stale, missing, or conflicting".to_string(),
+        );
     }
     if rule_result == Some(ReleaseRuleResult::Unknown) {
         reasons.push("Release threshold evidence is incomplete".to_string());
@@ -3661,12 +3993,15 @@ fn prepare_release(
         "Deterministic candidate and local user confirmation",
         &observed_at,
     ));
-    let missing_baseline = baseline.is_none();
+    let missing_baseline =
+        baseline.is_none() && configured_rule.is_some_and(release_rule_needs_baseline);
     let blocked = target_branch.is_none()
         || !connected
         || workspace.dirty
         || (missing_baseline && configured_rule.is_none())
         || (missing_baseline && configured_rule.is_some_and(|rule| !rule.allow_first_release))
+        || rule_result == Some(ReleaseRuleResult::Failed)
+        || rule_result == Some(ReleaseRuleResult::Blocked)
         || rule_result == Some(ReleaseRuleResult::Unknown);
     ReleasePreparation {
         repository_id: repository.id.clone(),
@@ -4461,6 +4796,9 @@ fn scan_repository(
         releases: existing
             .map(|repository| repository.releases.clone())
             .unwrap_or_default(),
+        quality: existing
+            .map(|repository| repository.quality.clone())
+            .unwrap_or_default(),
         release_rule: existing.and_then(|repository| repository.release_rule.clone()),
         release_recipe: existing.and_then(|repository| repository.release_recipe.clone()),
         confirmed_release_version: existing
@@ -4871,6 +5209,7 @@ fn scan_and_persist_scoped(
     }
     repositories.sort_by(|left, right| left.name.to_lowercase().cmp(&right.name.to_lowercase()));
     state.repositories = repositories;
+    apply_quality_evidence(state);
     apply_release_threshold_conditions(state);
     prune_events(state);
     save_store(path, state)?;
@@ -5199,6 +5538,29 @@ fn register_root_and_scan(path: &Path, root_path: &str) -> Result<PortfolioSnaps
     audited_scan_and_persist(path, &mut state)
 }
 
+fn set_maturity_audit_root_at(
+    path: &Path,
+    audit_root: Option<&str>,
+) -> Result<PortfolioSnapshot, String> {
+    let normalized_root = match audit_root.map(str::trim).filter(|value| !value.is_empty()) {
+        Some(value) => {
+            let root = fs::canonicalize(value)
+                .map_err(|error| format!("Could not access the maturity audit root: {error}"))?;
+            if !root.is_dir() {
+                return Err("The maturity audit root is not a folder".to_string());
+            }
+            Some(root.to_string_lossy().to_string())
+        }
+        None => None,
+    };
+    let mut state = load_store(path)?;
+    state.quality.audit_root = normalized_root;
+    apply_quality_evidence(&mut state);
+    apply_release_threshold_conditions(&mut state);
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
 fn open_external_tool(path: &Path, tool: &str) -> Result<(), String> {
     let tool = tool.trim().to_ascii_lowercase();
     let arguments = match tool.as_str() {
@@ -5242,6 +5604,23 @@ fn open_external_tool(path: &Path, tool: &str) -> Result<(), String> {
         let _ = (path, arguments);
         Err("External handoff is currently implemented for macOS only".to_string())
     }
+}
+
+fn open_quality_report_at(path: &Path, report_path: &str) -> Result<PortfolioSnapshot, String> {
+    let state = load_store(path)?;
+    let mut allowed_roots = Vec::new();
+    if let Some(audit_root) = state.quality.audit_root.as_deref() {
+        allowed_roots.push(PathBuf::from(audit_root));
+    }
+    allowed_roots.extend(
+        state
+            .repositories
+            .iter()
+            .map(|repository| Path::new(&repository.path).join(".quality-runner")),
+    );
+    let report = quality::safe_report_path(Path::new(report_path), &allowed_roots)?;
+    open_external_tool(&report, "file_browser")?;
+    Ok(snapshot_from_store(path, &state))
 }
 
 fn open_workspace_at(
@@ -5292,6 +5671,16 @@ pub fn refresh() -> Result<PortfolioSnapshot, String> {
 #[tauri::command]
 pub fn refresh_github() -> Result<PortfolioSnapshot, String> {
     refresh_github_at(&store_path())
+}
+
+#[tauri::command]
+pub fn set_maturity_audit_root(audit_root: Option<String>) -> Result<PortfolioSnapshot, String> {
+    set_maturity_audit_root_at(&store_path(), audit_root.as_deref())
+}
+
+#[tauri::command]
+pub fn open_quality_report(report_path: String) -> Result<PortfolioSnapshot, String> {
+    open_quality_report_at(&store_path(), &report_path)
 }
 
 #[tauri::command]
@@ -5800,6 +6189,7 @@ pub fn run_cli(arguments: Vec<String>) {
                     provider_identities: Vec::new(),
                     remote_repositories: Vec::new(),
                     provider_status: ProviderStatus::default(),
+                    quality: QualityPortfolioSnapshot::default(),
                     retention_days: DEFAULT_RETENTION_DAYS,
                     generated_at: iso_now(),
                     storage_path: path.to_string_lossy().to_string(),
@@ -6004,6 +6394,56 @@ mod tests {
     }
 
     #[test]
+    fn stale_quality_evidence_blocks_release_rule_evaluation() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let mut repository = scan_repository(&repository_path, None, &[]);
+        repository.quality = QualitySnapshot {
+            gates: vec![quality::QualityGate {
+                id: "lint".to_string(),
+                label: "Lint".to_string(),
+                status: QualityGateStatus::Passed,
+                freshness: QualityFreshness::Stale,
+                evidence: vec![quality::QualityEvidence {
+                    id: "lint".to_string(),
+                    source: quality::QualitySource::Ci,
+                    status: QualityGateStatus::Passed,
+                    freshness: QualityFreshness::Stale,
+                    observed_at: Some("2026-07-10T12:00:00Z".to_string()),
+                    scanned_commit: Some("old-commit".to_string()),
+                    scanned_branch: Some("main".to_string()),
+                    command: None,
+                    source_label: "GitHub check · lint".to_string(),
+                    report_path: None,
+                    report_url: None,
+                    report_kind: Some("GitHub check run".to_string()),
+                    detail: "success".to_string(),
+                }],
+            }],
+            ..QualitySnapshot::default()
+        };
+        let rule = ReleaseRuleConfig {
+            name: "Fresh lint required".to_string(),
+            operator: "AND".to_string(),
+            min_commits: None,
+            min_elapsed_days: None,
+            required_commit_types: Vec::new(),
+            allow_first_release: false,
+            required_quality_gates: vec![QualityGateRequirement {
+                gate_id: "lint".to_string(),
+                source: quality::QualitySource::Ci,
+            }],
+        };
+
+        let (result, trace) = evaluate_release_rule_with_quality(&repository, &rule, None, &[]);
+        assert_eq!(result, ReleaseRuleResult::Blocked);
+        assert!(trace.iter().any(|item| {
+            item.label == "Quality gate · Lint · CI" && item.status == "Passed · Stale"
+        }));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
     fn external_handoff_requires_exact_workspace_and_supported_tool() {
         let root = fixture_root();
         let _repository = fixture_repository(&root);
@@ -6139,6 +6579,7 @@ mod tests {
                 mergeability: "Unknown — provider snapshot unavailable".to_string(),
                 checks: Vec::new(),
                 last_refreshed_at: "2026-07-26T12:00:00Z".to_string(),
+                head_commit: None,
             }];
             (
                 stored_repository.id.clone(),
@@ -6205,6 +6646,7 @@ mod tests {
                 min_elapsed_days: None,
                 required_commit_types: vec!["FEAT".to_string()],
                 allow_first_release: false,
+                required_quality_gates: Vec::new(),
             }),
         )
         .expect("release rule should persist");
@@ -6516,6 +6958,9 @@ mod tests {
                 last_refreshed_at: "2026-07-25T12:00:00Z".to_string(),
                 pull_requests: Vec::new(),
                 releases: Vec::new(),
+                ci_checks: Vec::new(),
+                ci_branch: None,
+                ci_commit: None,
             }],
             pull_requests: Vec::new(),
             releases: Vec::new(),
@@ -6803,6 +7248,14 @@ mod tests {
             )
             .expect("migrated schema version should be readable");
         assert_eq!(schema_version, SQLITE_SCHEMA_VERSION.to_string());
+        let store_version: String = connection
+            .query_row(
+                "SELECT value FROM metadata WHERE key = 'store_version'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("migrated store version should be readable");
+        assert_eq!(store_version, STORE_VERSION.to_string());
         let action_table: String = connection
             .query_row(
                 "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'action_audits'",
@@ -6844,6 +7297,7 @@ mod tests {
 
         let migrated = load_store(&database).expect("legacy state should migrate");
         assert_eq!(migrated.roots.len(), 1);
+        assert_eq!(migrated.version, STORE_VERSION);
         assert_eq!(migrated.roots[0].ignore_patterns, vec!["target"]);
         assert!(database.exists());
         assert!(legacy.exists());

@@ -25,9 +25,17 @@ import {
   StatusPill,
 } from "./components/ConsolePrimitives";
 import { PortfolioConfigSurface } from "./components/PortfolioConfigSurface";
+import { QualityGatesSurface } from "./components/QualityGatesSurface";
 import { RemoteCatalogSurface } from "./components/RemoteCatalogSurface";
 import { useEvidenceActions } from "./hooks/useEvidenceActions";
+import { useAppKeyboardShortcuts } from "./hooks/useAppKeyboardShortcuts";
 import { usePreparationActions } from "./hooks/usePreparationActions";
+import {
+  countActiveConditions,
+  countDirtyRepositories,
+  countUnsyncedRepositories,
+  currentDateLabel,
+} from "./portfolioSelectors";
 import {
   ActivitySurface,
   DeferredSurface,
@@ -44,27 +52,9 @@ import type {
 import "./styles.css";
 
 export function App(): ReactElement {
-  const [snapshot, setSnapshot] = useState<PortfolioSnapshot>({
-    roots: [],
-    repositories: [],
-    events: [],
-    action_audits: [],
-    products: [],
-    groups: [],
-    provider_identities: [],
-    remote_repositories: [],
-    provider_status: {
-      provider: "GitHub",
-      state: "Not connected",
-      message:
-        "Connect GitHub through the existing credential manager to load remote context.",
-      identity_count: 0,
-      repository_count: 0,
-    },
-    retention_days: 90,
-    generated_at: "",
-    storage_path: "",
-  });
+  const [snapshot, setSnapshot] = useState<PortfolioSnapshot>(
+    api.emptySnapshot,
+  );
   const [activeNav, setActiveNav] = useState<NavItem>("command");
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -105,21 +95,11 @@ export function App(): ReactElement {
     void loadSnapshot(api.getSnapshot);
   }, [loadSnapshot]);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        searchInputRef.current?.focus();
-      }
-      if (event.key === "Escape") {
-        if (selectedEvidence) setSelectedEvidence(null);
-        else if (selectedPreparation) setSelectedPreparation(null);
-        else if (selectedRepository) setSelectedRepository(null);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedEvidence, selectedPreparation, selectedRepository]);
+  useAppKeyboardShortcuts(searchInputRef, () => {
+    if (selectedEvidence) setSelectedEvidence(null);
+    else if (selectedPreparation) setSelectedPreparation(null);
+    else if (selectedRepository) setSelectedRepository(null);
+  });
 
   const handleAddRoot = useCallback(async (): Promise<void> => {
     try {
@@ -202,6 +182,33 @@ export function App(): ReactElement {
   const handleRefreshGithub = useCallback(async (): Promise<void> => {
     await loadSnapshot(api.refreshGithub);
   }, [loadSnapshot]);
+
+  const handleSaveAuditRoot = useCallback(
+    async (auditRoot: string | null): Promise<void> => {
+      await loadSnapshot(() => api.setMaturityAuditRoot(auditRoot));
+    },
+    [loadSnapshot],
+  );
+
+  const handlePickAuditRoot = useCallback(async (): Promise<void> => {
+    try {
+      const auditRoot = await api.pickMaturityAuditRoot();
+      if (auditRoot) await handleSaveAuditRoot(auditRoot);
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Pronto could not configure that maturity audit root.",
+      );
+    }
+  }, [handleSaveAuditRoot]);
+
+  const handleOpenQualityReport = useCallback(
+    async (reportPath: string): Promise<void> => {
+      await loadSnapshot(() => api.openQualityReport(reportPath));
+    },
+    [loadSnapshot],
+  );
 
   const handleOpenWorkspace = useCallback(
     async (workspaceId: string, tool: ExternalTool): Promise<void> => {
@@ -288,27 +295,12 @@ export function App(): ReactElement {
       });
   }, [filter, query, snapshot.repositories]);
 
-  const activeConditionCount = snapshot.repositories.reduce(
-    (total, repository) =>
-      total +
-      repository.conditions.filter((condition) => condition.status === "Active")
-        .length,
-    0,
-  );
-  const dirtyCount = snapshot.repositories.filter(
-    (repository) => repository.workspace.dirty,
-  ).length;
-  const unsyncedCount = snapshot.repositories.filter(
-    (repository) => repository.workspace.sync_state !== "Synced",
-  ).length;
+  const activeConditionCount = countActiveConditions(snapshot.repositories);
+  const dirtyCount = countDirtyRepositories(snapshot.repositories);
+  const unsyncedCount = countUnsyncedRepositories(snapshot.repositories);
   const activePage = pageCopy[activeNav];
   const activeNavLabel = navItems.find((item) => item.id === activeNav)?.label;
-  const dateLabel = new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date());
+  const dateLabel = currentDateLabel();
   const isCommandCenter = activeNav === "command";
 
   return (
@@ -425,6 +417,18 @@ export function App(): ReactElement {
               onAddRoot={handleAddRoot}
               onOpenRepository={setSelectedRepository}
               onCondition={handleCondition}
+              onOpenQualityReport={(reportPath) =>
+                void handleOpenQualityReport(reportPath)
+              }
+            />
+          ) : activeNav === "quality" ? (
+            <QualityGatesSurface
+              snapshot={snapshot}
+              repositories={snapshot.repositories}
+              onOpenRepository={setSelectedRepository}
+              onOpenReport={(reportPath) =>
+                void handleOpenQualityReport(reportPath)
+              }
             />
           ) : activeNav === "activity" ? (
             <ActivitySurface
@@ -440,6 +444,9 @@ export function App(): ReactElement {
               onAddRoot={handleAddRoot}
               onSaveRoot={handleSaveRoot}
               onSaveRetention={handleSaveRetention}
+              quality={snapshot.quality}
+              onPickAuditRoot={handlePickAuditRoot}
+              onClearAuditRoot={() => handleSaveAuditRoot(null)}
             />
           ) : activeNav === "products" ? (
             <PortfolioConfigSurface
@@ -494,6 +501,7 @@ export function App(): ReactElement {
         onConfirmReleaseVersion={handleConfirmReleaseVersion}
         onSaveAiPermission={handleSaveAiPermission}
         onPreviewAiSummary={handlePreviewAiSummary}
+        onOpenReport={(reportPath) => void handleOpenQualityReport(reportPath)}
         onLifecycleChange={async (lifecycle) => {
           if (!selectedRepository) return;
           await loadSnapshot(() =>

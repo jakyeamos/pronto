@@ -10,7 +10,7 @@ import type {
   ReleaseRuleConfig,
 } from "./types";
 
-const emptySnapshot: PortfolioSnapshot = {
+export const emptySnapshot: PortfolioSnapshot = {
   roots: [],
   repositories: [],
   products: [],
@@ -26,6 +26,10 @@ const emptySnapshot: PortfolioSnapshot = {
       "Connect GitHub through the existing credential manager to load remote context.",
     identity_count: 0,
     repository_count: 0,
+  },
+  quality: {
+    audit_status: "Not configured",
+    matched_repository_count: 0,
   },
   retention_days: 90,
   generated_at: new Date().toISOString(),
@@ -179,6 +183,42 @@ export async function pickRoot(): Promise<string | null> {
     title: "Choose a repository discovery root",
   });
   return typeof selected === "string" ? selected : null;
+}
+
+export async function pickMaturityAuditRoot(): Promise<string | null> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Folder selection is available in the Pronto desktop app.");
+  }
+  const selected = await open({
+    directory: true,
+    multiple: false,
+    title: "Choose a maturity audit root",
+  });
+  return typeof selected === "string" ? selected : null;
+}
+
+export async function setMaturityAuditRoot(
+  auditRoot: string | null,
+): Promise<PortfolioSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error(
+      "Maturity audit settings are available in the Pronto desktop app.",
+    );
+  }
+  return invoke<PortfolioSnapshot>("set_maturity_audit_root", {
+    audit_root: auditRoot,
+  });
+}
+
+export async function openQualityReport(
+  reportPath: string,
+): Promise<PortfolioSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Quality reports are available in the Pronto desktop app.");
+  }
+  return invoke<PortfolioSnapshot>("open_quality_report", {
+    report_path: reportPath,
+  });
 }
 
 export async function registerRoot(path: string): Promise<PortfolioSnapshot> {

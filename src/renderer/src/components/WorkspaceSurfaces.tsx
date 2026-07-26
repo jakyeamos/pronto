@@ -2,13 +2,19 @@ import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import {
   Activity,
+  ClipboardCheck,
   Database,
   FolderPlus,
   LockKeyhole,
   Save,
   ShieldCheck,
 } from "lucide-react";
-import type { ActionAudit, EventRecord, RootConfig } from "../types";
+import type {
+  ActionAudit,
+  EventRecord,
+  QualityPortfolioSnapshot,
+  RootConfig,
+} from "../types";
 import { formatTime } from "./ConsolePrimitives";
 
 export function DeferredSurface({
@@ -200,6 +206,101 @@ function RootSettingsCard({
   );
 }
 
+function MaturityAuditCard({
+  quality,
+  onPick,
+  onClear,
+}: {
+  quality: QualityPortfolioSnapshot;
+  onPick: () => Promise<void>;
+  onClear: () => Promise<void>;
+}): ReactElement {
+  const [isBusy, setIsBusy] = useState(false);
+
+  const run = async (action: () => Promise<void>): Promise<void> => {
+    setIsBusy(true);
+    try {
+      await action();
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  return (
+    <section className="surface-panel quality-audit-settings">
+      <div className="surface-heading">
+        <div>
+          <p className="eyebrow">Optional external evidence</p>
+          <h2>Maturity audit</h2>
+          <p>
+            Import the latest valid workspace audit without executing an audit
+            or recalculating its scores.
+          </p>
+        </div>
+        <ClipboardCheck size={18} className="muted-icon" />
+      </div>
+      <div className="quality-audit-settings-grid">
+        <div className="quality-audit-root">
+          <span>Configured audit root</span>
+          <strong>{quality.audit_root ?? "Not configured"}</strong>
+          <small>
+            Only summary metadata and matched finding artifacts are imported.
+          </small>
+        </div>
+        <div className="quality-audit-actions">
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={() => void run(onPick)}
+            disabled={isBusy}
+          >
+            <FolderPlus size={14} />
+            Choose audit root
+          </button>
+          {quality.audit_root && (
+            <button
+              className="button button-quiet"
+              type="button"
+              onClick={() => void run(onClear)}
+              disabled={isBusy}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="quality-audit-metadata">
+        <div>
+          <span>Status</span>
+          <strong>{quality.audit_status}</strong>
+        </div>
+        <div>
+          <span>Latest audit</span>
+          <strong>{quality.latest_audit_id ?? "Not imported"}</strong>
+          <small>{formatTime(quality.latest_audit_at)}</small>
+        </div>
+        <div>
+          <span>Repositories matched</span>
+          <strong>{quality.matched_repository_count}</strong>
+        </div>
+        <div>
+          <span>Fleet mean</span>
+          <strong>
+            {quality.maturity_score_display
+              ? `${quality.maturity_score_display} / 4`
+              : "Not scored"}
+          </strong>
+          <small>
+            {quality.scored_dimension_count
+              ? `${quality.scored_dimension_count} dimensions`
+              : "Exact audit value"}
+          </small>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function SettingsSurface({
   roots,
   storagePath,
@@ -208,6 +309,9 @@ export function SettingsSurface({
   retentionDays,
   onSaveRoot,
   onSaveRetention,
+  quality,
+  onPickAuditRoot,
+  onClearAuditRoot,
 }: {
   roots: RootConfig[];
   storagePath: string;
@@ -221,6 +325,9 @@ export function SettingsSurface({
     backgroundMonitoring: boolean,
   ) => Promise<void>;
   onSaveRetention: (retentionDays: number) => Promise<void>;
+  quality: QualityPortfolioSnapshot;
+  onPickAuditRoot: () => Promise<void>;
+  onClearAuditRoot: () => Promise<void>;
 }): ReactElement {
   const [retentionInput, setRetentionInput] = useState(String(retentionDays));
   const [isSavingRetention, setIsSavingRetention] = useState(false);
@@ -271,6 +378,11 @@ export function SettingsSurface({
           </div>
         )}
       </section>
+      <MaturityAuditCard
+        quality={quality}
+        onPick={onPickAuditRoot}
+        onClear={onClearAuditRoot}
+      />
       <div className="surface-settings-grid">
         <section className="surface-panel surface-info-card">
           <Database size={17} />

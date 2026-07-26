@@ -33,6 +33,7 @@ export function AppOverlays({
   onConfirmReleaseVersion,
   onSaveAiPermission,
   onPreviewAiSummary,
+  onOpenReport,
   onLifecycleChange,
   onCondition,
   onCloseEvidence,
@@ -50,6 +51,7 @@ export function AppOverlays({
   onConfirmReleaseVersion: (version: string | null) => Promise<void>;
   onSaveAiPermission: (permission: string) => Promise<void>;
   onPreviewAiSummary: () => Promise<AiPayloadPreview>;
+  onOpenReport?: (reportPath: string) => void;
   onLifecycleChange: (lifecycle: string) => Promise<void>;
   onCondition: (repository: RepositorySnapshot, condition: Condition) => void;
   onCloseEvidence: () => void;
@@ -65,6 +67,7 @@ export function AppOverlays({
           onOpenWorkspace={onOpenWorkspace}
           onPrepareRepository={onPrepareRepository}
           onLifecycleChange={onLifecycleChange}
+          onOpenReport={onOpenReport}
           onCondition={(condition) => {
             if (!selectedRepository) return;
             onCondition(selectedRepository, condition);

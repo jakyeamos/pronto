@@ -18,6 +18,11 @@ import {
   IconButton,
   StatusPill,
 } from "./ConsolePrimitives";
+import {
+  QualityFindingsSummary,
+  QualityGateCell,
+  QualityMaturitySummary,
+} from "./QualityComponents";
 
 export function DetailDrawer({
   repository,
@@ -26,6 +31,7 @@ export function DetailDrawer({
   onPrepareRepository,
   onLifecycleChange,
   onCondition,
+  onOpenReport,
 }: {
   repository: RepositorySnapshot;
   onClose: () => void;
@@ -33,6 +39,7 @@ export function DetailDrawer({
   onPrepareRepository: (workspaceId?: string) => Promise<void>;
   onLifecycleChange: (lifecycle: string) => Promise<void>;
   onCondition: (condition: Condition) => void;
+  onOpenReport?: (reportPath: string) => void;
 }): ReactElement {
   return (
     <div className="drawer-layer" role="presentation">
@@ -88,6 +95,50 @@ export function DetailDrawer({
                 : "Not fetched by Pronto"}
             </strong>
           </div>
+        </div>
+        <div className="drawer-section quality-detail-section">
+          <div className="drawer-section-title">
+            <div>
+              <h3>Quality gates</h3>
+              <small>
+                {repository.quality.ingestion_status} · evidence is read-only
+                and source-specific.
+              </small>
+            </div>
+            <StatusPill
+              tone={
+                repository.quality.ingestion_status === "Available"
+                  ? "mint"
+                  : "slate"
+              }
+            >
+              {repository.quality.ingestion_status}
+            </StatusPill>
+          </div>
+          <div className="quality-detail-overview">
+            <QualityMaturitySummary
+              maturity={repository.quality.maturity}
+              onOpenReport={onOpenReport}
+            />
+            <QualityFindingsSummary
+              findings={repository.quality.findings}
+              onOpenReport={onOpenReport}
+            />
+          </div>
+          <div className="quality-detail-gates">
+            {repository.quality.gates.map((gate) => (
+              <QualityGateCell
+                gate={gate}
+                key={gate.id}
+                onOpenReport={onOpenReport}
+              />
+            ))}
+          </div>
+          {repository.quality.ingestion_message && (
+            <p className="quality-inline-empty">
+              <ShieldCheck size={14} /> {repository.quality.ingestion_message}
+            </p>
+          )}
         </div>
         <div className="drawer-section">
           <div className="drawer-section-title">

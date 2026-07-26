@@ -1,4 +1,5 @@
 pub mod core;
+pub mod quality;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,6 +20,8 @@ pub fn run() {
             core::register_root,
             core::refresh,
             core::refresh_github,
+            core::set_maturity_audit_root,
+            core::open_quality_report,
             core::open_workspace,
             core::prepare_repository,
             core::preflight_action,

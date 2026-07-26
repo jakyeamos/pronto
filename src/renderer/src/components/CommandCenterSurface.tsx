@@ -31,6 +31,7 @@ export function CommandCenterSurface({
   onAddRoot,
   onOpenRepository,
   onCondition,
+  onOpenQualityReport,
 }: {
   activeConditionCount: number;
   dirtyCount: number;
@@ -46,6 +47,7 @@ export function CommandCenterSurface({
   onAddRoot: () => void;
   onOpenRepository: (repository: RepositorySnapshot) => void;
   onCondition: (repository: RepositorySnapshot, condition: Condition) => void;
+  onOpenQualityReport?: (reportPath: string) => void;
 }): ReactElement {
   return (
     <>
@@ -155,6 +157,8 @@ export function CommandCenterSurface({
           <AttentionQueue
             repositories={allRepositories}
             onCondition={onCondition}
+            onOpenRepository={onOpenRepository}
+            onOpenReport={onOpenQualityReport}
           />
           <Timeline events={events} />
           <section className="provider-card">

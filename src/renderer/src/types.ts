@@ -24,6 +24,84 @@ export interface ReleaseRuleConfig {
   min_elapsed_days?: number;
   required_commit_types: string[];
   allow_first_release: boolean;
+  required_quality_gates: QualityGateRequirement[];
+}
+
+export type QualityGateStatus =
+  "Passed" | "Failed" | "Blocked" | "Not configured";
+export type QualitySource = "CI" | "Local" | "QR";
+export type QualityFreshness = "Fresh" | "Stale" | "Unknown" | "Conflicted";
+
+export interface QualityGateRequirement {
+  gate_id: string;
+  source: QualitySource;
+}
+
+export interface QualityEvidence {
+  id: string;
+  source: QualitySource;
+  status: QualityGateStatus;
+  freshness: QualityFreshness;
+  observed_at?: string;
+  scanned_commit?: string;
+  scanned_branch?: string;
+  command?: string;
+  source_label: string;
+  report_path?: string;
+  report_url?: string;
+  report_kind?: string;
+  detail: string;
+}
+
+export interface QualityGate {
+  id: string;
+  label: string;
+  status: QualityGateStatus;
+  freshness: QualityFreshness;
+  evidence: QualityEvidence[];
+}
+
+export interface QualityFindings {
+  total: number;
+  severity_counts: Record<string, number>;
+  high_severity_total: number;
+  source?: QualitySource;
+  observed_at?: string;
+  scanned_commit?: string;
+  scanned_branch?: string;
+  freshness: QualityFreshness;
+  report_path?: string;
+}
+
+export interface QualityMaturity {
+  score?: number;
+  score_display?: string;
+  scored_dimension_count?: number;
+  audit_id?: string;
+  observed_at?: string;
+  freshness: QualityFreshness;
+  report_path?: string;
+}
+
+export interface QualitySnapshot {
+  gates: QualityGate[];
+  findings: QualityFindings;
+  maturity: QualityMaturity;
+  last_ingested_at?: string;
+  ingestion_status: string;
+  ingestion_message?: string;
+}
+
+export interface QualityPortfolioSnapshot {
+  audit_root?: string;
+  latest_audit_id?: string;
+  latest_audit_at?: string;
+  latest_audit_path?: string;
+  matched_repository_count: number;
+  maturity_score?: number;
+  maturity_score_display?: string;
+  scored_dimension_count?: number;
+  audit_status: string;
 }
 
 export interface ReleaseRecipeConfig {
@@ -97,6 +175,9 @@ export interface RemoteRepositorySnapshot {
   last_refreshed_at: string;
   pull_requests: PullRequestSnapshot[];
   releases: ReleaseSnapshot[];
+  ci_checks: CheckSnapshot[];
+  ci_branch?: string;
+  ci_commit?: string;
 }
 
 export interface CheckSnapshot {
@@ -105,6 +186,8 @@ export interface CheckSnapshot {
   required: boolean;
   conclusion?: string;
   last_refreshed_at: string;
+  html_url?: string;
+  head_sha?: string;
 }
 
 export interface PullRequestSnapshot {
@@ -123,6 +206,7 @@ export interface PullRequestSnapshot {
   mergeability: string;
   checks: CheckSnapshot[];
   last_refreshed_at: string;
+  head_commit?: string;
 }
 
 export interface ReleaseSnapshot {
@@ -257,6 +341,7 @@ export interface RepositorySnapshot {
   submodules: SubmoduleSummary[];
   pull_requests: PullRequestSnapshot[];
   releases: ReleaseSnapshot[];
+  quality: QualitySnapshot;
   release_rule?: ReleaseRuleConfig;
   release_recipe?: ReleaseRecipeConfig;
   confirmed_release_version?: string;
@@ -394,6 +479,7 @@ export interface PortfolioSnapshot {
   provider_identities: ProviderIdentity[];
   remote_repositories: RemoteRepositorySnapshot[];
   provider_status: ProviderStatus;
+  quality: QualityPortfolioSnapshot;
   retention_days: number;
   generated_at: string;
   storage_path: string;
