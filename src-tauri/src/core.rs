@@ -5740,10 +5740,14 @@ pub fn register_root(path: String) -> Result<PortfolioSnapshot, String> {
 }
 
 #[tauri::command]
-pub fn refresh() -> Result<PortfolioSnapshot, String> {
-    let path = store_path();
-    let mut state = load_store(&path)?;
-    audited_scan_and_persist(&path, &mut state)
+pub async fn refresh() -> Result<PortfolioSnapshot, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let path = store_path();
+        let mut state = load_store(&path)?;
+        audited_scan_and_persist(&path, &mut state)
+    })
+    .await
+    .map_err(|error| format!("Local refresh task failed: {error}"))?
 }
 
 #[tauri::command]
