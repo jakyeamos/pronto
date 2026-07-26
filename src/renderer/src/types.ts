@@ -26,6 +26,37 @@ export interface ReleaseRuleConfig {
   allow_first_release: boolean;
 }
 
+export interface AiPayloadCategory {
+  category: string;
+  included: boolean;
+  item_count: number;
+  byte_count: number;
+}
+
+export interface AiSourceReference {
+  sha: string;
+  subject: string;
+  committed_at: string;
+  category: string;
+}
+
+export interface AiPayloadPreview {
+  repository_id: string;
+  workspace_id: string;
+  permission: string;
+  provider: string;
+  model?: string;
+  status: string;
+  reasons: string[];
+  categories: AiPayloadCategory[];
+  source_references: AiSourceReference[];
+  payload_text: string;
+  payload_bytes: number;
+  uncommitted_included: boolean;
+  request_performed: boolean;
+  generated_at: string;
+}
+
 export interface GroupConfig {
   id: string;
   name: string;
@@ -219,6 +250,7 @@ export interface RepositorySnapshot {
   pull_requests: PullRequestSnapshot[];
   releases: ReleaseSnapshot[];
   release_rule?: ReleaseRuleConfig;
+  ai_permission: string;
   conditions: Condition[];
   last_scan_at: string;
   last_fetch_at?: string;

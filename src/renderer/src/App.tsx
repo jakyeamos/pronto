@@ -26,6 +26,7 @@ import {
 } from "./components/ConsolePrimitives";
 import { PortfolioConfigSurface } from "./components/PortfolioConfigSurface";
 import { RemoteCatalogSurface } from "./components/RemoteCatalogSurface";
+import { usePreparationActions } from "./hooks/usePreparationActions";
 import {
   ActivitySurface,
   DeferredSurface,
@@ -38,7 +39,6 @@ import type {
   PortfolioSnapshot,
   RepositoryPreparation,
   RepositorySnapshot,
-  ReleaseRuleConfig,
 } from "./types";
 import "./styles.css";
 
@@ -241,17 +241,19 @@ export function App(): ReactElement {
     [selectedRepository],
   );
 
-  const handleSaveReleaseRule = useCallback(
-    async (releaseRule: ReleaseRuleConfig | null): Promise<void> => {
-      if (!selectedRepository) return;
-      await loadSnapshot(() =>
-        api.setReleaseRule(selectedRepository.id, releaseRule),
-      );
-      setSelectedPreparation(null);
-      setSelectedRepository(null);
-    },
-    [loadSnapshot, selectedRepository],
-  );
+  const {
+    handleSaveReleaseRule,
+    handleSaveAiPermission,
+    handlePreviewAiSummary,
+  } = usePreparationActions({
+    selectedRepository,
+    selectedPreparation,
+    loadSnapshot,
+    setSnapshot,
+    setSelectedRepository,
+    setSelectedPreparation,
+    setError,
+  });
 
   const repositories = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -494,6 +496,8 @@ export function App(): ReactElement {
         onOpenWorkspace={handleOpenWorkspace}
         onPrepareRepository={handlePrepareRepository}
         onSaveReleaseRule={handleSaveReleaseRule}
+        onSaveAiPermission={handleSaveAiPermission}
+        onPreviewAiSummary={handlePreviewAiSummary}
         onLifecycleChange={async (lifecycle) => {
           if (!selectedRepository) return;
           await loadSnapshot(() =>

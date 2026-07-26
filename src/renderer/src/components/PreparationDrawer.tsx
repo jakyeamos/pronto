@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import { Save, X } from "lucide-react";
+import { AiSummaryPreview } from "./AiSummaryPreview";
 import type {
+  AiPayloadPreview,
   ReleaseRuleConfig,
   RepositoryPreparation,
   RepositorySnapshot,
@@ -235,11 +237,15 @@ export function PreparationDrawer({
   preparation,
   onClose,
   onSaveReleaseRule,
+  onSaveAiPermission,
+  onPreviewAiSummary,
 }: {
   repository: RepositorySnapshot;
   preparation: RepositoryPreparation;
   onClose: () => void;
   onSaveReleaseRule: (rule: ReleaseRuleConfig | null) => Promise<void>;
+  onSaveAiPermission: (permission: string) => Promise<void>;
+  onPreviewAiSummary: () => Promise<AiPayloadPreview>;
 }): ReactElement {
   const pullRequest = preparation.pull_request;
   const release = preparation.release;
@@ -433,6 +439,28 @@ export function PreparationDrawer({
           <ReleaseRuleEditor
             rule={repository.release_rule}
             onSave={onSaveReleaseRule}
+          />
+        </div>
+
+        <div className="drawer-section">
+          <div className="drawer-section-title">
+            <div>
+              <h3>Optional AI summary payload</h3>
+              <small>
+                Preview committed evidence locally before any future provider
+                request. AI cannot choose readiness, version, or actions.
+              </small>
+            </div>
+            <StatusPill
+              tone={repository.ai_permission === "Disabled" ? "slate" : "amber"}
+            >
+              {repository.ai_permission}
+            </StatusPill>
+          </div>
+          <AiSummaryPreview
+            permission={repository.ai_permission}
+            onSavePermission={onSaveAiPermission}
+            onPreview={onPreviewAiSummary}
           />
         </div>
 

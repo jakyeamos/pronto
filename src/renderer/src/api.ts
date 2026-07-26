@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import type {
   ActionPreflight,
+  AiPayloadPreview,
   ExternalTool,
   PortfolioSnapshot,
   RepositoryPreparation,
@@ -95,6 +96,34 @@ export async function setReleaseRule(
   return invoke<PortfolioSnapshot>("set_release_rule", {
     repository_id: repositoryId,
     release_rule: releaseRule,
+  });
+}
+
+export async function setAiPermission(
+  repositoryId: string,
+  permission: string,
+): Promise<PortfolioSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("AI permissions are available in the Pronto desktop app.");
+  }
+  return invoke<PortfolioSnapshot>("set_ai_permission", {
+    repository_id: repositoryId,
+    permission,
+  });
+}
+
+export async function previewAiSummary(
+  repositoryId: string,
+  workspaceId?: string,
+): Promise<AiPayloadPreview> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error(
+      "AI payload previews are available in the Pronto desktop app.",
+    );
+  }
+  return invoke<AiPayloadPreview>("preview_ai_summary", {
+    repository_id: repositoryId,
+    workspace_id: workspaceId,
   });
 }
 

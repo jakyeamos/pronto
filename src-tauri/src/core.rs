@@ -13,6 +13,7 @@ const SQLITE_SCHEMA_VERSION: i64 = 4;
 const DEFAULT_RETENTION_DAYS: i64 = 90;
 const DEFAULT_MAX_UNTRACKED_BYTES: u64 = 2_000_000;
 const DEFAULT_MAX_MANIFEST_BYTES: u64 = 64 * 1024;
+const MAX_AI_DIFF_BYTES: usize = 2_000_000;
 
 static NEXT_ACTION_AUDIT_ID: AtomicU64 = AtomicU64::new(0);
 static NEXT_EVENT_ID: AtomicU64 = AtomicU64::new(0);
@@ -20,6 +21,10 @@ static NEXT_CONFIG_ID: AtomicU64 = AtomicU64::new(0);
 
 fn default_refresh_policy() -> String {
     "On open".to_string()
+}
+
+fn default_ai_permission() -> String {
+    "Disabled".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -324,6 +329,8 @@ pub struct RepositorySnapshot {
     pub releases: Vec<ReleaseSnapshot>,
     #[serde(default)]
     pub release_rule: Option<ReleaseRuleConfig>,
+    #[serde(default = "default_ai_permission")]
+    pub ai_permission: String,
     pub conditions: Vec<Condition>,
     pub last_scan_at: String,
     pub last_fetch_at: Option<String>,
@@ -420,6 +427,40 @@ pub struct ReleasePreparation {
     pub status: String,
     pub reasons: Vec<String>,
     pub evidence: Vec<EvidenceItem>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiPayloadCategory {
+    pub category: String,
+    pub included: bool,
+    pub item_count: usize,
+    pub byte_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiSourceReference {
+    pub sha: String,
+    pub subject: String,
+    pub committed_at: String,
+    pub category: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiPayloadPreview {
+    pub repository_id: String,
+    pub workspace_id: String,
+    pub permission: String,
+    pub provider: String,
+    pub model: Option<String>,
+    pub status: String,
+    pub reasons: Vec<String>,
+    pub categories: Vec<AiPayloadCategory>,
+    pub source_references: Vec<AiSourceReference>,
+    pub payload_text: String,
+    pub payload_bytes: usize,
+    pub uncommitted_included: bool,
+    pub request_performed: bool,
+    pub generated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1807,6 +1848,18 @@ fn normalize_release_mode(value: &str) -> Result<String, String> {
     }
 }
 
+fn normalize_ai_permission(value: &str) -> Result<String, String> {
+    match value.trim() {
+        "Disabled" => Ok("Disabled".to_string()),
+        "Commit metadata only" => Ok("Commit metadata only".to_string()),
+        "Committed diff allowed" => Ok("Committed diff allowed".to_string()),
+        _ => Err(
+            "AI permission must be Disabled, Commit metadata only, or Committed diff allowed"
+                .to_string(),
+        ),
+    }
+}
+
 fn normalize_release_rule(rule: ReleaseRuleConfig) -> Result<ReleaseRuleConfig, String> {
     let name = normalize_name(&rule.name, "Release rule")?;
     let operator = match rule.operator.trim().to_ascii_uppercase().as_str() {
@@ -2696,6 +2749,192 @@ fn release_commits(path: &Path, base: &str, head: &str) -> Vec<ReleaseCommitSumm
             })
         })
         .collect()
+}
+
+fn git_ref_exists(path: &Path, reference: &str) -> bool {
+    git_owned(
+        path,
+        vec![
+            "rev-parse".to_string(),
+            "--verify".to_string(),
+            reference.to_string(),
+        ],
+    )
+    .is_some()
+}
+
+fn bounded_text(value: &str, max_bytes: usize) -> String {
+    if value.len() <= max_bytes {
+        return value.to_string();
+    }
+    let mut end = max_bytes;
+    while end > 0 && !value.is_char_boundary(end) {
+        end -= 1;
+    }
+    value[..end].to_string()
+}
+
+fn committed_diff(path: &Path, base: &str, head: &str) -> Option<(String, bool)> {
+    let range = format!("{base}..{head}");
+    let result = run_git(
+        path,
+        vec![
+            "diff".to_string(),
+            "--no-ext-diff".to_string(),
+            range,
+            "--".to_string(),
+        ],
+    )
+    .ok()?;
+    if !result.success {
+        return None;
+    }
+    let truncated = result.stdout.len() > MAX_AI_DIFF_BYTES;
+    Some((bounded_text(&result.stdout, MAX_AI_DIFF_BYTES), truncated))
+}
+
+fn empty_ai_preview(repository_id: &str, workspace_id: &str, permission: &str) -> AiPayloadPreview {
+    AiPayloadPreview {
+        repository_id: repository_id.to_string(),
+        workspace_id: workspace_id.to_string(),
+        permission: permission.to_string(),
+        provider: "None — local preview only".to_string(),
+        model: None,
+        status: "Preview unavailable".to_string(),
+        reasons: Vec::new(),
+        categories: Vec::new(),
+        source_references: Vec::new(),
+        payload_text: String::new(),
+        payload_bytes: 0,
+        uncommitted_included: false,
+        request_performed: false,
+        generated_at: iso_now(),
+    }
+}
+
+fn preview_ai_summary_at(
+    path: &Path,
+    repository_id: &str,
+    workspace_id: Option<&str>,
+) -> Result<AiPayloadPreview, String> {
+    let state = load_store(path)?;
+    let repository = state
+        .repositories
+        .iter()
+        .find(|repository| repository.id == repository_id)
+        .ok_or_else(|| "Repository is not registered".to_string())?;
+    let workspace = match workspace_id.filter(|value| !value.trim().is_empty()) {
+        Some(workspace_id) => repository
+            .workspaces
+            .iter()
+            .find(|workspace| workspace.id == workspace_id)
+            .ok_or_else(|| "Workspace is not registered for this repository".to_string())?,
+        None => &repository.workspace,
+    };
+    let permission = normalize_ai_permission(&repository.ai_permission)
+        .unwrap_or_else(|_| default_ai_permission());
+    let mut preview = empty_ai_preview(&repository.id, &workspace.id, &permission);
+    if permission == "Disabled" {
+        preview.status = "AI disabled by repository policy".to_string();
+        preview
+            .reasons
+            .push("No external request was made.".to_string());
+        return Ok(preview);
+    }
+    if !Path::new(&workspace.path).is_dir() {
+        preview.status = "Workspace path unavailable".to_string();
+        preview
+            .reasons
+            .push("The registered workspace path is not accessible.".to_string());
+        return Ok(preview);
+    }
+    let base = latest_published_release(repository)
+        .and_then(|release| release.target_commit)
+        .or_else(|| workspace.target_branch.clone());
+    let Some(base) = base.filter(|value| !value.trim().is_empty()) else {
+        preview.status = "Committed evidence range unavailable".to_string();
+        preview
+            .reasons
+            .push("A published baseline or verified target branch is required.".to_string());
+        return Ok(preview);
+    };
+    let head = workspace.branch.trim();
+    if head.is_empty()
+        || !git_ref_exists(Path::new(&workspace.path), &base)
+        || !git_ref_exists(Path::new(&workspace.path), head)
+    {
+        preview.status = "Committed evidence range unavailable".to_string();
+        preview
+            .reasons
+            .push("The selected committed range could not be verified locally.".to_string());
+        return Ok(preview);
+    }
+
+    let commits = release_commits(Path::new(&workspace.path), &base, head);
+    let metadata_payload = serde_json::json!({
+        "repository_id": repository.id.clone(),
+        "workspace_id": workspace.id.clone(),
+        "commits": commits,
+    });
+    let metadata_text = serde_json::to_string_pretty(&metadata_payload)
+        .map_err(|error| format!("Could not encode AI metadata preview: {error}"))?;
+    preview.source_references = commits
+        .iter()
+        .map(|commit| AiSourceReference {
+            sha: commit.sha.clone(),
+            subject: commit.subject.clone(),
+            committed_at: commit.committed_at.clone(),
+            category: commit.category.clone(),
+        })
+        .collect();
+    preview.categories.push(AiPayloadCategory {
+        category: "Committed metadata".to_string(),
+        included: true,
+        item_count: commits.len(),
+        byte_count: metadata_text.len(),
+    });
+
+    let mut payload = metadata_payload;
+    if permission == "Committed diff allowed" {
+        let Some((diff_text, truncated)) = committed_diff(Path::new(&workspace.path), &base, head)
+        else {
+            preview.status = "Committed diff preview unavailable".to_string();
+            preview
+                .reasons
+                .push("Git could not produce the committed-only diff.".to_string());
+            return Ok(preview);
+        };
+        if truncated {
+            preview.reasons.push(format!(
+                "Committed diff preview is capped at {} bytes.",
+                MAX_AI_DIFF_BYTES
+            ));
+        }
+        payload["committed_diff"] = serde_json::Value::String(diff_text.clone());
+        preview.categories.push(AiPayloadCategory {
+            category: "Committed diff".to_string(),
+            included: true,
+            item_count: usize::from(!diff_text.is_empty()),
+            byte_count: diff_text.len(),
+        });
+    }
+    preview.payload_text = serde_json::to_string_pretty(&payload)
+        .map_err(|error| format!("Could not encode AI payload preview: {error}"))?;
+    preview.payload_bytes = preview.payload_text.len();
+    preview.status = if commits.is_empty() {
+        "No committed changes in selected range".to_string()
+    } else {
+        "Payload ready for user inspection".to_string()
+    };
+    preview
+        .reasons
+        .push("Preview only; no external AI request was made.".to_string());
+    if workspace.dirty {
+        preview
+            .reasons
+            .push("Uncommitted changes are excluded from this payload.".to_string());
+    }
+    Ok(preview)
 }
 
 fn latest_published_release(repository: &RepositorySnapshot) -> Option<ReleaseSnapshot> {
@@ -3809,6 +4048,9 @@ fn scan_repository(
             .map(|repository| repository.releases.clone())
             .unwrap_or_default(),
         release_rule: existing.and_then(|repository| repository.release_rule.clone()),
+        ai_permission: existing
+            .map(|repository| repository.ai_permission.clone())
+            .unwrap_or_else(default_ai_permission),
         conditions,
         last_scan_at: observed_at,
         last_fetch_at: existing_last_fetch,
@@ -4323,6 +4565,23 @@ fn set_release_rule_at(
     Ok(snapshot_from_store(path, &state))
 }
 
+fn set_ai_permission_at(
+    path: &Path,
+    repository_id: &str,
+    permission: &str,
+) -> Result<PortfolioSnapshot, String> {
+    let normalized_permission = normalize_ai_permission(permission)?;
+    let mut state = load_store(path)?;
+    let repository = state
+        .repositories
+        .iter_mut()
+        .find(|repository| repository.id == repository_id)
+        .ok_or_else(|| "Repository is not registered".to_string())?;
+    repository.ai_permission = normalized_permission;
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
 fn set_retention_days_at(path: &Path, retention_days: i64) -> Result<PortfolioSnapshot, String> {
     if !(1..=3_650).contains(&retention_days) {
         return Err("Retention must be between 1 and 3650 days".to_string());
@@ -4633,6 +4892,22 @@ pub fn set_release_rule(
     release_rule: Option<ReleaseRuleConfig>,
 ) -> Result<PortfolioSnapshot, String> {
     set_release_rule_at(&store_path(), &repository_id, release_rule)
+}
+
+#[tauri::command]
+pub fn set_ai_permission(
+    repository_id: String,
+    permission: String,
+) -> Result<PortfolioSnapshot, String> {
+    set_ai_permission_at(&store_path(), &repository_id, &permission)
+}
+
+#[tauri::command]
+pub fn preview_ai_summary(
+    repository_id: String,
+    workspace_id: Option<String>,
+) -> Result<AiPayloadPreview, String> {
+    preview_ai_summary_at(&store_path(), &repository_id, workspace_id.as_deref())
 }
 
 #[tauri::command]
@@ -5465,6 +5740,90 @@ mod tests {
             .iter()
             .all(|trace| trace.status == "Passed"));
         fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn previews_only_allowed_committed_ai_payload_evidence() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        git(&repository, &["switch", "-c", "feature/ai-preview"]);
+        fs::write(repository.join("committed.txt"), "committed evidence\n")
+            .expect("committed file should be writable");
+        git(&repository, &["add", "committed.txt"]);
+        git(
+            &repository,
+            &["commit", "-m", "feat: add committed evidence"],
+        );
+        fs::write(
+            repository.join("uncommitted.txt"),
+            "private uncommitted evidence\n",
+        )
+        .expect("uncommitted file should be writable");
+
+        let database = root.join("registry.db");
+        let root_config = RootConfig {
+            id: path_id("root", &root),
+            path: root.to_string_lossy().to_string(),
+            label: "fixture".to_string(),
+            ignore_patterns: Vec::new(),
+            refresh_policy: default_refresh_policy(),
+            background_monitoring: false,
+            registered_at: iso_now(),
+        };
+        let mut state = StoreState {
+            roots: vec![root_config],
+            ..StoreState::default()
+        };
+        scan_and_persist_scoped(&database, &mut state, None)
+            .expect("AI preview fixture should persist");
+        let mut persisted = load_store(&database).expect("AI preview fixture should reload");
+        let (repository_id, workspace_id) = {
+            let stored_repository = persisted
+                .repositories
+                .first_mut()
+                .expect("AI preview repository should be registered");
+            stored_repository.workspace.dirty = true;
+            (
+                stored_repository.id.clone(),
+                stored_repository.workspace.id.clone(),
+            )
+        };
+        save_store(&database, &persisted).expect("AI preview state should persist");
+
+        let disabled = preview_ai_summary_at(&database, &repository_id, Some(&workspace_id))
+            .expect("disabled AI preview should be readable");
+        assert_eq!(disabled.permission, "Disabled");
+        assert_eq!(disabled.status, "AI disabled by repository policy");
+        assert!(disabled.payload_text.is_empty());
+        assert!(!disabled.request_performed);
+        assert!(!disabled.uncommitted_included);
+
+        set_ai_permission_at(&database, &repository_id, "Commit metadata only")
+            .expect("metadata permission should persist");
+        let metadata = preview_ai_summary_at(&database, &repository_id, Some(&workspace_id))
+            .expect("metadata preview should be readable");
+        assert_eq!(metadata.status, "Payload ready for user inspection");
+        assert_eq!(metadata.source_references.len(), 1);
+        assert_eq!(metadata.categories.len(), 1);
+        assert!(metadata
+            .payload_text
+            .contains("feat: add committed evidence"));
+        assert!(!metadata.payload_text.contains("uncommitted.txt"));
+        assert!(metadata
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("Uncommitted changes are excluded")));
+
+        set_ai_permission_at(&database, &repository_id, "Committed diff allowed")
+            .expect("diff permission should persist");
+        let diff = preview_ai_summary_at(&database, &repository_id, Some(&workspace_id))
+            .expect("diff preview should be readable");
+        assert_eq!(diff.categories.len(), 2);
+        assert!(diff.payload_text.contains("committed.txt"));
+        assert!(!diff.payload_text.contains("uncommitted.txt"));
+        assert!(!diff.request_performed);
+        assert!(!diff.uncommitted_included);
+        fs::remove_dir_all(root).expect("AI preview fixture should be removable");
     }
 
     #[test]

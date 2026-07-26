@@ -27,6 +27,8 @@ pub fn run() {
             core::update_root_settings,
             core::set_repository_lifecycle,
             core::set_release_rule,
+            core::set_ai_permission,
+            core::preview_ai_summary,
             core::set_retention_days,
             core::upsert_product,
             core::delete_product,

@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { DetailDrawer, EvidenceDrawer } from "./Drawers";
 import { PreparationDrawer } from "./PreparationDrawer";
 import type {
+  AiPayloadPreview,
   Condition,
   ExternalTool,
   ReleaseRuleConfig,
@@ -27,6 +28,8 @@ export function AppOverlays({
   onOpenWorkspace,
   onPrepareRepository,
   onSaveReleaseRule,
+  onSaveAiPermission,
+  onPreviewAiSummary,
   onLifecycleChange,
   onCondition,
   onCloseEvidence,
@@ -40,6 +43,8 @@ export function AppOverlays({
   onOpenWorkspace: (workspaceId: string, tool: ExternalTool) => Promise<void>;
   onPrepareRepository: (workspaceId?: string) => Promise<void>;
   onSaveReleaseRule: (rule: ReleaseRuleConfig | null) => Promise<void>;
+  onSaveAiPermission: (permission: string) => Promise<void>;
+  onPreviewAiSummary: () => Promise<AiPayloadPreview>;
   onLifecycleChange: (lifecycle: string) => Promise<void>;
   onCondition: (condition: Condition) => void;
   onCloseEvidence: () => void;
@@ -72,6 +77,8 @@ export function AppOverlays({
           preparation={selectedPreparation.preparation}
           onClose={onClosePreparation}
           onSaveReleaseRule={onSaveReleaseRule}
+          onSaveAiPermission={onSaveAiPermission}
+          onPreviewAiSummary={onPreviewAiSummary}
         />
       )}
     </>
