@@ -2249,7 +2249,57 @@ fn audited_scan_and_persist(
     path: &Path,
     state: &mut StoreState,
 ) -> Result<PortfolioSnapshot, String> {
-    let preflight = build_action_preflight(state, "refresh", None)?;
+    audited_scan_and_persist_scoped(path, state, None, None)
+}
+
+fn build_targeted_refresh_preflight(
+    state: &StoreState,
+    target_repository_ids: &HashSet<String>,
+    target_label: &str,
+) -> Result<ActionPreflight, String> {
+    if target_repository_ids.is_empty() {
+        return Err(format!("{target_label} has no registered repositories"));
+    }
+    if let Some(unknown) = target_repository_ids.iter().find(|repository_id| {
+        !state
+            .repositories
+            .iter()
+            .any(|repository| &repository.id == *repository_id)
+    }) {
+        return Err(format!("Repository {unknown} is not registered"));
+    }
+    let created_at = iso_now();
+    let target_ids = target_repository_ids.iter().cloned().collect::<Vec<_>>();
+    let audit = ActionAudit {
+        id: action_audit_id("refresh", &created_at),
+        action: "refresh".to_string(),
+        target_ids,
+        risk: "read-only".to_string(),
+        status: "Preflighted".to_string(),
+        summary: format!("Read-only refresh preflight for {target_label}."),
+        created_at,
+        completed_at: None,
+    };
+    Ok(ActionPreflight {
+        audit,
+        allowed: true,
+        target_label: target_label.to_string(),
+    })
+}
+
+fn audited_scan_and_persist_scoped(
+    path: &Path,
+    state: &mut StoreState,
+    target_repository_ids: Option<&HashSet<String>>,
+    target_label: Option<&str>,
+) -> Result<PortfolioSnapshot, String> {
+    let preflight = match (target_repository_ids, target_label) {
+        (Some(repository_ids), Some(label)) => {
+            build_targeted_refresh_preflight(state, repository_ids, label)?
+        }
+        (None, None) => build_action_preflight(state, "refresh", None)?,
+        _ => return Err("Refresh target metadata is incomplete".to_string()),
+    };
     if !preflight.allowed {
         return Err("Local refresh action is not permitted".to_string());
     }
@@ -2257,7 +2307,7 @@ fn audited_scan_and_persist(
     append_action_audit(state, &preflight);
     save_store(path, state)?;
 
-    match scan_and_persist(path, state) {
+    match scan_and_persist_scoped(path, state, target_repository_ids) {
         Ok(_) => {
             update_action_audit(
                 state,
@@ -2288,11 +2338,21 @@ fn audited_scan_and_persist(
     }
 }
 
-fn scan_and_persist(path: &Path, state: &mut StoreState) -> Result<PortfolioSnapshot, String> {
+fn scan_and_persist_scoped(
+    path: &Path,
+    state: &mut StoreState,
+    target_repository_ids: Option<&HashSet<String>>,
+) -> Result<PortfolioSnapshot, String> {
     let mut discovered = HashMap::<String, PathBuf>::new();
     for root in &state.roots {
         for repository in discover_repositories(root) {
-            discovered.insert(path_id("repository", &repository), repository);
+            let repository_id = path_id("repository", &repository);
+            if target_repository_ids
+                .map(|targets| targets.contains(&repository_id))
+                .unwrap_or(true)
+            {
+                discovered.insert(repository_id, repository);
+            }
         }
     }
     let old_by_id = state
@@ -2312,11 +2372,23 @@ fn scan_and_persist(path: &Path, state: &mut StoreState) -> Result<PortfolioSnap
     }
     for (id, old) in old_by_id {
         if !repositories.iter().any(|repository| repository.id == id)
-            && !Path::new(&old.path).exists()
+            && target_repository_ids
+                .map(|targets| targets.contains(&id))
+                .unwrap_or(true)
         {
-            let repository = unavailable_repository(&old);
-            append_transition_event(state, Some(&old), &repository);
-            repositories.push(repository);
+            if Path::new(&old.path).exists() {
+                let repository_path = PathBuf::from(&old.path);
+                let repository =
+                    scan_repository(&repository_path, Some(&old), &state.expected_conditions);
+                append_transition_event(state, Some(&old), &repository);
+                repositories.push(repository);
+            } else {
+                let repository = unavailable_repository(&old);
+                append_transition_event(state, Some(&old), &repository);
+                repositories.push(repository);
+            }
+        } else if target_repository_ids.is_some_and(|targets| !targets.contains(&id)) {
+            repositories.push(old);
         }
     }
     repositories.sort_by(|left, right| left.name.to_lowercase().cmp(&right.name.to_lowercase()));
@@ -2666,6 +2738,216 @@ pub fn delete_group(group_id: String) -> Result<PortfolioSnapshot, String> {
     delete_group_at(&store_path(), &group_id)
 }
 
+fn cli_option(arguments: &[String], option: &str) -> Result<Option<String>, String> {
+    let mut value = None;
+    let mut index = 1;
+    while index < arguments.len() {
+        if arguments[index] == option {
+            let next = arguments
+                .get(index + 1)
+                .ok_or_else(|| format!("{option} requires a value"))?;
+            if next.starts_with("--") {
+                return Err(format!("{option} requires a value"));
+            }
+            if value.replace(next.clone()).is_some() {
+                return Err(format!("{option} may only be provided once"));
+            }
+            index += 1;
+        }
+        index += 1;
+    }
+    Ok(value)
+}
+
+fn cli_positionals(arguments: &[String], value_options: &[&str]) -> Result<Vec<String>, String> {
+    let mut positionals = Vec::new();
+    let mut expecting_value = None;
+    for argument in arguments.iter().skip(1) {
+        if expecting_value.take().is_some() {
+            if argument.starts_with("--") {
+                return Err("An option value is missing".to_string());
+            }
+            continue;
+        }
+        if argument == "--json" {
+            continue;
+        }
+        if value_options.iter().any(|option| option == argument) {
+            expecting_value = Some(argument.as_str());
+        } else if argument.starts_with("--") {
+            return Err(format!("Unknown option {argument}"));
+        } else {
+            positionals.push(argument.clone());
+        }
+    }
+    if expecting_value.is_some() {
+        return Err("An option value is missing".to_string());
+    }
+    Ok(positionals)
+}
+
+fn repository_matches_query(repository: &RepositorySnapshot, query: &str) -> bool {
+    repository.id == query
+        || repository.path == query
+        || repository.name.eq_ignore_ascii_case(query)
+        || repository.workspaces.iter().any(|workspace| {
+            workspace.path == query || workspace.id == query || workspace.path.ends_with(query)
+        })
+}
+
+fn find_cli_repository<'a>(
+    snapshot: &'a PortfolioSnapshot,
+    query: &str,
+) -> Result<&'a RepositorySnapshot, String> {
+    let matches = snapshot
+        .repositories
+        .iter()
+        .filter(|repository| repository_matches_query(repository, query))
+        .collect::<Vec<_>>();
+    match matches.as_slice() {
+        [repository] => Ok(repository),
+        [] => Err(format!("Repository '{query}' is not registered")),
+        _ => Err(format!("Repository query '{query}' is ambiguous")),
+    }
+}
+
+fn find_repository_for_directory<'a>(
+    snapshot: &'a PortfolioSnapshot,
+    directory: &Path,
+) -> Option<&'a RepositorySnapshot> {
+    let canonical_directory = canonical_path(directory).unwrap_or_else(|| directory.to_path_buf());
+    snapshot.repositories.iter().find(|repository| {
+        repository
+            .workspaces
+            .iter()
+            .any(|workspace| canonical_directory.starts_with(&workspace.path))
+            || canonical_directory.starts_with(&repository.path)
+    })
+}
+
+fn filter_snapshot_to_repository_ids(
+    mut snapshot: PortfolioSnapshot,
+    repository_ids: &HashSet<String>,
+) -> PortfolioSnapshot {
+    snapshot
+        .repositories
+        .retain(|repository| repository_ids.contains(&repository.id));
+    snapshot
+}
+
+fn filter_snapshot_by_collection(
+    mut snapshot: PortfolioSnapshot,
+    product_name: Option<&str>,
+    group_name: Option<&str>,
+) -> Result<PortfolioSnapshot, String> {
+    if product_name.is_some() && group_name.is_some() {
+        return Err("Choose either --product or --group, not both".to_string());
+    }
+    if let Some(name) = product_name {
+        let product = snapshot
+            .products
+            .iter()
+            .find(|product| product.name.eq_ignore_ascii_case(name))
+            .cloned()
+            .ok_or_else(|| format!("Product '{name}' is not configured"))?;
+        let repository_ids = product
+            .repository_ids
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        snapshot
+            .repositories
+            .retain(|repository| repository_ids.contains(&repository.id));
+        snapshot.products = vec![product];
+        snapshot.groups.clear();
+    } else if let Some(name) = group_name {
+        let group = snapshot
+            .groups
+            .iter()
+            .find(|group| group.name.eq_ignore_ascii_case(name))
+            .cloned()
+            .ok_or_else(|| format!("Group '{name}' is not configured"))?;
+        let repository_ids = group.repository_ids.iter().cloned().collect::<HashSet<_>>();
+        snapshot
+            .repositories
+            .retain(|repository| repository_ids.contains(&repository.id));
+        snapshot.groups = vec![group];
+        snapshot.products.clear();
+    }
+    Ok(snapshot)
+}
+
+fn resolve_refresh_target(
+    snapshot: &PortfolioSnapshot,
+    query: &str,
+) -> Result<(HashSet<String>, String), String> {
+    let repository_matches = snapshot
+        .repositories
+        .iter()
+        .filter(|repository| repository_matches_query(repository, query))
+        .collect::<Vec<_>>();
+    let product_matches = snapshot
+        .products
+        .iter()
+        .filter(|product| product.name.eq_ignore_ascii_case(query))
+        .collect::<Vec<_>>();
+    let group_matches = snapshot
+        .groups
+        .iter()
+        .filter(|group| group.name.eq_ignore_ascii_case(query))
+        .collect::<Vec<_>>();
+    let match_count = repository_matches.len() + product_matches.len() + group_matches.len();
+    if match_count == 0 {
+        return Err(format!(
+            "Refresh target '{query}' is not a repository, product, or group"
+        ));
+    }
+    if match_count > 1 {
+        return Err(format!("Refresh target '{query}' is ambiguous"));
+    }
+    if let Some(repository) = repository_matches.first() {
+        return Ok((
+            [repository.id.clone()].into_iter().collect(),
+            format!("Repository {}", repository.name),
+        ));
+    }
+    if let Some(product) = product_matches.first() {
+        return Ok((
+            product.repository_ids.iter().cloned().collect(),
+            format!("Product {}", product.name),
+        ));
+    }
+    let group = group_matches
+        .first()
+        .expect("target count guarantees a group");
+    Ok((
+        group.repository_ids.iter().cloned().collect(),
+        format!("Group {}", group.name),
+    ))
+}
+
+fn launch_desktop_focus(repository: Option<&RepositorySnapshot>) -> Result<(), String> {
+    if !cfg!(target_os = "macos") {
+        return Err(
+            "Desktop focus from the companion CLI is currently implemented for macOS bundles."
+                .to_string(),
+        );
+    }
+    let status = Command::new("open")
+        .args(["-a", "Pronto"])
+        .status()
+        .map_err(|error| format!("Could not launch the Pronto desktop app: {error}"))?;
+    if !status.success() {
+        return Err("The installed Pronto desktop app could not be opened".to_string());
+    }
+    if let Some(repository) = repository {
+        println!("Opened Pronto for {}.", repository.name);
+    } else {
+        println!("Opened Pronto.");
+    }
+    Ok(())
+}
+
 fn print_human_status(snapshot: &PortfolioSnapshot) {
     if snapshot.repositories.is_empty() {
         println!("Pronto · no repositories registered");
@@ -2699,29 +2981,163 @@ pub fn run_cli(arguments: Vec<String>) {
     let command = arguments.first().map(String::as_str).unwrap_or("status");
     let json = arguments.iter().any(|argument| argument == "--json");
     let path = store_path();
-    let result = match command {
-        "status" => load_store(&path).map(|state| snapshot_from_store(&path, &state)),
-        "refresh" => {
-            load_store(&path).and_then(|mut state| audited_scan_and_persist(&path, &mut state))
+    match command {
+        "status" => {
+            let product_name = cli_option(&arguments, "--product").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let group_name = cli_option(&arguments, "--group").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let positionals = cli_positionals(&arguments, &["--product", "--group"])
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                });
+            if !positionals.is_empty() {
+                eprintln!("Usage: pronto status [--product <name> | --group <name>] [--json]");
+                std::process::exit(2);
+            }
+            let result = load_store(&path)
+                .map(|state| snapshot_from_store(&path, &state))
+                .and_then(|snapshot| {
+                    filter_snapshot_by_collection(
+                        snapshot,
+                        product_name.as_deref(),
+                        group_name.as_deref(),
+                    )
+                });
+            match result {
+                Ok(snapshot) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&snapshot).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(snapshot) => print_human_status(&snapshot),
+                Err(error) => {
+                    eprintln!("Pronto could not read local state: {error}");
+                    std::process::exit(1);
+                }
+            }
         }
-        "." | "open" => {
-            println!("Pronto desktop focus is available from an installed bundle.");
-            return;
+        "refresh" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if positionals.len() > 1 {
+                eprintln!("Usage: pronto refresh [repository|group|product] [--json]");
+                std::process::exit(2);
+            }
+            let result = load_store(&path).and_then(|mut state| {
+                if let Some(target) = positionals.first() {
+                    let current = snapshot_from_store(&path, &state);
+                    let (repository_ids, label) = resolve_refresh_target(&current, target)?;
+                    let snapshot = audited_scan_and_persist_scoped(
+                        &path,
+                        &mut state,
+                        Some(&repository_ids),
+                        Some(&label),
+                    )?;
+                    Ok(filter_snapshot_to_repository_ids(snapshot, &repository_ids))
+                } else {
+                    audited_scan_and_persist(&path, &mut state)
+                }
+            });
+            match result {
+                Ok(snapshot) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&snapshot).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(snapshot) => print_human_status(&snapshot),
+                Err(error) => {
+                    eprintln!("Pronto could not refresh local state: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "clone" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let Some(remote) = positionals.first() else {
+                eprintln!("Usage: pronto clone <owner/repository> [--json]");
+                std::process::exit(2);
+            };
+            if positionals.len() > 1 {
+                eprintln!("Usage: pronto clone <owner/repository> [--json]");
+                std::process::exit(2);
+            }
+            let result = preflight_action_at(&path, "clone", None);
+            match result {
+                Ok(preflight) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&preflight)
+                        .unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(_) => println!(
+                    "Clone of {remote} is blocked by the current local-only action policy; use the desktop confirmation flow when provider access is enabled."
+                ),
+                Err(error) => {
+                    eprintln!("Pronto could not record the clone boundary: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "." => {
+            let snapshot = load_store(&path)
+                .map(|state| snapshot_from_store(&path, &state))
+                .unwrap_or_else(|_| PortfolioSnapshot {
+                    roots: Vec::new(),
+                    repositories: Vec::new(),
+                    products: Vec::new(),
+                    groups: Vec::new(),
+                    events: Vec::new(),
+                    action_audits: Vec::new(),
+                    retention_days: DEFAULT_RETENTION_DAYS,
+                    generated_at: iso_now(),
+                    storage_path: path.to_string_lossy().to_string(),
+                });
+            let repository = find_repository_for_directory(
+                &snapshot,
+                &std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+            );
+            if let Err(error) = launch_desktop_focus(repository) {
+                eprintln!("Pronto could not open the desktop app: {error}");
+                std::process::exit(1);
+            }
+        }
+        "open" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let Some(query) = positionals.first() else {
+                eprintln!("Usage: pronto open <repository>");
+                std::process::exit(2);
+            };
+            if positionals.len() > 1 {
+                eprintln!("Usage: pronto open <repository>");
+                std::process::exit(2);
+            }
+            let result = load_store(&path)
+                .map(|state| snapshot_from_store(&path, &state))
+                .and_then(|snapshot| {
+                    let repository = find_cli_repository(&snapshot, query)?;
+                    launch_desktop_focus(Some(repository))
+                });
+            if let Err(error) = result {
+                eprintln!("Pronto could not open the desktop app: {error}");
+                std::process::exit(1);
+            }
         }
         _ => {
-            eprintln!("Usage: pronto status [--json] | pronto refresh | pronto .");
-            return;
-        }
-    };
-    match result {
-        Ok(snapshot) if json => println!(
-            "{}",
-            serde_json::to_string_pretty(&snapshot).unwrap_or_else(|_| "{}".to_string())
-        ),
-        Ok(snapshot) => print_human_status(&snapshot),
-        Err(error) => {
-            eprintln!("Pronto could not read local state: {error}");
-            std::process::exit(1);
+            eprintln!(
+                "Usage: pronto . | pronto status [--product <name> | --group <name>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto clone <owner/repository> [--json]"
+            );
+            std::process::exit(2);
         }
     }
 }
@@ -2926,16 +3342,19 @@ mod tests {
             ..StoreState::default()
         };
 
-        let first = scan_and_persist(&store, &mut state).expect("first scan should persist");
+        let first =
+            scan_and_persist_scoped(&store, &mut state, None).expect("first scan should persist");
         assert_eq!(first.repositories.len(), 1);
         assert_eq!(first.events.len(), 1);
 
-        let second = scan_and_persist(&store, &mut state).expect("second scan should persist");
+        let second =
+            scan_and_persist_scoped(&store, &mut state, None).expect("second scan should persist");
         assert_eq!(second.events.len(), 1);
 
         fs::write(repository.join("tracked.txt"), "one\nupdated\n")
             .expect("tracked file should be writable");
-        let third = scan_and_persist(&store, &mut state).expect("changed scan should persist");
+        let third =
+            scan_and_persist_scoped(&store, &mut state, None).expect("changed scan should persist");
         assert_eq!(third.events.len(), 2);
         assert!(third
             .events
@@ -3128,7 +3547,7 @@ mod tests {
             roots: vec![root_config.clone()],
             ..StoreState::default()
         };
-        scan_and_persist(&database, &mut state).expect("fixture scan should persist");
+        scan_and_persist_scoped(&database, &mut state, None).expect("fixture scan should persist");
         let repository_id = state.repositories[0].id.clone();
 
         update_root_settings_at(
@@ -3173,6 +3592,30 @@ mod tests {
         assert_eq!(product_snapshot.products.len(), 1);
         assert_eq!(group_snapshot.groups.len(), 1);
         assert_eq!(persisted.retention_days, 30);
+
+        let snapshot = snapshot_from_store(&database, &persisted);
+        let product_status =
+            filter_snapshot_by_collection(snapshot.clone(), Some("PUBLIC PRODUCT"), None)
+                .expect("product status should resolve case-insensitively");
+        assert_eq!(product_status.repositories.len(), 1);
+        assert_eq!(product_status.products.len(), 1);
+        assert!(product_status.groups.is_empty());
+        let (target_ids, target_label) = resolve_refresh_target(&snapshot, "Experiments")
+            .expect("group refresh target should resolve");
+        assert_eq!(target_ids, [repository_id.clone()].into_iter().collect());
+        assert_eq!(target_label, "Group Experiments");
+        let mut refreshed_state = load_store(&database).expect("state should reload");
+        let refreshed = audited_scan_and_persist_scoped(
+            &database,
+            &mut refreshed_state,
+            Some(&target_ids),
+            Some(&target_label),
+        )
+        .expect("targeted refresh should persist");
+        assert_eq!(refreshed.repositories.len(), 1);
+        assert!(refreshed.action_audits[0]
+            .target_ids
+            .contains(&repository_id));
 
         delete_product_at(&database, &persisted.products[0].id).expect("product should delete");
         delete_group_at(&database, &persisted.groups[0].id).expect("group should delete");
