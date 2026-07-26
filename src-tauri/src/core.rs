@@ -2323,12 +2323,48 @@ fn default_ignore(name: &str) -> bool {
 }
 
 fn matches_ignore(name: &str, patterns: &[String]) -> bool {
-    default_ignore(name)
+    let normalized_name = name.to_ascii_lowercase();
+    default_ignore(&normalized_name)
         || patterns.iter().any(|pattern| {
-            let trimmed = pattern.trim_matches('/');
-            trimmed == name
-                || (trimmed.starts_with('*') && name.ends_with(trimmed.trim_start_matches('*')))
+            let trimmed = pattern.trim_matches('/').to_ascii_lowercase();
+            trimmed == normalized_name
+                || (trimmed.starts_with('*')
+                    && normalized_name.ends_with(trimmed.trim_start_matches('*')))
         })
+}
+
+fn path_is_within(root: &Path, candidate: &Path) -> bool {
+    let canonical_root = canonical_path(root).unwrap_or_else(|| root.to_path_buf());
+    let canonical_candidate = canonical_path(candidate).unwrap_or_else(|| candidate.to_path_buf());
+    canonical_candidate == canonical_root || canonical_candidate.starts_with(&canonical_root)
+}
+
+fn path_is_ignored_by_root(root: &RootConfig, candidate: &Path) -> bool {
+    let root_path = Path::new(&root.path);
+    if !path_is_within(root_path, candidate) {
+        return false;
+    }
+    let candidate_path = canonical_path(candidate).unwrap_or_else(|| candidate.to_path_buf());
+    let root_path = canonical_path(root_path).unwrap_or_else(|| root_path.to_path_buf());
+    candidate_path
+        .strip_prefix(root_path)
+        .map(|relative| {
+            relative.components().any(|component| {
+                let name = component.as_os_str().to_string_lossy();
+                matches_ignore(&name, &root.ignore_patterns)
+            })
+        })
+        .unwrap_or(false)
+}
+
+fn repository_is_ignored_by_existing_root(
+    state: &StoreState,
+    repository: &RepositorySnapshot,
+) -> bool {
+    state
+        .roots
+        .iter()
+        .any(|root| path_is_ignored_by_root(root, Path::new(&repository.path)))
 }
 
 fn discover_in_directory(
@@ -5192,6 +5228,11 @@ fn scan_and_persist_scoped(
                 .map(|targets| targets.contains(&id))
                 .unwrap_or(true)
         {
+            if target_repository_ids.is_none()
+                && repository_is_ignored_by_existing_root(state, &old)
+            {
+                continue;
+            }
             if Path::new(&old.path).exists() {
                 let repository_path = PathBuf::from(&old.path);
                 let repository =
@@ -5284,8 +5325,27 @@ fn update_root_settings_at(
     root.ignore_patterns = normalized_patterns;
     root.refresh_policy = normalized_policy;
     root.background_monitoring = background_monitoring;
-    save_store(path, &state)?;
-    Ok(snapshot_from_store(path, &state))
+    audited_scan_and_persist(path, &mut state)
+}
+
+fn exclude_root_patterns_at(
+    path: &Path,
+    root_path: &str,
+    patterns: Vec<String>,
+) -> Result<PortfolioSnapshot, String> {
+    let canonical_root = canonical_path(Path::new(root_path))
+        .ok_or_else(|| "Choose an accessible folder for repository discovery".to_string())?;
+    let root_string = canonical_root.to_string_lossy().to_string();
+    let mut state = load_store(path)?;
+    let root = state
+        .roots
+        .iter_mut()
+        .find(|root| root.path == root_string)
+        .ok_or_else(|| format!("Discovery root '{root_string}' is not registered"))?;
+    let mut combined_patterns = root.ignore_patterns.clone();
+    combined_patterns.extend(patterns);
+    root.ignore_patterns = normalize_ignore_patterns(combined_patterns)?;
+    audited_scan_and_persist(path, &mut state)
 }
 
 fn set_repository_lifecycle_at(
@@ -6192,24 +6252,50 @@ pub fn run_cli(arguments: Vec<String>) {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
             });
-            if positionals.len() != 2 || positionals[0] != "add" {
-                eprintln!("Usage: pronto root add <folder> [--json]");
+            if positionals.len() == 2 && positionals[0] == "add" {
+                let root_path = &positionals[1];
+                match register_root_and_scan(&path, root_path) {
+                    Ok(snapshot) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(snapshot) => {
+                        println!("Configured discovery root: {root_path}");
+                        print_human_status(&snapshot);
+                    }
+                    Err(error) => {
+                        eprintln!("Pronto could not configure the discovery root: {error}");
+                        std::process::exit(1);
+                    }
+                }
+            } else if positionals.len() >= 3 && positionals[0] == "exclude" {
+                let root_path = &positionals[1];
+                let patterns = positionals[2..].to_vec();
+                match exclude_root_patterns_at(&path, root_path, patterns.clone()) {
+                    Ok(snapshot) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(snapshot) => {
+                        println!(
+                            "Excluded {} from discovery under {}.",
+                            patterns.join(", "),
+                            root_path
+                        );
+                        print_human_status(&snapshot);
+                    }
+                    Err(error) => {
+                        eprintln!("Pronto could not exclude those discovery folders: {error}");
+                        std::process::exit(1);
+                    }
+                }
+            } else {
+                eprintln!(
+                    "Usage: pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json]"
+                );
                 std::process::exit(2);
-            }
-            let root_path = &positionals[1];
-            match register_root_and_scan(&path, root_path) {
-                Ok(snapshot) if json => println!(
-                    "{}",
-                    serde_json::to_string_pretty(&snapshot).unwrap_or_else(|_| "{}".to_string())
-                ),
-                Ok(snapshot) => {
-                    println!("Configured discovery root: {root_path}");
-                    print_human_status(&snapshot);
-                }
-                Err(error) => {
-                    eprintln!("Pronto could not configure the discovery root: {error}");
-                    std::process::exit(1);
-                }
             }
         }
         "clone" => {
@@ -6294,7 +6380,7 @@ pub fn run_cli(arguments: Vec<String>) {
         }
         _ => {
             eprintln!(
-                "Usage: pronto . | pronto root add <folder> [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto clone <owner/repository> [--json]"
+                "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto clone <owner/repository> [--json]"
             );
             std::process::exit(2);
         }
@@ -6379,6 +6465,49 @@ mod tests {
         );
 
         fs::remove_dir_all(root).expect("cli root fixture should be removable");
+    }
+
+    #[test]
+    fn excludes_named_folders_case_insensitively_and_prunes_existing_repositories() {
+        let root = fixture_root();
+        let included = fixture_repository(&root);
+        let excluded_parent = root.join("Not-mine");
+        fs::create_dir_all(&excluded_parent).expect("excluded folder should be creatable");
+        let excluded = fixture_repository(&excluded_parent);
+        let store = root.join("registry.db");
+
+        let first = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("initial scan should discover both repositories");
+        assert_eq!(first.repositories.len(), 2);
+        assert!(matches_ignore("Not-mine", &["not-mine".to_string()]));
+
+        let filtered = exclude_root_patterns_at(
+            &store,
+            &root.to_string_lossy(),
+            vec!["not-mine".to_string(), "test-fixtures".to_string()],
+        )
+        .expect("root exclusions should rescan the root");
+        assert_eq!(filtered.repositories.len(), 1);
+        assert_eq!(
+            filtered.repositories[0].path,
+            canonical_path(&included)
+                .expect("included repository should canonicalize")
+                .to_string_lossy()
+        );
+        assert!(!filtered.repositories.iter().any(|repository| {
+            repository.path
+                == canonical_path(&excluded)
+                    .expect("excluded repository should canonicalize")
+                    .to_string_lossy()
+        }));
+
+        let persisted = load_store(&store).expect("root exclusions should persist");
+        assert_eq!(
+            persisted.roots[0].ignore_patterns,
+            vec!["not-mine", "test-fixtures"]
+        );
+
+        fs::remove_dir_all(root).expect("exclusion fixture should be removable");
     }
 
     #[test]

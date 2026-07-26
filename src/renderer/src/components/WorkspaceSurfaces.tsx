@@ -167,7 +167,7 @@ function RootSettingsCard({
             placeholder="target, *.tmp"
           />
           <small className="field-help">
-            Comma-separated names; nested paths are rejected.
+            Comma-separated names, case-insensitive; nested paths are rejected.
           </small>
         </label>
         <label className="field-label">
