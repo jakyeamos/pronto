@@ -6147,6 +6147,46 @@ pub fn run_cli(arguments: Vec<String>) {
                 }
             }
         }
+        "refresh-github" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if !positionals.is_empty() {
+                eprintln!("Usage: pronto refresh-github [--json]");
+                std::process::exit(2);
+            }
+            match refresh_github_at(&path) {
+                Ok(snapshot) if json => {
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    );
+                    if snapshot.provider_status.state != "Ready" {
+                        std::process::exit(1);
+                    }
+                }
+                Ok(snapshot) if snapshot.provider_status.state == "Ready" => {
+                    println!(
+                        "GitHub provider: {} · {}",
+                        snapshot.provider_status.state, snapshot.provider_status.message
+                    );
+                    print_human_status(&snapshot);
+                }
+                Ok(snapshot) => {
+                    eprintln!(
+                        "Pronto GitHub refresh unavailable: {}",
+                        snapshot.provider_status.message
+                    );
+                    std::process::exit(1);
+                }
+                Err(error) => {
+                    eprintln!("Pronto could not refresh GitHub: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
         "root" => {
             let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
@@ -6254,7 +6294,7 @@ pub fn run_cli(arguments: Vec<String>) {
         }
         _ => {
             eprintln!(
-                "Usage: pronto . | pronto root add <folder> [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto clone <owner/repository> [--json]"
+                "Usage: pronto . | pronto root add <folder> [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto clone <owner/repository> [--json]"
             );
             std::process::exit(2);
         }
