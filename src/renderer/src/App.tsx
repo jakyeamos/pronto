@@ -2,18 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import {
   AlertTriangle,
-  Activity,
   ChevronRight,
   Command,
-  FolderGit2,
   FolderPlus,
   GitBranch,
-  LayoutDashboard,
   LoaderCircle,
-  PackageOpen,
   RefreshCw,
   Search,
-  Settings2,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -28,65 +23,15 @@ import {
   IconButton,
   StatusPill,
 } from "./components/ConsolePrimitives";
+import { PortfolioConfigSurface } from "./components/PortfolioConfigSurface";
 import {
   ActivitySurface,
   DeferredSurface,
   SettingsSurface,
 } from "./components/WorkspaceSurfaces";
+import { navItems, pageCopy, type NavItem } from "./navigation";
 import type { Condition, PortfolioSnapshot, RepositorySnapshot } from "./types";
 import "./styles.css";
-
-type NavItem =
-  "command" | "products" | "groups" | "remote" | "activity" | "settings";
-
-const navItems: Array<{
-  id: NavItem;
-  label: string;
-  icon: typeof LayoutDashboard;
-}> = [
-  { id: "command", label: "Command center", icon: LayoutDashboard },
-  { id: "products", label: "Products", icon: PackageOpen },
-  { id: "groups", label: "Groups", icon: FolderGit2 },
-  { id: "remote", label: "Remote catalog", icon: GitBranch },
-  { id: "activity", label: "Activity", icon: Activity },
-  { id: "settings", label: "Settings", icon: Settings2 },
-];
-
-const pageCopy: Record<
-  NavItem,
-  { eyebrow: string; title: string; body: string }
-> = {
-  command: {
-    eyebrow: "Local evidence",
-    title: "Know what needs attention.",
-    body: "A factual view of your projects, workspaces, and Git state—freshness included.",
-  },
-  products: {
-    eyebrow: "Manual configuration",
-    title: "Give the portfolio a shape.",
-    body: "Products will group repositories by the work you choose to name and maintain.",
-  },
-  groups: {
-    eyebrow: "Manual configuration",
-    title: "Keep related work together.",
-    body: "Groups will provide an intentional view across repositories without guessing your organization.",
-  },
-  remote: {
-    eyebrow: "Read-only provider boundary",
-    title: "Remote context comes second.",
-    body: "The local portfolio is ready first; a read-only GitHub catalog will add remote context after durable state is in place.",
-  },
-  activity: {
-    eyebrow: "Local action history",
-    title: "See what changed.",
-    body: "Pronto records safe local actions and meaningful state transitions, not a noisy scan log.",
-  },
-  settings: {
-    eyebrow: "Local configuration",
-    title: "Keep the boundary visible.",
-    body: "Manage discovery roots and understand where Pronto keeps its private local snapshot.",
-  },
-};
 
 export function App(): ReactElement {
   const [snapshot, setSnapshot] = useState<PortfolioSnapshot>({
@@ -94,6 +39,9 @@ export function App(): ReactElement {
     repositories: [],
     events: [],
     action_audits: [],
+    products: [],
+    groups: [],
+    retention_days: 90,
     generated_at: "",
     storage_path: "",
   });
@@ -160,6 +108,71 @@ export function App(): ReactElement {
       );
     }
   }, [loadSnapshot]);
+
+  const handleSaveRoot = useCallback(
+    async (
+      rootId: string,
+      ignorePatterns: string[],
+      refreshPolicy: string,
+      backgroundMonitoring: boolean,
+    ): Promise<void> => {
+      await loadSnapshot(() =>
+        api.updateRootSettings(
+          rootId,
+          ignorePatterns,
+          refreshPolicy,
+          backgroundMonitoring,
+        ),
+      );
+    },
+    [loadSnapshot],
+  );
+
+  const handleSaveRetention = useCallback(
+    async (retentionDays: number): Promise<void> => {
+      await loadSnapshot(() => api.setRetentionDays(retentionDays));
+    },
+    [loadSnapshot],
+  );
+
+  const handleSaveProduct = useCallback(
+    async (
+      productId: string | null,
+      name: string,
+      repositoryIds: string[],
+      releaseMode: string,
+    ): Promise<void> => {
+      await loadSnapshot(() =>
+        api.upsertProduct(productId, name, repositoryIds, releaseMode),
+      );
+    },
+    [loadSnapshot],
+  );
+
+  const handleDeleteProduct = useCallback(
+    async (productId: string): Promise<void> => {
+      await loadSnapshot(() => api.deleteProduct(productId));
+    },
+    [loadSnapshot],
+  );
+
+  const handleSaveGroup = useCallback(
+    async (
+      groupId: string | null,
+      name: string,
+      repositoryIds: string[],
+    ): Promise<void> => {
+      await loadSnapshot(() => api.upsertGroup(groupId, name, repositoryIds));
+    },
+    [loadSnapshot],
+  );
+
+  const handleDeleteGroup = useCallback(
+    async (groupId: string): Promise<void> => {
+      await loadSnapshot(() => api.deleteGroup(groupId));
+    },
+    [loadSnapshot],
+  );
 
   const repositories = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -387,29 +400,26 @@ export function App(): ReactElement {
               roots={snapshot.roots}
               storagePath={snapshot.storage_path}
               generatedAt={snapshot.generated_at}
+              retentionDays={snapshot.retention_days}
               onAddRoot={handleAddRoot}
+              onSaveRoot={handleSaveRoot}
+              onSaveRetention={handleSaveRetention}
             />
           ) : activeNav === "products" ? (
-            <DeferredSurface
-              eyebrow="Accepted product decision"
-              title="Products will be manual first."
-              body="Pronto will let you name the work that matters to you and attach repositories intentionally. Inference can follow once the durable model is stable."
-              icon={<PackageOpen size={19} />}
-              details={[
-                { label: "Authority", value: "User-defined" },
-                { label: "State", value: "Planned manual configuration" },
-              ]}
+            <PortfolioConfigSurface
+              kind="product"
+              items={snapshot.products}
+              repositories={snapshot.repositories}
+              onSave={handleSaveProduct}
+              onDelete={handleDeleteProduct}
             />
           ) : activeNav === "groups" ? (
-            <DeferredSurface
-              eyebrow="Accepted group decision"
-              title="Groups will stay explicit."
-              body="Related repositories will be grouped by configuration, not inferred silently. The first release will favor predictable structure over automation."
-              icon={<FolderGit2 size={19} />}
-              details={[
-                { label: "Authority", value: "User-defined" },
-                { label: "State", value: "Planned manual configuration" },
-              ]}
+            <PortfolioConfigSurface
+              kind="group"
+              items={snapshot.groups}
+              repositories={snapshot.repositories}
+              onSave={handleSaveGroup}
+              onDelete={handleDeleteGroup}
             />
           ) : (
             <DeferredSurface
@@ -429,6 +439,12 @@ export function App(): ReactElement {
         <DetailDrawer
           repository={selectedRepository}
           onClose={() => setSelectedRepository(null)}
+          onLifecycleChange={async (lifecycle) => {
+            await loadSnapshot(() =>
+              api.setRepositoryLifecycle(selectedRepository.id, lifecycle),
+            );
+            setSelectedRepository(null);
+          }}
           onCondition={(condition) => {
             setSelectedRepository(null);
             handleCondition(selectedRepository, condition);

@@ -3,7 +3,26 @@ export interface RootConfig {
   path: string;
   label: string;
   ignore_patterns: string[];
+  refresh_policy: "Manual" | "On open" | "Periodic" | string;
+  background_monitoring: boolean;
   registered_at: string;
+}
+
+export interface ProductConfig {
+  id: string;
+  name: string;
+  repository_ids: string[];
+  release_mode: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GroupConfig {
+  id: string;
+  name: string;
+  repository_ids: string[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface EvidenceItem {
@@ -81,10 +100,17 @@ export interface RepositorySnapshot {
   workspace: WorkspaceSummary;
   workspaces: WorkspaceSummary[];
   branches: BranchSummary[];
+  submodules: SubmoduleSummary[];
   conditions: Condition[];
   last_scan_at: string;
   last_fetch_at?: string;
   last_activity_at?: string;
+}
+
+export interface SubmoduleSummary {
+  path: string;
+  commit?: string;
+  status: string;
 }
 
 export interface EventRecord {
@@ -116,8 +142,11 @@ export interface ActionPreflight {
 export interface PortfolioSnapshot {
   roots: RootConfig[];
   repositories: RepositorySnapshot[];
+  products: ProductConfig[];
+  groups: GroupConfig[];
   events: EventRecord[];
   action_audits: ActionAudit[];
+  retention_days: number;
   generated_at: string;
   storage_path: string;
 }

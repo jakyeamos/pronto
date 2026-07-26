@@ -21,6 +21,13 @@ pub fn run() {
             core::preflight_action,
             core::mark_condition_expected,
             core::clear_condition_expected,
+            core::update_root_settings,
+            core::set_repository_lifecycle,
+            core::set_retention_days,
+            core::upsert_product,
+            core::delete_product,
+            core::upsert_group,
+            core::delete_group,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

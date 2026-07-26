@@ -22,10 +22,12 @@ import {
 export function DetailDrawer({
   repository,
   onClose,
+  onLifecycleChange,
   onCondition,
 }: {
   repository: RepositorySnapshot;
   onClose: () => void;
+  onLifecycleChange: (lifecycle: string) => Promise<void>;
   onCondition: (condition: Condition) => void;
 }): ReactElement {
   return (
@@ -58,11 +60,21 @@ export function DetailDrawer({
           </div>
           <div>
             <span>Lifecycle</span>
-            <strong>
-              {repository.lifecycle === "Unconfirmed"
-                ? `Unconfirmed · ${repository.lifecycle_candidate} candidate`
-                : repository.lifecycle}
-            </strong>
+            <select
+              className="drawer-select"
+              aria-label={`Lifecycle for ${repository.name}`}
+              value={repository.lifecycle}
+              onChange={(event) => void onLifecycleChange(event.target.value)}
+            >
+              <option>Unconfirmed</option>
+              <option>Active</option>
+              <option>Maintenance</option>
+              <option>Paused</option>
+              <option>Archived</option>
+            </select>
+            {repository.lifecycle === "Unconfirmed" && (
+              <small>{repository.lifecycle_candidate} candidate</small>
+            )}
           </div>
           <div>
             <span>Remote freshness</span>
@@ -101,6 +113,29 @@ export function DetailDrawer({
             ))}
           </div>
         </div>
+        {repository.submodules.length > 0 && (
+          <div className="drawer-section">
+            <div className="drawer-section-title">
+              <h3>Submodules</h3>
+              <span>{repository.submodules.length}</span>
+            </div>
+            <div className="branch-table">
+              {repository.submodules.map((submodule) => (
+                <div className="branch-row" key={submodule.path}>
+                  <div>
+                    <strong>{submodule.path}</strong>
+                    <span>{submodule.commit ?? "Commit unavailable"}</span>
+                  </div>
+                  <StatusPill
+                    tone={submodule.status === "Checked out" ? "mint" : "amber"}
+                  >
+                    {submodule.status}
+                  </StatusPill>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="drawer-section">
           <div className="drawer-section-title">
             <h3>Conditions</h3>

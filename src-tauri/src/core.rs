@@ -8,13 +8,18 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-const STORE_VERSION: u8 = 1;
-const SQLITE_SCHEMA_VERSION: i64 = 2;
+const STORE_VERSION: u8 = 2;
+const SQLITE_SCHEMA_VERSION: i64 = 3;
 const DEFAULT_RETENTION_DAYS: i64 = 90;
 const DEFAULT_MAX_UNTRACKED_BYTES: u64 = 2_000_000;
 
 static NEXT_ACTION_AUDIT_ID: AtomicU64 = AtomicU64::new(0);
 static NEXT_EVENT_ID: AtomicU64 = AtomicU64::new(0);
+static NEXT_CONFIG_ID: AtomicU64 = AtomicU64::new(0);
+
+fn default_refresh_policy() -> String {
+    "On open".to_string()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RootConfig {
@@ -22,7 +27,30 @@ pub struct RootConfig {
     pub path: String,
     pub label: String,
     pub ignore_patterns: Vec<String>,
+    #[serde(default = "default_refresh_policy")]
+    pub refresh_policy: String,
+    #[serde(default)]
+    pub background_monitoring: bool,
     pub registered_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProductConfig {
+    pub id: String,
+    pub name: String,
+    pub repository_ids: Vec<String>,
+    pub release_mode: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GroupConfig {
+    pub id: String,
+    pub name: String,
+    pub repository_ids: Vec<String>,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -91,6 +119,13 @@ pub struct BranchSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubmoduleSummary {
+    pub path: String,
+    pub commit: Option<String>,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RepositorySnapshot {
     pub id: String,
     pub name: String,
@@ -105,6 +140,8 @@ pub struct RepositorySnapshot {
     pub workspace: WorkspaceSummary,
     pub workspaces: Vec<WorkspaceSummary>,
     pub branches: Vec<BranchSummary>,
+    #[serde(default)]
+    pub submodules: Vec<SubmoduleSummary>,
     pub conditions: Vec<Condition>,
     pub last_scan_at: String,
     pub last_fetch_at: Option<String>,
@@ -153,6 +190,10 @@ pub struct StoreState {
     pub version: u8,
     pub roots: Vec<RootConfig>,
     pub repositories: Vec<RepositorySnapshot>,
+    #[serde(default)]
+    pub products: Vec<ProductConfig>,
+    #[serde(default)]
+    pub groups: Vec<GroupConfig>,
     pub expected_conditions: Vec<ExpectedCondition>,
     pub events: Vec<EventRecord>,
     #[serde(default)]
@@ -166,6 +207,8 @@ impl Default for StoreState {
             version: STORE_VERSION,
             roots: Vec::new(),
             repositories: Vec::new(),
+            products: Vec::new(),
+            groups: Vec::new(),
             expected_conditions: Vec::new(),
             events: Vec::new(),
             action_audits: Vec::new(),
@@ -178,8 +221,11 @@ impl Default for StoreState {
 pub struct PortfolioSnapshot {
     pub roots: Vec<RootConfig>,
     pub repositories: Vec<RepositorySnapshot>,
+    pub products: Vec<ProductConfig>,
+    pub groups: Vec<GroupConfig>,
     pub events: Vec<EventRecord>,
     pub action_audits: Vec<ActionAudit>,
+    pub retention_days: i64,
     pub generated_at: String,
     pub storage_path: String,
 }
@@ -266,6 +312,19 @@ fn metadata_value(connection: &Connection, key: &str) -> Result<Option<String>, 
         .map_err(|error| format!("Could not read Pronto database metadata: {error}"))
 }
 
+fn table_has_column(connection: &Connection, table: &str, column: &str) -> Result<bool, String> {
+    let statement = format!("PRAGMA table_info({table})");
+    let mut query = connection
+        .prepare(&statement)
+        .map_err(|error| format!("Could not inspect Pronto database table {table}: {error}"))?;
+    let columns = query
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(|error| format!("Could not read Pronto database table {table}: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode Pronto database table {table}: {error}"))?;
+    Ok(columns.iter().any(|value| value == column))
+}
+
 fn initialize_store(connection: &Connection) -> Result<(), String> {
     connection
         .execute_batch(
@@ -279,11 +338,28 @@ fn initialize_store(connection: &Connection) -> Result<(), String> {
                  path TEXT NOT NULL,
                  label TEXT NOT NULL,
                  ignore_patterns_json TEXT NOT NULL,
+                 refresh_policy TEXT NOT NULL DEFAULT 'On open',
+                 background_monitoring INTEGER NOT NULL DEFAULT 0,
                  registered_at TEXT NOT NULL
              );
              CREATE TABLE IF NOT EXISTS repositories (
                  id TEXT PRIMARY KEY,
                  payload_json TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS products (
+                 id TEXT PRIMARY KEY,
+                 name TEXT NOT NULL,
+                 repository_ids_json TEXT NOT NULL,
+                 release_mode TEXT NOT NULL,
+                 created_at TEXT NOT NULL,
+                 updated_at TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS groups_config (
+                 id TEXT PRIMARY KEY,
+                 name TEXT NOT NULL,
+                 repository_ids_json TEXT NOT NULL,
+                 created_at TEXT NOT NULL,
+                 updated_at TEXT NOT NULL
              );
              CREATE TABLE IF NOT EXISTS expected_conditions (
                  repository_id TEXT NOT NULL,
@@ -313,13 +389,30 @@ fn initialize_store(connection: &Connection) -> Result<(), String> {
         )
         .map_err(|error| format!("Could not initialize Pronto database: {error}"))?;
 
+    if !table_has_column(connection, "roots", "refresh_policy")? {
+        connection
+            .execute(
+                "ALTER TABLE roots ADD COLUMN refresh_policy TEXT NOT NULL DEFAULT 'On open'",
+                [],
+            )
+            .map_err(|error| format!("Could not migrate root refresh policy: {error}"))?;
+    }
+    if !table_has_column(connection, "roots", "background_monitoring")? {
+        connection
+            .execute(
+                "ALTER TABLE roots ADD COLUMN background_monitoring INTEGER NOT NULL DEFAULT 0",
+                [],
+            )
+            .map_err(|error| format!("Could not migrate root monitoring setting: {error}"))?;
+    }
+
     let schema_version = metadata_value(connection, "schema_version")?;
     match schema_version {
         Some(value) => {
             let version = value.parse::<i64>().map_err(|error| {
                 format!("Could not parse Pronto database schema version: {error}")
             })?;
-            if version == 1 {
+            if (1..SQLITE_SCHEMA_VERSION).contains(&version) {
                 connection
                     .execute(
                         "UPDATE metadata SET value = ?1 WHERE key = 'schema_version'",
@@ -396,7 +489,8 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
 
     let root_rows = connection
         .prepare(
-            "SELECT id, path, label, ignore_patterns_json, registered_at
+            "SELECT id, path, label, ignore_patterns_json, refresh_policy,
+                    background_monitoring, registered_at
              FROM roots ORDER BY id",
         )
         .map_err(|error| format!("Could not prepare Pronto roots query: {error}"))?
@@ -407,6 +501,8 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
                 row.get::<_, String>(2)?,
                 row.get::<_, String>(3)?,
                 row.get::<_, String>(4)?,
+                row.get::<_, i64>(5)? != 0,
+                row.get::<_, String>(6)?,
             ))
         })
         .map_err(|error| format!("Could not read Pronto roots: {error}"))?
@@ -414,15 +510,97 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
         .map_err(|error| format!("Could not decode Pronto roots: {error}"))?;
     let roots = root_rows
         .into_iter()
-        .map(|(id, path, label, ignore_patterns_json, registered_at)| {
-            let ignore_patterns = serde_json::from_str(&ignore_patterns_json)
-                .map_err(|error| format!("Could not decode root ignore patterns: {error}"))?;
-            Ok(RootConfig {
+        .map(
+            |(
                 id,
                 path,
                 label,
-                ignore_patterns,
+                ignore_patterns_json,
+                refresh_policy,
+                background_monitoring,
                 registered_at,
+            )| {
+                let ignore_patterns = serde_json::from_str(&ignore_patterns_json)
+                    .map_err(|error| format!("Could not decode root ignore patterns: {error}"))?;
+                Ok(RootConfig {
+                    id,
+                    path,
+                    label,
+                    ignore_patterns,
+                    refresh_policy,
+                    background_monitoring,
+                    registered_at,
+                })
+            },
+        )
+        .collect::<Result<Vec<_>, String>>()?;
+
+    let product_rows = connection
+        .prepare(
+            "SELECT id, name, repository_ids_json, release_mode, created_at, updated_at
+             FROM products ORDER BY name, id",
+        )
+        .map_err(|error| format!("Could not prepare Pronto products query: {error}"))?
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+            ))
+        })
+        .map_err(|error| format!("Could not read Pronto products: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode Pronto products: {error}"))?;
+    let products = product_rows
+        .into_iter()
+        .map(
+            |(id, name, repository_ids_json, release_mode, created_at, updated_at)| {
+                let repository_ids = serde_json::from_str(&repository_ids_json)
+                    .map_err(|error| format!("Could not decode product repositories: {error}"))?;
+                Ok(ProductConfig {
+                    id,
+                    name,
+                    repository_ids,
+                    release_mode,
+                    created_at,
+                    updated_at,
+                })
+            },
+        )
+        .collect::<Result<Vec<_>, String>>()?;
+
+    let group_rows = connection
+        .prepare(
+            "SELECT id, name, repository_ids_json, created_at, updated_at
+             FROM groups_config ORDER BY name, id",
+        )
+        .map_err(|error| format!("Could not prepare Pronto groups query: {error}"))?
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+            ))
+        })
+        .map_err(|error| format!("Could not read Pronto groups: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode Pronto groups: {error}"))?;
+    let groups = group_rows
+        .into_iter()
+        .map(|(id, name, repository_ids_json, created_at, updated_at)| {
+            let repository_ids = serde_json::from_str(&repository_ids_json)
+                .map_err(|error| format!("Could not decode group repositories: {error}"))?;
+            Ok(GroupConfig {
+                id,
+                name,
+                repository_ids,
+                created_at,
+                updated_at,
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
@@ -525,6 +703,8 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
         version,
         roots,
         repositories,
+        products,
+        groups,
         expected_conditions,
         events,
         action_audits,
@@ -541,6 +721,8 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
     for table in [
         "roots",
         "repositories",
+        "products",
+        "groups_config",
         "expected_conditions",
         "events",
         "action_audits",
@@ -568,14 +750,18 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
             .map_err(|error| format!("Could not encode root ignore patterns: {error}"))?;
         transaction
             .execute(
-                "INSERT INTO roots (id, path, label, ignore_patterns_json, registered_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                "INSERT INTO roots
+                 (id, path, label, ignore_patterns_json, refresh_policy,
+                  background_monitoring, registered_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
                 params![
                     root.id,
                     root.path,
                     root.label,
                     ignore_patterns_json,
-                    root.registered_at
+                    root.refresh_policy,
+                    i64::from(root.background_monitoring),
+                    root.registered_at,
                 ],
             )
             .map_err(|error| format!("Could not save Pronto root: {error}"))?;
@@ -590,6 +776,45 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
                 params![repository.id, payload],
             )
             .map_err(|error| format!("Could not save Pronto repository snapshot: {error}"))?;
+    }
+
+    for product in &state.products {
+        let repository_ids_json = serde_json::to_string(&product.repository_ids)
+            .map_err(|error| format!("Could not encode product repositories: {error}"))?;
+        transaction
+            .execute(
+                "INSERT INTO products
+                 (id, name, repository_ids_json, release_mode, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    product.id,
+                    product.name,
+                    repository_ids_json,
+                    product.release_mode,
+                    product.created_at,
+                    product.updated_at,
+                ],
+            )
+            .map_err(|error| format!("Could not save Pronto product: {error}"))?;
+    }
+
+    for group in &state.groups {
+        let repository_ids_json = serde_json::to_string(&group.repository_ids)
+            .map_err(|error| format!("Could not encode group repositories: {error}"))?;
+        transaction
+            .execute(
+                "INSERT INTO groups_config
+                 (id, name, repository_ids_json, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    group.id,
+                    group.name,
+                    repository_ids_json,
+                    group.created_at,
+                    group.updated_at,
+                ],
+            )
+            .map_err(|error| format!("Could not save Pronto group: {error}"))?;
     }
 
     for expected in &state.expected_conditions {
@@ -657,8 +882,11 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
     PortfolioSnapshot {
         roots: state.roots.clone(),
         repositories: state.repositories.clone(),
+        products: state.products.clone(),
+        groups: state.groups.clone(),
         events: state.events.iter().rev().take(24).cloned().collect(),
         action_audits: state.action_audits.iter().rev().take(24).cloned().collect(),
+        retention_days: state.retention_days,
         generated_at: iso_now(),
         storage_path: path.to_string_lossy().to_string(),
     }
@@ -713,6 +941,114 @@ fn git_owned(path: &Path, arguments: Vec<String>) -> Option<String> {
 
 fn path_id(prefix: &str, path: &Path) -> String {
     format!("{prefix}:{}", path.to_string_lossy())
+}
+
+fn generated_config_id(kind: &str, name: &str) -> String {
+    let slug = name
+        .chars()
+        .filter_map(|character| {
+            if character.is_ascii_alphanumeric() {
+                Some(character.to_ascii_lowercase())
+            } else if character == '-' || character == '_' {
+                Some(character)
+            } else {
+                None
+            }
+        })
+        .take(48)
+        .collect::<String>();
+    let slug = if slug.is_empty() { "item" } else { &slug };
+    let sequence = NEXT_CONFIG_ID.fetch_add(1, Ordering::Relaxed);
+    format!("{kind}:{slug}:{sequence}")
+}
+
+fn normalize_name(value: &str, kind: &str) -> Result<String, String> {
+    let name = value.trim();
+    if name.is_empty() {
+        return Err(format!("{kind} name cannot be empty"));
+    }
+    if name.chars().count() > 80 {
+        return Err(format!("{kind} name must be 80 characters or fewer"));
+    }
+    Ok(name.to_string())
+}
+
+fn normalize_repository_ids(
+    state: &StoreState,
+    repository_ids: Vec<String>,
+) -> Result<Vec<String>, String> {
+    let known_ids = state
+        .repositories
+        .iter()
+        .map(|repository| repository.id.as_str())
+        .collect::<HashSet<_>>();
+    let mut normalized = repository_ids
+        .into_iter()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .collect::<Vec<_>>();
+    normalized.sort();
+    normalized.dedup();
+    if let Some(unknown) = normalized
+        .iter()
+        .find(|repository_id| !known_ids.contains(repository_id.as_str()))
+    {
+        return Err(format!("Repository {unknown} is not registered"));
+    }
+    Ok(normalized)
+}
+
+fn normalize_ignore_patterns(patterns: Vec<String>) -> Result<Vec<String>, String> {
+    let mut normalized = Vec::new();
+    for pattern in patterns {
+        let value = pattern.trim().trim_matches('/').to_string();
+        if value.is_empty() {
+            continue;
+        }
+        if value == "."
+            || value == ".."
+            || value.contains('/')
+            || value.contains('\\')
+            || value.chars().count() > 120
+        {
+            return Err(format!(
+                "Ignore pattern '{value}' must be a repository-relative name or suffix pattern"
+            ));
+        }
+        normalized.push(value);
+    }
+    normalized.sort();
+    normalized.dedup();
+    Ok(normalized)
+}
+
+fn normalize_refresh_policy(value: &str) -> Result<String, String> {
+    match value.trim() {
+        "Manual" => Ok("Manual".to_string()),
+        "On open" => Ok("On open".to_string()),
+        "Periodic" => Ok("Periodic".to_string()),
+        _ => Err("Refresh policy must be Manual, On open, or Periodic".to_string()),
+    }
+}
+
+fn normalize_lifecycle(value: &str) -> Result<String, String> {
+    match value.trim() {
+        "Unconfirmed" | "Active" | "Maintenance" | "Paused" | "Archived" => {
+            Ok(value.trim().to_string())
+        }
+        _ => Err(
+            "Lifecycle must be Unconfirmed, Active, Maintenance, Paused, or Archived".to_string(),
+        ),
+    }
+}
+
+fn normalize_release_mode(value: &str) -> Result<String, String> {
+    match value.trim() {
+        "Independent" => Ok("Independent".to_string()),
+        "Coordinated independent versions" => Ok("Coordinated independent versions".to_string()),
+        "Unified product version" => Ok("Unified product version".to_string()),
+        _ => Err("Release mode is not supported".to_string()),
+    }
 }
 
 fn canonical_path(path: &Path) -> Option<PathBuf> {
@@ -1062,6 +1398,33 @@ fn parse_branches(path: &Path) -> Vec<BranchRecord> {
                 name,
                 last_commit,
                 last_commit_at,
+            })
+        })
+        .collect()
+}
+
+fn parse_submodules(path: &Path) -> Vec<SubmoduleSummary> {
+    let output = git_static(path, &["submodule", "status", "--recursive"]).unwrap_or_default();
+    output
+        .lines()
+        .filter_map(|line| {
+            let marker = line.chars().next()?;
+            let mut fields = line.get(marker.len_utf8()..)?.split_whitespace();
+            let commit = fields
+                .next()
+                .filter(|value| !value.is_empty())
+                .map(str::to_string);
+            let submodule_path = fields.next()?.to_string();
+            let status = match line.chars().next() {
+                Some('-') => "Uninitialized",
+                Some('+') => "Modified commit",
+                Some('U') => "Merge conflict",
+                _ => "Checked out",
+            };
+            Some(SubmoduleSummary {
+                path: submodule_path,
+                commit,
+                status: status.to_string(),
             })
         })
         .collect()
@@ -1592,6 +1955,7 @@ fn scan_repository(
         expected,
         &observed_at,
     );
+    let submodules = parse_submodules(path);
     let lifecycle_candidate = if primary.last_activity_at.as_ref().is_some_and(|value| {
         DateTime::parse_from_rfc3339(value)
             .map(|date| {
@@ -1626,6 +1990,7 @@ fn scan_repository(
         workspace: primary,
         workspaces,
         branches,
+        submodules,
         conditions,
         last_scan_at: observed_at,
         last_fetch_at: existing_last_fetch,
@@ -2011,6 +2376,163 @@ fn mutate_expected(
     Ok(snapshot_from_store(path, &state))
 }
 
+fn update_root_settings_at(
+    path: &Path,
+    root_id: &str,
+    ignore_patterns: Vec<String>,
+    refresh_policy: &str,
+    background_monitoring: bool,
+) -> Result<PortfolioSnapshot, String> {
+    let normalized_patterns = normalize_ignore_patterns(ignore_patterns)?;
+    let normalized_policy = normalize_refresh_policy(refresh_policy)?;
+    let mut state = load_store(path)?;
+    let root = state
+        .roots
+        .iter_mut()
+        .find(|root| root.id == root_id)
+        .ok_or_else(|| "Discovery root is not registered".to_string())?;
+    root.ignore_patterns = normalized_patterns;
+    root.refresh_policy = normalized_policy;
+    root.background_monitoring = background_monitoring;
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn set_repository_lifecycle_at(
+    path: &Path,
+    repository_id: &str,
+    lifecycle: &str,
+) -> Result<PortfolioSnapshot, String> {
+    let normalized_lifecycle = normalize_lifecycle(lifecycle)?;
+    let mut state = load_store(path)?;
+    let repository = state
+        .repositories
+        .iter_mut()
+        .find(|repository| repository.id == repository_id)
+        .ok_or_else(|| "Repository is not registered".to_string())?;
+    repository.lifecycle = normalized_lifecycle;
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn set_retention_days_at(path: &Path, retention_days: i64) -> Result<PortfolioSnapshot, String> {
+    if !(1..=3_650).contains(&retention_days) {
+        return Err("Retention must be between 1 and 3650 days".to_string());
+    }
+    let mut state = load_store(path)?;
+    state.retention_days = retention_days;
+    prune_events(&mut state);
+    prune_action_audits(&mut state);
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn upsert_product_at(
+    path: &Path,
+    product_id: Option<&str>,
+    name: &str,
+    repository_ids: Vec<String>,
+    release_mode: &str,
+) -> Result<PortfolioSnapshot, String> {
+    let clean_name = normalize_name(name, "Product")?;
+    let clean_release_mode = normalize_release_mode(release_mode)?;
+    let mut state = load_store(path)?;
+    let clean_repository_ids = normalize_repository_ids(&state, repository_ids)?;
+    if state.products.iter().any(|product| {
+        product.name.eq_ignore_ascii_case(&clean_name) && product_id != Some(product.id.as_str())
+    }) {
+        return Err(format!("A product named '{clean_name}' already exists"));
+    }
+    let now = iso_now();
+    if let Some(product_id) = product_id.filter(|value| !value.trim().is_empty()) {
+        let product = state
+            .products
+            .iter_mut()
+            .find(|product| product.id == product_id)
+            .ok_or_else(|| "Product is not registered".to_string())?;
+        product.name = clean_name;
+        product.repository_ids = clean_repository_ids;
+        product.release_mode = clean_release_mode;
+        product.updated_at = now;
+    } else {
+        state.products.push(ProductConfig {
+            id: generated_config_id("product", &clean_name),
+            name: clean_name,
+            repository_ids: clean_repository_ids,
+            release_mode: clean_release_mode,
+            created_at: now.clone(),
+            updated_at: now,
+        });
+    }
+    state
+        .products
+        .sort_by(|left, right| left.name.to_lowercase().cmp(&right.name.to_lowercase()));
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn upsert_group_at(
+    path: &Path,
+    group_id: Option<&str>,
+    name: &str,
+    repository_ids: Vec<String>,
+) -> Result<PortfolioSnapshot, String> {
+    let clean_name = normalize_name(name, "Group")?;
+    let mut state = load_store(path)?;
+    let clean_repository_ids = normalize_repository_ids(&state, repository_ids)?;
+    if state.groups.iter().any(|group| {
+        group.name.eq_ignore_ascii_case(&clean_name) && group_id != Some(group.id.as_str())
+    }) {
+        return Err(format!("A group named '{clean_name}' already exists"));
+    }
+    let now = iso_now();
+    if let Some(group_id) = group_id.filter(|value| !value.trim().is_empty()) {
+        let group = state
+            .groups
+            .iter_mut()
+            .find(|group| group.id == group_id)
+            .ok_or_else(|| "Group is not registered".to_string())?;
+        group.name = clean_name;
+        group.repository_ids = clean_repository_ids;
+        group.updated_at = now;
+    } else {
+        state.groups.push(GroupConfig {
+            id: generated_config_id("group", &clean_name),
+            name: clean_name,
+            repository_ids: clean_repository_ids,
+            created_at: now.clone(),
+            updated_at: now,
+        });
+    }
+    state
+        .groups
+        .sort_by(|left, right| left.name.to_lowercase().cmp(&right.name.to_lowercase()));
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn delete_product_at(path: &Path, product_id: &str) -> Result<PortfolioSnapshot, String> {
+    let mut state = load_store(path)?;
+    let original_len = state.products.len();
+    state.products.retain(|product| product.id != product_id);
+    if state.products.len() == original_len {
+        return Err("Product is not registered".to_string());
+    }
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn delete_group_at(path: &Path, group_id: &str) -> Result<PortfolioSnapshot, String> {
+    let mut state = load_store(path)?;
+    let original_len = state.groups.len();
+    state.groups.retain(|group| group.id != group_id);
+    if state.groups.len() == original_len {
+        return Err("Group is not registered".to_string());
+    }
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
 fn register_root_and_scan(path: &Path, root_path: &str) -> Result<PortfolioSnapshot, String> {
     let root = canonical_path(Path::new(root_path))
         .ok_or_else(|| "Choose an accessible folder for repository discovery".to_string())?;
@@ -2029,6 +2551,8 @@ fn register_root_and_scan(path: &Path, root_path: &str) -> Result<PortfolioSnaps
                 .unwrap_or("Repository root")
                 .to_string(),
             ignore_patterns: Vec::new(),
+            refresh_policy: default_refresh_policy(),
+            background_monitoring: false,
             registered_at: iso_now(),
         });
     }
@@ -2076,6 +2600,70 @@ pub fn clear_condition_expected(
     condition_id: String,
 ) -> Result<PortfolioSnapshot, String> {
     mutate_expected(&store_path(), &repository_id, &condition_id, false)
+}
+
+#[tauri::command]
+pub fn update_root_settings(
+    root_id: String,
+    ignore_patterns: Vec<String>,
+    refresh_policy: String,
+    background_monitoring: bool,
+) -> Result<PortfolioSnapshot, String> {
+    update_root_settings_at(
+        &store_path(),
+        &root_id,
+        ignore_patterns,
+        &refresh_policy,
+        background_monitoring,
+    )
+}
+
+#[tauri::command]
+pub fn set_repository_lifecycle(
+    repository_id: String,
+    lifecycle: String,
+) -> Result<PortfolioSnapshot, String> {
+    set_repository_lifecycle_at(&store_path(), &repository_id, &lifecycle)
+}
+
+#[tauri::command]
+pub fn set_retention_days(retention_days: i64) -> Result<PortfolioSnapshot, String> {
+    set_retention_days_at(&store_path(), retention_days)
+}
+
+#[tauri::command]
+pub fn upsert_product(
+    product_id: Option<String>,
+    name: String,
+    repository_ids: Vec<String>,
+    release_mode: String,
+) -> Result<PortfolioSnapshot, String> {
+    upsert_product_at(
+        &store_path(),
+        product_id.as_deref(),
+        &name,
+        repository_ids,
+        &release_mode,
+    )
+}
+
+#[tauri::command]
+pub fn delete_product(product_id: String) -> Result<PortfolioSnapshot, String> {
+    delete_product_at(&store_path(), &product_id)
+}
+
+#[tauri::command]
+pub fn upsert_group(
+    group_id: Option<String>,
+    name: String,
+    repository_ids: Vec<String>,
+) -> Result<PortfolioSnapshot, String> {
+    upsert_group_at(&store_path(), group_id.as_deref(), &name, repository_ids)
+}
+
+#[tauri::command]
+pub fn delete_group(group_id: String) -> Result<PortfolioSnapshot, String> {
+    delete_group_at(&store_path(), &group_id)
 }
 
 fn print_human_status(snapshot: &PortfolioSnapshot) {
@@ -2239,6 +2827,8 @@ mod tests {
             path: root.to_string_lossy().to_string(),
             label: "fixture".to_string(),
             ignore_patterns: Vec::new(),
+            refresh_policy: default_refresh_policy(),
+            background_monitoring: false,
             registered_at: iso_now(),
         };
         let discovered = discover_repositories(&root_config);
@@ -2327,6 +2917,8 @@ mod tests {
             path: root.to_string_lossy().to_string(),
             label: "fixture".to_string(),
             ignore_patterns: Vec::new(),
+            refresh_policy: default_refresh_policy(),
+            background_monitoring: false,
             registered_at: iso_now(),
         };
         let mut state = StoreState {
@@ -2365,6 +2957,8 @@ mod tests {
             path: root.to_string_lossy().to_string(),
             label: "fixture".to_string(),
             ignore_patterns: Vec::new(),
+            refresh_policy: default_refresh_policy(),
+            background_monitoring: false,
             registered_at: iso_now(),
         };
         let state = StoreState {
@@ -2413,6 +3007,8 @@ mod tests {
             path: root.to_string_lossy().to_string(),
             label: "fixture".to_string(),
             ignore_patterns: Vec::new(),
+            refresh_policy: default_refresh_policy(),
+            background_monitoring: false,
             registered_at: iso_now(),
         };
         let mut state = StoreState {
@@ -2486,6 +3082,8 @@ mod tests {
                 path: root.to_string_lossy().to_string(),
                 label: "fixture".to_string(),
                 ignore_patterns: vec!["target".to_string()],
+                refresh_policy: default_refresh_policy(),
+                background_monitoring: false,
                 registered_at: iso_now(),
             }],
             ..StoreState::default()
@@ -2510,5 +3108,98 @@ mod tests {
         assert_eq!(schema_version, SQLITE_SCHEMA_VERSION.to_string());
 
         fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn persists_local_configuration_for_roots_products_groups_and_lifecycle() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        let database = root.join("registry.db");
+        let root_config = RootConfig {
+            id: path_id("root", &root),
+            path: root.to_string_lossy().to_string(),
+            label: "fixture".to_string(),
+            ignore_patterns: Vec::new(),
+            refresh_policy: default_refresh_policy(),
+            background_monitoring: false,
+            registered_at: iso_now(),
+        };
+        let mut state = StoreState {
+            roots: vec![root_config.clone()],
+            ..StoreState::default()
+        };
+        scan_and_persist(&database, &mut state).expect("fixture scan should persist");
+        let repository_id = state.repositories[0].id.clone();
+
+        update_root_settings_at(
+            &database,
+            &root_config.id,
+            vec![
+                "*.tmp".to_string(),
+                "cache".to_string(),
+                "cache".to_string(),
+            ],
+            "Manual",
+            true,
+        )
+        .expect("root settings should persist");
+        set_repository_lifecycle_at(&database, &repository_id, "Paused")
+            .expect("lifecycle should persist");
+        let product_snapshot = upsert_product_at(
+            &database,
+            None,
+            "Public product",
+            vec![repository_id.clone()],
+            "Unified product version",
+        )
+        .expect("product should persist");
+        let group_snapshot =
+            upsert_group_at(&database, None, "Experiments", vec![repository_id.clone()])
+                .expect("group should persist");
+        set_retention_days_at(&database, 30).expect("retention should persist");
+
+        let persisted = load_store(&database).expect("configured state should load");
+        assert_eq!(persisted.roots[0].ignore_patterns, vec!["*.tmp", "cache"]);
+        assert_eq!(persisted.roots[0].refresh_policy, "Manual");
+        assert!(persisted.roots[0].background_monitoring);
+        assert_eq!(persisted.repositories[0].lifecycle, "Paused");
+        assert_eq!(persisted.products.len(), 1);
+        assert_eq!(
+            persisted.products[0].release_mode,
+            "Unified product version"
+        );
+        assert_eq!(persisted.groups.len(), 1);
+        assert_eq!(persisted.groups[0].name, "Experiments");
+        assert_eq!(product_snapshot.products.len(), 1);
+        assert_eq!(group_snapshot.groups.len(), 1);
+        assert_eq!(persisted.retention_days, 30);
+
+        delete_product_at(&database, &persisted.products[0].id).expect("product should delete");
+        delete_group_at(&database, &persisted.groups[0].id).expect("group should delete");
+        assert!(load_store(&database)
+            .expect("deleted configuration should load")
+            .products
+            .is_empty());
+        assert!(load_store(&database)
+            .expect("deleted configuration should load")
+            .groups
+            .is_empty());
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+        let _ = repository;
+    }
+
+    #[test]
+    fn rejects_ignore_patterns_that_escape_repository_scope() {
+        assert!(normalize_ignore_patterns(vec!["../secrets".to_string()]).is_err());
+        assert!(normalize_ignore_patterns(vec!["nested/cache".to_string()]).is_err());
+        assert_eq!(
+            normalize_ignore_patterns(vec![
+                "/target/".to_string(),
+                "target".to_string(),
+                "*.tmp".to_string(),
+            ])
+            .expect("safe patterns should normalize"),
+            vec!["*.tmp", "target"]
+        );
     }
 }
