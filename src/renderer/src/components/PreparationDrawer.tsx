@@ -1,6 +1,11 @@
+import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
-import { X } from "lucide-react";
-import type { RepositoryPreparation, RepositorySnapshot } from "../types";
+import { Save, X } from "lucide-react";
+import type {
+  ReleaseRuleConfig,
+  RepositoryPreparation,
+  RepositorySnapshot,
+} from "../types";
 import { formatTime, IconButton, StatusPill } from "./ConsolePrimitives";
 
 function PreparationStatus({ value }: { value: string }): ReactElement {
@@ -57,14 +62,184 @@ function PreparationReasons({
   );
 }
 
+function traceTone(status: string): string {
+  if (status === "Passed") return "mint";
+  if (status === "Failed") return "coral";
+  return "amber";
+}
+
+function ReleaseRuleEditor({
+  rule,
+  onSave,
+}: {
+  rule?: ReleaseRuleConfig;
+  onSave: (rule: ReleaseRuleConfig | null) => Promise<void>;
+}): ReactElement {
+  const [name, setName] = useState(rule?.name ?? "Release threshold");
+  const [operator, setOperator] = useState(rule?.operator ?? "AND");
+  const [minCommits, setMinCommits] = useState(
+    rule?.min_commits?.toString() ?? "",
+  );
+  const [minElapsedDays, setMinElapsedDays] = useState(
+    rule?.min_elapsed_days?.toString() ?? "",
+  );
+  const [commitTypes, setCommitTypes] = useState(
+    rule?.required_commit_types.join(", ") ?? "",
+  );
+  const [allowFirstRelease, setAllowFirstRelease] = useState(
+    rule?.allow_first_release ?? false,
+  );
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setName(rule?.name ?? "Release threshold");
+    setOperator(rule?.operator ?? "AND");
+    setMinCommits(rule?.min_commits?.toString() ?? "");
+    setMinElapsedDays(rule?.min_elapsed_days?.toString() ?? "");
+    setCommitTypes(rule?.required_commit_types.join(", ") ?? "");
+    setAllowFirstRelease(rule?.allow_first_release ?? false);
+  }, [rule]);
+
+  const normalizedTypes = commitTypes
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  const hasClause = Boolean(
+    minCommits.trim() || minElapsedDays.trim() || normalizedTypes.length > 0,
+  );
+
+  const save = async (): Promise<void> => {
+    if (!name.trim() || !hasClause) return;
+    setIsSaving(true);
+    try {
+      const parsedCommits = Number.parseInt(minCommits, 10);
+      const parsedElapsedDays = Number.parseInt(minElapsedDays, 10);
+      await onSave({
+        name: name.trim(),
+        operator,
+        min_commits:
+          Number.isFinite(parsedCommits) && parsedCommits > 0
+            ? parsedCommits
+            : undefined,
+        min_elapsed_days:
+          Number.isFinite(parsedElapsedDays) && parsedElapsedDays > 0
+            ? parsedElapsedDays
+            : undefined,
+        required_commit_types: normalizedTypes,
+        allow_first_release: allowFirstRelease,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <form
+      className="release-rule-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void save();
+      }}
+    >
+      <label className="field-label">
+        Rule name
+        <input
+          className="text-input"
+          value={name}
+          maxLength={80}
+          onChange={(event) => setName(event.target.value)}
+        />
+      </label>
+      <div className="release-rule-grid">
+        <label className="field-label">
+          Combine clauses
+          <select
+            className="text-input"
+            value={operator}
+            onChange={(event) => setOperator(event.target.value)}
+          >
+            <option value="AND">All clauses (AND)</option>
+            <option value="OR">Any clause (OR)</option>
+          </select>
+        </label>
+        <label className="field-label">
+          Minimum commits
+          <input
+            className="text-input"
+            type="number"
+            min={1}
+            value={minCommits}
+            placeholder="Optional"
+            onChange={(event) => setMinCommits(event.target.value)}
+          />
+        </label>
+        <label className="field-label">
+          Minimum elapsed days
+          <input
+            className="text-input"
+            type="number"
+            min={1}
+            value={minElapsedDays}
+            placeholder="Optional"
+            onChange={(event) => setMinElapsedDays(event.target.value)}
+          />
+        </label>
+      </div>
+      <label className="field-label">
+        Commit types present
+        <input
+          className="text-input"
+          value={commitTypes}
+          placeholder="feat, fix, perf"
+          onChange={(event) => setCommitTypes(event.target.value)}
+        />
+        <small className="field-help">
+          Use conventional types: breaking, feat, fix, perf, docs, refactor,
+          test, or chore.
+        </small>
+      </label>
+      <label className="checkbox-label">
+        <input
+          type="checkbox"
+          checked={allowFirstRelease}
+          onChange={(event) => setAllowFirstRelease(event.target.checked)}
+        />
+        <span>Allow this rule to evaluate without a published baseline</span>
+      </label>
+      <div className="release-rule-actions">
+        <button
+          className="button button-primary"
+          type="submit"
+          disabled={isSaving || !name.trim() || !hasClause}
+        >
+          <Save size={14} />
+          {isSaving ? "Saving…" : "Save deterministic rule"}
+        </button>
+        {rule && (
+          <button
+            className="button button-quiet"
+            type="button"
+            onClick={() => void onSave(null)}
+            disabled={isSaving}
+          >
+            Clear rule
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
 export function PreparationDrawer({
   repository,
   preparation,
   onClose,
+  onSaveReleaseRule,
 }: {
   repository: RepositorySnapshot;
   preparation: RepositoryPreparation;
   onClose: () => void;
+  onSaveReleaseRule: (rule: ReleaseRuleConfig | null) => Promise<void>;
 }): ReactElement {
   const pullRequest = preparation.pull_request;
   const release = preparation.release;
@@ -207,6 +382,20 @@ export function PreparationDrawer({
             </div>
           </div>
           <PreparationReasons reasons={release.reasons} />
+          {release.rule_trace.length > 0 && (
+            <div className="preparation-trace">
+              {release.rule_trace.map((trace) => (
+                <div className="preparation-trace-row" key={trace.label}>
+                  <span>{trace.label}</span>
+                  <StatusPill tone={traceTone(trace.status)}>
+                    {trace.status}
+                  </StatusPill>
+                  <strong>{trace.value}</strong>
+                  <small>{trace.source}</small>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="preparation-existing">
             <span>Version confirmation</span>
             <strong>{release.version_status}</strong>
@@ -226,6 +415,25 @@ export function PreparationDrawer({
             </div>
           )}
           <PreparationEvidence items={release.evidence} />
+        </div>
+
+        <div className="drawer-section">
+          <div className="drawer-section-title">
+            <div>
+              <h3>Deterministic release rule</h3>
+              <small>
+                Configure local clauses; Pronto never turns an unconfigured rule
+                into a release recommendation.
+              </small>
+            </div>
+            <StatusPill tone={repository.release_rule ? "mint" : "slate"}>
+              {repository.release_rule ? "Configured" : "Not configured"}
+            </StatusPill>
+          </div>
+          <ReleaseRuleEditor
+            rule={repository.release_rule}
+            onSave={onSaveReleaseRule}
+          />
         </div>
 
         <div className="drawer-footer">

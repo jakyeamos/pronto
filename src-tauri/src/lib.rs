@@ -26,6 +26,7 @@ pub fn run() {
             core::clear_condition_expected,
             core::update_root_settings,
             core::set_repository_lifecycle,
+            core::set_release_rule,
             core::set_retention_days,
             core::upsert_product,
             core::delete_product,

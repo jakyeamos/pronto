@@ -46,6 +46,16 @@ pub struct ProductConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseRuleConfig {
+    pub name: String,
+    pub operator: String,
+    pub min_commits: Option<u64>,
+    pub min_elapsed_days: Option<u64>,
+    pub required_commit_types: Vec<String>,
+    pub allow_first_release: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GroupConfig {
     pub id: String,
     pub name: String,
@@ -312,6 +322,8 @@ pub struct RepositorySnapshot {
     pub pull_requests: Vec<PullRequestSnapshot>,
     #[serde(default)]
     pub releases: Vec<ReleaseSnapshot>,
+    #[serde(default)]
+    pub release_rule: Option<ReleaseRuleConfig>,
     pub conditions: Vec<Condition>,
     pub last_scan_at: String,
     pub last_fetch_at: Option<String>,
@@ -384,6 +396,14 @@ pub struct ReleaseNoteSection {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseRuleTrace {
+    pub label: String,
+    pub status: String,
+    pub value: String,
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReleasePreparation {
     pub repository_id: String,
     pub target_branch: Option<String>,
@@ -392,6 +412,7 @@ pub struct ReleasePreparation {
     pub commits_since_baseline: Vec<ReleaseCommitSummary>,
     pub rule_status: String,
     pub threshold_label: Option<String>,
+    pub rule_trace: Vec<ReleaseRuleTrace>,
     pub candidate_bump: Option<String>,
     pub candidate_version: Option<String>,
     pub version_status: String,
@@ -1786,6 +1807,55 @@ fn normalize_release_mode(value: &str) -> Result<String, String> {
     }
 }
 
+fn normalize_release_rule(rule: ReleaseRuleConfig) -> Result<ReleaseRuleConfig, String> {
+    let name = normalize_name(&rule.name, "Release rule")?;
+    let operator = match rule.operator.trim().to_ascii_uppercase().as_str() {
+        "AND" => "AND".to_string(),
+        "OR" => "OR".to_string(),
+        _ => return Err("Release rule operator must be AND or OR".to_string()),
+    };
+    if rule.min_commits == Some(0) || rule.min_commits.is_some_and(|value| value > 100_000) {
+        return Err("Minimum commits must be between 1 and 100000".to_string());
+    }
+    if rule.min_elapsed_days == Some(0) || rule.min_elapsed_days.is_some_and(|value| value > 36_500)
+    {
+        return Err("Minimum elapsed days must be between 1 and 36500".to_string());
+    }
+    let allowed_types = [
+        "breaking", "feat", "fix", "perf", "docs", "refactor", "test", "chore",
+    ];
+    let mut required_commit_types = rule
+        .required_commit_types
+        .into_iter()
+        .map(|value| value.trim().to_ascii_lowercase())
+        .filter(|value| !value.is_empty())
+        .collect::<Vec<_>>();
+    required_commit_types.sort();
+    required_commit_types.dedup();
+    if let Some(unknown) = required_commit_types
+        .iter()
+        .find(|value| !allowed_types.contains(&value.as_str()))
+    {
+        return Err(format!("Unsupported conventional commit type '{unknown}'"));
+    }
+    if rule.min_commits.is_none()
+        && rule.min_elapsed_days.is_none()
+        && required_commit_types.is_empty()
+    {
+        return Err(
+            "Release rule needs a commit count, elapsed time, or commit type clause".to_string(),
+        );
+    }
+    Ok(ReleaseRuleConfig {
+        name,
+        operator,
+        min_commits: rule.min_commits,
+        min_elapsed_days: rule.min_elapsed_days,
+        required_commit_types,
+        allow_first_release: rule.allow_first_release,
+    })
+}
+
 fn canonical_path(path: &Path) -> Option<PathBuf> {
     fs::canonicalize(path).ok()
 }
@@ -2680,6 +2750,169 @@ fn candidate_version(release: &ReleaseSnapshot, bump: Option<&str>) -> Option<St
     Some(format!("v{major}.{minor}.{patch}"))
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ReleaseRuleResult {
+    Passed,
+    Failed,
+    Unknown,
+}
+
+fn combine_release_rule_results(
+    operator: &str,
+    results: &[ReleaseRuleResult],
+) -> ReleaseRuleResult {
+    if operator == "OR" {
+        if results.contains(&ReleaseRuleResult::Passed) {
+            ReleaseRuleResult::Passed
+        } else if results
+            .iter()
+            .all(|result| *result == ReleaseRuleResult::Failed)
+        {
+            ReleaseRuleResult::Failed
+        } else {
+            ReleaseRuleResult::Unknown
+        }
+    } else if results.contains(&ReleaseRuleResult::Failed) {
+        ReleaseRuleResult::Failed
+    } else if results.contains(&ReleaseRuleResult::Unknown) {
+        ReleaseRuleResult::Unknown
+    } else {
+        ReleaseRuleResult::Passed
+    }
+}
+
+fn release_rule_status(result: ReleaseRuleResult) -> &'static str {
+    match result {
+        ReleaseRuleResult::Passed => "Passed",
+        ReleaseRuleResult::Failed => "Failed",
+        ReleaseRuleResult::Unknown => "Unknown",
+    }
+}
+
+fn release_rule_commit_type_present(
+    commits: &[ReleaseCommitSummary],
+    requested_types: &[String],
+) -> bool {
+    requested_types.iter().any(|requested| {
+        commits.iter().any(|commit| match requested.as_str() {
+            "breaking" => commit.category == "Breaking",
+            "feat" => commit.category == "Features",
+            "fix" => commit.category == "Fixes",
+            "perf" => commit.category == "Performance",
+            requested => commit
+                .subject
+                .split_once(':')
+                .map(|(kind, _)| kind.trim().trim_end_matches('!') == requested)
+                .unwrap_or(false),
+        })
+    })
+}
+
+fn evaluate_release_rule(
+    rule: &ReleaseRuleConfig,
+    baseline: Option<&ReleaseSnapshot>,
+    commits: &[ReleaseCommitSummary],
+) -> (ReleaseRuleResult, Vec<ReleaseRuleTrace>) {
+    let mut results = Vec::new();
+    let mut trace = Vec::new();
+    let (baseline_result, baseline_value) = match baseline {
+        Some(release) => (
+            ReleaseRuleResult::Passed,
+            format!("Published baseline {}", release.tag),
+        ),
+        None if rule.allow_first_release => (
+            ReleaseRuleResult::Passed,
+            "No published baseline · first-release path enabled".to_string(),
+        ),
+        None => (
+            ReleaseRuleResult::Failed,
+            "No published baseline · first-release path not enabled".to_string(),
+        ),
+    };
+    results.push(baseline_result);
+    trace.push(ReleaseRuleTrace {
+        label: "Published baseline".to_string(),
+        status: release_rule_status(baseline_result).to_string(),
+        value: baseline_value,
+        source: "Published GitHub Release snapshot and local rule configuration".to_string(),
+    });
+
+    if let Some(min_commits) = rule.min_commits {
+        let result = if commits.len() as u64 >= min_commits {
+            ReleaseRuleResult::Passed
+        } else {
+            ReleaseRuleResult::Failed
+        };
+        results.push(result);
+        trace.push(ReleaseRuleTrace {
+            label: format!("At least {min_commits} commits"),
+            status: release_rule_status(result).to_string(),
+            value: format!("{} commits since baseline", commits.len()),
+            source: "git log".to_string(),
+        });
+    }
+
+    if let Some(min_elapsed_days) = rule.min_elapsed_days {
+        let (result, value) = match baseline.and_then(|release| release.published_at.as_deref()) {
+            Some(published_at) => match DateTime::parse_from_rfc3339(published_at) {
+                Ok(date) => {
+                    let elapsed_days = Utc::now()
+                        .signed_duration_since(date.with_timezone(&Utc))
+                        .num_days()
+                        .max(0);
+                    (
+                        if elapsed_days >= min_elapsed_days as i64 {
+                            ReleaseRuleResult::Passed
+                        } else {
+                            ReleaseRuleResult::Failed
+                        },
+                        format!("{elapsed_days} days since publication"),
+                    )
+                }
+                Err(_) => (
+                    ReleaseRuleResult::Unknown,
+                    "Published timestamp could not be parsed".to_string(),
+                ),
+            },
+            None => (
+                ReleaseRuleResult::Unknown,
+                "Published timestamp unavailable".to_string(),
+            ),
+        };
+        results.push(result);
+        trace.push(ReleaseRuleTrace {
+            label: format!("At least {min_elapsed_days} elapsed days"),
+            status: release_rule_status(result).to_string(),
+            value,
+            source: "Published GitHub Release timestamp".to_string(),
+        });
+    }
+
+    if !rule.required_commit_types.is_empty() {
+        let result = if release_rule_commit_type_present(commits, &rule.required_commit_types) {
+            ReleaseRuleResult::Passed
+        } else {
+            ReleaseRuleResult::Failed
+        };
+        results.push(result);
+        trace.push(ReleaseRuleTrace {
+            label: "Configured commit type present".to_string(),
+            status: release_rule_status(result).to_string(),
+            value: format!(
+                "{} in {}",
+                rule.required_commit_types.join(", "),
+                commits.len()
+            ),
+            source: "Deterministic conventional-commit mapping".to_string(),
+        });
+    }
+
+    (
+        combine_release_rule_results(&rule.operator, &results),
+        trace,
+    )
+}
+
 fn provider_context_available(repository: &RepositorySnapshot, provider_ready: bool) -> bool {
     provider_ready && repository.provider_state.starts_with("GitHub connected")
 }
@@ -2854,7 +3087,25 @@ fn prepare_release(
         .into_iter()
         .map(|(category, commits)| ReleaseNoteSection { category, commits })
         .collect::<Vec<_>>();
-    let rule_status = "Not configured — commits are shown without threshold evaluation".to_string();
+    let configured_rule = repository.release_rule.as_ref();
+    let (rule_result, rule_trace) = if connected {
+        configured_rule
+            .map(|rule| evaluate_release_rule(rule, baseline.as_ref(), &commits_since_baseline))
+            .map_or((None, Vec::new()), |(result, trace)| (Some(result), trace))
+    } else {
+        (None, Vec::new())
+    };
+    let rule_status = if !connected {
+        "Unknown — provider release data unavailable".to_string()
+    } else if let Some(result) = rule_result {
+        match result {
+            ReleaseRuleResult::Passed => "Configured release threshold met".to_string(),
+            ReleaseRuleResult::Failed => "Configured release threshold not met".to_string(),
+            ReleaseRuleResult::Unknown => "Release threshold evidence incomplete".to_string(),
+        }
+    } else {
+        "Not configured — commits are shown without threshold evaluation".to_string()
+    };
     let mut reasons = Vec::new();
     if target_branch.is_none() {
         reasons.push("Target branch is unknown".to_string());
@@ -2865,12 +3116,22 @@ fn prepare_release(
                 .to_string(),
         );
     } else if baseline.is_none() {
-        reasons.push("First-release rule is not confirmed".to_string());
+        if configured_rule.is_none() {
+            reasons.push("First-release rule is not confirmed".to_string());
+        } else if configured_rule.is_some_and(|rule| !rule.allow_first_release) {
+            reasons.push("First-release rule is not enabled".to_string());
+        }
     }
     if workspace.dirty {
         reasons.push(
             "Workspace has uncommitted changes; release preparation cannot start".to_string(),
         );
+    }
+    if rule_result == Some(ReleaseRuleResult::Failed) && baseline.is_some() {
+        reasons.push("Configured release threshold did not pass".to_string());
+    }
+    if rule_result == Some(ReleaseRuleResult::Unknown) {
+        reasons.push("Release threshold evidence is incomplete".to_string());
     }
     let mut evidence_items = vec![
         evidence(
@@ -2918,6 +3179,12 @@ fn prepare_release(
     }
     let has_candidate_version = candidate_version.is_some();
     let missing_baseline = baseline.is_none();
+    let blocked = target_branch.is_none()
+        || !connected
+        || workspace.dirty
+        || (missing_baseline && configured_rule.is_none())
+        || (missing_baseline && configured_rule.is_some_and(|rule| !rule.allow_first_release))
+        || rule_result == Some(ReleaseRuleResult::Unknown);
     ReleasePreparation {
         repository_id: repository.id.clone(),
         target_branch,
@@ -2925,7 +3192,8 @@ fn prepare_release(
         baseline,
         commits_since_baseline,
         rule_status,
-        threshold_label: None,
+        threshold_label: configured_rule.map(|rule| rule.name.clone()),
+        rule_trace,
         candidate_bump,
         candidate_version,
         version_status: if has_candidate_version {
@@ -2935,12 +3203,16 @@ fn prepare_release(
                 .to_string()
         },
         notes,
-        status: if reasons.is_empty() {
-            "Evidence ready".to_string()
-        } else if connected && missing_baseline {
-            "First-release rule not confirmed".to_string()
+        status: if blocked {
+            if connected && missing_baseline && configured_rule.is_none() {
+                "First-release rule not confirmed".to_string()
+            } else {
+                "Blocked".to_string()
+            }
+        } else if rule_result == Some(ReleaseRuleResult::Failed) {
+            "Threshold not met".to_string()
         } else {
-            "Blocked".to_string()
+            "Evidence ready".to_string()
         },
         reasons,
         evidence: evidence_items,
@@ -3536,6 +3808,7 @@ fn scan_repository(
         releases: existing
             .map(|repository| repository.releases.clone())
             .unwrap_or_default(),
+        release_rule: existing.and_then(|repository| repository.release_rule.clone()),
         conditions,
         last_scan_at: observed_at,
         last_fetch_at: existing_last_fetch,
@@ -4033,6 +4306,23 @@ fn set_repository_lifecycle_at(
     Ok(snapshot_from_store(path, &state))
 }
 
+fn set_release_rule_at(
+    path: &Path,
+    repository_id: &str,
+    release_rule: Option<ReleaseRuleConfig>,
+) -> Result<PortfolioSnapshot, String> {
+    let normalized_rule = release_rule.map(normalize_release_rule).transpose()?;
+    let mut state = load_store(path)?;
+    let repository = state
+        .repositories
+        .iter_mut()
+        .find(|repository| repository.id == repository_id)
+        .ok_or_else(|| "Repository is not registered".to_string())?;
+    repository.release_rule = normalized_rule;
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
 fn set_retention_days_at(path: &Path, retention_days: i64) -> Result<PortfolioSnapshot, String> {
     if !(1..=3_650).contains(&retention_days) {
         return Err("Retention must be between 1 and 3650 days".to_string());
@@ -4335,6 +4625,14 @@ pub fn set_repository_lifecycle(
     lifecycle: String,
 ) -> Result<PortfolioSnapshot, String> {
     set_repository_lifecycle_at(&store_path(), &repository_id, &lifecycle)
+}
+
+#[tauri::command]
+pub fn set_release_rule(
+    repository_id: String,
+    release_rule: Option<ReleaseRuleConfig>,
+) -> Result<PortfolioSnapshot, String> {
+    set_release_rule_at(&store_path(), &repository_id, release_rule)
 }
 
 #[tauri::command]
@@ -5133,6 +5431,39 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["Breaking", "Features", "Fixes"]
         );
+        let configured_snapshot = set_release_rule_at(
+            &database,
+            &repository_id,
+            Some(ReleaseRuleConfig {
+                name: "Two meaningful commits".to_string(),
+                operator: "and".to_string(),
+                min_commits: Some(2),
+                min_elapsed_days: None,
+                required_commit_types: vec!["FEAT".to_string()],
+                allow_first_release: false,
+            }),
+        )
+        .expect("release rule should persist");
+        assert_eq!(
+            configured_snapshot.repositories[0]
+                .release_rule
+                .as_ref()
+                .map(|rule| rule.operator.as_str()),
+            Some("AND")
+        );
+        let configured_preparation =
+            prepare_repository_at(&database, &repository_id, Some(&workspace_id))
+                .expect("configured preparation should be deterministic");
+        assert_eq!(
+            configured_preparation.release.rule_status,
+            "Configured release threshold met"
+        );
+        assert_eq!(configured_preparation.release.rule_trace.len(), 3);
+        assert!(configured_preparation
+            .release
+            .rule_trace
+            .iter()
+            .all(|trace| trace.status == "Passed"));
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 

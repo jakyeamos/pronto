@@ -17,6 +17,15 @@ export interface ProductConfig {
   updated_at: string;
 }
 
+export interface ReleaseRuleConfig {
+  name: string;
+  operator: "AND" | "OR" | string;
+  min_commits?: number;
+  min_elapsed_days?: number;
+  required_commit_types: string[];
+  allow_first_release: boolean;
+}
+
 export interface GroupConfig {
   id: string;
   name: string;
@@ -209,6 +218,7 @@ export interface RepositorySnapshot {
   submodules: SubmoduleSummary[];
   pull_requests: PullRequestSnapshot[];
   releases: ReleaseSnapshot[];
+  release_rule?: ReleaseRuleConfig;
   conditions: Condition[];
   last_scan_at: string;
   last_fetch_at?: string;
@@ -248,6 +258,13 @@ export interface ReleaseNoteSection {
   commits: ReleaseCommitSummary[];
 }
 
+export interface ReleaseRuleTrace {
+  label: string;
+  status: string;
+  value: string;
+  source: string;
+}
+
 export interface ReleasePreparation {
   repository_id: string;
   target_branch?: string;
@@ -256,6 +273,7 @@ export interface ReleasePreparation {
   commits_since_baseline: ReleaseCommitSummary[];
   rule_status: string;
   threshold_label?: string;
+  rule_trace: ReleaseRuleTrace[];
   candidate_bump?: string;
   candidate_version?: string;
   version_status: string;

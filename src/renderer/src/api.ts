@@ -5,6 +5,7 @@ import type {
   ExternalTool,
   PortfolioSnapshot,
   RepositoryPreparation,
+  ReleaseRuleConfig,
 } from "./types";
 
 const emptySnapshot: PortfolioSnapshot = {
@@ -81,6 +82,19 @@ export async function prepareRepository(
   return invoke<RepositoryPreparation>("prepare_repository", {
     repository_id: repositoryId,
     workspace_id: workspaceId,
+  });
+}
+
+export async function setReleaseRule(
+  repositoryId: string,
+  releaseRule: ReleaseRuleConfig | null,
+): Promise<PortfolioSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Release rules are available in the Pronto desktop app.");
+  }
+  return invoke<PortfolioSnapshot>("set_release_rule", {
+    repository_id: repositoryId,
+    release_rule: releaseRule,
   });
 }
 

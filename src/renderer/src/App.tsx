@@ -38,6 +38,7 @@ import type {
   PortfolioSnapshot,
   RepositoryPreparation,
   RepositorySnapshot,
+  ReleaseRuleConfig,
 } from "./types";
 import "./styles.css";
 
@@ -238,6 +239,18 @@ export function App(): ReactElement {
       }
     },
     [selectedRepository],
+  );
+
+  const handleSaveReleaseRule = useCallback(
+    async (releaseRule: ReleaseRuleConfig | null): Promise<void> => {
+      if (!selectedRepository) return;
+      await loadSnapshot(() =>
+        api.setReleaseRule(selectedRepository.id, releaseRule),
+      );
+      setSelectedPreparation(null);
+      setSelectedRepository(null);
+    },
+    [loadSnapshot, selectedRepository],
   );
 
   const repositories = useMemo(() => {
@@ -480,6 +493,7 @@ export function App(): ReactElement {
         }}
         onOpenWorkspace={handleOpenWorkspace}
         onPrepareRepository={handlePrepareRepository}
+        onSaveReleaseRule={handleSaveReleaseRule}
         onLifecycleChange={async (lifecycle) => {
           if (!selectedRepository) return;
           await loadSnapshot(() =>

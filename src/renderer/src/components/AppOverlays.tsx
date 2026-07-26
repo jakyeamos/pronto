@@ -4,6 +4,7 @@ import { PreparationDrawer } from "./PreparationDrawer";
 import type {
   Condition,
   ExternalTool,
+  ReleaseRuleConfig,
   RepositoryPreparation,
   RepositorySnapshot,
 } from "../types";
@@ -25,6 +26,7 @@ export function AppOverlays({
   onCloseRepository,
   onOpenWorkspace,
   onPrepareRepository,
+  onSaveReleaseRule,
   onLifecycleChange,
   onCondition,
   onCloseEvidence,
@@ -37,6 +39,7 @@ export function AppOverlays({
   onCloseRepository: () => void;
   onOpenWorkspace: (workspaceId: string, tool: ExternalTool) => Promise<void>;
   onPrepareRepository: (workspaceId?: string) => Promise<void>;
+  onSaveReleaseRule: (rule: ReleaseRuleConfig | null) => Promise<void>;
   onLifecycleChange: (lifecycle: string) => Promise<void>;
   onCondition: (condition: Condition) => void;
   onCloseEvidence: () => void;
@@ -68,6 +71,7 @@ export function AppOverlays({
           repository={selectedPreparation.repository}
           preparation={selectedPreparation.preparation}
           onClose={onClosePreparation}
+          onSaveReleaseRule={onSaveReleaseRule}
         />
       )}
     </>
