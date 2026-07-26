@@ -4,27 +4,29 @@
 
 - The first local-first Pronto desktop vertical slice is implemented on `main`.
 - Tauri + React/TypeScript provides the desktop shell and portfolio console.
-- Native Rust discovers repositories and linked worktrees, scans structured Git state, persists snapshots and transition events, and exposes Tauri plus read-only CLI commands.
+- Native Rust discovers repositories and linked worktrees, scans structured Git state, persists snapshots, transition events, and action audits, and exposes Tauri plus read-only CLI commands.
 - The repository-selection Git environment is sanitized before native Git calls so hook variables cannot redirect scans or fixtures.
 - A canonical PRD behavior inventory, coverage boundary sheet, delivery plan, and verification matrix are committed at `docs/pronto-behavior-spec.xlsx`; the workbook now tracks 34 behaviors through implementation snapshot `d332573`.
 - The local desktop surface now has truthful navigation boundaries, Activity and Settings views, Cmd/Ctrl-K search focus, Escape drawer dismissal, freshness copy, and distinct filtered-empty states.
 - Local durable state now uses a versioned SQLite database with non-destructive import from the legacy JSON registry; renderer and CLI snapshot contracts are unchanged.
+- Safe local refresh/inspect preflights now use an explicit allowlist, exact root/repository target IDs, blocked-action records, and durable SQLite audit history; no destructive Git or provider-write action is exposed.
 
 ## Current Position
 
 - Branch: `main`
-- Implementation and documentation commits: `1817527`, `ef6ea99`, `73c28e5`, `533c2f5`, `885fe1e`, `faf0d99`, `d332573`, `f01c627`
-- Verification for the current slice: 6 Rust tests, hook-mode `pnpm test`, cargo fmt, cargo check, typecheck, lint, Prettier, renderer production build, full Tauri app/DMG build, `git diff --check`, and source-delta Pre-CR all passed; the refreshed workbook passed artifact inspection, three-sheet visual review, and a zero formula-error scan; commit-time quality gates also passed.
-- Next deliverable: safe local action preflight and audit records without enabling destructive Git operations.
+- Implementation and documentation commits: `1817527`, `ef6ea99`, `73c28e5`, `533c2f5`, `885fe1e`, `faf0d99`, `d332573`, `f01c627`, `b13de08`
+- Verification for `b13de08`: 9 Rust tests, hook-mode `pnpm test`, cargo fmt, offline cargo check, typecheck, lint, Prettier, renderer production build, `git diff --check`, and commit-time source-delta Pre-CR all passed. The full Tauri app/DMG build and refreshed workbook remain final handoff gates.
+- Next deliverable: read-only provider context after the local action boundary is reviewed; modifying Git actions remain deferred.
 
 ## Blockers
 
-- GitHub identity/provider refresh, remote catalog and clone, action execution/audit, pull requests, releases, process/terminal integration, products/groups, and opt-in AI remain explicit deferred boundaries from the implementation plan.
+- GitHub identity/provider refresh, remote catalog and clone, modifying action execution, pull requests, releases, process/terminal integration, products/groups, and opt-in AI remain explicit deferred boundaries from the implementation plan.
 
 ## Risks
 
 - Folder-picker and full Tauri UI interaction still need live desktop verification.
-- The SQLite schema is versioned and rejects unknown versions; future schema migrations still need explicit migration steps rather than silent compatibility assumptions.
+- The SQLite schema is now at version 2 with an explicit v1 migration for action audits and rejects unknown versions; future schema migrations still need explicit migration steps rather than silent compatibility assumptions.
+- Action audit identifiers and transition event identifiers use process-local sequences to avoid same-second collisions; cross-process concurrency is not yet a supported store mode.
 - Pre-CR is configured with a zero-threshold no-instrumentation adapter; functional tests, typechecks, and builds are the evidence gates until a real coverage instrumenter is added.
 
 ## Recent Progress
@@ -40,3 +42,4 @@
 | 2026-07-25 | Replaced JSON persistence with versioned SQLite and added legacy import coverage. | `d332573`; 6 Rust tests passed          |
 | 2026-07-25 | Refreshed behavior coverage for SQLite and updated the next action gate.          | `f01c627`; artifact inspect passed      |
 | 2026-07-25 | Verified the full Tauri app/DMG build and hook-mode test path.                    | Release bundle; 6 Rust tests passed     |
+| 2026-07-25 | Added read-only action preflight, durable audit records, schema v2 migration, and collision-safe event IDs. | `b13de08`; 9 Rust tests and commit gates passed |
