@@ -14,7 +14,7 @@
 
 - Branch: `main`
 - Implementation and documentation commits: `1817527`, `ef6ea99`, `73c28e5`, `533c2f5`, `885fe1e`, `faf0d99`, `d332573`, `f01c627`
-- Verification for the current slice: 6 Rust tests, cargo fmt, cargo check, typecheck, lint, Prettier, renderer production build, `git diff --check`, and source-delta Pre-CR all passed; the workbook passed artifact inspection, three-sheet visual review, and a zero formula-error scan; commit-time quality gates also passed.
+- Verification for the current slice: 6 Rust tests, hook-mode `pnpm test`, cargo fmt, cargo check, typecheck, lint, Prettier, renderer production build, full Tauri app/DMG build, `git diff --check`, and source-delta Pre-CR all passed; the refreshed workbook passed artifact inspection, three-sheet visual review, and a zero formula-error scan; commit-time quality gates also passed.
 - Next deliverable: safe local action preflight and audit records without enabling destructive Git operations.
 
 ## Blockers
@@ -39,3 +39,4 @@
 | 2026-07-25 | Refreshed the behavior workbook for the UX slice and accepted delivery decisions. | `faf0d99`; 34 rows, zero formula errors |
 | 2026-07-25 | Replaced JSON persistence with versioned SQLite and added legacy import coverage. | `d332573`; 6 Rust tests passed          |
 | 2026-07-25 | Refreshed behavior coverage for SQLite and updated the next action gate.          | `f01c627`; artifact inspect passed      |
+| 2026-07-25 | Verified the full Tauri app/DMG build and hook-mode test path.                    | Release bundle; 6 Rust tests passed     |
