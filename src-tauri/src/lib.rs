@@ -1,5 +1,7 @@
+pub mod connections;
 pub mod core;
 pub mod quality;
+pub mod remediation;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -17,9 +19,22 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             core::get_snapshot,
+            core::get_analytics,
             core::register_root,
             core::refresh,
+            core::refresh_connections,
+            core::upsert_connection_node,
+            core::delete_connection_node,
+            core::upsert_connection,
+            core::delete_connection,
+            core::upsert_workflow,
+            core::delete_workflow,
+            core::set_connection_review,
+            core::set_connection_adapter_enabled,
             core::refresh_github,
+            core::refresh_remediation,
+            core::set_remediation_action_status,
+            core::export_remediation,
             core::set_maturity_audit_root,
             core::open_quality_report,
             core::open_workspace,

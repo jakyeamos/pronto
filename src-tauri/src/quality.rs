@@ -2,11 +2,34 @@ use crate::core::{CheckSnapshot, RemoteRepositorySnapshot, RepositorySnapshot};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::{BTreeMap, HashMap};
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 pub const MAX_EVIDENCE_AGE_DAYS: i64 = 7;
+pub const CANONICAL_MATURITY_FEED_RELATIVE_PATH: &str =
+    ".quality-runner/fleet-audit/current/maturity.json";
+const MATURITY_FEED_SCHEMA: &str = "quality-runner-maturity-feed/v1";
+const MATURITY_FEED_STATUS: [&str; 2] = ["completed", "complete_with_blockers"];
+const MATURITY_FEED_FORBIDDEN_KEYS: [&str; 15] = [
+    "prompt",
+    "prompts",
+    "raw_prompt",
+    "raw_prompts",
+    "code",
+    "diff",
+    "diffs",
+    "raw_code",
+    "raw_diff",
+    "raw_diffs",
+    "transcript",
+    "transcripts",
+    "raw_transcript",
+    "raw_transcripts",
+    "credential",
+];
 
 const CANONICAL_GATE_DEFINITIONS: [(&str, &str); 8] = [
     ("build", "Build"),
@@ -30,6 +53,19 @@ const CI_READINESS_BASELINE_GATE_IDS: [&str; 6] = [
 ];
 const CI_READINESS_CONDITIONAL_GATE_IDS: [&str; 3] =
     ["runtime_smoke", "dead_code", "dependency_audit"];
+const RECOMMENDATION_MATRIX_MARKDOWN: &str =
+    include_str!("../../docs/quality-gate-recommendation-matrix.md");
+const RECOMMENDATION_MATRIX_GATE_COLUMNS: [(&str, usize); 9] = [
+    ("build", 2),
+    ("tests", 3),
+    ("runtime_smoke", 4),
+    ("lint", 5),
+    ("formatter", 6),
+    ("typecheck", 7),
+    ("dead_code", 8),
+    ("secrets_scan", 9),
+    ("dependency_audit", 10),
+];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum QualityGateStatus {
@@ -176,6 +212,8 @@ pub struct QualityMaturity {
     pub score: Option<f64>,
     pub score_display: Option<String>,
     pub scored_dimension_count: Option<u64>,
+    #[serde(default)]
+    pub dimension_scores: BTreeMap<String, f64>,
     pub audit_id: Option<String>,
     pub observed_at: Option<String>,
     pub freshness: QualityFreshness,
@@ -188,6 +226,7 @@ impl Default for QualityMaturity {
             score: None,
             score_display: None,
             scored_dimension_count: None,
+            dimension_scores: BTreeMap::new(),
             audit_id: None,
             observed_at: None,
             freshness: QualityFreshness::Unknown,
@@ -201,7 +240,18 @@ impl Default for QualityMaturity {
 pub struct QualityReadiness {
     pub score: Option<f64>,
     pub score_display: Option<String>,
+    #[serde(default)]
+    pub configuration_score: Option<f64>,
+    #[serde(default)]
+    pub configuration_score_display: Option<String>,
     pub applicable_gate_ids: Vec<String>,
+    #[serde(default)]
+    pub configured_gate_ids: Vec<String>,
+    #[serde(default)]
+    pub unconfigured_gate_ids: Vec<String>,
+    pub covered_gate_ids: Vec<String>,
+    #[serde(default)]
+    pub fresh_passing_gate_ids: Vec<String>,
     pub missing_gate_ids: Vec<String>,
     pub stale_gate_ids: Vec<String>,
     pub failed_gate_ids: Vec<String>,
@@ -213,7 +263,13 @@ impl Default for QualityReadiness {
         Self {
             score: None,
             score_display: None,
+            configuration_score: None,
+            configuration_score_display: None,
             applicable_gate_ids: Vec::new(),
+            configured_gate_ids: Vec::new(),
+            unconfigured_gate_ids: Vec::new(),
+            covered_gate_ids: Vec::new(),
+            fresh_passing_gate_ids: Vec::new(),
             missing_gate_ids: Vec::new(),
             stale_gate_ids: Vec::new(),
             failed_gate_ids: Vec::new(),
@@ -268,7 +324,27 @@ pub struct QualityPortfolioSnapshot {
     #[serde(default)]
     pub ci_readiness_repository_count: usize,
     #[serde(default)]
+    pub ci_readiness_unscored_repository_count: usize,
+    #[serde(default)]
     pub ci_readiness_open_gate_counts: BTreeMap<String, u64>,
+    #[serde(default)]
+    pub ci_evidence_fresh_passing_gate_count: usize,
+    #[serde(default)]
+    pub ci_evidence_ideal_gate_count: usize,
+    #[serde(default)]
+    pub ci_configuration_configured_gate_count: usize,
+    #[serde(default)]
+    pub ci_configuration_ideal_gate_count: usize,
+    #[serde(default)]
+    pub ci_configuration_full_repository_count: usize,
+    #[serde(default)]
+    pub ci_configuration_repository_count: usize,
+    #[serde(default)]
+    pub ci_configuration_unscored_repository_count: usize,
+    #[serde(default)]
+    pub feed_schema: Option<String>,
+    #[serde(default)]
+    pub provenance_hash: Option<String>,
 }
 
 impl Default for QualityPortfolioSnapshot {
@@ -287,7 +363,17 @@ impl Default for QualityPortfolioSnapshot {
             ci_readiness_score_display: None,
             ci_readiness_full_repository_count: 0,
             ci_readiness_repository_count: 0,
+            ci_readiness_unscored_repository_count: 0,
             ci_readiness_open_gate_counts: BTreeMap::new(),
+            ci_evidence_fresh_passing_gate_count: 0,
+            ci_evidence_ideal_gate_count: 0,
+            ci_configuration_configured_gate_count: 0,
+            ci_configuration_ideal_gate_count: 0,
+            ci_configuration_full_repository_count: 0,
+            ci_configuration_repository_count: 0,
+            ci_configuration_unscored_repository_count: 0,
+            feed_schema: None,
+            provenance_hash: None,
         }
     }
 }
@@ -296,6 +382,156 @@ impl Default for QualityPortfolioSnapshot {
 pub struct AuditImport {
     pub portfolio: QualityPortfolioSnapshot,
     pub maturities: HashMap<String, QualityMaturity>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FleetAuditEvidence {
+    pub maturity: QualityMaturity,
+    pub findings: QualityFindings,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct FleetAuditImport {
+    pub audit_id: Option<String>,
+    pub observed_at: Option<String>,
+    pub evidence: HashMap<String, FleetAuditEvidence>,
+}
+
+pub fn canonical_maturity_feed_path() -> Option<PathBuf> {
+    dirs::home_dir().map(|home| home.join(CANONICAL_MATURITY_FEED_RELATIVE_PATH))
+}
+
+pub fn fleet_audit_import(
+    root: Option<&Path>,
+    repositories: &[RepositorySnapshot],
+) -> FleetAuditImport {
+    let Some(root) = root else {
+        return FleetAuditImport::default();
+    };
+    let summary = read_json(&root.join("summary.json"));
+    let audit_id = summary
+        .as_ref()
+        .and_then(|value| json_string_at(value, &["audit_id"]));
+    let observed_at = summary
+        .as_ref()
+        .and_then(|value| json_string_at(value, &["as_of"]));
+    let Some(entries) = fs::read_dir(root.join("findings")).ok() else {
+        return FleetAuditImport {
+            audit_id,
+            observed_at,
+            evidence: HashMap::new(),
+        };
+    };
+    let mut evidence = HashMap::new();
+    for entry in entries.filter_map(Result::ok) {
+        let path = entry.path();
+        if path.extension().and_then(|value| value.to_str()) != Some("json") {
+            continue;
+        }
+        let Some(payload) = read_json(&path) else {
+            continue;
+        };
+        let repository_payload = payload.get("repository");
+        let candidate_path = repository_payload
+            .and_then(|value| json_string_at(value, &["primary_path"]))
+            .or_else(|| {
+                repository_payload
+                    .and_then(|value| value.get("checkouts"))
+                    .and_then(Value::as_array)
+                    .and_then(|checkouts| checkouts.first())
+                    .and_then(|checkout| json_string_at(checkout, &["path"]))
+            });
+        let candidate_remote = repository_payload.and_then(|value| {
+            ["identity_key", "remote_url", "remote_identity"]
+                .iter()
+                .find_map(|key| json_string_at(value, &[key]))
+        });
+        let Some(repository) = repositories.iter().find(|repository| {
+            canonical_path_matches(candidate_path.as_deref(), &repository.path)
+                || candidate_remote
+                    .as_deref()
+                    .and_then(remote_identity)
+                    .zip(repository.remote_url.as_deref().and_then(remote_identity))
+                    .is_some_and(|(candidate, local)| candidate == local)
+        }) else {
+            continue;
+        };
+        let run_id = payload
+            .get("audit_id")
+            .and_then(Value::as_str)
+            .map(str::to_string)
+            .or_else(|| audit_id.clone())
+            .unwrap_or_else(|| path.display().to_string());
+        let run_observed_at = payload
+            .get("as_of")
+            .and_then(Value::as_str)
+            .map(str::to_string)
+            .or_else(|| observed_at.clone());
+        let checkouts = repository_payload
+            .and_then(|value| value.get("checkouts"))
+            .and_then(Value::as_array);
+        let checkout = checkouts.and_then(|items| items.first());
+        let scanned_commit = checkout
+            .and_then(|value| json_string_at(value, &["head"]))
+            .or_else(|| checkout.and_then(|value| json_string_at(value, &["fingerprint", "head"])));
+        let scanned_branch = checkout.and_then(|value| json_string_at(value, &["branch"]));
+        let findings = payload
+            .get("findings")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        let (dimension_scores, derived_score) = fleet_dimension_scores(&findings);
+        let score = payload
+            .get("mean_maturity")
+            .and_then(Value::as_f64)
+            .or(derived_score);
+        let maturity = QualityMaturity {
+            score,
+            score_display: score.map(|value| format!("{value:.3}")),
+            scored_dimension_count: Some(dimension_scores.len() as u64),
+            dimension_scores,
+            audit_id: Some(run_id.clone()),
+            observed_at: run_observed_at.clone(),
+            freshness: evaluate_audit_freshness_at(run_observed_at.as_deref(), Utc::now()),
+            report_path: Some(path.to_string_lossy().to_string()),
+        };
+        let severity_counts = fleet_severity_counts(&findings);
+        let high_severity_total = severity_counts
+            .iter()
+            .filter(|(severity, _)| matches!(severity.as_str(), "critical" | "high"))
+            .map(|(_, count)| *count)
+            .sum();
+        let findings_freshness = evaluate_freshness_at(
+            run_observed_at.as_deref(),
+            scanned_commit.as_deref(),
+            scanned_branch.as_deref(),
+            repository.workspace.last_commit.as_deref(),
+            Some(repository.branch.as_str()),
+            Utc::now(),
+        );
+        evidence.insert(
+            repository.id.clone(),
+            FleetAuditEvidence {
+                maturity,
+                findings: QualityFindings {
+                    total: findings.len() as u64,
+                    severity_counts,
+                    high_severity_total,
+                    source: Some(QualitySource::Qr),
+                    observed_at: run_observed_at.clone(),
+                    scanned_commit,
+                    scanned_branch,
+                    freshness: findings_freshness,
+                    report_path: Some(path.to_string_lossy().to_string()),
+                },
+            },
+        );
+    }
+    FleetAuditImport {
+        audit_id,
+        observed_at,
+        evidence,
+    }
 }
 
 pub fn default_quality_gates() -> Vec<QualityGate> {
@@ -328,21 +564,86 @@ pub fn evaluate_ci_readiness(gates: &[QualityGate]) -> QualityReadiness {
             .map(|id| (*id).to_string()),
     );
 
+    let configured_gate_ids = gates
+        .iter()
+        .filter(|gate| !gate.evidence.is_empty())
+        .map(|gate| gate.id.clone())
+        .collect::<Vec<_>>();
+    let mut readiness = evaluate_ci_readiness_for_ideal_with_configuration(
+        gates,
+        &applicable_gate_ids,
+        &configured_gate_ids,
+    );
+    let passing_gate_count = applicable_gate_ids
+        .iter()
+        .filter(|gate_id| {
+            gates.iter().any(|gate| {
+                gate.id == **gate_id
+                    && gate.status == QualityGateStatus::Passed
+                    && gate.freshness == QualityFreshness::Fresh
+            })
+        })
+        .count();
+    readiness.score = (applicable_gate_ids.len() > 0).then(|| {
+        let score = (passing_gate_count as f64 / applicable_gate_ids.len() as f64) * 4.0;
+        (score * 100.0).round() / 100.0
+    });
+    readiness.score_display = readiness.score.map(format_quality_score);
+    readiness
+}
+
+pub fn evaluate_ci_readiness_for_ideal(
+    gates: &[QualityGate],
+    ideal_gate_ids: &[String],
+) -> QualityReadiness {
+    let configured_gate_ids = gates
+        .iter()
+        .filter(|gate| !gate.evidence.is_empty())
+        .map(|gate| gate.id.clone())
+        .collect::<Vec<_>>();
+    evaluate_ci_readiness_for_ideal_with_configuration(gates, ideal_gate_ids, &configured_gate_ids)
+}
+
+pub fn evaluate_ci_readiness_for_ideal_with_configuration(
+    gates: &[QualityGate],
+    ideal_gate_ids: &[String],
+    configured_gate_ids: &[String],
+) -> QualityReadiness {
+    let mut applicable_gate_ids = Vec::new();
+    let mut seen_gate_ids = HashSet::new();
+    for gate_id in ideal_gate_ids {
+        let normalized_gate_id = normalize_gate_id(gate_id);
+        if seen_gate_ids.insert(normalized_gate_id.clone()) {
+            applicable_gate_ids.push(normalized_gate_id);
+        }
+    }
     let mut readiness = QualityReadiness {
         applicable_gate_ids: applicable_gate_ids.clone(),
         ..QualityReadiness::default()
     };
-    let mut passing_gate_count = 0usize;
+    let configured_gate_ids = configured_gate_ids
+        .iter()
+        .map(|gate_id| normalize_gate_id(gate_id))
+        .collect::<HashSet<_>>();
 
     for gate_id in &applicable_gate_ids {
+        if configured_gate_ids.contains(gate_id) {
+            readiness.configured_gate_ids.push(gate_id.clone());
+        } else {
+            readiness.unconfigured_gate_ids.push(gate_id.clone());
+        }
         let Some(gate) = gates.iter().find(|gate| gate.id == *gate_id) else {
             readiness.missing_gate_ids.push(gate_id.clone());
             continue;
         };
+        if gate.status != QualityGateStatus::NotConfigured && !gate.evidence.is_empty() {
+            readiness.covered_gate_ids.push(gate_id.clone());
+        }
+        if gate.status == QualityGateStatus::Passed && gate.freshness == QualityFreshness::Fresh {
+            readiness.fresh_passing_gate_ids.push(gate_id.clone());
+        }
         match gate.status {
-            QualityGateStatus::Passed if gate.freshness == QualityFreshness::Fresh => {
-                passing_gate_count += 1;
-            }
+            QualityGateStatus::Passed if gate.freshness == QualityFreshness::Fresh => {}
             QualityGateStatus::Passed => readiness.stale_gate_ids.push(gate_id.clone()),
             QualityGateStatus::Failed => readiness.failed_gate_ids.push(gate_id.clone()),
             QualityGateStatus::Blocked => readiness.blocked_gate_ids.push(gate_id.clone()),
@@ -352,12 +653,71 @@ pub fn evaluate_ci_readiness(gates: &[QualityGate]) -> QualityReadiness {
 
     let applicable_gate_count = applicable_gate_ids.len();
     if applicable_gate_count > 0 {
-        let score = (passing_gate_count as f64 / applicable_gate_count as f64) * 4.0;
+        let configuration_score =
+            (readiness.configured_gate_ids.len() as f64 / applicable_gate_count as f64) * 4.0;
+        let configuration_score = (configuration_score * 100.0).round() / 100.0;
+        readiness.configuration_score = Some(configuration_score);
+        readiness.configuration_score_display = Some(format_quality_score(configuration_score));
+        let score = (readiness.covered_gate_ids.len() as f64 / applicable_gate_count as f64) * 4.0;
         let score = (score * 100.0).round() / 100.0;
         readiness.score = Some(score);
         readiness.score_display = Some(format_quality_score(score));
     }
     readiness
+}
+
+fn normalize_repository_key(value: &str) -> String {
+    value
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_ascii_lowercase()
+}
+
+fn recommendation_matrix_profiles() -> Vec<(String, Vec<String>)> {
+    RECOMMENDATION_MATRIX_MARKDOWN
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            if !line.starts_with('|') || !line.ends_with('|') {
+                return None;
+            }
+            let cells = line[1..line.len() - 1]
+                .split('|')
+                .map(str::trim)
+                .collect::<Vec<_>>();
+            if cells.len() < 11
+                || cells[0] == "Project"
+                || cells[0].chars().all(|character| character == '-')
+            {
+                return None;
+            }
+            let project = normalize_repository_key(cells[0]);
+            if project.is_empty() || matches!(cells[1], "PENDING" | "FIXTURE?") {
+                return Some((project, Vec::new()));
+            }
+            let ideal_gate_ids = RECOMMENDATION_MATRIX_GATE_COLUMNS
+                .iter()
+                .filter_map(|(gate_id, column)| {
+                    matches!(cells[*column], "K" | "N" | "A" | "C").then(|| (*gate_id).to_string())
+                })
+                .collect::<Vec<_>>();
+            Some((project, ideal_gate_ids))
+        })
+        .collect()
+}
+
+pub fn ideal_gate_ids_for_repository(repository: &RepositorySnapshot) -> Option<Vec<String>> {
+    let key = normalize_repository_key(&repository.name);
+    let matches = recommendation_matrix_profiles()
+        .into_iter()
+        .filter(|(project, _)| project == &key)
+        .collect::<Vec<_>>();
+    if matches.len() != 1 {
+        return None;
+    }
+    let ideal_gate_ids = matches.into_iter().next()?.1;
+    (!ideal_gate_ids.is_empty()).then_some(ideal_gate_ids)
 }
 
 pub fn update_ci_readiness_summary(
@@ -369,6 +729,8 @@ pub fn update_ci_readiness_summary(
         .filter_map(|repository| repository.quality.ci_readiness.score)
         .collect::<Vec<_>>();
     portfolio.ci_readiness_repository_count = scores.len();
+    portfolio.ci_readiness_unscored_repository_count =
+        repositories.len().saturating_sub(scores.len());
     portfolio.ci_readiness_full_repository_count =
         scores.iter().filter(|score| **score >= 4.0).count();
     portfolio.ci_readiness_score = if scores.is_empty() {
@@ -378,6 +740,45 @@ pub fn update_ci_readiness_summary(
         Some((score * 100.0).round() / 100.0)
     };
     portfolio.ci_readiness_score_display = portfolio.ci_readiness_score.map(format_quality_score);
+    portfolio.ci_evidence_fresh_passing_gate_count = repositories
+        .iter()
+        .map(|repository| repository.quality.ci_readiness.fresh_passing_gate_ids.len())
+        .sum();
+    portfolio.ci_evidence_ideal_gate_count = repositories
+        .iter()
+        .map(|repository| repository.quality.ci_readiness.applicable_gate_ids.len())
+        .sum();
+    portfolio.ci_configuration_configured_gate_count = repositories
+        .iter()
+        .map(|repository| repository.quality.ci_readiness.configured_gate_ids.len())
+        .sum();
+    portfolio.ci_configuration_ideal_gate_count = repositories
+        .iter()
+        .map(|repository| repository.quality.ci_readiness.applicable_gate_ids.len())
+        .sum();
+    let configured_profiles = repositories
+        .iter()
+        .filter(|repository| {
+            !repository
+                .quality
+                .ci_readiness
+                .applicable_gate_ids
+                .is_empty()
+        })
+        .collect::<Vec<_>>();
+    portfolio.ci_configuration_repository_count = configured_profiles.len();
+    portfolio.ci_configuration_unscored_repository_count =
+        repositories.len().saturating_sub(configured_profiles.len());
+    portfolio.ci_configuration_full_repository_count = configured_profiles
+        .iter()
+        .filter(|repository| {
+            repository
+                .quality
+                .ci_readiness
+                .unconfigured_gate_ids
+                .is_empty()
+        })
+        .count();
     portfolio.ci_readiness_open_gate_counts = BTreeMap::new();
     for repository in repositories {
         let readiness = &repository.quality.ci_readiness;
@@ -570,20 +971,25 @@ pub fn ingest_repository_quality(
     repository: &RepositorySnapshot,
     remote: Option<&RemoteRepositorySnapshot>,
     maturity: Option<QualityMaturity>,
+    ideal_gate_ids: Option<&[String]>,
 ) -> QualitySnapshot {
     let mut gates = default_quality_gates();
     let mut findings = QualityFindings::default();
     let mut last_ingested_at = None;
+    let mut configured_gate_ids = Vec::new();
 
     if let Some(run) = latest_qr_run(Path::new(&repository.path)) {
         last_ingested_at = run.observed_at.clone();
+        configured_gate_ids.extend(run.configured_gate_ids());
         for evidence in run.gate_evidence(repository) {
+            configured_gate_ids.push(evidence.id.clone());
             add_evidence(&mut gates, evidence);
         }
         findings = run.findings(repository);
     }
 
     for evidence in ci_evidence(repository, remote) {
+        configured_gate_ids.push(evidence.id.clone());
         add_evidence(&mut gates, evidence);
     }
 
@@ -592,7 +998,15 @@ pub fn ingest_repository_quality(
         gate.status = status;
         gate.freshness = freshness;
     }
-    let ci_readiness = evaluate_ci_readiness(&gates);
+    let ci_readiness = ideal_gate_ids
+        .map(|gate_ids| {
+            evaluate_ci_readiness_for_ideal_with_configuration(
+                &gates,
+                gate_ids,
+                &configured_gate_ids,
+            )
+        })
+        .unwrap_or_default();
     let maturity_available = maturity.is_some();
     let evidence_available =
         gates.iter().any(|gate| !gate.evidence.is_empty()) || findings.total > 0;
@@ -783,6 +1197,7 @@ pub fn audit_import(root: Option<&Path>, repositories: &[RepositorySnapshot]) ->
                 score: finding.mean_maturity,
                 score_display: finding.mean_maturity_display.clone(),
                 scored_dimension_count: finding.scored_dimension_count,
+                dimension_scores: finding.dimension_scores.clone(),
                 audit_id: run.audit_id.clone(),
                 observed_at: run.as_of.clone(),
                 freshness: evaluate_audit_freshness_at(run.as_of.as_deref(), Utc::now()),
@@ -796,6 +1211,366 @@ pub fn audit_import(root: Option<&Path>, repositories: &[RepositorySnapshot]) ->
         portfolio,
         maturities: matches,
     }
+}
+
+pub fn maturity_feed_import(
+    feed_path: Option<&Path>,
+    repositories: &[RepositorySnapshot],
+) -> AuditImport {
+    let Some(feed_path) = feed_path else {
+        return AuditImport::default();
+    };
+    let mut portfolio = QualityPortfolioSnapshot {
+        audit_root: Some(feed_path.to_string_lossy().to_string()),
+        ..QualityPortfolioSnapshot::default()
+    };
+    if !feed_path.is_file() || feed_path.is_symlink() {
+        portfolio.audit_status = "Unavailable".to_string();
+        return AuditImport {
+            portfolio,
+            maturities: HashMap::new(),
+        };
+    }
+    let Some(feed) = read_json(feed_path) else {
+        portfolio.audit_status = "Unavailable".to_string();
+        return AuditImport {
+            portfolio,
+            maturities: HashMap::new(),
+        };
+    };
+    if !validate_maturity_feed(&feed) {
+        portfolio.audit_status = "Unavailable".to_string();
+        return AuditImport {
+            portfolio,
+            maturities: HashMap::new(),
+        };
+    }
+
+    let source = feed.get("source").and_then(Value::as_object);
+    let audit_id = source
+        .and_then(|value| value.get("audit_id"))
+        .and_then(Value::as_str);
+    let as_of = source
+        .and_then(|value| value.get("as_of"))
+        .and_then(Value::as_str);
+    let freshness = evaluate_audit_freshness_at(as_of, Utc::now());
+    let feed_status = feed
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    portfolio.feed_schema = feed
+        .get("schema")
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    portfolio.provenance_hash = feed
+        .get("provenance_hash")
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    portfolio.latest_audit_id = audit_id.map(str::to_string);
+    portfolio.latest_audit_at = as_of.map(str::to_string);
+    portfolio.latest_audit_path = Some(feed_path.to_string_lossy().to_string());
+    portfolio.maturity_score = feed.get("mean_maturity").and_then(Value::as_f64);
+    portfolio.maturity_score_display = portfolio.maturity_score.map(|score| format!("{score:.3}"));
+    portfolio.scored_dimension_count = Some(feed_scored_dimension_count(&feed));
+    portfolio.audit_status = match freshness {
+        QualityFreshness::Fresh if feed_status == "complete_with_blockers" => {
+            "Ready with blockers".to_string()
+        }
+        QualityFreshness::Fresh => "Ready".to_string(),
+        QualityFreshness::Stale => "Stale".to_string(),
+        QualityFreshness::Unknown | QualityFreshness::Conflicted => "Unknown".to_string(),
+    };
+
+    let projections = feed
+        .get("repositories")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|value| value.as_object())
+        .collect::<Vec<_>>();
+    let mut matches = HashMap::new();
+    for repository in repositories {
+        let stable_id = repository_feed_id(repository);
+        let projection = projections
+            .iter()
+            .find(|projection| {
+                projection.get("repo_id").and_then(Value::as_str) == Some(stable_id.as_str())
+            })
+            .or_else(|| {
+                projections.iter().find(|projection| {
+                    projection
+                        .get("local_identity")
+                        .and_then(|value| value.get("primary_path"))
+                        .and_then(Value::as_str)
+                        .is_some_and(|path| canonical_path_matches(Some(path), &repository.path))
+                })
+            });
+        let Some(projection) = projection else {
+            continue;
+        };
+        let score = projection.get("maturity_score").and_then(Value::as_f64);
+        let projection_freshness = if score.is_some() {
+            freshness.clone()
+        } else {
+            QualityFreshness::Unknown
+        };
+        let maturity = QualityMaturity {
+            score,
+            score_display: score.map(|value| format!("{value:.3}")),
+            scored_dimension_count: projection
+                .get("dimension_scores")
+                .and_then(Value::as_object)
+                .map(|scores| scores.values().filter(|value| value.is_number()).count() as u64),
+            dimension_scores: projection
+                .get("dimension_scores")
+                .and_then(Value::as_object)
+                .map(|scores| {
+                    scores
+                        .iter()
+                        .filter_map(|(dimension, score)| {
+                            score.as_f64().map(|value| (dimension.clone(), value))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+            audit_id: audit_id.map(str::to_string),
+            observed_at: as_of.map(str::to_string),
+            freshness: projection_freshness,
+            report_path: Some(feed_path.to_string_lossy().to_string()),
+        };
+        matches.insert(repository.id.clone(), maturity);
+    }
+    portfolio.matched_repository_count = matches.len();
+    AuditImport {
+        portfolio,
+        maturities: matches,
+    }
+}
+
+fn validate_maturity_feed(feed: &Value) -> bool {
+    let Some(feed) = feed.as_object() else {
+        return false;
+    };
+    if feed.get("schema").and_then(Value::as_str) != Some(MATURITY_FEED_SCHEMA)
+        || !feed
+            .get("status")
+            .and_then(Value::as_str)
+            .is_some_and(|status| MATURITY_FEED_STATUS.contains(&status))
+        || feed.get("feed_timestamp").and_then(Value::as_str).is_none()
+    {
+        return false;
+    }
+    let Some(source) = feed.get("source").and_then(Value::as_object) else {
+        return false;
+    };
+    if !has_non_empty_string(source, "audit_id")
+        || !has_non_empty_string(source, "as_of")
+        || !has_non_empty_string(source, "projects_root")
+    {
+        return false;
+    }
+    let Some(replay) = feed.get("replay").and_then(Value::as_object) else {
+        return false;
+    };
+    if replay.get("status").and_then(Value::as_str) != Some("passed")
+        || replay.get("deterministic") != Some(&Value::Bool(true))
+        || replay.get("source_summary_hash") != source.get("summary_hash")
+        || replay.get("replayed_summary_hash") != source.get("summary_hash")
+    {
+        return false;
+    }
+    let Some(repositories) = feed.get("repositories").and_then(Value::as_array) else {
+        return false;
+    };
+    if repositories.is_empty()
+        || feed.get("repository_count").and_then(Value::as_u64) != Some(repositories.len() as u64)
+    {
+        return false;
+    }
+    let mut repository_ids = HashSet::new();
+    for repository in repositories {
+        let Some(repo_id) = repository.get("repo_id").and_then(Value::as_str) else {
+            return false;
+        };
+        if repo_id.is_empty() || !repository_ids.insert(repo_id) {
+            return false;
+        }
+    }
+    let Some(provenance_hash) = feed.get("provenance_hash").and_then(Value::as_str) else {
+        return false;
+    };
+    if provenance_hash.len() != 64
+        || !provenance_hash.bytes().all(|byte| byte.is_ascii_hexdigit())
+        || maturity_feed_hash(&Value::Object(feed.clone())).as_deref() != Some(provenance_hash)
+    {
+        return false;
+    }
+    let Some(privacy) = feed.get("privacy").and_then(Value::as_object) else {
+        return false;
+    };
+    if privacy.get("private_local_feed") != Some(&Value::Bool(true))
+        || [
+            "raw_paths",
+            "raw_prompts",
+            "raw_code",
+            "raw_diffs",
+            "raw_transcripts",
+            "credentials",
+        ]
+        .iter()
+        .any(|key| privacy.get(*key) != Some(&Value::Bool(false)))
+    {
+        return false;
+    }
+    feed_tree_is_safe(&Value::Object(feed.clone()), None, None)
+}
+
+fn maturity_feed_hash(feed: &Value) -> Option<String> {
+    let mut content = feed.clone();
+    content.as_object_mut()?.remove("provenance_hash");
+    let payload = serde_json::to_string(&content).ok()?;
+    let digest = Sha256::digest(payload.as_bytes());
+    Some(format!("{digest:x}"))
+}
+
+fn has_non_empty_string(value: &serde_json::Map<String, Value>, key: &str) -> bool {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .is_some_and(|item| !item.trim().is_empty())
+}
+
+fn feed_tree_is_safe(value: &Value, key: Option<&str>, parent_key: Option<&str>) -> bool {
+    if let Some(key) = key {
+        let normalized = key.to_ascii_lowercase();
+        if MATURITY_FEED_FORBIDDEN_KEYS.contains(&normalized.as_str())
+            || normalized == "raw_credentials"
+            || normalized == "raw_output"
+            || normalized == "command_output"
+            || normalized == "stdout"
+            || normalized == "stderr"
+        {
+            let privacy_flag = parent_key == Some("privacy")
+                && [
+                    "raw_paths",
+                    "raw_prompts",
+                    "raw_code",
+                    "raw_diffs",
+                    "raw_transcripts",
+                    "credentials",
+                ]
+                .contains(&normalized.as_str());
+            if !privacy_flag {
+                return false;
+            }
+        }
+    }
+    match value {
+        Value::Object(object) => object
+            .iter()
+            .all(|(child_key, child_value)| feed_tree_is_safe(child_value, Some(child_key), key)),
+        Value::Array(array) => array
+            .iter()
+            .all(|child| feed_tree_is_safe(child, None, key)),
+        _ => true,
+    }
+}
+
+fn feed_scored_dimension_count(feed: &Value) -> u64 {
+    feed.get("repositories")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|repository| repository.get("dimension_scores"))
+        .filter_map(Value::as_object)
+        .map(|scores| scores.values().filter(|value| value.is_number()).count() as u64)
+        .sum()
+}
+
+fn repository_feed_id(repository: &RepositorySnapshot) -> String {
+    let identity = repository_identity_key(repository);
+    let payload = serde_json::to_string(&[identity]).unwrap_or_else(|_| "[]".to_string());
+    let digest = Sha256::digest(payload.as_bytes());
+    let hex = format!("{digest:x}");
+    format!("repo-{}", &hex[..16])
+}
+
+fn repository_identity_key(repository: &RepositorySnapshot) -> String {
+    if let Some(origin) = repository.remote_url.as_deref().and_then(normalized_origin) {
+        return format!("origin:{origin}");
+    }
+    if let Some(common) = common_git_dir(Path::new(&repository.path)) {
+        return format!("common:{common}");
+    }
+    format!("path:{}", identity_path(&repository.path))
+}
+
+fn normalized_origin(value: &str) -> Option<String> {
+    let mut value = value.trim().to_ascii_lowercase();
+    if value.is_empty() {
+        return None;
+    }
+    if let Some(stripped) = value.strip_prefix("git@") {
+        let (host, path) = stripped.split_once(':')?;
+        return Some(format!("{host}/{}", strip_git_suffix(path)));
+    }
+    for scheme in ["https://", "http://", "ssh://", "git://"] {
+        if let Some(stripped) = value.strip_prefix(scheme) {
+            value = stripped.to_string();
+            break;
+        }
+    }
+    if let Some(at) = value.find('@') {
+        value = value[at + 1..].to_string();
+    }
+    let value = value.trim_start_matches('/');
+    let (host, path) = value.split_once('/')?;
+    if host.is_empty() || path.is_empty() {
+        return None;
+    }
+    Some(format!("{host}/{}", strip_git_suffix(path)))
+}
+
+fn strip_git_suffix(value: &str) -> String {
+    value
+        .trim_matches('/')
+        .strip_suffix(".git")
+        .unwrap_or(value.trim_matches('/'))
+        .trim_matches('/')
+        .to_string()
+}
+
+fn common_git_dir(path: &Path) -> Option<String> {
+    let output = Command::new("git")
+        .current_dir(path)
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .env_remove("GIT_COMMON_DIR")
+        .args(["rev-parse", "--path-format=absolute", "--git-common-dir"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let value = String::from_utf8(output.stdout).ok()?.trim().to_string();
+    if value.is_empty() {
+        return None;
+    }
+    let path = PathBuf::from(value);
+    Some(
+        fs::canonicalize(&path)
+            .unwrap_or(path)
+            .to_string_lossy()
+            .to_string(),
+    )
+}
+
+fn identity_path(path: &str) -> String {
+    fs::canonicalize(path)
+        .unwrap_or_else(|_| PathBuf::from(path))
+        .to_string_lossy()
+        .to_string()
 }
 
 pub fn safe_report_path(candidate: &Path, allowed_roots: &[PathBuf]) -> Result<PathBuf, String> {
@@ -961,10 +1736,50 @@ struct QrRun {
     manifest: Value,
     verification: Value,
     execution_plan: Value,
+    capability_matrix: Value,
+    repo_scan: Value,
     observed_at: Option<String>,
 }
 
 impl QrRun {
+    fn configured_gate_ids(&self) -> Vec<String> {
+        let mut configured_gate_ids = Vec::new();
+        let mut seen_gate_ids = HashSet::new();
+        let mut append_entries = |entries: Option<&Vec<Value>>| {
+            if let Some(entries) = entries {
+                for entry in entries {
+                    let Some(raw_id) =
+                        json_string_at(entry, &["id"]).or_else(|| json_string_at(entry, &["name"]))
+                    else {
+                        continue;
+                    };
+                    let id = normalize_gate_id(&raw_id);
+                    if seen_gate_ids.insert(id.clone()) {
+                        configured_gate_ids.push(id);
+                    }
+                }
+            }
+        };
+        append_entries(
+            self.capability_matrix
+                .get("available")
+                .and_then(Value::as_array),
+        );
+        append_entries(
+            self.repo_scan
+                .get("quality_commands")
+                .and_then(Value::as_array),
+        );
+        append_entries(self.verification.get("gates").and_then(Value::as_array));
+        append_entries(
+            self.verification
+                .get("execution_plan")
+                .and_then(Value::as_array),
+        );
+        append_entries(self.execution_plan.as_array());
+        configured_gate_ids
+    }
+
     fn gate_evidence(&self, repository: &RepositorySnapshot) -> Vec<QualityEvidence> {
         let branch = self.branch();
         let commit = self.commit();
@@ -1153,6 +1968,9 @@ fn latest_qr_run(repository_path: &Path) -> Option<QrRun> {
                 read_json(&run_dir.join("gate-verification.json")).unwrap_or(Value::Null);
             let execution_plan =
                 read_json(&run_dir.join("gate-execution-plan.json")).unwrap_or(Value::Null);
+            let capability_matrix =
+                read_json(&run_dir.join("capability-matrix.json")).unwrap_or(Value::Null);
+            let repo_scan = read_json(&run_dir.join("repo-scan.json")).unwrap_or(Value::Null);
             let observed_at = json_string_at(&manifest, &["created_at"])
                 .or_else(|| json_string_at(&manifest, &["started_at"]))
                 .or_else(|| json_string_at(&manifest, &["completed_at"]))
@@ -1165,6 +1983,8 @@ fn latest_qr_run(repository_path: &Path) -> Option<QrRun> {
                 manifest,
                 verification,
                 execution_plan,
+                capability_matrix,
+                repo_scan,
                 observed_at,
             })
         })
@@ -1185,6 +2005,7 @@ struct AuditFinding {
     mean_maturity: Option<f64>,
     mean_maturity_display: Option<String>,
     scored_dimension_count: Option<u64>,
+    dimension_scores: BTreeMap<String, f64>,
 }
 
 #[derive(Debug)]
@@ -1264,6 +2085,18 @@ fn parse_audit_run(directory: &Path) -> Option<AuditRun> {
                             .map(|values| values.len() as u64)
                     },
                 ),
+                dimension_scores: payload
+                    .get("dimension_scores")
+                    .and_then(Value::as_object)
+                    .map(|scores| {
+                        scores
+                            .iter()
+                            .filter_map(|(dimension, score)| {
+                                score.as_f64().map(|value| (dimension.clone(), value))
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default(),
             })
         })
         .collect::<Vec<_>>();
@@ -1373,6 +2206,45 @@ fn severity_counts(payload: &Value) -> BTreeMap<String, u64> {
                 *counts.entry(severity).or_insert(0) += 1;
             }
         }
+    }
+    counts
+}
+
+fn fleet_dimension_scores(findings: &[Value]) -> (BTreeMap<String, f64>, Option<f64>) {
+    let mut scores = BTreeMap::new();
+    for finding in findings {
+        if finding
+            .get("applicable")
+            .and_then(Value::as_bool)
+            .is_some_and(|applicable| !applicable)
+        {
+            continue;
+        }
+        let Some(dimension) = finding.get("dimension").and_then(Value::as_str) else {
+            continue;
+        };
+        let Some(score) = finding.get("score").and_then(Value::as_f64) else {
+            continue;
+        };
+        scores.insert(dimension.to_string(), score);
+    }
+    let mean = (!scores.is_empty()).then(|| {
+        let total = scores.values().sum::<f64>();
+        total / scores.len() as f64
+    });
+    (scores, mean)
+}
+
+fn fleet_severity_counts(findings: &[Value]) -> BTreeMap<String, u64> {
+    let mut counts = BTreeMap::new();
+    for finding in findings {
+        let severity = finding
+            .get("severity")
+            .or_else(|| finding.get("priority"))
+            .and_then(Value::as_str)
+            .map(normalize_severity)
+            .unwrap_or_else(|| "unknown".to_string());
+        *counts.entry(severity).or_insert(0) += 1;
     }
     counts
 }
@@ -1537,6 +2409,149 @@ mod tests {
         .expect("repository fixture should decode")
     }
 
+    fn fixture_maturity_feed(repository: &RepositorySnapshot, as_of: &str) -> Value {
+        let summary_hash = "b".repeat(64);
+        let mut feed = serde_json::json!({
+            "schema": MATURITY_FEED_SCHEMA,
+            "status": "completed",
+            "feed_timestamp": as_of,
+            "generated_at": as_of,
+            "source": {
+                "audit_id": "audit-fixture",
+                "as_of": as_of,
+                "projects_root": "/tmp/projects",
+                "artifact_schema": "quality-runner-fleet-audit-v0.1",
+                "summary_hash": summary_hash,
+            },
+            "replay": {
+                "status": "passed",
+                "deterministic": true,
+                "source_summary_hash": "b".repeat(64),
+                "replayed_summary_hash": "b".repeat(64),
+            },
+            "repository_count": 1,
+            "checkout_count": 1,
+            "mean_maturity": 3.5,
+            "dimension_means": {"architecture_boundaries": 3.5},
+            "maturity_certified_repository_count": 0,
+            "maturity_status_counts": {"not_certified": 1},
+            "finding_counts": {},
+            "unresolved_measurement_gaps": [],
+            "repositories": [{
+                "repo_id": repository_feed_id(repository),
+                "display_name": repository.name,
+                "target_branch": "dev",
+                "target_branch_status": "ready",
+                "target_head": "abc",
+                "maturity_score": 3.5,
+                "maturity_status": "not_certified",
+                "dimension_scores": {"architecture_boundaries": 3.5},
+                "quality_status": "healthy",
+                "finding_count": 0,
+                "blocker_count": 0,
+                "dynamic_status": "reused",
+            }],
+            "privacy": {
+                "private_local_feed": true,
+                "raw_paths": false,
+                "raw_prompts": false,
+                "raw_code": false,
+                "raw_diffs": false,
+                "raw_transcripts": false,
+                "credentials": false,
+            },
+            "provenance_hash": "",
+        });
+        feed["provenance_hash"] =
+            Value::String(maturity_feed_hash(&feed).expect("fixture feed should hash"));
+        feed
+    }
+
+    #[test]
+    fn imports_canonical_maturity_feed_by_stable_repository_id() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root.join("repo"));
+        let feed_path = root.join("maturity.json");
+        let as_of = Utc::now().to_rfc3339();
+        fs::write(
+            &feed_path,
+            serde_json::to_string(&fixture_maturity_feed(&repository, &as_of))
+                .expect("feed should serialize"),
+        )
+        .expect("feed should be writable");
+
+        let imported = maturity_feed_import(Some(&feed_path), std::slice::from_ref(&repository));
+        assert_eq!(imported.portfolio.audit_status, "Ready");
+        assert_eq!(
+            imported.portfolio.latest_audit_id.as_deref(),
+            Some("audit-fixture")
+        );
+        let expected_provenance = imported
+            .portfolio
+            .provenance_hash
+            .clone()
+            .expect("feed should expose provenance");
+        assert_eq!(
+            imported.portfolio.provenance_hash.as_deref(),
+            Some(expected_provenance.as_str())
+        );
+        assert_eq!(imported.portfolio.matched_repository_count, 1);
+        assert_eq!(imported.maturities[&repository.id].score, Some(3.5));
+        assert_eq!(
+            imported.maturities[&repository.id].freshness,
+            QualityFreshness::Fresh
+        );
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn rejects_invalid_and_stale_maturity_feeds() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root.join("repo"));
+        let feed_path = root.join("maturity.json");
+        let stale_as_of = (Utc::now() - Duration::days(MAX_EVIDENCE_AGE_DAYS + 1)).to_rfc3339();
+        fs::write(
+            &feed_path,
+            serde_json::to_string(&fixture_maturity_feed(&repository, &stale_as_of))
+                .expect("feed should serialize"),
+        )
+        .expect("feed should be writable");
+        let stale = maturity_feed_import(Some(&feed_path), std::slice::from_ref(&repository));
+        assert_eq!(stale.portfolio.audit_status, "Stale");
+        assert_eq!(
+            stale.maturities[&repository.id].freshness,
+            QualityFreshness::Stale
+        );
+
+        let mut invalid_feed = fixture_maturity_feed(&repository, &Utc::now().to_rfc3339());
+        invalid_feed["replay"]["status"] = Value::String("failed".to_string());
+        fs::write(
+            &feed_path,
+            serde_json::to_string(&invalid_feed).expect("feed should serialize"),
+        )
+        .expect("feed should be writable");
+        let invalid = maturity_feed_import(Some(&feed_path), std::slice::from_ref(&repository));
+        assert_eq!(invalid.portfolio.audit_status, "Unavailable");
+        assert!(invalid.maturities.is_empty());
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn normalizes_qr_repository_identity_inputs() {
+        assert_eq!(
+            normalized_origin("git@github.com:Example/Repo.git").as_deref(),
+            Some("github.com/example/repo")
+        );
+        assert_eq!(
+            normalized_origin("https://github.com/Example/Repo.git").as_deref(),
+            Some("github.com/example/repo")
+        );
+        assert_eq!(
+            normalized_origin("ssh://git@github.com/Example/Repo.git").as_deref(),
+            Some("github.com/example/repo")
+        );
+    }
+
     #[test]
     fn normalizes_qr_aliases_and_discovers_custom_gates() {
         assert_eq!(normalize_gate_id("runtime_smoke"), "runtime_smoke");
@@ -1569,6 +2584,37 @@ mod tests {
                 "secrets_scan"
             ]
         );
+    }
+
+    #[test]
+    fn recommendation_matrix_provides_repository_specific_ideal_gates() {
+        let root = fixture_root();
+        let mut repository = fixture_repository(&root.join("repo"));
+        repository.name = "BIP-Console".to_string();
+        assert_eq!(
+            ideal_gate_ids_for_repository(&repository),
+            Some(vec![
+                "build".to_string(),
+                "tests".to_string(),
+                "runtime_smoke".to_string(),
+                "lint".to_string(),
+                "formatter".to_string(),
+                "typecheck".to_string(),
+                "dead_code".to_string(),
+                "secrets_scan".to_string(),
+                "dependency_audit".to_string(),
+            ])
+        );
+
+        repository.name = "dotfiles".to_string();
+        assert_eq!(
+            ideal_gate_ids_for_repository(&repository),
+            Some(vec!["secrets_scan".to_string()])
+        );
+
+        repository.name = "Book-documents-github".to_string();
+        assert_eq!(ideal_gate_ids_for_repository(&repository), None);
+        fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
     fn readiness_gate(
@@ -1648,6 +2694,124 @@ mod tests {
         assert!(result
             .applicable_gate_ids
             .contains(&"dependency_audit".to_string()));
+    }
+
+    #[test]
+    fn ci_maturity_scores_ideal_gate_coverage() {
+        let ideal_gate_ids = [
+            "build",
+            "tests",
+            "lint",
+            "formatter",
+            "typecheck",
+            "secrets_scan",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+        let gates = ideal_gate_ids
+            .iter()
+            .enumerate()
+            .map(|(index, gate_id)| {
+                if index < 4 {
+                    readiness_gate(
+                        gate_id,
+                        QualityGateStatus::Passed,
+                        QualityFreshness::Fresh,
+                        true,
+                    )
+                } else if index == 4 {
+                    readiness_gate(
+                        gate_id,
+                        QualityGateStatus::Blocked,
+                        QualityFreshness::Unknown,
+                        true,
+                    )
+                } else {
+                    readiness_gate(
+                        gate_id,
+                        QualityGateStatus::NotConfigured,
+                        QualityFreshness::Unknown,
+                        false,
+                    )
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let readiness = evaluate_ci_readiness_for_ideal(&gates, &ideal_gate_ids);
+        assert_eq!(readiness.score, Some(3.33));
+        assert_eq!(readiness.applicable_gate_ids, ideal_gate_ids);
+        assert_eq!(
+            readiness.covered_gate_ids,
+            vec!["build", "tests", "lint", "formatter", "typecheck"]
+        );
+        assert_eq!(readiness.blocked_gate_ids, vec!["typecheck"]);
+        assert_eq!(readiness.missing_gate_ids, vec!["secrets_scan"]);
+    }
+
+    #[test]
+    fn ci_configuration_separates_discovered_gates_from_imported_results() {
+        let ideal_gate_ids = [
+            "build",
+            "tests",
+            "runtime_smoke",
+            "lint",
+            "formatter",
+            "typecheck",
+            "dead_code",
+            "secrets_scan",
+            "dependency_audit",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+        let configured_gate_ids = [
+            "build",
+            "tests",
+            "runtime_smoke",
+            "lint",
+            "formatter",
+            "typecheck",
+            "dead_code",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+        let readiness = evaluate_ci_readiness_for_ideal_with_configuration(
+            &default_quality_gates(),
+            &ideal_gate_ids,
+            &configured_gate_ids,
+        );
+
+        assert_eq!(
+            readiness.configuration_score_display.as_deref(),
+            Some("3.11")
+        );
+        assert_eq!(readiness.configured_gate_ids, configured_gate_ids);
+        assert_eq!(
+            readiness.unconfigured_gate_ids,
+            vec!["secrets_scan", "dependency_audit"]
+        );
+        assert_eq!(readiness.score, Some(0.0));
+        assert!(readiness.covered_gate_ids.is_empty());
+        assert!(readiness.fresh_passing_gate_ids.is_empty());
+    }
+
+    #[test]
+    fn ci_maturity_summary_excludes_unscored_repositories() {
+        let root = fixture_root();
+        let mut scored = fixture_repository(&root.join("scored"));
+        scored.quality.ci_readiness.score = Some(2.0);
+        let unscored = fixture_repository(&root.join("unscored"));
+        let repositories = vec![scored, unscored];
+        let mut portfolio = QualityPortfolioSnapshot::default();
+
+        update_ci_readiness_summary(&mut portfolio, &repositories);
+
+        assert_eq!(portfolio.ci_readiness_score, Some(2.0));
+        assert_eq!(portfolio.ci_readiness_repository_count, 1);
+        assert_eq!(portfolio.ci_readiness_unscored_repository_count, 1);
+        fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
     #[test]
@@ -1743,7 +2907,7 @@ mod tests {
         .expect("QR report should be writable");
 
         let repository = fixture_repository(&repository_path);
-        let snapshot = ingest_repository_quality(&repository, None, None);
+        let snapshot = ingest_repository_quality(&repository, None, None, None);
         let smoke = snapshot
             .gates
             .iter()
@@ -1798,7 +2962,7 @@ mod tests {
         .expect("run summary should be writable");
 
         let repository = fixture_repository(&repository_path);
-        let snapshot = ingest_repository_quality(&repository, None, None);
+        let snapshot = ingest_repository_quality(&repository, None, None, None);
         let formatter = snapshot
             .gates
             .iter()

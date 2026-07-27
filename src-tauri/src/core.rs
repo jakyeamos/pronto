@@ -1,10 +1,16 @@
+use crate::connections::{
+    self, Connection, ConnectionInput, ConnectionNode, ConnectionNodeInput, ConnectionsSnapshot,
+    Workflow, WorkflowInput,
+};
 use crate::quality::{
     self, QualityFreshness, QualityGateRequirement, QualityGateStatus, QualityPortfolioSnapshot,
     QualitySnapshot,
 };
+use crate::remediation::{self, RemediationRun};
 use chrono::{DateTime, SecondsFormat, Utc};
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{params, Connection as SqliteConnection, OptionalExtension, Row};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ffi::OsStr;
 use std::fs;
@@ -12,16 +18,20 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-const STORE_VERSION: u8 = 4;
-const SQLITE_SCHEMA_VERSION: i64 = 5;
+const STORE_VERSION: u8 = 5;
+const SQLITE_SCHEMA_VERSION: i64 = 8;
 const DEFAULT_RETENTION_DAYS: i64 = 90;
 const DEFAULT_MAX_UNTRACKED_BYTES: u64 = 2_000_000;
 const DEFAULT_MAX_MANIFEST_BYTES: u64 = 64 * 1024;
 const MAX_AI_DIFF_BYTES: usize = 2_000_000;
+const ANALYTICS_SCHEMA: &str = "pronto-analytics/v1";
+const ANALYTICS_RANGE_DAYS: i64 = 30;
+const ANALYTICS_DEDUP_MINUTES: i64 = 15;
 
 static NEXT_ACTION_AUDIT_ID: AtomicU64 = AtomicU64::new(0);
 static NEXT_EVENT_ID: AtomicU64 = AtomicU64::new(0);
 static NEXT_CONFIG_ID: AtomicU64 = AtomicU64::new(0);
+static NEXT_ANALYTICS_ID: AtomicU64 = AtomicU64::new(0);
 
 fn default_refresh_policy() -> String {
     "On open".to_string()
@@ -555,6 +565,10 @@ pub struct StoreState {
     pub provider_status: ProviderStatus,
     #[serde(default)]
     pub quality: QualityPortfolioSnapshot,
+    #[serde(default)]
+    pub connections: ConnectionsSnapshot,
+    #[serde(default)]
+    pub remediation: RemediationRun,
     pub retention_days: i64,
 }
 
@@ -573,6 +587,8 @@ impl Default for StoreState {
             remote_repositories: Vec::new(),
             provider_status: ProviderStatus::default(),
             quality: QualityPortfolioSnapshot::default(),
+            connections: ConnectionsSnapshot::default(),
+            remediation: remediation::empty_run(),
             retention_days: DEFAULT_RETENTION_DAYS,
         }
     }
@@ -591,9 +607,241 @@ pub struct PortfolioSnapshot {
     pub provider_status: ProviderStatus,
     #[serde(default)]
     pub quality: QualityPortfolioSnapshot,
+    #[serde(default)]
+    pub connections: ConnectionsSnapshot,
+    #[serde(default)]
+    pub remediation: RemediationRun,
     pub retention_days: i64,
     pub generated_at: String,
     pub storage_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AnalyticsMetricSample {
+    pub observed_at: String,
+    pub repository_count: u64,
+    pub workspace_count: u64,
+    pub branch_count: u64,
+    pub active_condition_count: u64,
+    pub dirty_workspace_count: u64,
+    pub unsynced_workspace_count: u64,
+    pub active_workspace_count: u64,
+    pub interrupted_workspace_count: u64,
+    pub idle_workspace_count: u64,
+    pub unknown_workspace_count: u64,
+    pub ahead_commit_count: u64,
+    pub behind_commit_count: u64,
+    pub commits_last_30_days: Option<u64>,
+    pub ci_readiness_score: Option<f64>,
+    pub maturity_score: Option<f64>,
+    pub findings_total: Option<u64>,
+    pub high_severity_findings: Option<u64>,
+    pub ci_readiness_scored_repository_count: u64,
+    pub maturity_scored_repository_count: u64,
+    pub findings_repository_count: u64,
+    pub release_rule_repository_count: u64,
+    pub release_ready_repository_count: u64,
+    pub quality_freshness: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnalyticsRepositorySeries {
+    pub repository_id: String,
+    pub name: String,
+    pub samples: Vec<AnalyticsMetricSample>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnalyticsSnapshot {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub source: String,
+    pub freshness: String,
+    pub range_days: i64,
+    pub retention_days: i64,
+    pub history_available_from: Option<String>,
+    pub portfolio_samples: Vec<AnalyticsMetricSample>,
+    pub repositories: Vec<AnalyticsRepositorySeries>,
+}
+
+const AGENT_SUMMARY_SCHEMA: &str = "pronto-agent-summary/v1";
+const AGENT_REPOSITORY_SCHEMA: &str = "pronto-agent-repository/v1";
+const AGENT_QUALITY_SCHEMA: &str = "pronto-agent-quality/v1";
+const AGENT_ATTENTION_SCHEMA: &str = "pronto-agent-attention/v1";
+const AGENT_ACTIVITY_SCHEMA: &str = "pronto-agent-activity/v1";
+const AGENT_CONNECTIONS_SCHEMA: &str = "pronto-agent-connections/v1";
+const AGENT_PREPARATION_SCHEMA: &str = "pronto-agent-preparation/v1";
+const AGENT_RELEASE_SCHEMA: &str = "pronto-agent-release/v1";
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentConditionSummary {
+    pub id: String,
+    pub kind: String,
+    pub title: String,
+    pub summary: String,
+    pub priority: u8,
+    pub status: String,
+    pub missing: Vec<String>,
+    pub confidence: Option<String>,
+    pub freshness: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentWorkspaceSummary {
+    pub id: String,
+    pub path: String,
+    pub is_primary: bool,
+    pub branch: String,
+    pub dirty: bool,
+    pub sync_state: String,
+    pub ahead: u64,
+    pub behind: u64,
+    pub upstream: Option<String>,
+    pub operation: Option<String>,
+    pub integration_state: String,
+    pub target_branch: Option<String>,
+    pub target_confidence: String,
+    pub activity_state: String,
+    pub activity_confidence: String,
+    pub last_commit: Option<String>,
+    pub last_commit_at: Option<String>,
+    pub last_activity_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentRepositorySummary {
+    pub id: String,
+    pub name: String,
+    pub path: String,
+    pub locality: String,
+    pub lifecycle: String,
+    pub branch: String,
+    pub default_branch: Option<String>,
+    pub workspaces: Vec<AgentWorkspaceSummary>,
+    pub active_conditions: Vec<AgentConditionSummary>,
+    pub quality_status: String,
+    pub maturity_score: Option<f64>,
+    pub maturity_score_display: Option<String>,
+    pub maturity_freshness: String,
+    pub ci_readiness_score: Option<f64>,
+    pub ci_readiness_score_display: Option<String>,
+    pub ci_readiness_fresh_passing_gate_count: usize,
+    pub ci_readiness_ideal_gate_count: usize,
+    pub ci_configuration_configured_gate_count: usize,
+    pub ci_configuration_ideal_gate_count: usize,
+    pub findings_total: u64,
+    pub high_severity_findings: u64,
+    pub last_scan_at: String,
+    pub last_activity_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentSummary {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub scope: String,
+    pub repository_count: usize,
+    pub active_condition_count: usize,
+    pub dirty_workspace_count: usize,
+    pub unsynced_workspace_count: usize,
+    pub attention_count: usize,
+    pub provider_status: ProviderStatus,
+    pub quality: QualityPortfolioSnapshot,
+    pub repositories: Vec<AgentRepositorySummary>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentRepositoryDetail {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub repository: RepositorySnapshot,
+    pub products: Vec<ProductConfig>,
+    pub groups: Vec<GroupConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentRepositoryQuality {
+    pub id: String,
+    pub name: String,
+    pub path: String,
+    pub branch: String,
+    pub quality: QualitySnapshot,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentQualityReport {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub scope: String,
+    pub portfolio: QualityPortfolioSnapshot,
+    pub repositories: Vec<AgentRepositoryQuality>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentEvidenceReference {
+    pub source: String,
+    pub label: String,
+    pub status: Option<String>,
+    pub freshness: Option<String>,
+    pub observed_at: Option<String>,
+    pub value: Option<String>,
+    pub report_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentAttentionItem {
+    pub id: String,
+    pub repository_id: String,
+    pub repository_name: String,
+    pub repository_path: String,
+    pub workspace_id: Option<String>,
+    pub workspace_path: Option<String>,
+    pub category: String,
+    pub severity: String,
+    pub status: String,
+    pub freshness: Option<String>,
+    pub summary: String,
+    pub evidence: Vec<AgentEvidenceReference>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentAttentionReport {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub items: Vec<AgentAttentionItem>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentActivityReport {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub scope: String,
+    pub events: Vec<EventRecord>,
+    pub action_audits: Vec<ActionAudit>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentConnectionsReport {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub scope: String,
+    pub connections: ConnectionsSnapshot,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentPreparationReport {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub preparation: RepositoryPreparation,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentReleaseReport {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub repository_id: String,
+    pub release: ReleasePreparation,
+    pub recipe: ReleaseRecipePreview,
 }
 
 #[derive(Debug)]
@@ -667,7 +915,7 @@ fn ensure_store_parent(path: &Path) -> Result<(), String> {
         .map_err(|error| format!("Could not create Pronto storage directory: {error}"))
 }
 
-fn metadata_value(connection: &Connection, key: &str) -> Result<Option<String>, String> {
+fn metadata_value(connection: &SqliteConnection, key: &str) -> Result<Option<String>, String> {
     connection
         .query_row(
             "SELECT value FROM metadata WHERE key = ?1",
@@ -678,7 +926,11 @@ fn metadata_value(connection: &Connection, key: &str) -> Result<Option<String>, 
         .map_err(|error| format!("Could not read Pronto database metadata: {error}"))
 }
 
-fn table_has_column(connection: &Connection, table: &str, column: &str) -> Result<bool, String> {
+fn table_has_column(
+    connection: &SqliteConnection,
+    table: &str,
+    column: &str,
+) -> Result<bool, String> {
     let statement = format!("PRAGMA table_info({table})");
     let mut query = connection
         .prepare(&statement)
@@ -691,7 +943,7 @@ fn table_has_column(connection: &Connection, table: &str, column: &str) -> Resul
     Ok(columns.iter().any(|value| value == column))
 }
 
-fn initialize_store(connection: &Connection) -> Result<(), String> {
+fn initialize_store(connection: &SqliteConnection) -> Result<(), String> {
     connection
         .execute_batch(
             "PRAGMA foreign_keys = ON;
@@ -758,6 +1010,49 @@ fn initialize_store(connection: &Connection) -> Result<(), String> {
              );
              CREATE TABLE IF NOT EXISTS remote_repositories (
                  id TEXT PRIMARY KEY,
+                 payload_json TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS analytics_samples (
+                 id TEXT PRIMARY KEY,
+                 repository_id TEXT,
+                 observed_at TEXT NOT NULL,
+                 payload_json TEXT NOT NULL
+             );
+             CREATE INDEX IF NOT EXISTS idx_analytics_samples_scope_time
+                 ON analytics_samples (repository_id, observed_at);
+             CREATE TABLE IF NOT EXISTS connection_nodes (
+                 id TEXT PRIMARY KEY,
+                 identity TEXT NOT NULL,
+                 payload_json TEXT NOT NULL
+             );
+             CREATE UNIQUE INDEX IF NOT EXISTS idx_connection_nodes_identity
+                 ON connection_nodes (identity);
+             CREATE TABLE IF NOT EXISTS connections (
+                 id TEXT PRIMARY KEY,
+                 fingerprint TEXT NOT NULL,
+                 payload_json TEXT NOT NULL
+             );
+             CREATE UNIQUE INDEX IF NOT EXISTS idx_connections_fingerprint
+                 ON connections (fingerprint);
+             CREATE TABLE IF NOT EXISTS workflows (
+                 id TEXT PRIMARY KEY,
+                 payload_json TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS workflow_steps (
+                 id TEXT PRIMARY KEY,
+                 workflow_id TEXT NOT NULL,
+                 position INTEGER NOT NULL,
+                 payload_json TEXT NOT NULL
+             );
+             CREATE INDEX IF NOT EXISTS idx_workflow_steps_workflow_position
+                 ON workflow_steps (workflow_id, position);
+             CREATE TABLE IF NOT EXISTS connection_adapters (
+                 id TEXT PRIMARY KEY,
+                 payload_json TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS remediation_runs (
+                 id TEXT PRIMARY KEY,
+                 generated_at TEXT NOT NULL,
                  payload_json TEXT NOT NULL
              );",
         )
@@ -844,9 +1139,9 @@ fn initialize_store(connection: &Connection) -> Result<(), String> {
     Ok(())
 }
 
-fn open_store(path: &Path) -> Result<Connection, String> {
+fn open_store(path: &Path) -> Result<SqliteConnection, String> {
     ensure_store_parent(path)?;
-    let connection = Connection::open(path)
+    let connection = SqliteConnection::open(path)
         .map_err(|error| format!("Could not open local Pronto database: {error}"))?;
     initialize_store(&connection)?;
     Ok(connection)
@@ -1141,6 +1436,112 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
         )
         .collect::<Result<Vec<_>, String>>()?;
 
+    let connection_node_payloads = connection
+        .prepare("SELECT payload_json FROM connection_nodes ORDER BY id")
+        .map_err(|error| format!("Could not prepare connection node query: {error}"))?
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(|error| format!("Could not read connection nodes: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode connection node rows: {error}"))?;
+    let nodes = connection_node_payloads
+        .into_iter()
+        .map(|payload| {
+            serde_json::from_str::<ConnectionNode>(&payload)
+                .map_err(|error| format!("Could not decode connection node: {error}"))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+
+    let connection_payloads = connection
+        .prepare("SELECT payload_json FROM connections ORDER BY fingerprint, id")
+        .map_err(|error| format!("Could not prepare connections query: {error}"))?
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(|error| format!("Could not read connections: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode connection rows: {error}"))?;
+    let connection_records = connection_payloads
+        .into_iter()
+        .map(|payload| {
+            serde_json::from_str::<Connection>(&payload)
+                .map_err(|error| format!("Could not decode connection: {error}"))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+
+    let workflow_payloads = connection
+        .prepare("SELECT payload_json FROM workflows ORDER BY id")
+        .map_err(|error| format!("Could not prepare workflows query: {error}"))?
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(|error| format!("Could not read workflows: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode workflow rows: {error}"))?;
+    let mut workflows = workflow_payloads
+        .into_iter()
+        .map(|payload| {
+            serde_json::from_str::<Workflow>(&payload)
+                .map_err(|error| format!("Could not decode workflow: {error}"))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let workflow_step_rows = connection
+        .prepare(
+            "SELECT workflow_id, payload_json FROM workflow_steps
+             ORDER BY workflow_id, position, id",
+        )
+        .map_err(|error| format!("Could not prepare workflow steps query: {error}"))?
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(|error| format!("Could not read workflow steps: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode workflow step rows: {error}"))?;
+    let mut steps_by_workflow = HashMap::<String, Vec<connections::WorkflowStep>>::new();
+    for (workflow_id, payload) in workflow_step_rows {
+        let step = serde_json::from_str::<connections::WorkflowStep>(&payload)
+            .map_err(|error| format!("Could not decode workflow step: {error}"))?;
+        steps_by_workflow.entry(workflow_id).or_default().push(step);
+    }
+    for workflow in &mut workflows {
+        workflow.steps = steps_by_workflow.remove(&workflow.id).unwrap_or_default();
+    }
+    let adapter_payloads = connection
+        .prepare("SELECT payload_json FROM connection_adapters ORDER BY id")
+        .map_err(|error| format!("Could not prepare connection adapters query: {error}"))?
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(|error| format!("Could not read connection adapters: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Could not decode connection adapter rows: {error}"))?;
+    let mut adapters = adapter_payloads
+        .into_iter()
+        .map(|payload| {
+            serde_json::from_str(&payload)
+                .map_err(|error| format!("Could not decode connection adapter: {error}"))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    if adapters.is_empty() {
+        adapters = connections::default_adapters();
+    }
+    let mut connections_snapshot = ConnectionsSnapshot {
+        nodes,
+        connections: connection_records,
+        workflows,
+        adapters,
+        generated_at: metadata_value(&connection, "connections_generated_at")?.unwrap_or_default(),
+    };
+    connections::normalize_snapshot(&mut connections_snapshot);
+
+    let remediation = connection
+        .query_row(
+            "SELECT payload_json FROM remediation_runs ORDER BY generated_at DESC, id DESC LIMIT 1",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| format!("Could not read Pronto remediation run: {error}"))?
+        .map(|payload| {
+            serde_json::from_str::<RemediationRun>(&payload)
+                .map_err(|error| format!("Could not decode Pronto remediation run: {error}"))
+        })
+        .transpose()?
+        .unwrap_or_else(remediation::empty_run);
+
     Ok(StoreState {
         version,
         roots,
@@ -1154,8 +1555,24 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
         remote_repositories,
         provider_status,
         quality,
+        connections: connections_snapshot,
+        remediation,
         retention_days,
     })
+}
+
+fn load_store_with_quality(path: &Path) -> Result<StoreState, String> {
+    let mut state = load_store(path)?;
+    let fleet_audit_root = state
+        .remediation
+        .refresh_steps
+        .iter()
+        .find(|step| step.id == "qr_fleet_run")
+        .and_then(|step| step.evidence_path.as_deref())
+        .map(PathBuf::from)
+        .filter(|root| root.is_dir());
+    apply_quality_evidence_scoped(&mut state, None, fleet_audit_root.as_deref());
+    Ok(state)
 }
 
 fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
@@ -1174,6 +1591,12 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
         "action_audits",
         "provider_identities",
         "remote_repositories",
+        "connection_nodes",
+        "connections",
+        "workflows",
+        "workflow_steps",
+        "connection_adapters",
+        "remediation_runs",
     ] {
         transaction
             .execute(&format!("DELETE FROM {table}"), [])
@@ -1211,6 +1634,12 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
             params!["quality_summary_json", quality_summary_json],
         )
         .map_err(|error| format!("Could not save quality summary: {error}"))?;
+    transaction
+        .execute(
+            "INSERT OR REPLACE INTO metadata (key, value) VALUES (?1, ?2)",
+            params!["connections_generated_at", state.connections.generated_at],
+        )
+        .map_err(|error| format!("Could not save connections generation time: {error}"))?;
 
     for root in &state.roots {
         let ignore_patterns_json = serde_json::to_string(&root.ignore_patterns)
@@ -1362,9 +1791,604 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
             .map_err(|error| format!("Could not save remote repository: {error}"))?;
     }
 
+    for node in &state.connections.nodes {
+        let payload = serde_json::to_string(node)
+            .map_err(|error| format!("Could not encode connection node: {error}"))?;
+        transaction
+            .execute(
+                "INSERT INTO connection_nodes (id, identity, payload_json)
+                 VALUES (?1, ?2, ?3)",
+                params![node.id, node.identity, payload],
+            )
+            .map_err(|error| format!("Could not save connection node: {error}"))?;
+    }
+    for connection_record in &state.connections.connections {
+        let payload = serde_json::to_string(connection_record)
+            .map_err(|error| format!("Could not encode connection: {error}"))?;
+        transaction
+            .execute(
+                "INSERT INTO connections (id, fingerprint, payload_json)
+                 VALUES (?1, ?2, ?3)",
+                params![connection_record.id, connection_record.fingerprint, payload],
+            )
+            .map_err(|error| format!("Could not save connection: {error}"))?;
+    }
+    for workflow in &state.connections.workflows {
+        let mut workflow_without_steps = workflow.clone();
+        workflow_without_steps.steps = Vec::new();
+        let payload = serde_json::to_string(&workflow_without_steps)
+            .map_err(|error| format!("Could not encode workflow: {error}"))?;
+        transaction
+            .execute(
+                "INSERT INTO workflows (id, payload_json) VALUES (?1, ?2)",
+                params![workflow.id, payload],
+            )
+            .map_err(|error| format!("Could not save workflow: {error}"))?;
+        for step in &workflow.steps {
+            let payload = serde_json::to_string(step)
+                .map_err(|error| format!("Could not encode workflow step: {error}"))?;
+            transaction
+                .execute(
+                    "INSERT INTO workflow_steps
+                     (id, workflow_id, position, payload_json)
+                     VALUES (?1, ?2, ?3, ?4)",
+                    params![step.id, workflow.id, step.order, payload],
+                )
+                .map_err(|error| format!("Could not save workflow step: {error}"))?;
+        }
+    }
+    for adapter in &state.connections.adapters {
+        let payload = serde_json::to_string(adapter)
+            .map_err(|error| format!("Could not encode connection adapter: {error}"))?;
+        transaction
+            .execute(
+                "INSERT INTO connection_adapters (id, payload_json) VALUES (?1, ?2)",
+                params![adapter.id, payload],
+            )
+            .map_err(|error| format!("Could not save connection adapter: {error}"))?;
+    }
+
+    let remediation_payload = serde_json::to_string(&state.remediation)
+        .map_err(|error| format!("Could not encode remediation run: {error}"))?;
+    transaction
+        .execute(
+            "INSERT INTO remediation_runs (id, generated_at, payload_json)
+             VALUES (?1, ?2, ?3)",
+            params![
+                state.remediation.id,
+                state.remediation.generated_at,
+                remediation_payload
+            ],
+        )
+        .map_err(|error| format!("Could not save remediation run: {error}"))?;
+
     transaction
         .commit()
         .map_err(|error| format!("Could not commit Pronto database transaction: {error}"))
+}
+
+fn quality_metric_freshness(repository: &RepositorySnapshot) -> Option<String> {
+    let has_evidence = repository.quality.ci_readiness.score.is_some()
+        || repository.quality.maturity.score.is_some()
+        || repository.quality.findings.source.is_some()
+        || repository.quality.findings.observed_at.is_some();
+    if !has_evidence {
+        return None;
+    }
+    let mut values = Vec::new();
+    if repository.quality.ci_readiness.score.is_some() {
+        values.push(QualityFreshness::Fresh);
+    }
+    if repository.quality.maturity.score.is_some() {
+        values.push(repository.quality.maturity.freshness.clone());
+    }
+    if quality_metric_is_available(repository) {
+        values.push(repository.quality.findings.freshness.clone());
+    }
+    if values
+        .iter()
+        .any(|value| *value == QualityFreshness::Conflicted)
+    {
+        return Some(QualityFreshness::Conflicted.as_str().to_string());
+    }
+    if values.iter().any(|value| *value == QualityFreshness::Stale) {
+        return Some(QualityFreshness::Stale.as_str().to_string());
+    }
+    if values.iter().any(|value| *value == QualityFreshness::Fresh) {
+        return Some(QualityFreshness::Fresh.as_str().to_string());
+    }
+    None
+}
+
+fn quality_metric_is_available(repository: &RepositorySnapshot) -> bool {
+    repository.quality.findings.source.is_some()
+        || repository.quality.findings.observed_at.is_some()
+        || repository.quality.findings.freshness != QualityFreshness::Unknown
+}
+
+fn local_commit_count_since(path: &Path, observed_at: &str) -> Option<u64> {
+    let observed = DateTime::parse_from_rfc3339(observed_at)
+        .ok()?
+        .with_timezone(&Utc);
+    let cutoff = observed - chrono::Duration::days(ANALYTICS_RANGE_DAYS);
+    let cutoff = cutoff.to_rfc3339_opts(SecondsFormat::Secs, true);
+    git_owned(
+        path,
+        vec![
+            "rev-list".to_string(),
+            "--all".to_string(),
+            format!("--since={cutoff}"),
+            "--count".to_string(),
+        ],
+    )
+    .and_then(|value| value.parse::<u64>().ok())
+}
+
+fn analytics_workspace_activity_counts(repository: &RepositorySnapshot) -> (u64, u64, u64, u64) {
+    let mut active = 0;
+    let mut interrupted = 0;
+    let mut idle = 0;
+    let mut unknown = 0;
+    for workspace in &repository.workspaces {
+        if workspace.activity.state == "Active" {
+            active += 1;
+        } else if workspace.activity.state.starts_with("Interrupted") {
+            interrupted += 1;
+        } else if workspace.activity.state.starts_with("Unknown") {
+            unknown += 1;
+        } else {
+            idle += 1;
+        }
+    }
+    (active, interrupted, idle, unknown)
+}
+
+fn analytics_repository_sample(
+    repository: &RepositorySnapshot,
+    observed_at: &str,
+) -> AnalyticsMetricSample {
+    let (
+        active_workspace_count,
+        interrupted_workspace_count,
+        idle_workspace_count,
+        unknown_workspace_count,
+    ) = analytics_workspace_activity_counts(repository);
+    let active_condition_count = repository
+        .conditions
+        .iter()
+        .filter(|condition| condition.status == "Active")
+        .count() as u64;
+    let dirty_workspace_count = repository
+        .workspaces
+        .iter()
+        .filter(|workspace| workspace.dirty)
+        .count() as u64;
+    let unsynced_workspace_count = repository
+        .workspaces
+        .iter()
+        .filter(|workspace| workspace.sync_state != "Synced")
+        .count() as u64;
+    let release_ready = repository.conditions.iter().any(|condition| {
+        condition.kind == "release-threshold"
+            && matches!(condition.status.as_str(), "Active" | "Expected")
+    });
+    let ci_readiness_score = repository.quality.ci_readiness.score;
+    let maturity_score = repository.quality.maturity.score;
+    let findings_available = quality_metric_is_available(repository);
+    AnalyticsMetricSample {
+        observed_at: observed_at.to_string(),
+        repository_count: 1,
+        workspace_count: repository.workspaces.len() as u64,
+        branch_count: repository.branches.len() as u64,
+        active_condition_count,
+        dirty_workspace_count,
+        unsynced_workspace_count,
+        active_workspace_count,
+        interrupted_workspace_count,
+        idle_workspace_count,
+        unknown_workspace_count,
+        ahead_commit_count: repository
+            .workspaces
+            .iter()
+            .map(|workspace| workspace.ahead)
+            .sum(),
+        behind_commit_count: repository
+            .workspaces
+            .iter()
+            .map(|workspace| workspace.behind)
+            .sum(),
+        commits_last_30_days: local_commit_count_since(Path::new(&repository.path), observed_at),
+        ci_readiness_score,
+        maturity_score,
+        findings_total: findings_available.then_some(repository.quality.findings.total),
+        high_severity_findings: findings_available
+            .then_some(repository.quality.findings.high_severity_total),
+        ci_readiness_scored_repository_count: u64::from(ci_readiness_score.is_some()),
+        maturity_scored_repository_count: u64::from(maturity_score.is_some()),
+        findings_repository_count: u64::from(findings_available),
+        release_rule_repository_count: u64::from(repository.release_rule.is_some()),
+        release_ready_repository_count: u64::from(release_ready),
+        quality_freshness: quality_metric_freshness(repository),
+    }
+}
+
+fn average_score(
+    samples: &[AnalyticsMetricSample],
+    selector: fn(&AnalyticsMetricSample) -> Option<f64>,
+) -> Option<f64> {
+    let values = samples.iter().filter_map(selector).collect::<Vec<_>>();
+    if values.is_empty() {
+        None
+    } else {
+        Some(values.iter().sum::<f64>() / values.len() as f64)
+    }
+}
+
+fn sum_optional_metric(
+    samples: &[AnalyticsMetricSample],
+    selector: fn(&AnalyticsMetricSample) -> Option<u64>,
+) -> Option<u64> {
+    let values = samples.iter().filter_map(selector).collect::<Vec<_>>();
+    if values.is_empty() {
+        None
+    } else {
+        Some(values.into_iter().sum())
+    }
+}
+
+fn sum_complete_optional_metric(
+    samples: &[AnalyticsMetricSample],
+    selector: fn(&AnalyticsMetricSample) -> Option<u64>,
+) -> Option<u64> {
+    if samples.is_empty() || samples.iter().any(|sample| selector(sample).is_none()) {
+        None
+    } else {
+        Some(samples.iter().filter_map(selector).sum())
+    }
+}
+
+fn aggregate_quality_freshness(samples: &[AnalyticsMetricSample]) -> Option<String> {
+    let values = samples
+        .iter()
+        .filter_map(|sample| sample.quality_freshness.as_deref())
+        .collect::<Vec<_>>();
+    if values.iter().any(|value| *value == "Conflicted") {
+        Some("Conflicted".to_string())
+    } else if values.iter().any(|value| *value == "Stale") {
+        Some("Stale".to_string())
+    } else if values.iter().any(|value| *value == "Fresh") {
+        Some("Fresh".to_string())
+    } else {
+        None
+    }
+}
+
+fn analytics_portfolio_sample(
+    repositories: &[RepositorySnapshot],
+    observed_at: &str,
+) -> AnalyticsMetricSample {
+    let samples = repositories
+        .iter()
+        .map(|repository| analytics_repository_sample(repository, observed_at))
+        .collect::<Vec<_>>();
+    AnalyticsMetricSample {
+        observed_at: observed_at.to_string(),
+        repository_count: samples.iter().map(|sample| sample.repository_count).sum(),
+        workspace_count: samples.iter().map(|sample| sample.workspace_count).sum(),
+        branch_count: samples.iter().map(|sample| sample.branch_count).sum(),
+        active_condition_count: samples
+            .iter()
+            .map(|sample| sample.active_condition_count)
+            .sum(),
+        dirty_workspace_count: samples
+            .iter()
+            .map(|sample| sample.dirty_workspace_count)
+            .sum(),
+        unsynced_workspace_count: samples
+            .iter()
+            .map(|sample| sample.unsynced_workspace_count)
+            .sum(),
+        active_workspace_count: samples
+            .iter()
+            .map(|sample| sample.active_workspace_count)
+            .sum(),
+        interrupted_workspace_count: samples
+            .iter()
+            .map(|sample| sample.interrupted_workspace_count)
+            .sum(),
+        idle_workspace_count: samples
+            .iter()
+            .map(|sample| sample.idle_workspace_count)
+            .sum(),
+        unknown_workspace_count: samples
+            .iter()
+            .map(|sample| sample.unknown_workspace_count)
+            .sum(),
+        ahead_commit_count: samples.iter().map(|sample| sample.ahead_commit_count).sum(),
+        behind_commit_count: samples
+            .iter()
+            .map(|sample| sample.behind_commit_count)
+            .sum(),
+        commits_last_30_days: sum_complete_optional_metric(&samples, |sample| {
+            sample.commits_last_30_days
+        }),
+        ci_readiness_score: average_score(&samples, |sample| sample.ci_readiness_score),
+        maturity_score: average_score(&samples, |sample| sample.maturity_score),
+        findings_total: sum_optional_metric(&samples, |sample| sample.findings_total),
+        high_severity_findings: sum_optional_metric(&samples, |sample| {
+            sample.high_severity_findings
+        }),
+        ci_readiness_scored_repository_count: samples
+            .iter()
+            .map(|sample| sample.ci_readiness_scored_repository_count)
+            .sum(),
+        maturity_scored_repository_count: samples
+            .iter()
+            .map(|sample| sample.maturity_scored_repository_count)
+            .sum(),
+        findings_repository_count: samples
+            .iter()
+            .map(|sample| sample.findings_repository_count)
+            .sum(),
+        release_rule_repository_count: samples
+            .iter()
+            .map(|sample| sample.release_rule_repository_count)
+            .sum(),
+        release_ready_repository_count: samples
+            .iter()
+            .map(|sample| sample.release_ready_repository_count)
+            .sum(),
+        quality_freshness: aggregate_quality_freshness(&samples),
+    }
+}
+
+fn analytics_sample_fingerprint(sample: &AnalyticsMetricSample) -> Result<String, String> {
+    let mut comparable = sample.clone();
+    comparable.observed_at.clear();
+    serde_json::to_string(&comparable)
+        .map_err(|error| format!("Could not fingerprint analytics sample: {error}"))
+}
+
+fn analytics_scope_id(repository_id: &str) -> String {
+    let mut digest = Sha256::new();
+    digest.update(repository_id.as_bytes());
+    format!("repository:{:x}", digest.finalize())
+}
+
+fn latest_analytics_sample(
+    connection: &SqliteConnection,
+    repository_id: Option<&str>,
+) -> Result<Option<AnalyticsMetricSample>, String> {
+    let payload = match repository_id {
+        Some(repository_id) => connection
+            .query_row(
+                "SELECT payload_json FROM analytics_samples
+                 WHERE repository_id = ?1 ORDER BY observed_at DESC, id DESC LIMIT 1",
+                params![repository_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional(),
+        None => connection
+            .query_row(
+                "SELECT payload_json FROM analytics_samples
+                 WHERE repository_id IS NULL ORDER BY observed_at DESC, id DESC LIMIT 1",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .optional(),
+    }
+    .map_err(|error| format!("Could not read latest analytics sample: {error}"))?;
+    payload
+        .map(|payload| {
+            serde_json::from_str(&payload)
+                .map_err(|error| format!("Could not decode analytics sample: {error}"))
+        })
+        .transpose()
+}
+
+fn should_deduplicate_analytics_sample(
+    latest: Option<&AnalyticsMetricSample>,
+    sample: &AnalyticsMetricSample,
+) -> Result<bool, String> {
+    let Some(latest) = latest else {
+        return Ok(false);
+    };
+    if analytics_sample_fingerprint(latest)? != analytics_sample_fingerprint(sample)? {
+        return Ok(false);
+    }
+    let observed_at = DateTime::parse_from_rfc3339(&sample.observed_at)
+        .map_err(|error| format!("Could not parse analytics observation time: {error}"))?
+        .with_timezone(&Utc);
+    let previous = DateTime::parse_from_rfc3339(&latest.observed_at)
+        .map_err(|error| format!("Could not parse latest analytics time: {error}"))?
+        .with_timezone(&Utc);
+    let elapsed = observed_at - previous;
+    Ok(elapsed >= chrono::Duration::zero()
+        && elapsed <= chrono::Duration::minutes(ANALYTICS_DEDUP_MINUTES))
+}
+
+fn record_analytics_samples_at(
+    path: &Path,
+    state: &StoreState,
+    observed_at: &str,
+) -> Result<(), String> {
+    let portfolio = analytics_portfolio_sample(&state.repositories, observed_at);
+    let mut samples = vec![(None, portfolio)];
+    samples.extend(state.repositories.iter().map(|repository| {
+        (
+            Some(repository.id.clone()),
+            analytics_repository_sample(repository, observed_at),
+        )
+    }));
+
+    let mut connection = open_store(path)?;
+    let latest_samples = samples
+        .iter()
+        .map(|(repository_id, _)| {
+            let scope_id = repository_id.as_deref().map(analytics_scope_id);
+            latest_analytics_sample(&connection, scope_id.as_deref())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let transaction = connection
+        .transaction()
+        .map_err(|error| format!("Could not begin analytics transaction: {error}"))?;
+    let cutoff = Utc::now() - chrono::Duration::days(state.retention_days.max(1));
+    transaction
+        .execute(
+            "DELETE FROM analytics_samples WHERE observed_at < ?1",
+            params![cutoff.to_rfc3339_opts(SecondsFormat::Secs, true)],
+        )
+        .map_err(|error| format!("Could not prune analytics samples: {error}"))?;
+    for ((repository_id, sample), latest) in samples.into_iter().zip(latest_samples) {
+        if should_deduplicate_analytics_sample(latest.as_ref(), &sample)? {
+            continue;
+        }
+        let payload = serde_json::to_string(&sample)
+            .map_err(|error| format!("Could not encode analytics sample: {error}"))?;
+        let sequence = NEXT_ANALYTICS_ID.fetch_add(1, Ordering::Relaxed);
+        let scope_id = repository_id.as_deref().map(analytics_scope_id);
+        let scope = scope_id.as_deref().unwrap_or("fleet");
+        let id = format!("analytics:{scope}:{observed_at}:{sequence}");
+        transaction
+            .execute(
+                "INSERT INTO analytics_samples
+                 (id, repository_id, observed_at, payload_json)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![id, scope_id, observed_at, payload],
+            )
+            .map_err(|error| format!("Could not save analytics sample: {error}"))?;
+    }
+    transaction
+        .commit()
+        .map_err(|error| format!("Could not commit analytics samples: {error}"))
+}
+
+fn record_analytics_samples(path: &Path, state: &StoreState) -> Result<(), String> {
+    record_analytics_samples_at(path, state, &iso_now())
+}
+
+fn prune_analytics_samples(path: &Path, retention_days: i64) -> Result<(), String> {
+    let connection = open_store(path)?;
+    let cutoff = Utc::now() - chrono::Duration::days(retention_days.max(1));
+    connection
+        .execute(
+            "DELETE FROM analytics_samples WHERE observed_at < ?1",
+            params![cutoff.to_rfc3339_opts(SecondsFormat::Secs, true)],
+        )
+        .map_err(|error| format!("Could not prune analytics samples: {error}"))?;
+    Ok(())
+}
+
+fn analytics_payload(row: &Row<'_>) -> rusqlite::Result<String> {
+    row.get(0)
+}
+
+fn load_analytics_samples(
+    connection: &SqliteConnection,
+    repository_id: Option<&str>,
+    cutoff: &str,
+) -> Result<Vec<AnalyticsMetricSample>, String> {
+    let mut samples = Vec::new();
+    let mut statement = match repository_id {
+        Some(_) => connection
+            .prepare(
+                "SELECT payload_json FROM analytics_samples
+                 WHERE repository_id = ?1 AND observed_at >= ?2
+                 ORDER BY observed_at, id",
+            )
+            .map_err(|error| format!("Could not prepare analytics query: {error}"))?,
+        None => connection
+            .prepare(
+                "SELECT payload_json FROM analytics_samples
+                 WHERE repository_id IS NULL AND observed_at >= ?1
+                 ORDER BY observed_at, id",
+            )
+            .map_err(|error| format!("Could not prepare analytics query: {error}"))?,
+    };
+    match repository_id {
+        Some(repository_id) => {
+            let rows = statement
+                .query_map(params![repository_id, cutoff], analytics_payload)
+                .map_err(|error| format!("Could not read analytics samples: {error}"))?;
+            for row in rows {
+                let payload =
+                    row.map_err(|error| format!("Could not decode analytics row: {error}"))?;
+                samples.push(
+                    serde_json::from_str(&payload)
+                        .map_err(|error| format!("Could not decode analytics sample: {error}"))?,
+                );
+            }
+        }
+        None => {
+            let rows = statement
+                .query_map(params![cutoff], analytics_payload)
+                .map_err(|error| format!("Could not read analytics samples: {error}"))?;
+            for row in rows {
+                let payload =
+                    row.map_err(|error| format!("Could not decode analytics row: {error}"))?;
+                samples.push(
+                    serde_json::from_str(&payload)
+                        .map_err(|error| format!("Could not decode analytics sample: {error}"))?,
+                );
+            }
+        }
+    }
+    Ok(samples)
+}
+
+fn load_analytics_at(path: &Path) -> Result<AnalyticsSnapshot, String> {
+    let state = load_store_with_quality(path)?;
+    let connection = open_store(path)?;
+    let range_cutoff = Utc::now() - chrono::Duration::days(ANALYTICS_RANGE_DAYS);
+    let retention_cutoff = Utc::now() - chrono::Duration::days(state.retention_days.max(1));
+    let cutoff = range_cutoff.max(retention_cutoff);
+    let cutoff = cutoff.to_rfc3339_opts(SecondsFormat::Secs, true);
+    let portfolio_samples = load_analytics_samples(&connection, None, &cutoff)?;
+    let repositories = state
+        .repositories
+        .iter()
+        .map(|repository| {
+            let scope_id = analytics_scope_id(repository.id.as_str());
+            Ok(AnalyticsRepositorySeries {
+                repository_id: repository.id.clone(),
+                name: repository.name.clone(),
+                samples: load_analytics_samples(&connection, Some(scope_id.as_str()), &cutoff)?,
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let latest_observed_at = portfolio_samples
+        .last()
+        .map(|sample| sample.observed_at.clone())
+        .or_else(|| {
+            repositories
+                .iter()
+                .flat_map(|repository| repository.samples.last())
+                .map(|sample| sample.observed_at.clone())
+                .max()
+        });
+    let history_available_from = portfolio_samples
+        .first()
+        .map(|sample| sample.observed_at.clone())
+        .or_else(|| {
+            repositories
+                .iter()
+                .flat_map(|repository| repository.samples.first())
+                .map(|sample| sample.observed_at.clone())
+                .min()
+        });
+    Ok(AnalyticsSnapshot {
+        schema_version: ANALYTICS_SCHEMA.to_string(),
+        generated_at: iso_now(),
+        source: "Local refresh snapshots".to_string(),
+        freshness: latest_observed_at
+            .map(|observed_at| format!("Observed through {observed_at}"))
+            .unwrap_or_else(|| "Unavailable until the first local refresh".to_string()),
+        range_days: ANALYTICS_RANGE_DAYS,
+        retention_days: state.retention_days,
+        history_available_from,
+        portfolio_samples,
+        repositories,
+    })
 }
 
 fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
@@ -1379,6 +2403,8 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
         remote_repositories: state.remote_repositories.clone(),
         provider_status: state.provider_status.clone(),
         quality: state.quality.clone(),
+        connections: state.connections.clone(),
+        remediation: state.remediation.clone(),
         retention_days: state.retention_days,
         generated_at: iso_now(),
         storage_path: path.to_string_lossy().to_string(),
@@ -1426,17 +2452,26 @@ fn git_static(path: &Path, arguments: &[&str]) -> Option<String> {
 #[derive(Debug, Clone)]
 struct GitHubCliAdapter {
     executable: String,
+    target_repository_names: Option<HashSet<String>>,
 }
 
 impl Default for GitHubCliAdapter {
     fn default() -> Self {
         Self {
             executable: "gh".to_string(),
+            target_repository_names: None,
         }
     }
 }
 
 impl GitHubCliAdapter {
+    fn for_repository_names(repository_names: HashSet<String>) -> Self {
+        Self {
+            executable: "gh".to_string(),
+            target_repository_names: Some(repository_names),
+        }
+    }
+
     fn json(&self, arguments: &[&str]) -> Result<serde_json::Value, String> {
         let output = Command::new(&self.executable)
             .args(arguments)
@@ -1487,7 +2522,19 @@ impl ProviderAdapter for GitHubCliAdapter {
         let mut pull_requests = Vec::new();
         let mut releases = Vec::new();
         let mut ci_updates = HashMap::<String, (Vec<CheckSnapshot>, String, Option<String>)>::new();
-        for repository in &repositories {
+        let repositories_to_refresh = repositories
+            .iter()
+            .filter(|repository| {
+                self.target_repository_names
+                    .as_ref()
+                    .map(|names| {
+                        normalize_remote_name(&repository.full_name)
+                            .is_some_and(|name| names.contains(&name))
+                    })
+                    .unwrap_or(true)
+            })
+            .collect::<Vec<_>>();
+        for repository in repositories_to_refresh {
             let pull_request_endpoint = format!(
                 "repos/{}/pulls?state=all&per_page=100",
                 repository.full_name
@@ -1902,6 +2949,7 @@ fn filter_linked_remote_repositories(
 fn apply_provider_refresh_at(
     path: &Path,
     refresh: ProviderRefresh,
+    target_repository_ids: Option<&HashSet<String>>,
 ) -> Result<PortfolioSnapshot, String> {
     let mut state = load_store(path)?;
     let remote_by_name = refresh
@@ -1912,6 +2960,9 @@ fn apply_provider_refresh_at(
         })
         .collect::<HashMap<_, _>>();
     for local in &mut state.repositories {
+        if target_repository_ids.is_some_and(|targets| !targets.contains(&local.id)) {
+            continue;
+        }
         let Some(remote_name) = local.remote_url.as_deref().and_then(normalize_remote_name) else {
             continue;
         };
@@ -1936,8 +2987,36 @@ fn apply_provider_refresh_at(
                 "GitHub repository unavailable to the connected identity".to_string();
         }
     }
-    let remote_repositories =
+    let refreshed_remote_repositories =
         filter_linked_remote_repositories(&state.repositories, refresh.repositories);
+    let remote_repositories = if let Some(targets) = target_repository_ids {
+        let target_names = state
+            .repositories
+            .iter()
+            .filter(|repository| targets.contains(&repository.id))
+            .filter_map(|repository| {
+                repository
+                    .remote_url
+                    .as_deref()
+                    .and_then(normalize_remote_name)
+            })
+            .collect::<HashSet<_>>();
+        let mut merged = state
+            .remote_repositories
+            .into_iter()
+            .filter(|remote| {
+                normalize_remote_name(&remote.full_name)
+                    .is_none_or(|name| !target_names.contains(&name))
+            })
+            .collect::<Vec<_>>();
+        merged.extend(refreshed_remote_repositories.into_iter().filter(|remote| {
+            normalize_remote_name(&remote.full_name)
+                .is_some_and(|name| target_names.contains(&name))
+        }));
+        merged
+    } else {
+        refreshed_remote_repositories
+    };
     state.provider_identities = refresh.identities;
     state.remote_repositories = remote_repositories;
     state.provider_status = ProviderStatus {
@@ -1948,17 +3027,24 @@ fn apply_provider_refresh_at(
         identity_count: state.provider_identities.len(),
         repository_count: state.remote_repositories.len(),
     };
-    apply_quality_evidence(&mut state);
+    apply_quality_evidence_scoped(&mut state, target_repository_ids, None);
     apply_release_threshold_conditions(&mut state);
     save_store(path, &state)?;
     Ok(snapshot_from_store(path, &state))
 }
 
 fn apply_quality_evidence(state: &mut StoreState) {
-    let audit = quality::audit_import(
-        state.quality.audit_root.as_deref().map(Path::new),
-        &state.repositories,
-    );
+    apply_quality_evidence_scoped(state, None, None);
+}
+
+fn apply_quality_evidence_scoped(
+    state: &mut StoreState,
+    target_repository_ids: Option<&HashSet<String>>,
+    fleet_audit_root: Option<&Path>,
+) {
+    let feed_path = quality::canonical_maturity_feed_path();
+    let audit = quality::maturity_feed_import(feed_path.as_deref(), &state.repositories);
+    let fleet = quality::fleet_audit_import(fleet_audit_root, &state.repositories);
     state.quality = audit.portfolio;
     let remote_by_name = state
         .remote_repositories
@@ -1966,21 +3052,61 @@ fn apply_quality_evidence(state: &mut StoreState) {
         .filter_map(|remote| normalize_remote_name(&remote.full_name).map(|name| (name, remote)))
         .collect::<HashMap<_, _>>();
     for repository in &mut state.repositories {
+        if target_repository_ids.is_some_and(|targets| !targets.contains(&repository.id)) {
+            continue;
+        }
         let remote = repository
             .remote_url
             .as_deref()
             .and_then(normalize_remote_name)
             .and_then(|name| remote_by_name.get(&name).copied());
-        let maturity = audit.maturities.get(&repository.id).cloned();
-        repository.quality = quality::ingest_repository_quality(repository, remote, maturity);
+        let fleet_evidence = fleet.evidence.get(&repository.id);
+        let maturity = audit
+            .maturities
+            .get(&repository.id)
+            .cloned()
+            .or_else(|| fleet_evidence.map(|evidence| evidence.maturity.clone()));
+        let ideal_gate_ids = quality::ideal_gate_ids_for_repository(repository);
+        let mut imported = quality::ingest_repository_quality(
+            repository,
+            remote,
+            maturity,
+            ideal_gate_ids.as_deref(),
+        );
+        if let Some(fleet_evidence) = fleet_evidence {
+            if imported.maturity.score.is_none()
+                || (imported.maturity.freshness != quality::QualityFreshness::Fresh
+                    && fleet_evidence.maturity.freshness == quality::QualityFreshness::Fresh)
+            {
+                imported.maturity = fleet_evidence.maturity.clone();
+            }
+            if imported.findings.source.is_none()
+                || (imported.findings.freshness != quality::QualityFreshness::Fresh
+                    && fleet_evidence.findings.freshness == quality::QualityFreshness::Fresh)
+            {
+                imported.findings = fleet_evidence.findings.clone();
+            }
+            if imported.last_ingested_at.is_none() {
+                imported.last_ingested_at = fleet_evidence.findings.observed_at.clone();
+            }
+            imported.ingestion_status = "Available".to_string();
+            imported.ingestion_message = None;
+        }
+        repository.quality = imported;
     }
     quality::update_ci_readiness_summary(&mut state.quality, &state.repositories);
+    state.remediation = remediation::rebuild_run_with_fleet_root(
+        &state.repositories,
+        &state.remediation,
+        state.quality.latest_audit_id.as_deref(),
+        fleet_audit_root,
+    );
 }
 
 fn refresh_github_at(path: &Path) -> Result<PortfolioSnapshot, String> {
     let adapter = GitHubCliAdapter::default();
     match adapter.refresh() {
-        Ok(refresh) => apply_provider_refresh_at(path, refresh),
+        Ok(refresh) => apply_provider_refresh_at(path, refresh, None),
         Err(error) => {
             let mut state = load_store(path)?;
             state.provider_status = ProviderStatus {
@@ -1996,6 +3122,769 @@ fn refresh_github_at(path: &Path) -> Result<PortfolioSnapshot, String> {
             Ok(snapshot_from_store(path, &state))
         }
     }
+}
+
+fn refresh_github_scoped_at(
+    path: &Path,
+    target_repository_ids: &HashSet<String>,
+) -> Result<PortfolioSnapshot, String> {
+    let target_repository_names = load_store(path)?
+        .repositories
+        .iter()
+        .filter(|repository| target_repository_ids.contains(&repository.id))
+        .filter_map(|repository| {
+            repository
+                .remote_url
+                .as_deref()
+                .and_then(normalize_remote_name)
+        })
+        .collect::<HashSet<_>>();
+    let adapter = GitHubCliAdapter::for_repository_names(target_repository_names);
+    match adapter.refresh() {
+        Ok(refresh) => apply_provider_refresh_at(path, refresh, Some(target_repository_ids)),
+        Err(error) => {
+            let mut state = load_store(path)?;
+            state.provider_status = ProviderStatus {
+                provider: "GitHub".to_string(),
+                state: "Unavailable".to_string(),
+                message: error.clone(),
+                last_refresh_at: state.provider_status.last_refresh_at.clone(),
+                identity_count: state.provider_identities.len(),
+                repository_count: state.remote_repositories.len(),
+            };
+            apply_release_threshold_conditions(&mut state);
+            save_store(path, &state)?;
+            Err(error)
+        }
+    }
+}
+
+fn remediation_refresh_steps() -> Vec<remediation::RemediationRefreshStep> {
+    [
+        ("qr_doctor", "Quality Runner doctor"),
+        ("local_scan", "Scoped local repository scan"),
+        ("qr_fleet_run", "Fresh Quality Runner fleet run"),
+        ("qr_replay", "Quality Runner replay verification"),
+        ("qr_report", "Quality Runner aggregate report"),
+        ("qr_feed", "Quality Runner maturity feed"),
+        ("provider", "GitHub provider refresh"),
+        ("quality_import", "Pronto quality and maturity import"),
+        ("remediation_plan", "Per-repository remediation plans"),
+    ]
+    .into_iter()
+    .map(|(id, label)| remediation::RemediationRefreshStep {
+        id: id.to_string(),
+        label: label.to_string(),
+        status: "pending".to_string(),
+        ..remediation::RemediationRefreshStep::default()
+    })
+    .collect()
+}
+
+fn set_remediation_refresh_step(
+    steps: &mut [remediation::RemediationRefreshStep],
+    step_id: &str,
+    status: &str,
+    detail: impl Into<String>,
+    evidence_path: Option<String>,
+) {
+    let Some(step) = steps.iter_mut().find(|step| step.id == step_id) else {
+        return;
+    };
+    let now = iso_now();
+    if step.started_at.is_none() {
+        step.started_at = Some(now.clone());
+    }
+    step.status = status.to_string();
+    step.detail = detail.into();
+    step.evidence_path = evidence_path;
+    if matches!(status, "completed" | "blocked" | "skipped") {
+        step.completed_at = Some(now);
+    }
+}
+
+fn persist_remediation_refresh(
+    path: &Path,
+    refresh_id: &str,
+    status: &str,
+    message: Option<String>,
+    steps: &[remediation::RemediationRefreshStep],
+) -> Result<(), String> {
+    let mut state = load_store(path)?;
+    remediation::sync_scope_metadata(&mut state.remediation, &state.repositories);
+    if state.remediation.plans.is_empty() {
+        state.remediation = remediation::rebuild_run(
+            &state.repositories,
+            &state.remediation,
+            state.quality.latest_audit_id.as_deref(),
+        );
+    }
+    let eligible = state
+        .repositories
+        .iter()
+        .filter(|repository| !remediation::is_excluded_repository(repository))
+        .collect::<Vec<_>>();
+    remediation::set_refresh_metadata(
+        &mut state.remediation,
+        refresh_id,
+        status,
+        message,
+        eligible
+            .iter()
+            .map(|repository| repository.id.clone())
+            .collect(),
+        eligible
+            .iter()
+            .map(|repository| repository.path.clone())
+            .collect(),
+        steps.to_vec(),
+    );
+    save_store(path, &state)
+}
+
+fn fail_remediation_refresh(
+    path: &Path,
+    refresh_id: &str,
+    steps: &mut [remediation::RemediationRefreshStep],
+    step_id: &str,
+    error: String,
+) -> Result<PortfolioSnapshot, String> {
+    set_remediation_refresh_step(steps, step_id, "blocked", error.clone(), None);
+    let _ = persist_remediation_refresh(path, refresh_id, "blocked", Some(error.clone()), steps);
+    Err(error)
+}
+
+fn json_from_process_output(output: &std::process::Output) -> Result<serde_json::Value, String> {
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if let Ok(payload) = serde_json::from_str::<serde_json::Value>(&stdout) {
+        return Ok(payload);
+    }
+    let payload = stdout
+        .find('{')
+        .and_then(|start| stdout.rfind('}').map(|end| (start, end)))
+        .and_then(|(start, end)| serde_json::from_str(&stdout[start..=end]).ok());
+    payload.ok_or_else(|| {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        if stderr.is_empty() {
+            "Quality Runner returned invalid or missing JSON on stdout.".to_string()
+        } else {
+            format!("Quality Runner returned invalid or missing JSON on stdout ({stderr})")
+        }
+    })
+}
+
+fn run_json_command(executable: &str, arguments: &[String]) -> Result<serde_json::Value, String> {
+    let output = Command::new(executable)
+        .args(arguments)
+        .output()
+        .map_err(|error| format!("Could not run {executable}: {error}"))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let detail = if !stderr.is_empty() { stderr } else { stdout };
+        return Err(format!(
+            "{executable} {} failed with status {}{}",
+            arguments.join(" "),
+            output.status,
+            if detail.is_empty() {
+                String::new()
+            } else {
+                format!(": {detail}")
+            }
+        ));
+    }
+    json_from_process_output(&output)
+}
+
+fn json_string(value: &serde_json::Value, keys: &[&str]) -> Option<String> {
+    if let Some(object) = value.as_object() {
+        for key in keys {
+            if let Some(item) = object.get(*key).and_then(serde_json::Value::as_str) {
+                return Some(item.to_string());
+            }
+        }
+        for child in object.values() {
+            if let Some(found) = json_string(child, keys) {
+                return Some(found);
+            }
+        }
+    } else if let Some(items) = value.as_array() {
+        for child in items {
+            if let Some(found) = json_string(child, keys) {
+                return Some(found);
+            }
+        }
+    }
+    None
+}
+
+fn resolve_qr_executable(requested: Option<&str>) -> String {
+    if let Some(requested) = requested.map(str::trim).filter(|value| !value.is_empty()) {
+        return requested.to_string();
+    }
+    if let Some(from_environment) = std::env::var_os("PRONTO_QR_BIN") {
+        if !from_environment.is_empty() {
+            return from_environment.to_string_lossy().to_string();
+        }
+    }
+    [
+        "/Users/jakyeamos/projects/quality-runner/.venv/bin/qr",
+        "qr",
+        "quality-runner",
+    ]
+    .iter()
+    .find(|candidate| !candidate.contains('/') || Path::new(candidate).is_file())
+    .unwrap_or(&"qr")
+    .to_string()
+}
+
+fn qr_projects_root(repository_paths: &[String]) -> Result<PathBuf, String> {
+    let home_projects = dirs::home_dir().map(|home| home.join("projects"));
+    if let Some(root) = home_projects.filter(|root| {
+        root.is_dir()
+            && repository_paths
+                .iter()
+                .all(|path| Path::new(path).starts_with(root))
+    }) {
+        return Ok(root);
+    }
+    let mut common = PathBuf::from(
+        repository_paths
+            .first()
+            .ok_or_else(|| "No eligible repositories are registered for QR.".to_string())?,
+    );
+    for path in repository_paths.iter().skip(1) {
+        let candidate = Path::new(path);
+        while !candidate.starts_with(&common) {
+            if !common.pop() {
+                return Err("Could not derive a bounded Quality Runner projects root.".to_string());
+            }
+        }
+    }
+    if common == Path::new("/") || !common.is_dir() {
+        return Err(format!(
+            "Quality Runner scope root is not bounded to a usable directory: {}",
+            common.display()
+        ));
+    }
+    Ok(common)
+}
+
+fn process_qr_audit_lifecycle(
+    path: &Path,
+    refresh_id: &str,
+    steps: &mut [remediation::RemediationRefreshStep],
+    qr: &str,
+    audit_id: &str,
+    artifact_root: Option<String>,
+) -> Result<bool, (String, String)> {
+    let qr_audit_commands = [
+        (
+            "qr_replay",
+            "replay",
+            "Replay passed and the fleet artifacts are deterministic.",
+        ),
+        (
+            "qr_report",
+            "report",
+            "Aggregate QR report written for review.",
+        ),
+        (
+            "qr_feed",
+            "feed",
+            "Canonical maturity feed published from the replay-validated audit.",
+        ),
+    ];
+    for (step_id, action, success_detail) in qr_audit_commands {
+        set_remediation_refresh_step(
+            steps,
+            step_id,
+            "in_progress",
+            format!("Running qr fleet audit {action} for {audit_id}."),
+            None,
+        );
+        if let Err(error) =
+            persist_remediation_refresh(path, refresh_id, "in_progress", None, steps)
+        {
+            return Err((step_id.to_string(), error));
+        }
+        let arguments = vec![
+            "fleet".to_string(),
+            "audit".to_string(),
+            action.to_string(),
+            "--audit-id".to_string(),
+            audit_id.to_string(),
+            "--json".to_string(),
+        ];
+        match run_json_command(qr, &arguments) {
+            Ok(payload) => {
+                let status = json_string(&payload, &["status"]).unwrap_or_default();
+                let valid = match step_id {
+                    "qr_replay" => {
+                        status == "passed"
+                            && payload
+                                .get("deterministic")
+                                .and_then(serde_json::Value::as_bool)
+                                == Some(true)
+                    }
+                    "qr_feed" => status == "published",
+                    _ => status == "review_required",
+                };
+                if !valid {
+                    let detail = format!("Quality Runner {action} returned status {status}.");
+                    if step_id == "qr_feed" {
+                        set_remediation_refresh_step(steps, step_id, "blocked", detail, None);
+                        if let Err(error) = persist_remediation_refresh(
+                            path,
+                            refresh_id,
+                            "partial",
+                            Some("QR maturity feed publication was blocked; prior maturity evidence was retained.".to_string()),
+                            steps,
+                        ) {
+                            return Err((step_id.to_string(), error));
+                        }
+                        return Ok(false);
+                    }
+                    return Err((step_id.to_string(), detail));
+                }
+                let evidence_path = json_string(&payload, &["feed_path", "artifact_root"])
+                    .or_else(|| artifact_root.clone());
+                set_remediation_refresh_step(
+                    steps,
+                    step_id,
+                    "completed",
+                    success_detail,
+                    evidence_path,
+                );
+            }
+            Err(error) if step_id == "qr_feed" => {
+                set_remediation_refresh_step(steps, step_id, "blocked", error, None);
+                if let Err(error) = persist_remediation_refresh(
+                    path,
+                    refresh_id,
+                    "partial",
+                    Some("QR maturity feed publication was blocked; prior maturity evidence was retained.".to_string()),
+                    steps,
+                ) {
+                    return Err((step_id.to_string(), error));
+                }
+                return Ok(false);
+            }
+            Err(error) => return Err((step_id.to_string(), error)),
+        }
+        if let Err(error) =
+            persist_remediation_refresh(path, refresh_id, "in_progress", None, steps)
+        {
+            return Err((step_id.to_string(), error));
+        }
+    }
+    Ok(true)
+}
+
+fn refresh_remediation_at(
+    path: &Path,
+    qr_executable: Option<&str>,
+    dynamic: bool,
+    changed_only: bool,
+    skip_provider: bool,
+) -> Result<PortfolioSnapshot, String> {
+    let initial_state = load_store(path)?;
+    let eligible_paths = initial_state
+        .repositories
+        .iter()
+        .filter(|repository| !remediation::is_excluded_repository(repository))
+        .map(|repository| repository.path.clone())
+        .collect::<Vec<_>>();
+    if eligible_paths.is_empty() {
+        return Err(
+            "No eligible repositories remain after excluding Soundscape and Tenure.".to_string(),
+        );
+    }
+    let refresh_id = format!("remediation-refresh-{}", iso_now().replace([':', '-'], ""));
+    let mut steps = remediation_refresh_steps();
+    let _ = persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps);
+
+    let qr = resolve_qr_executable(qr_executable);
+    set_remediation_refresh_step(
+        &mut steps,
+        "qr_doctor",
+        "in_progress",
+        format!("Running {qr} doctor before any QR audit."),
+        None,
+    );
+    persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
+    let doctor = match run_json_command(&qr, &["doctor".to_string(), "--json".to_string()]) {
+        Ok(payload) => payload,
+        Err(error) => {
+            return fail_remediation_refresh(path, &refresh_id, &mut steps, "qr_doctor", error)
+        }
+    };
+    let doctor_status = json_string(&doctor, &["status"]).unwrap_or_else(|| "unknown".to_string());
+    if doctor_status != "ready" {
+        return fail_remediation_refresh(
+            path,
+            &refresh_id,
+            &mut steps,
+            "qr_doctor",
+            format!("Quality Runner doctor did not report ready (status: {doctor_status})."),
+        );
+    }
+    set_remediation_refresh_step(
+        &mut steps,
+        "qr_doctor",
+        "completed",
+        "Quality Runner doctor reported ready.",
+        None,
+    );
+    persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
+
+    set_remediation_refresh_step(
+        &mut steps,
+        "local_scan",
+        "in_progress",
+        "Refreshing local Git/workspace evidence for eligible repositories only.",
+        None,
+    );
+    persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
+    let mut state = load_store(path)?;
+    let eligible_ids = state
+        .repositories
+        .iter()
+        .filter(|repository| !remediation::is_excluded_repository(repository))
+        .map(|repository| repository.id.clone())
+        .collect::<HashSet<_>>();
+    if let Err(error) = audited_scan_and_persist_scoped(
+        path,
+        &mut state,
+        Some(&eligible_ids),
+        Some("eligible repositories"),
+    ) {
+        return fail_remediation_refresh(path, &refresh_id, &mut steps, "local_scan", error);
+    }
+    set_remediation_refresh_step(
+        &mut steps,
+        "local_scan",
+        "completed",
+        "Local evidence refreshed without scanning excluded repositories.",
+        None,
+    );
+    persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
+
+    let projects_root = qr_projects_root(&eligible_paths)?;
+    let all_projects_scope = dirs::home_dir()
+        .map(|home| projects_root == home.join("projects"))
+        .unwrap_or(false);
+    let mut fleet_arguments = vec!["fleet".to_string(), "audit".to_string(), "run".to_string()];
+    if all_projects_scope {
+        fleet_arguments.extend(["--all".to_string(), "--projects-root".to_string()]);
+        fleet_arguments.push(projects_root.to_string_lossy().to_string());
+    } else {
+        fleet_arguments.extend([
+            "--projects-root".to_string(),
+            projects_root.to_string_lossy().to_string(),
+        ]);
+        for repository_path in &eligible_paths {
+            fleet_arguments.push("--repo-path".to_string());
+            fleet_arguments.push(repository_path.clone());
+        }
+    }
+    if dynamic {
+        fleet_arguments.push("--dynamic".to_string());
+        if !changed_only {
+            fleet_arguments.push("--no-changed-only".to_string());
+        }
+    }
+    fleet_arguments.extend([
+        "--timeout-seconds".to_string(),
+        "120".to_string(),
+        "--json".to_string(),
+    ]);
+    set_remediation_refresh_step(
+        &mut steps,
+        "qr_fleet_run",
+        "in_progress",
+        format!(
+            "Running a fresh QR fleet audit from {}.",
+            projects_root.display()
+        ),
+        None,
+    );
+    persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
+    let fleet = match run_json_command(&qr, &fleet_arguments) {
+        Ok(payload) => payload,
+        Err(error) => {
+            return fail_remediation_refresh(path, &refresh_id, &mut steps, "qr_fleet_run", error)
+        }
+    };
+    let audit_id = match json_string(&fleet, &["audit_id"]) {
+        Some(audit_id) => audit_id,
+        None => {
+            return fail_remediation_refresh(
+                path,
+                &refresh_id,
+                &mut steps,
+                "qr_fleet_run",
+                "Quality Runner fleet run completed without an audit_id.".to_string(),
+            )
+        }
+    };
+    let artifact_root = json_string(&fleet, &["artifact_root"]);
+    let scoped_artifact_root = artifact_root.clone();
+    set_remediation_refresh_step(
+        &mut steps,
+        "qr_fleet_run",
+        "completed",
+        format!("Fresh QR audit {audit_id} completed."),
+        artifact_root.clone(),
+    );
+    persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
+
+    let mut feed_published = match process_qr_audit_lifecycle(
+        path,
+        &refresh_id,
+        &mut steps,
+        &qr,
+        &audit_id,
+        artifact_root.clone(),
+    ) {
+        Ok(published) => published,
+        Err((step_id, error)) => {
+            return fail_remediation_refresh(path, &refresh_id, &mut steps, &step_id, error)
+        }
+    };
+
+    if !feed_published && !all_projects_scope {
+        if let Some(canonical_root) = dirs::home_dir()
+            .map(|home| home.join("projects"))
+            .filter(|root| root.is_dir())
+        {
+            let canonical_arguments = {
+                let mut arguments = vec![
+                    "fleet".to_string(),
+                    "audit".to_string(),
+                    "run".to_string(),
+                    "--all".to_string(),
+                    "--projects-root".to_string(),
+                    canonical_root.to_string_lossy().to_string(),
+                ];
+                if dynamic {
+                    arguments.push("--dynamic".to_string());
+                    if !changed_only {
+                        arguments.push("--no-changed-only".to_string());
+                    }
+                }
+                arguments.extend([
+                    "--timeout-seconds".to_string(),
+                    "120".to_string(),
+                    "--json".to_string(),
+                ]);
+                arguments
+            };
+            set_remediation_refresh_step(
+                &mut steps,
+                "qr_fleet_run",
+                "in_progress",
+                format!(
+                    "Scoped QR feed was not publishable; running the canonical all-projects QR audit from {}.",
+                    canonical_root.display()
+                ),
+                None,
+            );
+            persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
+            match run_json_command(&qr, &canonical_arguments) {
+                Ok(canonical_fleet) => {
+                    if let Some(canonical_audit_id) = json_string(&canonical_fleet, &["audit_id"]) {
+                        let canonical_artifact_root =
+                            json_string(&canonical_fleet, &["artifact_root"]);
+                        set_remediation_refresh_step(
+                            &mut steps,
+                            "qr_fleet_run",
+                            "completed",
+                            format!(
+                                "Scoped QR audit {audit_id} completed; canonical all-projects audit {canonical_audit_id} completed for maturity publication."
+                            ),
+                            scoped_artifact_root.clone(),
+                        );
+                        persist_remediation_refresh(
+                            path,
+                            &refresh_id,
+                            "in_progress",
+                            None,
+                            &steps,
+                        )?;
+                        feed_published = match process_qr_audit_lifecycle(
+                            path,
+                            &refresh_id,
+                            &mut steps,
+                            &qr,
+                            &canonical_audit_id,
+                            canonical_artifact_root,
+                        ) {
+                            Ok(published) => published,
+                            Err((step_id, error)) => {
+                                return fail_remediation_refresh(
+                                    path,
+                                    &refresh_id,
+                                    &mut steps,
+                                    &step_id,
+                                    error,
+                                )
+                            }
+                        };
+                        if feed_published {
+                            if let Some(step) = steps.iter_mut().find(|step| step.id == "qr_feed") {
+                                step.detail = format!(
+                                    "Canonical maturity feed published from all-projects audit {canonical_audit_id}; scoped audit {audit_id} remains the per-repository evidence run."
+                                );
+                            }
+                        }
+                    } else {
+                        let error =
+                            "Canonical Quality Runner fleet run completed without an audit_id."
+                                .to_string();
+                        set_remediation_refresh_step(
+                            &mut steps,
+                            "qr_fleet_run",
+                            "completed",
+                            format!(
+                                "Scoped QR audit {audit_id} completed, but the canonical all-projects maturity audit was incomplete: {error}"
+                            ),
+                            artifact_root.clone(),
+                        );
+                        set_remediation_refresh_step(&mut steps, "qr_feed", "blocked", error, None);
+                        persist_remediation_refresh(
+                            path,
+                            &refresh_id,
+                            "partial",
+                            Some("QR maturity feed publication was blocked; prior maturity evidence was retained.".to_string()),
+                            &steps,
+                        )?;
+                    }
+                }
+                Err(error) => {
+                    set_remediation_refresh_step(
+                        &mut steps,
+                        "qr_fleet_run",
+                        "completed",
+                        format!(
+                            "Scoped QR audit {audit_id} completed, but the canonical all-projects maturity audit failed: {error}"
+                        ),
+                        artifact_root.clone(),
+                    );
+                    set_remediation_refresh_step(
+                        &mut steps,
+                        "qr_feed",
+                        "blocked",
+                        format!(
+                            "Canonical all-projects maturity publication failed after scoped audit {audit_id}: {error}"
+                        ),
+                        None,
+                    );
+                    persist_remediation_refresh(
+                        path,
+                        &refresh_id,
+                        "partial",
+                        Some("QR maturity feed publication was blocked; prior maturity evidence was retained.".to_string()),
+                        &steps,
+                    )?;
+                }
+            }
+        }
+    }
+
+    if skip_provider {
+        set_remediation_refresh_step(
+            &mut steps,
+            "provider",
+            "skipped",
+            "Provider refresh was explicitly skipped; existing provider evidence was retained.",
+            None,
+        );
+    } else {
+        set_remediation_refresh_step(
+            &mut steps,
+            "provider",
+            "in_progress",
+            "Refreshing GitHub context while preserving excluded repository state.",
+            None,
+        );
+        persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
+        match refresh_github_scoped_at(path, &eligible_ids) {
+            Ok(_) => set_remediation_refresh_step(
+                &mut steps,
+                "provider",
+                "completed",
+                "GitHub provider context refreshed for eligible repositories.",
+                None,
+            ),
+            Err(error) => {
+                set_remediation_refresh_step(&mut steps, "provider", "blocked", error, None)
+            }
+        }
+    }
+    persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
+
+    let mut final_state = load_store(path)?;
+    let scoped_fleet_root = scoped_artifact_root.as_deref().map(Path::new);
+    apply_quality_evidence_scoped(&mut final_state, Some(&eligible_ids), scoped_fleet_root);
+    set_remediation_refresh_step(
+        &mut steps,
+        "quality_import",
+        if feed_published {
+            "completed"
+        } else {
+            "blocked"
+        },
+        if feed_published {
+            "Pronto imported the current QR maturity feed and refreshed CI ideal-state projections."
+        } else {
+            "The current QR maturity feed was not published; prior maturity evidence was retained."
+        },
+        final_state.quality.latest_audit_path.clone(),
+    );
+    set_remediation_refresh_step(
+        &mut steps,
+        "remediation_plan",
+        "completed",
+        "Generated one evidence-backed remediation plan per eligible repository.",
+        None,
+    );
+    let has_blockers = steps.iter().any(|step| step.status == "blocked");
+    final_state.remediation = remediation::rebuild_run_with_fleet_root(
+        &final_state.repositories,
+        &final_state.remediation,
+        final_state.quality.latest_audit_id.as_deref(),
+        scoped_fleet_root,
+    );
+    remediation::set_refresh_metadata(
+        &mut final_state.remediation,
+        &refresh_id,
+        if has_blockers { "partial" } else { "completed" },
+        has_blockers.then(|| {
+            steps
+                .iter()
+                .filter(|step| step.status == "blocked")
+                .map(|step| format!("{}: {}", step.label, step.detail))
+                .collect::<Vec<_>>()
+                .join(" ")
+        }),
+        final_state
+            .repositories
+            .iter()
+            .filter(|repository| !remediation::is_excluded_repository(repository))
+            .map(|repository| repository.id.clone())
+            .collect(),
+        final_state
+            .repositories
+            .iter()
+            .filter(|repository| !remediation::is_excluded_repository(repository))
+            .map(|repository| repository.path.clone())
+            .collect(),
+        steps,
+    );
+    apply_release_threshold_conditions(&mut final_state);
+    save_store(path, &final_state)?;
+    Ok(snapshot_from_store(path, &final_state))
 }
 
 fn git_owned(path: &Path, arguments: Vec<String>) -> Option<String> {
@@ -4263,7 +6152,7 @@ fn prepare_repository_at(
     repository_id: &str,
     workspace_id: Option<&str>,
 ) -> Result<RepositoryPreparation, String> {
-    let state = load_store(path)?;
+    let state = load_store_with_quality(path)?;
     let repository = state
         .repositories
         .iter()
@@ -5237,10 +7126,18 @@ fn scan_and_persist_scoped(
     }
     repositories.sort_by(|left, right| left.name.to_lowercase().cmp(&right.name.to_lowercase()));
     state.repositories = repositories;
-    apply_quality_evidence(state);
+    state.connections = connections::refresh_snapshot(
+        &state.connections,
+        &state.repositories,
+        &state.remote_repositories,
+        target_repository_ids,
+        &iso_now(),
+    );
+    apply_quality_evidence_scoped(state, target_repository_ids, None);
     apply_release_threshold_conditions(state);
     prune_events(state);
     save_store(path, state)?;
+    record_analytics_samples(path, state)?;
     Ok(snapshot_from_store(path, state))
 }
 
@@ -5450,6 +7347,7 @@ fn set_retention_days_at(path: &Path, retention_days: i64) -> Result<PortfolioSn
     prune_events(&mut state);
     prune_action_audits(&mut state);
     save_store(path, &state)?;
+    prune_analytics_samples(path, retention_days)?;
     Ok(snapshot_from_store(path, &state))
 }
 
@@ -5589,19 +7487,29 @@ fn set_maturity_audit_root_at(
     path: &Path,
     audit_root: Option<&str>,
 ) -> Result<PortfolioSnapshot, String> {
-    let normalized_root = match audit_root.map(str::trim).filter(|value| !value.is_empty()) {
-        Some(value) => {
-            let root = fs::canonicalize(value)
-                .map_err(|error| format!("Could not access the maturity audit root: {error}"))?;
-            if !root.is_dir() {
-                return Err("The maturity audit root is not a folder".to_string());
-            }
-            Some(root.to_string_lossy().to_string())
-        }
-        None => None,
-    };
-    let mut state = load_store(path)?;
-    state.quality.audit_root = normalized_root;
+    let canonical_feed = quality::canonical_maturity_feed_path()
+        .ok_or_else(|| "Pronto could not resolve the user's home directory".to_string())?;
+    let requested = audit_root
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            format!(
+                "Pronto no longer accepts clearing or choosing an audit root; Quality Runner owns {}",
+                canonical_feed.display()
+            )
+        })?;
+    let requested_path = PathBuf::from(requested);
+    let matches_canonical = requested_path == canonical_feed
+        || fs::canonicalize(&requested_path)
+            .ok()
+            .is_some_and(|path| path == canonical_feed);
+    if !matches_canonical {
+        return Err(format!(
+            "Pronto no longer accepts arbitrary audit roots; use Quality Runner's canonical feed at {}",
+            canonical_feed.display()
+        ));
+    }
+    let mut state = load_store_with_quality(path)?;
     apply_quality_evidence(&mut state);
     apply_release_threshold_conditions(&mut state);
     save_store(path, &state)?;
@@ -5654,10 +7562,13 @@ fn open_external_tool(path: &Path, tool: &str) -> Result<(), String> {
 }
 
 fn open_quality_report_at(path: &Path, report_path: &str) -> Result<PortfolioSnapshot, String> {
-    let state = load_store(path)?;
+    let state = load_store_with_quality(path)?;
     let mut allowed_roots = Vec::new();
     if let Some(audit_root) = state.quality.audit_root.as_deref() {
         allowed_roots.push(PathBuf::from(audit_root));
+    }
+    if let Some(feed_path) = quality::canonical_maturity_feed_path() {
+        allowed_roots.push(feed_path);
     }
     allowed_roots.extend(
         state
@@ -5696,11 +7607,334 @@ fn open_workspace_at(
     Ok(snapshot_from_store(path, &state))
 }
 
+fn refresh_connections_at(
+    path: &Path,
+    repository_id: Option<&str>,
+) -> Result<PortfolioSnapshot, String> {
+    let mut state = load_store(path)?;
+    let target_repository_ids = repository_id
+        .map(|id| {
+            if state
+                .repositories
+                .iter()
+                .any(|repository| repository.id == id)
+            {
+                Ok(HashSet::from([id.to_string()]))
+            } else {
+                Err("Repository is not registered".to_string())
+            }
+        })
+        .transpose()?;
+    state.connections = connections::refresh_snapshot(
+        &state.connections,
+        &state.repositories,
+        &state.remote_repositories,
+        target_repository_ids.as_ref(),
+        &iso_now(),
+    );
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn upsert_connection_node_at(
+    path: &Path,
+    input: ConnectionNodeInput,
+) -> Result<PortfolioSnapshot, String> {
+    let mut state = load_store(path)?;
+    if let Some(identity) = input
+        .identity
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        let conflicts = state.connections.nodes.iter().any(|node| {
+            node.identity == identity && input.node_id.as_deref() != Some(node.id.as_str())
+        });
+        if conflicts {
+            return Err(format!(
+                "A connection node with stable identity '{identity}' already exists"
+            ));
+        }
+    }
+    let observed_at = iso_now();
+    if let Some(node_id) = input.node_id.as_deref() {
+        let Some(existing) = connections::find_node_mut(&mut state.connections, node_id) else {
+            return Err("Connection node is not available".to_string());
+        };
+        if existing.origin != "Manual" {
+            return Err("Discovered nodes are edited through review controls".to_string());
+        }
+        existing.kind = input.kind;
+        existing.label = input.label;
+        if let Some(identity) = input.identity {
+            existing.identity = identity;
+        }
+        existing.repository_id = input.repository_id;
+        existing.last_seen_at = Some(observed_at);
+    } else {
+        state
+            .connections
+            .nodes
+            .push(connections::manual_node(input, &observed_at));
+    }
+    connections::normalize_snapshot(&mut state.connections);
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn delete_connection_node_at(path: &Path, node_id: &str) -> Result<PortfolioSnapshot, String> {
+    let mut state = load_store(path)?;
+    let Some(node) = state
+        .connections
+        .nodes
+        .iter()
+        .find(|node| node.id == node_id)
+    else {
+        return Err("Connection node is not available".to_string());
+    };
+    if node.origin != "Manual" {
+        return Err("Only manual connection nodes can be deleted".to_string());
+    }
+    state.connections.nodes.retain(|node| node.id != node_id);
+    state.connections.connections.retain(|connection| {
+        connection.origin != "Manual"
+            || (connection.source_node_id != node_id && connection.target_node_id != node_id)
+    });
+    state.connections.workflows.retain(|workflow| {
+        workflow.origin != "Manual" || workflow.steps.iter().all(|step| step.node_id != node_id)
+    });
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn upsert_connection_at(path: &Path, input: ConnectionInput) -> Result<PortfolioSnapshot, String> {
+    let mut state = load_store(path)?;
+    if !state
+        .connections
+        .nodes
+        .iter()
+        .any(|node| node.id == input.source_node_id)
+        || !state
+            .connections
+            .nodes
+            .iter()
+            .any(|node| node.id == input.target_node_id)
+    {
+        return Err("Both connection endpoints must be present in the map".to_string());
+    }
+    let observed_at = iso_now();
+    if let Some(connection_id) = input.connection_id.as_deref() {
+        let Some(existing) =
+            connections::find_connection_mut(&mut state.connections, connection_id)
+        else {
+            return Err("Connection is not available".to_string());
+        };
+        if existing.origin != "Manual" {
+            return Err("Discovered connections are edited through review controls".to_string());
+        }
+        existing.source_node_id = input.source_node_id;
+        existing.target_node_id = input.target_node_id;
+        existing.relationship_type = input.relationship_type;
+        if let Some(label) = input.label {
+            existing.label = label;
+        }
+        if let Some(confidence) = input.confidence {
+            existing.confidence = confidence;
+        }
+        existing.last_seen_at = Some(observed_at);
+    } else {
+        state
+            .connections
+            .connections
+            .push(connections::manual_connection(input, &observed_at));
+    }
+    connections::normalize_snapshot(&mut state.connections);
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn delete_connection_at(path: &Path, connection_id: &str) -> Result<PortfolioSnapshot, String> {
+    let mut state = load_store(path)?;
+    let Some(connection) = state
+        .connections
+        .connections
+        .iter()
+        .find(|connection| connection.id == connection_id)
+    else {
+        return Err("Connection is not available".to_string());
+    };
+    if connection.origin != "Manual" {
+        return Err("Only manual connections can be deleted".to_string());
+    }
+    state
+        .connections
+        .connections
+        .retain(|connection| connection.id != connection_id);
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn upsert_workflow_at(path: &Path, input: WorkflowInput) -> Result<PortfolioSnapshot, String> {
+    let mut state = load_store(path)?;
+    let node_ids = state
+        .connections
+        .nodes
+        .iter()
+        .map(|node| node.id.as_str())
+        .collect::<HashSet<_>>();
+    if input
+        .steps
+        .iter()
+        .any(|step| !node_ids.contains(step.node_id.as_str()))
+    {
+        return Err("Workflow steps must reference nodes in the map".to_string());
+    }
+    let observed_at = iso_now();
+    if let Some(workflow_id) = input.workflow_id.as_deref() {
+        let Some(existing) = connections::find_workflow_mut(&mut state.connections, workflow_id)
+        else {
+            return Err("Workflow is not available".to_string());
+        };
+        if existing.origin != "Manual" {
+            return Err("Discovered workflows are edited through review controls".to_string());
+        }
+        let replacement = connections::manual_workflow(input, &observed_at);
+        *existing = replacement;
+    } else {
+        state
+            .connections
+            .workflows
+            .push(connections::manual_workflow(input, &observed_at));
+    }
+    connections::normalize_snapshot(&mut state.connections);
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn delete_workflow_at(path: &Path, workflow_id: &str) -> Result<PortfolioSnapshot, String> {
+    let mut state = load_store(path)?;
+    let Some(workflow) = state
+        .connections
+        .workflows
+        .iter()
+        .find(|workflow| workflow.id == workflow_id)
+    else {
+        return Err("Workflow is not available".to_string());
+    };
+    if workflow.origin != "Manual" {
+        return Err("Only manual workflows can be deleted".to_string());
+    }
+    state
+        .connections
+        .workflows
+        .retain(|workflow| workflow.id != workflow_id);
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn set_connection_review_at(
+    path: &Path,
+    record_type: &str,
+    record_id: &str,
+    review_state: &str,
+    label: Option<String>,
+) -> Result<PortfolioSnapshot, String> {
+    let mut state = load_store(path)?;
+    let normalized_state = match review_state {
+        "Suggested" | "Confirmed" | "Overridden" | "Hidden" => review_state,
+        _ => return Err("Unsupported connection review state".to_string()),
+    };
+    match record_type {
+        "node" => {
+            let Some(node) = connections::find_node_mut(&mut state.connections, record_id) else {
+                return Err("Connection node is not available".to_string());
+            };
+            node.status = if normalized_state == "Hidden" {
+                "Hidden".to_string()
+            } else {
+                "Active".to_string()
+            };
+            if let Some(label) = label {
+                node.label_override = Some(label);
+            }
+            if normalized_state == "Overridden" {
+                node.kind_override = Some(node.kind.clone());
+            }
+        }
+        "connection" => {
+            let Some(connection) =
+                connections::find_connection_mut(&mut state.connections, record_id)
+            else {
+                return Err("Connection is not available".to_string());
+            };
+            connection.review_state = normalized_state.to_string();
+            connection.status = if normalized_state == "Hidden" {
+                "Hidden".to_string()
+            } else {
+                "Active".to_string()
+            };
+            if let Some(label) = label {
+                connection.label_override = Some(label);
+            }
+        }
+        "workflow" => {
+            let Some(workflow) = connections::find_workflow_mut(&mut state.connections, record_id)
+            else {
+                return Err("Workflow is not available".to_string());
+            };
+            workflow.review_state = normalized_state.to_string();
+            workflow.status = if normalized_state == "Hidden" {
+                "Hidden".to_string()
+            } else {
+                "Active".to_string()
+            };
+            if let Some(label) = label {
+                workflow.name_override = Some(label);
+            }
+        }
+        _ => return Err("Unsupported connection record type".to_string()),
+    }
+    connections::normalize_snapshot(&mut state.connections);
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn set_connection_adapter_enabled_at(
+    path: &Path,
+    adapter_id: &str,
+    enabled: bool,
+) -> Result<PortfolioSnapshot, String> {
+    let mut state = load_store(path)?;
+    let Some(adapter) = state
+        .connections
+        .adapters
+        .iter_mut()
+        .find(|adapter| adapter.id == adapter_id)
+    else {
+        return Err("Connection adapter is not available".to_string());
+    };
+    adapter.enabled = enabled;
+    if !enabled {
+        adapter.freshness = if adapter_id == "deep-code" {
+            "Not analyzed".to_string()
+        } else {
+            "Not enabled".to_string()
+        };
+    }
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
 #[tauri::command]
 pub fn get_snapshot() -> Result<PortfolioSnapshot, String> {
     let path = store_path();
-    let state = load_store(&path)?;
+    let state = load_store_with_quality(&path)?;
     Ok(snapshot_from_store(&path, &state))
+}
+
+#[tauri::command]
+pub fn get_analytics() -> Result<AnalyticsSnapshot, String> {
+    load_analytics_at(&store_path())
 }
 
 #[tauri::command]
@@ -5720,8 +7954,160 @@ pub async fn refresh() -> Result<PortfolioSnapshot, String> {
 }
 
 #[tauri::command]
+pub async fn refresh_connections(
+    repository_id: Option<String>,
+) -> Result<PortfolioSnapshot, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        refresh_connections_at(&store_path(), repository_id.as_deref())
+    })
+    .await
+    .map_err(|error| format!("Connections refresh task failed: {error}"))?
+}
+
+#[tauri::command]
+pub fn upsert_connection_node(input: ConnectionNodeInput) -> Result<PortfolioSnapshot, String> {
+    upsert_connection_node_at(&store_path(), input)
+}
+
+#[tauri::command]
+pub fn delete_connection_node(node_id: String) -> Result<PortfolioSnapshot, String> {
+    delete_connection_node_at(&store_path(), &node_id)
+}
+
+#[tauri::command]
+pub fn upsert_connection(input: ConnectionInput) -> Result<PortfolioSnapshot, String> {
+    upsert_connection_at(&store_path(), input)
+}
+
+#[tauri::command]
+pub fn delete_connection(connection_id: String) -> Result<PortfolioSnapshot, String> {
+    delete_connection_at(&store_path(), &connection_id)
+}
+
+#[tauri::command]
+pub fn upsert_workflow(input: WorkflowInput) -> Result<PortfolioSnapshot, String> {
+    upsert_workflow_at(&store_path(), input)
+}
+
+#[tauri::command]
+pub fn delete_workflow(workflow_id: String) -> Result<PortfolioSnapshot, String> {
+    delete_workflow_at(&store_path(), &workflow_id)
+}
+
+#[tauri::command]
+pub fn set_connection_review(
+    record_type: String,
+    record_id: String,
+    review_state: String,
+    label: Option<String>,
+) -> Result<PortfolioSnapshot, String> {
+    set_connection_review_at(
+        &store_path(),
+        &record_type,
+        &record_id,
+        &review_state,
+        label,
+    )
+}
+
+#[tauri::command]
+pub fn set_connection_adapter_enabled(
+    adapter_id: String,
+    enabled: bool,
+) -> Result<PortfolioSnapshot, String> {
+    set_connection_adapter_enabled_at(&store_path(), &adapter_id, enabled)
+}
+
+#[tauri::command]
 pub fn refresh_github() -> Result<PortfolioSnapshot, String> {
     refresh_github_at(&store_path())
+}
+
+#[tauri::command]
+pub fn refresh_remediation() -> Result<PortfolioSnapshot, String> {
+    refresh_remediation_at(&store_path(), None, false, true, false)
+}
+
+#[tauri::command]
+pub fn set_remediation_action_status(
+    action_id: String,
+    status: String,
+    notes: Option<String>,
+) -> Result<PortfolioSnapshot, String> {
+    let normalized_status = status.trim().to_ascii_lowercase();
+    if !matches!(
+        normalized_status.as_str(),
+        "open" | "in_progress" | "blocked" | "deferred" | "verified"
+    ) {
+        return Err(
+            "Remediation status must be open, in_progress, blocked, deferred, or verified."
+                .to_string(),
+        );
+    }
+    let path = store_path();
+    let mut state = load_store_with_quality(&path)?;
+    let mut found = false;
+    for plan in &mut state.remediation.plans {
+        let Some(action_index) = plan
+            .actions
+            .iter()
+            .position(|action| action.id == action_id)
+        else {
+            continue;
+        };
+        if normalized_status == "verified" {
+            let action = &plan.actions[action_index];
+            let verification_is_ready = if action.domain == "verification" {
+                plan.actions
+                    .iter()
+                    .filter(|candidate| candidate.id != action.id)
+                    .all(|candidate| candidate.status == "verified")
+                    && plan
+                        .actions
+                        .iter()
+                        .flat_map(|candidate| candidate.evidence.iter())
+                        .any(|item| item.freshness.eq_ignore_ascii_case("fresh"))
+            } else {
+                remediation::action_has_fresh_evidence(action)
+            };
+            if !verification_is_ready {
+                return Err(
+                    "An action cannot be verified until its evidence is fresh. Refresh the source and recheck the plan first."
+                        .to_string(),
+                );
+            }
+        }
+        let action = &mut plan.actions[action_index];
+        action.status = normalized_status.clone();
+        action.notes = notes.clone();
+        action.updated_at = iso_now();
+        action.completed_at = (normalized_status == "verified").then(iso_now);
+        remediation::recompute_plan_derived(plan);
+        found = true;
+        break;
+    }
+    if !found {
+        return Err(format!("Remediation action {action_id} was not found."));
+    }
+    state.remediation.generated_at = iso_now();
+    save_store(&path, &state)?;
+    Ok(snapshot_from_store(&path, &state))
+}
+
+#[tauri::command]
+pub fn export_remediation(
+    output_dir: Option<String>,
+) -> Result<remediation::RemediationExport, String> {
+    let path = store_path();
+    let state = load_store_with_quality(&path)?;
+    let root = output_dir
+        .map(PathBuf::from)
+        .or_else(|| {
+            path.parent()
+                .map(|parent| parent.join("remediation").join(&state.remediation.id))
+        })
+        .ok_or_else(|| "Pronto storage path has no export directory".to_string())?;
+    remediation::export_run(&state.remediation, &root)
 }
 
 #[tauri::command]
@@ -5927,6 +8313,37 @@ fn cli_positionals(arguments: &[String], value_options: &[&str]) -> Result<Vec<S
     Ok(positionals)
 }
 
+fn cli_positionals_with_flags(
+    arguments: &[String],
+    value_options: &[&str],
+    flags: &[&str],
+) -> Result<Vec<String>, String> {
+    let mut positionals = Vec::new();
+    let mut expecting_value = None;
+    for argument in arguments.iter().skip(1) {
+        if expecting_value.take().is_some() {
+            if argument.starts_with("--") {
+                return Err("An option value is missing".to_string());
+            }
+            continue;
+        }
+        if argument == "--json" || flags.iter().any(|flag| flag == argument) {
+            continue;
+        }
+        if value_options.iter().any(|option| option == argument) {
+            expecting_value = Some(argument.as_str());
+        } else if argument.starts_with("--") {
+            return Err(format!("Unknown option {argument}"));
+        } else {
+            positionals.push(argument.clone());
+        }
+    }
+    if expecting_value.is_some() {
+        return Err("An option value is missing".to_string());
+    }
+    Ok(positionals)
+}
+
 fn repository_matches_query(repository: &RepositorySnapshot, query: &str) -> bool {
     repository.id == query
         || repository.path == query
@@ -6067,6 +8484,465 @@ fn resolve_refresh_target(
     ))
 }
 
+fn agent_condition_summary(condition: &Condition) -> AgentConditionSummary {
+    AgentConditionSummary {
+        id: condition.id.clone(),
+        kind: condition.kind.clone(),
+        title: condition.title.clone(),
+        summary: condition.summary.clone(),
+        priority: condition.priority,
+        status: condition.status.clone(),
+        missing: condition.missing.clone(),
+        confidence: condition.confidence.clone(),
+        freshness: condition.freshness.clone(),
+    }
+}
+
+fn agent_workspace_summary(workspace: &WorkspaceSummary) -> AgentWorkspaceSummary {
+    AgentWorkspaceSummary {
+        id: workspace.id.clone(),
+        path: workspace.path.clone(),
+        is_primary: workspace.is_primary,
+        branch: workspace.branch.clone(),
+        dirty: workspace.dirty,
+        sync_state: workspace.sync_state.clone(),
+        ahead: workspace.ahead,
+        behind: workspace.behind,
+        upstream: workspace.upstream.clone(),
+        operation: workspace.operation.clone(),
+        integration_state: workspace.integration_state.clone(),
+        target_branch: workspace.target_branch.clone(),
+        target_confidence: workspace.target_confidence.clone(),
+        activity_state: workspace.activity.state.clone(),
+        activity_confidence: workspace.activity.confidence.clone(),
+        last_commit: workspace.last_commit.clone(),
+        last_commit_at: workspace.last_commit_at.clone(),
+        last_activity_at: workspace.last_activity_at.clone(),
+    }
+}
+
+fn workspace_requires_sync_attention(workspace: &WorkspaceSummary) -> bool {
+    workspace.sync_state != "Synced"
+}
+
+fn agent_repository_summary(repository: &RepositorySnapshot) -> AgentRepositorySummary {
+    let active_conditions = repository
+        .conditions
+        .iter()
+        .filter(|condition| condition.status == "Active")
+        .map(agent_condition_summary)
+        .collect::<Vec<_>>();
+    AgentRepositorySummary {
+        id: repository.id.clone(),
+        name: repository.name.clone(),
+        path: repository.path.clone(),
+        locality: repository.locality.clone(),
+        lifecycle: repository.lifecycle.clone(),
+        branch: repository.branch.clone(),
+        default_branch: repository.default_branch.clone(),
+        workspaces: repository
+            .workspaces
+            .iter()
+            .map(agent_workspace_summary)
+            .collect(),
+        active_conditions,
+        quality_status: repository.quality.ingestion_status.clone(),
+        maturity_score: repository.quality.maturity.score,
+        maturity_score_display: repository.quality.maturity.score_display.clone(),
+        maturity_freshness: repository.quality.maturity.freshness.as_str().to_string(),
+        ci_readiness_score: repository.quality.ci_readiness.score,
+        ci_readiness_score_display: repository.quality.ci_readiness.score_display.clone(),
+        ci_readiness_fresh_passing_gate_count: repository
+            .quality
+            .ci_readiness
+            .fresh_passing_gate_ids
+            .len(),
+        ci_readiness_ideal_gate_count: repository.quality.ci_readiness.applicable_gate_ids.len(),
+        ci_configuration_configured_gate_count: repository
+            .quality
+            .ci_readiness
+            .configured_gate_ids
+            .len(),
+        ci_configuration_ideal_gate_count: repository
+            .quality
+            .ci_readiness
+            .applicable_gate_ids
+            .len(),
+        findings_total: repository.quality.findings.total,
+        high_severity_findings: repository.quality.findings.high_severity_total,
+        last_scan_at: repository.last_scan_at.clone(),
+        last_activity_at: repository.last_activity_at.clone(),
+    }
+}
+
+fn agent_condition_evidence(condition: &Condition) -> Vec<AgentEvidenceReference> {
+    condition
+        .evidence
+        .iter()
+        .map(|evidence| AgentEvidenceReference {
+            source: evidence.source.clone(),
+            label: evidence.label.clone(),
+            status: None,
+            freshness: condition.freshness.clone(),
+            observed_at: Some(evidence.observed_at.clone()),
+            value: Some(evidence.value.clone()),
+            report_path: None,
+        })
+        .collect()
+}
+
+fn agent_gate_evidence(gate: &quality::QualityGate) -> Vec<AgentEvidenceReference> {
+    gate.evidence
+        .iter()
+        .map(|evidence| AgentEvidenceReference {
+            source: evidence.source.as_str().to_string(),
+            label: evidence.source_label.clone(),
+            status: Some(evidence.status.as_str().to_string()),
+            freshness: Some(evidence.freshness.as_str().to_string()),
+            observed_at: evidence.observed_at.clone(),
+            value: Some(evidence.detail.clone()),
+            report_path: evidence.report_path.clone(),
+        })
+        .collect()
+}
+
+fn agent_attention_report(snapshot: &PortfolioSnapshot) -> AgentAttentionReport {
+    let mut items = Vec::new();
+    for repository in &snapshot.repositories {
+        for condition in repository
+            .conditions
+            .iter()
+            .filter(|condition| condition.status == "Active")
+        {
+            items.push(AgentAttentionItem {
+                id: format!("{}:condition:{}", repository.id, condition.id),
+                repository_id: repository.id.clone(),
+                repository_name: repository.name.clone(),
+                repository_path: repository.path.clone(),
+                workspace_id: None,
+                workspace_path: None,
+                category: "condition".to_string(),
+                severity: format!("P{}", condition.priority),
+                status: condition.status.clone(),
+                freshness: condition.freshness.clone(),
+                summary: condition.summary.clone(),
+                evidence: agent_condition_evidence(condition),
+            });
+        }
+
+        for workspace in repository
+            .workspaces
+            .iter()
+            .filter(|workspace| workspace.dirty)
+        {
+            items.push(AgentAttentionItem {
+                id: format!("{}:workspace-dirty:{}", repository.id, workspace.id),
+                repository_id: repository.id.clone(),
+                repository_name: repository.name.clone(),
+                repository_path: repository.path.clone(),
+                workspace_id: Some(workspace.id.clone()),
+                workspace_path: Some(workspace.path.clone()),
+                category: "workspace".to_string(),
+                severity: "warning".to_string(),
+                status: "Dirty".to_string(),
+                freshness: None,
+                summary: format!("Workspace {} has uncommitted changes", workspace.branch),
+                evidence: Vec::new(),
+            });
+        }
+
+        for workspace in repository
+            .workspaces
+            .iter()
+            .filter(|workspace| workspace_requires_sync_attention(workspace))
+        {
+            items.push(AgentAttentionItem {
+                id: format!("{}:workspace-sync:{}", repository.id, workspace.id),
+                repository_id: repository.id.clone(),
+                repository_name: repository.name.clone(),
+                repository_path: repository.path.clone(),
+                workspace_id: Some(workspace.id.clone()),
+                workspace_path: Some(workspace.path.clone()),
+                category: "synchronization".to_string(),
+                severity: "warning".to_string(),
+                status: workspace.sync_state.clone(),
+                freshness: Some(workspace.remote_freshness.clone()),
+                summary: format!(
+                    "Workspace {} is {} (ahead {}, behind {})",
+                    workspace.branch, workspace.sync_state, workspace.ahead, workspace.behind
+                ),
+                evidence: Vec::new(),
+            });
+        }
+
+        for gate in &repository.quality.gates {
+            let missing = gate.status == QualityGateStatus::NotConfigured
+                && repository
+                    .quality
+                    .ci_readiness
+                    .applicable_gate_ids
+                    .iter()
+                    .any(|gate_id| gate_id == &gate.id);
+            let stale = gate.freshness != QualityFreshness::Fresh;
+            let failed_or_blocked = matches!(
+                gate.status,
+                QualityGateStatus::Failed | QualityGateStatus::Blocked
+            );
+            if missing || stale || failed_or_blocked {
+                let status = if missing {
+                    "Missing".to_string()
+                } else {
+                    gate.status.as_str().to_string()
+                };
+                let severity = if failed_or_blocked {
+                    "error"
+                } else {
+                    "warning"
+                };
+                items.push(AgentAttentionItem {
+                    id: format!("{}:quality-gate:{}", repository.id, gate.id),
+                    repository_id: repository.id.clone(),
+                    repository_name: repository.name.clone(),
+                    repository_path: repository.path.clone(),
+                    workspace_id: None,
+                    workspace_path: None,
+                    category: "quality_gate".to_string(),
+                    severity: severity.to_string(),
+                    status,
+                    freshness: Some(gate.freshness.as_str().to_string()),
+                    summary: format!("{} gate requires attention", gate.label),
+                    evidence: agent_gate_evidence(gate),
+                });
+            }
+        }
+
+        if repository.quality.findings.high_severity_total > 0 {
+            items.push(AgentAttentionItem {
+                id: format!("{}:quality-findings", repository.id),
+                repository_id: repository.id.clone(),
+                repository_name: repository.name.clone(),
+                repository_path: repository.path.clone(),
+                workspace_id: None,
+                workspace_path: None,
+                category: "quality_findings".to_string(),
+                severity: "error".to_string(),
+                status: "Open".to_string(),
+                freshness: Some(repository.quality.findings.freshness.as_str().to_string()),
+                summary: format!(
+                    "{} high-severity quality findings remain open",
+                    repository.quality.findings.high_severity_total
+                ),
+                evidence: Vec::new(),
+            });
+        }
+
+        if repository.quality.maturity.score.is_none()
+            || repository.quality.maturity.freshness != QualityFreshness::Fresh
+        {
+            items.push(AgentAttentionItem {
+                id: format!("{}:quality-maturity", repository.id),
+                repository_id: repository.id.clone(),
+                repository_name: repository.name.clone(),
+                repository_path: repository.path.clone(),
+                workspace_id: None,
+                workspace_path: None,
+                category: "quality_maturity".to_string(),
+                severity: "warning".to_string(),
+                status: if repository.quality.maturity.score.is_some() {
+                    "Stale".to_string()
+                } else {
+                    "Unknown".to_string()
+                },
+                freshness: Some(repository.quality.maturity.freshness.as_str().to_string()),
+                summary: "Repository maturity evidence is missing or not fresh".to_string(),
+                evidence: Vec::new(),
+            });
+        }
+    }
+    AgentAttentionReport {
+        schema_version: AGENT_ATTENTION_SCHEMA.to_string(),
+        generated_at: snapshot.generated_at.clone(),
+        items,
+    }
+}
+
+fn agent_summary(snapshot: &PortfolioSnapshot, scope: &str) -> AgentSummary {
+    let repositories = snapshot
+        .repositories
+        .iter()
+        .map(agent_repository_summary)
+        .collect::<Vec<_>>();
+    let attention_count = agent_attention_report(snapshot).items.len();
+    AgentSummary {
+        schema_version: AGENT_SUMMARY_SCHEMA.to_string(),
+        generated_at: snapshot.generated_at.clone(),
+        scope: scope.to_string(),
+        repository_count: repositories.len(),
+        active_condition_count: repositories
+            .iter()
+            .map(|repository| repository.active_conditions.len())
+            .sum(),
+        dirty_workspace_count: repositories
+            .iter()
+            .flat_map(|repository| repository.workspaces.iter())
+            .filter(|workspace| workspace.dirty)
+            .count(),
+        unsynced_workspace_count: repositories
+            .iter()
+            .flat_map(|repository| repository.workspaces.iter())
+            .filter(|workspace| workspace.sync_state != "Synced")
+            .count(),
+        attention_count,
+        provider_status: snapshot.provider_status.clone(),
+        quality: snapshot.quality.clone(),
+        repositories,
+    }
+}
+
+fn agent_repository_detail(
+    snapshot: &PortfolioSnapshot,
+    repository: &RepositorySnapshot,
+) -> AgentRepositoryDetail {
+    AgentRepositoryDetail {
+        schema_version: AGENT_REPOSITORY_SCHEMA.to_string(),
+        generated_at: snapshot.generated_at.clone(),
+        repository: repository.clone(),
+        products: snapshot
+            .products
+            .iter()
+            .filter(|product| product.repository_ids.iter().any(|id| id == &repository.id))
+            .cloned()
+            .collect(),
+        groups: snapshot
+            .groups
+            .iter()
+            .filter(|group| group.repository_ids.iter().any(|id| id == &repository.id))
+            .cloned()
+            .collect(),
+    }
+}
+
+fn agent_quality_report(
+    snapshot: &PortfolioSnapshot,
+    query: Option<&str>,
+) -> Result<AgentQualityReport, String> {
+    let repositories = if let Some(query) = query {
+        vec![find_cli_repository(snapshot, query)?]
+    } else {
+        snapshot.repositories.iter().collect::<Vec<_>>()
+    };
+    Ok(AgentQualityReport {
+        schema_version: AGENT_QUALITY_SCHEMA.to_string(),
+        generated_at: snapshot.generated_at.clone(),
+        scope: query
+            .map(|value| format!("repository:{value}"))
+            .unwrap_or_else(|| "fleet".to_string()),
+        portfolio: snapshot.quality.clone(),
+        repositories: repositories
+            .into_iter()
+            .map(|repository| AgentRepositoryQuality {
+                id: repository.id.clone(),
+                name: repository.name.clone(),
+                path: repository.path.clone(),
+                branch: repository.branch.clone(),
+                quality: repository.quality.clone(),
+            })
+            .collect(),
+    })
+}
+
+fn agent_activity_report(
+    snapshot: &PortfolioSnapshot,
+    query: Option<&str>,
+    limit: usize,
+) -> Result<AgentActivityReport, String> {
+    let repository_id = query
+        .map(|value| find_cli_repository(snapshot, value).map(|repository| repository.id.clone()))
+        .transpose()?;
+    let events = snapshot
+        .events
+        .iter()
+        .filter(|event| {
+            repository_id
+                .as_deref()
+                .is_none_or(|id| event.repository_id == id)
+        })
+        .take(limit)
+        .cloned()
+        .collect();
+    let action_audits = snapshot
+        .action_audits
+        .iter()
+        .filter(|audit| {
+            repository_id
+                .as_deref()
+                .is_none_or(|id| audit.target_ids.iter().any(|target| target == id))
+        })
+        .take(limit)
+        .cloned()
+        .collect();
+    Ok(AgentActivityReport {
+        schema_version: AGENT_ACTIVITY_SCHEMA.to_string(),
+        generated_at: snapshot.generated_at.clone(),
+        scope: query
+            .map(|value| format!("repository:{value}"))
+            .unwrap_or_else(|| "fleet".to_string()),
+        events,
+        action_audits,
+    })
+}
+
+fn agent_connections_report(
+    snapshot: &PortfolioSnapshot,
+    query: Option<&str>,
+) -> Result<AgentConnectionsReport, String> {
+    let repository_id = query
+        .map(|value| find_cli_repository(snapshot, value).map(|repository| repository.id.clone()))
+        .transpose()?;
+    let mut connections = snapshot.connections.clone();
+    if let Some(repository_id) = repository_id.as_deref() {
+        let mut node_ids = connections
+            .nodes
+            .iter()
+            .filter(|node| node.repository_id.as_deref() == Some(repository_id))
+            .map(|node| node.id.clone())
+            .collect::<HashSet<_>>();
+        for connection in &connections.connections {
+            if node_ids.contains(&connection.source_node_id)
+                || node_ids.contains(&connection.target_node_id)
+            {
+                node_ids.insert(connection.source_node_id.clone());
+                node_ids.insert(connection.target_node_id.clone());
+            }
+        }
+        connections
+            .nodes
+            .retain(|node| node_ids.contains(&node.id) || node.origin == "Manual");
+        connections.connections.retain(|connection| {
+            node_ids.contains(&connection.source_node_id)
+                || node_ids.contains(&connection.target_node_id)
+        });
+        connections.workflows.retain(|workflow| {
+            workflow
+                .participating_repositories
+                .iter()
+                .any(|id| id == repository_id)
+                || workflow
+                    .steps
+                    .iter()
+                    .any(|step| node_ids.contains(&step.node_id))
+        });
+    }
+    Ok(AgentConnectionsReport {
+        schema_version: AGENT_CONNECTIONS_SCHEMA.to_string(),
+        generated_at: snapshot.generated_at.clone(),
+        scope: query
+            .map(|value| format!("repository:{value}"))
+            .unwrap_or_else(|| "fleet".to_string()),
+        connections,
+    })
+}
+
 fn launch_desktop_focus(repository: Option<&RepositorySnapshot>) -> Result<(), String> {
     if !cfg!(target_os = "macos") {
         return Err(
@@ -6118,11 +8994,220 @@ fn print_human_status(snapshot: &PortfolioSnapshot) {
     }
 }
 
+fn print_human_summary(summary: &AgentSummary) {
+    println!(
+        "PRONTO SUMMARY · {} repositories · {} attention items",
+        summary.repository_count, summary.attention_count
+    );
+    println!(
+        "Conditions: {} active · workspaces: {} dirty, {} unsynced",
+        summary.active_condition_count,
+        summary.dirty_workspace_count,
+        summary.unsynced_workspace_count
+    );
+    println!(
+        "Quality: {} · maturity {}",
+        summary.quality.audit_status,
+        summary
+            .quality
+            .maturity_score_display
+            .as_deref()
+            .unwrap_or("unknown")
+    );
+}
+
+fn print_human_repository(detail: &AgentRepositoryDetail) {
+    let repository = &detail.repository;
+    println!(
+        "{} · {} · {} · {}",
+        repository.name, repository.lifecycle, repository.branch, repository.path
+    );
+    println!(
+        "Quality: {} · maturity {} · {} active conditions",
+        repository.quality.ingestion_status,
+        repository
+            .quality
+            .maturity
+            .score_display
+            .as_deref()
+            .unwrap_or("unknown"),
+        repository
+            .conditions
+            .iter()
+            .filter(|condition| condition.status == "Active")
+            .count()
+    );
+    for workspace in &repository.workspaces {
+        println!(
+            "  {} · {} · {} · {}",
+            workspace.branch,
+            if workspace.dirty { "dirty" } else { "clean" },
+            workspace.sync_state,
+            workspace.path
+        );
+    }
+}
+
+fn print_human_quality(report: &AgentQualityReport) {
+    println!(
+        "PRONTO QUALITY · {} repositories · {}",
+        report.repositories.len(),
+        report.portfolio.audit_status
+    );
+    println!(
+        "Fleet maturity: {} · CI configuration: {}/{} configured · fresh passing evidence: {}/{}",
+        report
+            .portfolio
+            .maturity_score_display
+            .as_deref()
+            .unwrap_or("unknown"),
+        report.portfolio.ci_configuration_configured_gate_count,
+        report.portfolio.ci_configuration_ideal_gate_count,
+        report.portfolio.ci_evidence_fresh_passing_gate_count,
+        report.portfolio.ci_evidence_ideal_gate_count,
+    );
+    for repository in &report.repositories {
+        println!(
+            "  {} · maturity {} · {}",
+            repository.name,
+            repository
+                .quality
+                .maturity
+                .score_display
+                .as_deref()
+                .unwrap_or("unknown"),
+            repository.quality.ingestion_status
+        );
+    }
+}
+
+fn print_human_remediation(run: &RemediationRun) {
+    println!(
+        "PRONTO REMEDIATION · {} · {} eligible · {} excluded",
+        run.status,
+        run.plans.len(),
+        run.excluded_repositories.len()
+    );
+    if let Some(refresh_id) = run.source_refresh_id.as_deref() {
+        println!("Refresh: {refresh_id}");
+    }
+    if let Some(message) = run.message.as_deref() {
+        println!("Message: {message}");
+    }
+    for step in &run.refresh_steps {
+        println!(
+            "  refresh · {} · {} · {}",
+            step.id, step.status, step.detail
+        );
+    }
+    for exclusion in &run.excluded_repositories {
+        println!(
+            "  excluded · {} · {}",
+            exclusion.repository_name, exclusion.reason
+        );
+    }
+    for plan in &run.plans {
+        println!(
+            "  {} · {} · {}% · {} · {} actions",
+            plan.repository_name,
+            plan.status,
+            plan.progress.percentage.round(),
+            plan.current_stage,
+            plan.actions.len()
+        );
+    }
+}
+
+fn print_human_attention(report: &AgentAttentionReport) {
+    println!("PRONTO ATTENTION · {} items", report.items.len());
+    for item in &report.items {
+        println!(
+            "{} · {} · {} · {}",
+            item.repository_name, item.category, item.status, item.summary
+        );
+    }
+}
+
+fn print_human_activity(report: &AgentActivityReport) {
+    println!(
+        "PRONTO ACTIVITY · {} events · {} action audits",
+        report.events.len(),
+        report.action_audits.len()
+    );
+    for event in &report.events {
+        println!("  {} · {}", event.kind, event.summary);
+    }
+    for audit in &report.action_audits {
+        println!("  {} · {} · {}", audit.action, audit.status, audit.summary);
+    }
+}
+
+fn print_human_connections(report: &AgentConnectionsReport) {
+    println!(
+        "PRONTO CONNECTIONS · {} nodes · {} relationships · {} workflows",
+        report.connections.nodes.len(),
+        report.connections.connections.len(),
+        report.connections.workflows.len()
+    );
+    for connection in report
+        .connections
+        .connections
+        .iter()
+        .filter(|connection| connection.status != "Stale")
+    {
+        println!(
+            "  {} · {} · {}",
+            connection.relationship_type, connection.source_node_id, connection.target_node_id
+        );
+    }
+}
+
+fn print_human_preparation(report: &AgentPreparationReport) {
+    let preparation = &report.preparation;
+    println!(
+        "PRONTO PREPARATION · {} · {}",
+        preparation.repository_id, preparation.generated_at
+    );
+    println!(
+        "Pull request: {} · release: {} · recipe: {}",
+        preparation.pull_request.status, preparation.release.status, preparation.recipe.status
+    );
+}
+
+fn print_human_release(report: &AgentReleaseReport) {
+    println!(
+        "PRONTO RELEASE · {} · {}",
+        report.repository_id, report.release.status
+    );
+    println!(
+        "Baseline: {} · candidate: {} · recipe: {}",
+        report.release.baseline_status,
+        report
+            .release
+            .candidate_version
+            .as_deref()
+            .unwrap_or("unknown"),
+        report.recipe.status
+    );
+    for reason in &report.release.reasons {
+        println!("  reason: {reason}");
+    }
+}
+
+fn print_cli_usage() {
+    println!(
+        "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto connections [<repository>] [--json] | pronto summary [--product <name> | --group <name>] [--json] | pronto repo <repository> [--json] | pronto quality [<repository>] [--json] | pronto remediation [<repository>] [--json] | pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json] | pronto remediation export [output-dir] [--json] | pronto remediation set-status <action-id> <status> [--notes <text>] [--json] | pronto attention [--json] | pronto activity [<repository>] [--limit <n>] [--json] | pronto prepare <repository> [--workspace <id>] [--json] | pronto release preview <repository> [--workspace <id>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality feed [--json] | pronto clone <owner/repository> [--json]"
+    );
+}
+
 pub fn run_cli(arguments: Vec<String>) {
     let command = arguments.first().map(String::as_str).unwrap_or("status");
     let json = arguments.iter().any(|argument| argument == "--json");
     let path = store_path();
     match command {
+        "help" | "-h" | "--help" => {
+            print_cli_usage();
+        }
         "status" => {
             let product_name = cli_option(&arguments, "--product").unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
@@ -6141,7 +9226,7 @@ pub fn run_cli(arguments: Vec<String>) {
                 eprintln!("Usage: pronto status [--product <name> | --group <name>] [--json]");
                 std::process::exit(2);
             }
-            let result = load_store(&path)
+            let result = load_store_with_quality(&path)
                 .map(|state| snapshot_from_store(&path, &state))
                 .and_then(|snapshot| {
                     filter_snapshot_by_collection(
@@ -6159,6 +9244,384 @@ pub fn run_cli(arguments: Vec<String>) {
                 Err(error) => {
                     eprintln!("Pronto could not read local state: {error}");
                     std::process::exit(1);
+                }
+            }
+        }
+        "connections" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if positionals.len() > 1 {
+                eprintln!("Usage: pronto connections [<repository>] [--json]");
+                std::process::exit(2);
+            }
+            let query = positionals.first().map(String::as_str);
+            let result = load_store_with_quality(&path)
+                .map(|state| snapshot_from_store(&path, &state))
+                .and_then(|snapshot| agent_connections_report(&snapshot, query));
+            match result {
+                Ok(report) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(report) => print_human_connections(&report),
+                Err(error) => {
+                    eprintln!("Pronto could not read connections: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "summary" => {
+            let product_name = cli_option(&arguments, "--product").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let group_name = cli_option(&arguments, "--group").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let positionals = cli_positionals(&arguments, &["--product", "--group"])
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                });
+            if !positionals.is_empty() {
+                eprintln!("Usage: pronto summary [--product <name> | --group <name>] [--json]");
+                std::process::exit(2);
+            }
+            let scope = product_name
+                .as_deref()
+                .map(|value| format!("product:{value}"))
+                .or_else(|| group_name.as_deref().map(|value| format!("group:{value}")))
+                .unwrap_or_else(|| "fleet".to_string());
+            let result = load_store_with_quality(&path)
+                .map(|state| snapshot_from_store(&path, &state))
+                .and_then(|snapshot| {
+                    filter_snapshot_by_collection(
+                        snapshot,
+                        product_name.as_deref(),
+                        group_name.as_deref(),
+                    )
+                })
+                .map(|snapshot| agent_summary(&snapshot, &scope));
+            match result {
+                Ok(summary) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&summary).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(summary) => print_human_summary(&summary),
+                Err(error) => {
+                    eprintln!("Pronto could not read local state: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "repo" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let Some(query) = positionals.first() else {
+                eprintln!("Usage: pronto repo <repository> [--json]");
+                std::process::exit(2);
+            };
+            if positionals.len() > 1 {
+                eprintln!("Usage: pronto repo <repository> [--json]");
+                std::process::exit(2);
+            }
+            let result = load_store_with_quality(&path)
+                .map(|state| snapshot_from_store(&path, &state))
+                .and_then(|snapshot| {
+                    let repository = find_cli_repository(&snapshot, query)?;
+                    Ok(agent_repository_detail(&snapshot, repository))
+                });
+            match result {
+                Ok(detail) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&detail).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(detail) => print_human_repository(&detail),
+                Err(error) => {
+                    eprintln!("Pronto could not read repository state: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "attention" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if !positionals.is_empty() {
+                eprintln!("Usage: pronto attention [--json]");
+                std::process::exit(2);
+            }
+            match load_store_with_quality(&path)
+                .map(|state| snapshot_from_store(&path, &state))
+                .map(|snapshot| agent_attention_report(&snapshot))
+            {
+                Ok(report) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(report) => print_human_attention(&report),
+                Err(error) => {
+                    eprintln!("Pronto could not read attention state: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "activity" => {
+            let limit = cli_option(&arguments, "--limit")
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                })
+                .map(|value| {
+                    value.parse::<usize>().unwrap_or_else(|_| {
+                        eprintln!("Pronto CLI error: --limit must be a non-negative integer");
+                        std::process::exit(2);
+                    })
+                })
+                .unwrap_or(24);
+            let positionals = cli_positionals(&arguments, &["--limit"]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if positionals.len() > 1 {
+                eprintln!("Usage: pronto activity [<repository>] [--limit <n>] [--json]");
+                std::process::exit(2);
+            }
+            let query = positionals.first().map(String::as_str);
+            let result = load_store_with_quality(&path)
+                .map(|state| snapshot_from_store(&path, &state))
+                .and_then(|snapshot| agent_activity_report(&snapshot, query, limit));
+            match result {
+                Ok(report) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(report) => print_human_activity(&report),
+                Err(error) => {
+                    eprintln!("Pronto could not read activity: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "prepare" => {
+            let workspace_id = cli_option(&arguments, "--workspace").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let positionals =
+                cli_positionals(&arguments, &["--workspace"]).unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                });
+            let Some(query) = positionals.first() else {
+                eprintln!("Usage: pronto prepare <repository> [--workspace <id>] [--json]");
+                std::process::exit(2);
+            };
+            if positionals.len() > 1 {
+                eprintln!("Usage: pronto prepare <repository> [--workspace <id>] [--json]");
+                std::process::exit(2);
+            }
+            let result = load_store_with_quality(&path)
+                .map(|state| snapshot_from_store(&path, &state))
+                .and_then(|snapshot| {
+                    let repository = find_cli_repository(&snapshot, query)?;
+                    prepare_repository_at(&path, &repository.id, workspace_id.as_deref())
+                })
+                .map(|preparation| AgentPreparationReport {
+                    schema_version: AGENT_PREPARATION_SCHEMA.to_string(),
+                    generated_at: preparation.generated_at.clone(),
+                    preparation,
+                });
+            match result {
+                Ok(report) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(report) => print_human_preparation(&report),
+                Err(error) => {
+                    eprintln!("Pronto could not prepare the repository: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "release" => {
+            let workspace_id = cli_option(&arguments, "--workspace").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let positionals =
+                cli_positionals(&arguments, &["--workspace"]).unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                });
+            if positionals.len() != 2 || positionals[0] != "preview" {
+                eprintln!("Usage: pronto release preview <repository> [--workspace <id>] [--json]");
+                std::process::exit(2);
+            }
+            let query = &positionals[1];
+            let result = load_store_with_quality(&path)
+                .map(|state| snapshot_from_store(&path, &state))
+                .and_then(|snapshot| {
+                    let repository = find_cli_repository(&snapshot, query)?;
+                    prepare_repository_at(&path, &repository.id, workspace_id.as_deref())
+                })
+                .map(|preparation| AgentReleaseReport {
+                    schema_version: AGENT_RELEASE_SCHEMA.to_string(),
+                    generated_at: preparation.generated_at.clone(),
+                    repository_id: preparation.repository_id,
+                    release: preparation.release,
+                    recipe: preparation.recipe,
+                });
+            match result {
+                Ok(report) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(report) => print_human_release(&report),
+                Err(error) => {
+                    eprintln!("Pronto could not prepare the release preview: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "remediation" => {
+            let positionals = cli_positionals_with_flags(
+                &arguments,
+                &["--qr-bin", "--notes"],
+                &["--dynamic", "--no-changed-only", "--skip-provider"],
+            )
+            .unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            match positionals.first().map(String::as_str) {
+                Some("refresh") => {
+                    if positionals.len() != 1 {
+                        eprintln!("Usage: pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json]");
+                        std::process::exit(2);
+                    }
+                    let qr_bin = cli_option(&arguments, "--qr-bin").unwrap_or_else(|error| {
+                        eprintln!("Pronto CLI error: {error}");
+                        std::process::exit(2);
+                    });
+                    let result = refresh_remediation_at(
+                        &path,
+                        qr_bin.as_deref(),
+                        arguments.iter().any(|argument| argument == "--dynamic"),
+                        !arguments
+                            .iter()
+                            .any(|argument| argument == "--no-changed-only"),
+                        arguments
+                            .iter()
+                            .any(|argument| argument == "--skip-provider"),
+                    );
+                    match result {
+                        Ok(snapshot) if json => println!(
+                            "{}",
+                            serde_json::to_string_pretty(&snapshot.remediation)
+                                .unwrap_or_else(|_| "{}".to_string())
+                        ),
+                        Ok(snapshot) => print_human_remediation(&snapshot.remediation),
+                        Err(error) => {
+                            eprintln!("Pronto could not refresh remediation evidence: {error}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                Some("export") => {
+                    if positionals.len() > 2 {
+                        eprintln!("Usage: pronto remediation export [output-dir] [--json]");
+                        std::process::exit(2);
+                    }
+                    let output_dir = positionals.get(1).cloned();
+                    match export_remediation(output_dir) {
+                        Ok(export) if json => println!(
+                            "{}",
+                            serde_json::to_string_pretty(&export)
+                                .unwrap_or_else(|_| "{}".to_string())
+                        ),
+                        Ok(export) => println!(
+                            "Remediation export: {} · {} files",
+                            export.output_path,
+                            export.files.len()
+                        ),
+                        Err(error) => {
+                            eprintln!("Pronto could not export remediation plans: {error}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                Some("set-status") => {
+                    if positionals.len() != 3 {
+                        eprintln!("Usage: pronto remediation set-status <action-id> <status> [--notes <text>] [--json]");
+                        std::process::exit(2);
+                    }
+                    let notes = cli_option(&arguments, "--notes").unwrap_or_else(|error| {
+                        eprintln!("Pronto CLI error: {error}");
+                        std::process::exit(2);
+                    });
+                    match set_remediation_action_status(
+                        positionals[1].clone(),
+                        positionals[2].clone(),
+                        notes,
+                    ) {
+                        Ok(snapshot) if json => println!(
+                            "{}",
+                            serde_json::to_string_pretty(&snapshot.remediation)
+                                .unwrap_or_else(|_| "{}".to_string())
+                        ),
+                        Ok(snapshot) => print_human_remediation(&snapshot.remediation),
+                        Err(error) => {
+                            eprintln!("Pronto could not update remediation status: {error}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                _ => {
+                    if positionals.len() > 1 {
+                        eprintln!("Usage: pronto remediation [<repository>] [--json]");
+                        std::process::exit(2);
+                    }
+                    let result = load_store_with_quality(&path).and_then(|state| {
+                        let snapshot = snapshot_from_store(&path, &state);
+                        if let Some(query) = positionals.first() {
+                            let plan = snapshot
+                                .remediation
+                                .plans
+                                .iter()
+                                .find(|plan| {
+                                    plan.repository_id == *query
+                                        || plan.repository_name.eq_ignore_ascii_case(query)
+                                        || plan.repository_path == *query
+                                })
+                                .cloned()
+                                .ok_or_else(|| {
+                                    format!("No remediation plan found for repository '{query}'.")
+                                })?;
+                            let mut run = snapshot.remediation;
+                            run.plans = vec![plan];
+                            Ok(run)
+                        } else {
+                            Ok(snapshot.remediation)
+                        }
+                    });
+                    match result {
+                        Ok(run) if json => println!(
+                            "{}",
+                            serde_json::to_string_pretty(&run).unwrap_or_else(|_| "{}".to_string())
+                        ),
+                        Ok(run) => print_human_remediation(&run),
+                        Err(error) => {
+                            eprintln!("Pronto could not read remediation plans: {error}");
+                            std::process::exit(1);
+                        }
+                    }
                 }
             }
         }
@@ -6243,45 +9706,63 @@ pub fn run_cli(arguments: Vec<String>) {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
             });
-            if positionals.len() != 2 || positionals[0] != "audit-root" {
-                eprintln!("Usage: pronto quality audit-root <folder|clear> [--json]");
-                std::process::exit(2);
-            }
-            let audit_root = if positionals[1].eq_ignore_ascii_case("clear") {
-                None
+            let is_feed_command =
+                positionals.len() == 1 && matches!(positionals[0].as_str(), "feed" | "audit-root");
+            if is_feed_command {
+                match load_store_with_quality(&path).map(|state| snapshot_from_store(&path, &state))
+                {
+                    Ok(snapshot) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(snapshot) => {
+                        println!(
+                            "Maturity feed: {}",
+                            snapshot
+                                .quality
+                                .audit_root
+                                .as_deref()
+                                .unwrap_or("Unavailable")
+                        );
+                        println!(
+                            "Maturity feed: {} · {} matched · fleet mean {}",
+                            snapshot.quality.audit_status,
+                            snapshot.quality.matched_repository_count,
+                            snapshot
+                                .quality
+                                .maturity_score_display
+                                .as_deref()
+                                .map(|value| format!("{value} / 4"))
+                                .unwrap_or_else(|| "Not scored".to_string())
+                        );
+                    }
+                    Err(error) => {
+                        eprintln!("Pronto could not read the maturity feed: {error}");
+                        std::process::exit(1);
+                    }
+                }
+            } else if positionals.len() <= 1 {
+                let query = positionals.first().map(String::as_str);
+                let result = load_store_with_quality(&path)
+                    .map(|state| snapshot_from_store(&path, &state))
+                    .and_then(|snapshot| agent_quality_report(&snapshot, query));
+                match result {
+                    Ok(report) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(report) => print_human_quality(&report),
+                    Err(error) => {
+                        eprintln!("Pronto could not read quality state: {error}");
+                        std::process::exit(1);
+                    }
+                }
             } else {
-                Some(positionals[1].as_str())
-            };
-            match set_maturity_audit_root_at(&path, audit_root) {
-                Ok(snapshot) if json => println!(
-                    "{}",
-                    serde_json::to_string_pretty(&snapshot).unwrap_or_else(|_| "{}".to_string())
-                ),
-                Ok(snapshot) => {
-                    println!(
-                        "Maturity audit root: {}",
-                        snapshot
-                            .quality
-                            .audit_root
-                            .as_deref()
-                            .unwrap_or("Not configured")
-                    );
-                    println!(
-                        "Maturity audit: {} · {} matched · fleet mean {}",
-                        snapshot.quality.audit_status,
-                        snapshot.quality.matched_repository_count,
-                        snapshot
-                            .quality
-                            .maturity_score_display
-                            .as_deref()
-                            .map(|value| format!("{value} / 4"))
-                            .unwrap_or_else(|| "Not scored".to_string())
-                    );
-                }
-                Err(error) => {
-                    eprintln!("Pronto could not configure the maturity audit root: {error}");
-                    std::process::exit(1);
-                }
+                eprintln!(
+                    "Usage: pronto quality [<repository>] [--json] | pronto quality feed [--json] (Quality Runner owns the canonical feed)"
+                );
+                std::process::exit(2);
             }
         }
         "root" => {
@@ -6378,6 +9859,8 @@ pub fn run_cli(arguments: Vec<String>) {
                     remote_repositories: Vec::new(),
                     provider_status: ProviderStatus::default(),
                     quality: QualityPortfolioSnapshot::default(),
+                    connections: ConnectionsSnapshot::default(),
+                    remediation: remediation::empty_run(),
                     retention_days: DEFAULT_RETENTION_DAYS,
                     generated_at: iso_now(),
                     storage_path: path.to_string_lossy().to_string(),
@@ -6416,9 +9899,8 @@ pub fn run_cli(arguments: Vec<String>) {
             }
         }
         _ => {
-            eprintln!(
-                "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality audit-root <folder|clear> [--json] | pronto clone <owner/repository> [--json]"
-            );
+            eprintln!("Unknown command: {command}");
+            print_cli_usage();
             std::process::exit(2);
         }
     }
@@ -6581,6 +10063,18 @@ mod tests {
         assert_eq!(parsed.ahead, 3);
         assert_eq!(parsed.behind, 2);
         assert!(parsed.dirty);
+    }
+
+    #[test]
+    fn agent_sync_attention_matches_renderer_synced_state() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        let mut workspace = scan_workspace(&repository, true, Some("main"), None);
+        workspace.sync_state = "Synced".to_string();
+        assert!(!workspace_requires_sync_attention(&workspace));
+        workspace.sync_state = "Ahead by 1".to_string();
+        assert!(workspace_requires_sync_attention(&workspace));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
     #[test]
@@ -7267,7 +10761,7 @@ mod tests {
             releases: Vec::new(),
             refreshed_at: "2026-07-25T12:00:00Z".to_string(),
         };
-        let snapshot = apply_provider_refresh_at(&database, refresh)
+        let snapshot = apply_provider_refresh_at(&database, refresh, None)
             .expect("provider refresh should persist locally");
 
         assert_eq!(snapshot.provider_status.state, "Ready");
@@ -7532,7 +11026,7 @@ mod tests {
     fn migrates_schema_v1_for_action_audits() {
         let root = fixture_root();
         let database = root.join("registry.db");
-        let connection = Connection::open(&database).expect("schema fixture should open");
+        let connection = SqliteConnection::open(&database).expect("schema fixture should open");
         connection
             .execute_batch(
                 "CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -7544,7 +11038,7 @@ mod tests {
 
         let migrated = load_store(&database).expect("schema v1 should migrate");
         assert!(migrated.action_audits.is_empty());
-        let connection = Connection::open(&database).expect("migrated database should open");
+        let connection = SqliteConnection::open(&database).expect("migrated database should open");
         let schema_version: String = connection
             .query_row(
                 "SELECT value FROM metadata WHERE key = 'schema_version'",
@@ -7581,6 +11075,111 @@ mod tests {
     }
 
     #[test]
+    fn persists_connection_records_and_workflow_steps_in_dedicated_tables() {
+        let root = fixture_root();
+        let database = root.join("registry.db");
+        let observed_at = "2026-07-26T12:00:00Z";
+        let source = connections::manual_node(
+            connections::ConnectionNodeInput {
+                node_id: Some("manual-source".to_string()),
+                kind: "tool".to_string(),
+                label: "Release tool".to_string(),
+                identity: Some("manual:release-tool".to_string()),
+                repository_id: None,
+            },
+            observed_at,
+        );
+        let target = connections::manual_node(
+            connections::ConnectionNodeInput {
+                node_id: Some("manual-target".to_string()),
+                kind: "environment".to_string(),
+                label: "Production".to_string(),
+                identity: Some("manual:production".to_string()),
+                repository_id: None,
+            },
+            observed_at,
+        );
+        let connection = connections::manual_connection(
+            connections::ConnectionInput {
+                connection_id: Some("manual-deploy".to_string()),
+                source_node_id: source.id.clone(),
+                target_node_id: target.id.clone(),
+                relationship_type: "deployment".to_string(),
+                label: Some("Deploys to".to_string()),
+                confidence: None,
+            },
+            observed_at,
+        );
+        let workflow = connections::manual_workflow(
+            connections::WorkflowInput {
+                workflow_id: Some("manual-release-workflow".to_string()),
+                name: "Release to production".to_string(),
+                scope: "Local".to_string(),
+                repository_ids: Vec::new(),
+                steps: vec![
+                    connections::WorkflowStepInput {
+                        node_id: source.id.clone(),
+                        action_label: "Prepare release".to_string(),
+                        command: Some("pronto deploy --token super-secret".to_string()),
+                        connection_id: Some(connection.id.clone()),
+                    },
+                    connections::WorkflowStepInput {
+                        node_id: target.id.clone(),
+                        action_label: "Promote environment".to_string(),
+                        command: None,
+                        connection_id: None,
+                    },
+                ],
+            },
+            observed_at,
+        );
+        let state = StoreState {
+            connections: ConnectionsSnapshot {
+                nodes: vec![source, target],
+                connections: vec![connection],
+                workflows: vec![workflow],
+                adapters: connections::default_adapters(),
+                generated_at: observed_at.to_string(),
+            },
+            ..StoreState::default()
+        };
+
+        save_store(&database, &state).expect("connection state should persist");
+        let loaded = load_store(&database).expect("connection state should round-trip");
+
+        assert_eq!(loaded.connections.nodes.len(), 2);
+        assert_eq!(loaded.connections.connections.len(), 1);
+        assert_eq!(loaded.connections.workflows.len(), 1);
+        assert_eq!(loaded.connections.workflows[0].steps.len(), 2);
+        assert_eq!(
+            loaded.connections.workflows[0].steps[0].command.as_deref(),
+            Some("pronto deploy --token [REDACTED]")
+        );
+        assert_eq!(
+            loaded.connections.generated_at, observed_at,
+            "connection generation metadata should round-trip"
+        );
+
+        let connection = SqliteConnection::open(&database).expect("database should open");
+        for table in [
+            "connection_nodes",
+            "connections",
+            "workflows",
+            "workflow_steps",
+            "connection_adapters",
+        ] {
+            let count: i64 = connection
+                .query_row(&format!("SELECT count(*) FROM {table}"), [], |row| {
+                    row.get(0)
+                })
+                .expect("connection table should be queryable");
+            assert!(count > 0, "{table} should contain persisted records");
+        }
+
+        fs::remove_dir_all(root).expect("connection persistence fixture should be removable");
+    }
+
+    #[test]
     fn migrates_legacy_json_store_to_versioned_sqlite() {
         let root = fixture_root();
         let database = root.join("registry.db");
@@ -7607,7 +11206,7 @@ mod tests {
         assert!(database.exists());
         assert!(legacy.exists());
 
-        let connection = Connection::open(&database).expect("database should open");
+        let connection = SqliteConnection::open(&database).expect("database should open");
         let schema_version: String = connection
             .query_row(
                 "SELECT value FROM metadata WHERE key = 'schema_version'",
@@ -7616,6 +11215,15 @@ mod tests {
             )
             .expect("schema version should be recorded");
         assert_eq!(schema_version, SQLITE_SCHEMA_VERSION.to_string());
+
+        let analytics_table_count: i64 = connection
+            .query_row(
+                "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'analytics_samples'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("analytics table should be created");
+        assert_eq!(analytics_table_count, 1);
 
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
@@ -7735,5 +11343,133 @@ mod tests {
             .expect("safe patterns should normalize"),
             vec!["*.tmp", "target"]
         );
+    }
+
+    #[test]
+    fn extracts_compact_analytics_metrics_and_keeps_quality_unavailable() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let repository = scan_repository(&repository_path, None, &[]);
+        let observed_at = iso_now();
+        let sample = analytics_repository_sample(&repository, &observed_at);
+
+        assert_eq!(sample.repository_count, 1);
+        assert_eq!(sample.workspace_count, 1);
+        assert!(sample.branch_count >= 1);
+        assert_eq!(sample.commits_last_30_days, Some(1));
+        assert_eq!(sample.findings_total, None);
+        assert_eq!(sample.high_severity_findings, None);
+
+        let encoded = serde_json::to_string(&sample).expect("analytics sample should serialize");
+        assert!(!encoded.contains(repository_path.to_string_lossy().as_ref()));
+        assert!(!encoded.contains("tracked.txt"));
+
+        let mut known_findings = repository.clone();
+        known_findings.quality.findings.source = Some(quality::QualitySource::Qr);
+        known_findings.quality.findings.observed_at = Some(observed_at.clone());
+        let known_sample = analytics_repository_sample(&known_findings, &observed_at);
+        assert_eq!(known_sample.findings_total, Some(0));
+        assert_eq!(known_sample.high_severity_findings, Some(0));
+
+        fs::remove_dir_all(root).expect("analytics metric fixture should be removable");
+    }
+
+    #[test]
+    fn counts_only_local_commits_in_the_trailing_analytics_window() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        fs::write(repository_path.join("tracked.txt"), "one\ntwo\n")
+            .expect("tracked file should be updated");
+        git(&repository_path, &["add", "tracked.txt"]);
+        git(&repository_path, &["commit", "-m", "Second fixture"]);
+
+        let repository = scan_repository(&repository_path, None, &[]);
+        let sample = analytics_repository_sample(&repository, &iso_now());
+        assert_eq!(sample.commits_last_30_days, Some(2));
+
+        fs::remove_dir_all(root).expect("commit metric fixture should be removable");
+    }
+
+    #[test]
+    fn deduplicates_unchanged_samples_and_prunes_by_retention() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let database = root.join("registry.db");
+        let mut state = StoreState::default();
+        state.repositories = vec![scan_repository(&repository_path, None, &[])];
+        save_store(&database, &state).expect("analytics fixture state should persist");
+
+        let base = Utc::now() - chrono::Duration::minutes(20);
+        let first = base.to_rfc3339();
+        let second = (base + chrono::Duration::minutes(5)).to_rfc3339();
+        let third = (base + chrono::Duration::minutes(16)).to_rfc3339();
+        record_analytics_samples_at(&database, &state, &first)
+            .expect("first analytics sample should persist");
+        record_analytics_samples_at(&database, &state, &second)
+            .expect("unchanged analytics sample should deduplicate");
+
+        let connection = open_store(&database).expect("analytics database should open");
+        let fleet_count: i64 = connection
+            .query_row(
+                "SELECT count(*) FROM analytics_samples WHERE repository_id IS NULL",
+                [],
+                |row| row.get(0),
+            )
+            .expect("fleet sample count should be readable");
+        assert_eq!(fleet_count, 1);
+        let repository_id = state.repositories[0].id.clone();
+        let repository_count: i64 = connection
+            .query_row(
+                "SELECT count(*) FROM analytics_samples WHERE repository_id = ?1",
+                params![analytics_scope_id(&repository_id)],
+                |row| row.get(0),
+            )
+            .expect("repository sample count should be readable");
+        assert_eq!(repository_count, 1);
+        let stored_scope: String = connection
+            .query_row(
+                "SELECT repository_id FROM analytics_samples WHERE repository_id IS NOT NULL LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .expect("repository analytics scope should be readable");
+        assert!(!stored_scope.contains(root.to_string_lossy().as_ref()));
+        assert_ne!(stored_scope, repository_id);
+        drop(connection);
+
+        record_analytics_samples_at(&database, &state, &third)
+            .expect("sample outside the deduplication window should persist");
+        let analytics = load_analytics_at(&database).expect("analytics should load");
+        assert_eq!(analytics.portfolio_samples.len(), 2);
+        assert_eq!(analytics.repositories[0].samples.len(), 2);
+
+        let old_observed_at = (Utc::now() - chrono::Duration::days(2)).to_rfc3339();
+        let old_payload = serde_json::to_string(&analytics_portfolio_sample(
+            &state.repositories,
+            &old_observed_at,
+        ))
+        .expect("old analytics sample should serialize");
+        let connection = open_store(&database).expect("analytics database should reopen");
+        connection
+            .execute(
+                "INSERT INTO analytics_samples (id, repository_id, observed_at, payload_json)
+                 VALUES (?1, NULL, ?2, ?3)",
+                params!["old-analytics-sample", old_observed_at, old_payload],
+            )
+            .expect("old analytics sample should insert");
+        drop(connection);
+
+        prune_analytics_samples(&database, 1).expect("retention pruning should succeed");
+        let connection = open_store(&database).expect("pruned analytics database should open");
+        let old_count: i64 = connection
+            .query_row(
+                "SELECT count(*) FROM analytics_samples WHERE id = 'old-analytics-sample'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("old analytics row count should be readable");
+        assert_eq!(old_count, 0);
+
+        fs::remove_dir_all(root).expect("analytics retention fixture should be removable");
     }
 }

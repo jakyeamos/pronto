@@ -6,16 +6,16 @@
   "scripts": {
     "dev": "tauri dev",
     "dev:web": "vite",
-    "build": "tauri build",
+    "build": "env PATH=/opt/homebrew/bin:$PATH tauri build",
     "build:web": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format:check": "prettier --check .",
-    "test": "cargo test --manifest-path src-tauri/Cargo.toml && vitest run --passWithNoTests",
+    "test": "env PATH=/opt/homebrew/bin:$PATH cargo test --manifest-path src-tauri/Cargo.toml && vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "cli": "cargo run --manifest-path src-tauri/Cargo.toml --bin pronto_cli --",
-    "cli:json": "cargo run --manifest-path src-tauri/Cargo.toml --bin pronto_cli -- status --json"
+    "cli": "node bin/pronto.mjs",
+    "cli:json": "node bin/pronto.mjs status --json"
   },
   "bin": {
     "pronto": "./bin/pronto.mjs"
