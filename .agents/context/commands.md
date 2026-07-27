@@ -7,7 +7,7 @@ standalone binary:
 
 ```sh
 PRONTO_ROOT=/Users/jakyeamos/Documents/pronto
-pnpm --dir "$PRONTO_ROOT" run cli summary --json
+pnpm --dir "$PRONTO_ROOT" run cli next --json
 ```
 
 The CLI reads and writes Pronto's local SQLite-backed snapshot. JSON is the
@@ -18,6 +18,7 @@ snapshot; use a focused projection when one is available.
 
 | Need                      | Command                                                  | Contract                      |
 | ------------------------- | -------------------------------------------------------- | ----------------------------- |
+| Daily orientation         | `next [<repository>] [--limit <n>] --json`               | `pronto-agent-next/v1`        |
 | Fleet orientation         | `summary --json`                                         | `pronto-agent-summary/v1`     |
 | One repository            | `repo <absolute-repo-path> --json`                       | `pronto-agent-repository/v1`  |
 | Quality evidence          | `quality [<repository>] --json`                          | `pronto-agent-quality/v1`     |

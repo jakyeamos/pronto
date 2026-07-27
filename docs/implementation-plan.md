@@ -76,6 +76,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 - Typecheck and production build validate renderer/main/preload boundaries.
 - CLI smoke checks validate human-readable and JSON status output against a temporary fixture repository.
 - Agent-facing CLI projections preserve the full `pronto status --json` snapshot while adding focused, versioned read-only envelopes:
+  - `pronto next [<repository>] [--limit <n>] --json` for bounded daily orientation, ranked attention, and safe inspection follow-ups;
   - `pronto summary --json` for fleet counts and repository summaries;
   - `pronto repo <repository> --json` for one repository plus its product/group memberships;
   - `pronto quality [<repository>] --json` for fleet or repository quality evidence;

@@ -662,6 +662,9 @@ const AGENT_ATTENTION_SCHEMA: &str = "pronto-agent-attention/v1";
 const AGENT_ACTIVITY_SCHEMA: &str = "pronto-agent-activity/v1";
 const AGENT_PREPARATION_SCHEMA: &str = "pronto-agent-preparation/v1";
 const AGENT_RELEASE_SCHEMA: &str = "pronto-agent-release/v1";
+const AGENT_NEXT_SCHEMA: &str = "pronto-agent-next/v1";
+const DEFAULT_AGENT_NEXT_LIMIT: usize = 12;
+const MAX_AGENT_NEXT_LIMIT: usize = 50;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConditionSummary {
@@ -824,6 +827,33 @@ pub struct AgentReleaseReport {
     pub repository_id: String,
     pub release: ReleasePreparation,
     pub recipe: ReleaseRecipePreview,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentNextAction {
+    pub attention_id: String,
+    pub repository_id: String,
+    pub repository_name: String,
+    pub workspace_id: Option<String>,
+    pub category: String,
+    pub severity: String,
+    pub status: String,
+    pub summary: String,
+    pub recommended_projection: String,
+    pub next_safe_step: String,
+    pub authorization: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentNextReport {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub scope: String,
+    pub summary: AgentSummary,
+    pub current_repository: Option<AgentRepositorySummary>,
+    pub attention_total: usize,
+    pub attention: Vec<AgentAttentionItem>,
+    pub actions: Vec<AgentNextAction>,
 }
 
 #[derive(Debug)]
@@ -8166,6 +8196,100 @@ fn agent_attention_report(snapshot: &PortfolioSnapshot) -> AgentAttentionReport 
     }
 }
 
+fn agent_attention_priority(item: &AgentAttentionItem) -> u16 {
+    if item.severity == "error" {
+        return 0;
+    }
+    if let Some(priority) = item
+        .severity
+        .strip_prefix('P')
+        .and_then(|value| value.parse::<u16>().ok())
+    {
+        return priority;
+    }
+    if item.severity == "warning" {
+        return 100;
+    }
+    200
+}
+
+fn agent_next_action(item: &AgentAttentionItem) -> AgentNextAction {
+    let (recommended_projection, next_safe_step) = match item.category.as_str() {
+        "quality_gate" => (
+            "quality",
+            "Read the repository quality projection before changing code or recording remediation status.",
+        ),
+        "quality_findings" => (
+            "quality",
+            "Read the repository quality projection and source report before planning remediation.",
+        ),
+        "quality_maturity" => (
+            "quality",
+            "Inspect quality freshness and source provenance; stale or missing maturity evidence is not a pass.",
+        ),
+        "synchronization" => (
+            "repo",
+            "Inspect branch and upstream evidence; refresh only this repository if the snapshot is stale.",
+        ),
+        "workspace" => (
+            "repo",
+            "Inspect the repository projection; preserve dirty workspace contents and active work.",
+        ),
+        "condition" => (
+            "repo",
+            "Inspect the repository projection and condition evidence before choosing a workflow.",
+        ),
+        _ => (
+            "attention",
+            "Inspect the linked evidence before taking any repository, provider, remediation, or release action.",
+        ),
+    };
+    AgentNextAction {
+        attention_id: item.id.clone(),
+        repository_id: item.repository_id.clone(),
+        repository_name: item.repository_name.clone(),
+        workspace_id: item.workspace_id.clone(),
+        category: item.category.clone(),
+        severity: item.severity.clone(),
+        status: item.status.clone(),
+        summary: item.summary.clone(),
+        recommended_projection: recommended_projection.to_string(),
+        next_safe_step: next_safe_step.to_string(),
+        authorization: "Inspection only; Git, provider, remediation, and release mutations require explicit authorization.".to_string(),
+    }
+}
+
+fn agent_next_report(
+    snapshot: &PortfolioSnapshot,
+    query: Option<&str>,
+    scope: &str,
+    limit: usize,
+) -> Result<AgentNextReport, String> {
+    let current_repository = query
+        .map(|value| find_cli_repository(snapshot, value).map(agent_repository_summary))
+        .transpose()?;
+    let summary = agent_summary(snapshot, scope);
+    let mut attention = agent_attention_report(snapshot).items;
+    attention.sort_by(|left, right| {
+        agent_attention_priority(left)
+            .cmp(&agent_attention_priority(right))
+            .then_with(|| left.id.cmp(&right.id))
+    });
+    let attention_total = attention.len();
+    attention.truncate(limit);
+    let actions = attention.iter().take(3).map(agent_next_action).collect();
+    Ok(AgentNextReport {
+        schema_version: AGENT_NEXT_SCHEMA.to_string(),
+        generated_at: snapshot.generated_at.clone(),
+        scope: scope.to_string(),
+        summary,
+        current_repository,
+        attention_total,
+        attention,
+        actions,
+    })
+}
+
 fn agent_summary(snapshot: &PortfolioSnapshot, scope: &str) -> AgentSummary {
     let repositories = snapshot
         .repositories
@@ -8365,6 +8489,25 @@ fn print_human_summary(summary: &AgentSummary) {
     );
 }
 
+fn print_human_next(report: &AgentNextReport) {
+    println!(
+        "PRONTO NEXT · {} · {} attention items",
+        report.scope, report.attention_total
+    );
+    if let Some(repository) = &report.current_repository {
+        println!(
+            "Current repository: {} · {} · {}",
+            repository.name, repository.branch, repository.path
+        );
+    }
+    for action in &report.actions {
+        println!(
+            "  {} · {} · {} · {}",
+            action.repository_name, action.category, action.severity, action.next_safe_step
+        );
+    }
+}
+
 fn print_human_repository(detail: &AgentRepositoryDetail) {
     let repository = &detail.repository;
     println!(
@@ -8525,7 +8668,7 @@ fn print_human_release(report: &AgentReleaseReport) {
 
 fn print_cli_usage() {
     println!(
-        "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto summary [--product <name> | --group <name>] [--json] | pronto repo <repository> [--json] | pronto quality [<repository>] [--json] | pronto remediation [<repository>] [--json] | pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json] | pronto remediation export [output-dir] [--json] | pronto remediation set-status <action-id> <status> [--notes <text>] [--json] | pronto attention [--json] | pronto activity [<repository>] [--limit <n>] [--json] | pronto prepare <repository> [--workspace <id>] [--json] | pronto release preview <repository> [--workspace <id>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality feed [--json] | pronto clone <owner/repository> [--json]"
+        "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto summary [--product <name> | --group <name>] [--json] | pronto next [<repository>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto repo <repository> [--json] | pronto quality [<repository>] [--json] | pronto remediation [<repository>] [--json] | pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json] | pronto remediation export [output-dir] [--json] | pronto remediation set-status <action-id> <status> [--notes <text>] [--json] | pronto attention [--json] | pronto activity [<repository>] [--limit <n>] [--json] | pronto prepare <repository> [--workspace <id>] [--json] | pronto release preview <repository> [--workspace <id>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality feed [--json] | pronto clone <owner/repository> [--json]"
     );
 }
 
@@ -8617,6 +8760,76 @@ pub fn run_cli(arguments: Vec<String>) {
                 Ok(summary) => print_human_summary(&summary),
                 Err(error) => {
                     eprintln!("Pronto could not read local state: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "next" => {
+            let product_name = cli_option(&arguments, "--product").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let group_name = cli_option(&arguments, "--group").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let limit = cli_option(&arguments, "--limit")
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                })
+                .map(|value| {
+                    let parsed = value.parse::<usize>().unwrap_or_else(|_| {
+                        eprintln!("Pronto CLI error: --limit must be a non-negative integer");
+                        std::process::exit(2);
+                    });
+                    if parsed > MAX_AGENT_NEXT_LIMIT {
+                        eprintln!(
+                            "Pronto CLI error: --limit must be {MAX_AGENT_NEXT_LIMIT} or less"
+                        );
+                        std::process::exit(2);
+                    }
+                    parsed
+                })
+                .unwrap_or(DEFAULT_AGENT_NEXT_LIMIT);
+            let positionals = cli_positionals(&arguments, &["--product", "--group", "--limit"])
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                });
+            if positionals.len() > 1 {
+                eprintln!(
+                    "Usage: pronto next [<repository>] [--product <name> | --group <name>] [--limit <n>] [--json]"
+                );
+                std::process::exit(2);
+            }
+            let query = positionals.first().map(String::as_str);
+            let base_scope = product_name
+                .as_deref()
+                .map(|value| format!("product:{value}"))
+                .or_else(|| group_name.as_deref().map(|value| format!("group:{value}")))
+                .unwrap_or_else(|| "fleet".to_string());
+            let scope = query
+                .map(|value| format!("{base_scope}; current_repository:{value}"))
+                .unwrap_or(base_scope);
+            let result = load_store_with_quality(&path)
+                .map(|state| snapshot_from_store(&path, &state))
+                .and_then(|snapshot| {
+                    filter_snapshot_by_collection(
+                        snapshot,
+                        product_name.as_deref(),
+                        group_name.as_deref(),
+                    )
+                })
+                .and_then(|snapshot| agent_next_report(&snapshot, query, &scope, limit));
+            match result {
+                Ok(report) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(report) => print_human_next(&report),
+                Err(error) => {
+                    eprintln!("Pronto could not read next-step state: {error}");
                     std::process::exit(1);
                 }
             }
@@ -9378,6 +9591,74 @@ mod tests {
         workspace.sync_state = "Ahead by 1".to_string();
         assert!(workspace_requires_sync_attention(&workspace));
         fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn next_report_is_bounded_ranked_and_repository_aware() {
+        let root = fixture_root();
+        fixture_repository(&root);
+        let store = root.join("registry.db");
+        let mut snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        let repository_id = snapshot.repositories[0].id.clone();
+        let repository_path = snapshot.repositories[0].path.clone();
+        snapshot.repositories[0].quality.gates.clear();
+        snapshot.repositories[0].quality.findings.freshness = QualityFreshness::Fresh;
+        snapshot.repositories[0].quality.maturity.freshness = QualityFreshness::Fresh;
+        snapshot.repositories[0].quality.ingestion_status = "Available".to_string();
+        snapshot.repositories[0].conditions = vec![
+            Condition {
+                id: "routine-condition".to_string(),
+                kind: "branch".to_string(),
+                title: "Routine condition".to_string(),
+                summary: "Routine evidence needs review".to_string(),
+                priority: 4,
+                status: "Active".to_string(),
+                fingerprint: "routine".to_string(),
+                rule: "fixture".to_string(),
+                evidence: Vec::new(),
+                missing: Vec::new(),
+                confidence: Some("High".to_string()),
+                freshness: Some("Fresh".to_string()),
+            },
+            Condition {
+                id: "urgent-condition".to_string(),
+                kind: "branch".to_string(),
+                title: "Urgent condition".to_string(),
+                summary: "Urgent evidence needs review".to_string(),
+                priority: 1,
+                status: "Active".to_string(),
+                fingerprint: "urgent".to_string(),
+                rule: "fixture".to_string(),
+                evidence: Vec::new(),
+                missing: Vec::new(),
+                confidence: Some("High".to_string()),
+                freshness: Some("Fresh".to_string()),
+            },
+        ];
+
+        let report = agent_next_report(&snapshot, Some(&repository_path), "fleet", 1)
+            .expect("next report should resolve the repository");
+
+        assert_eq!(report.schema_version, AGENT_NEXT_SCHEMA);
+        assert_eq!(report.summary.repository_count, 1);
+        assert_eq!(
+            report.current_repository.as_ref().map(|item| &item.id),
+            Some(&repository_id)
+        );
+        assert!(report.attention_total >= 2);
+        assert_eq!(report.attention.len(), 1);
+        assert_eq!(
+            report.attention[0].id,
+            format!("{repository_id}:condition:urgent-condition")
+        );
+        assert_eq!(report.actions.len(), 1);
+        assert_eq!(report.actions[0].recommended_projection, "repo");
+        assert!(report.actions[0]
+            .authorization
+            .contains("explicit authorization"));
+
+        fs::remove_dir_all(root).expect("next report fixture should be removable");
     }
 
     #[test]
