@@ -15,7 +15,6 @@ import {
 import type {
   AnalyticsSnapshot,
   Condition,
-  ConnectionsSnapshot,
   ExternalTool,
   RepositorySnapshot,
 } from "../types";
@@ -42,14 +41,6 @@ export function RepositoryDetailSurface({
   onLifecycleChange,
   onCondition,
   onOpenReport,
-  connections = {
-    nodes: [],
-    connections: [],
-    workflows: [],
-    adapters: [],
-    generated_at: "",
-  },
-  onOpenConnections = () => undefined,
 }: {
   repository: RepositorySnapshot;
   analytics: AnalyticsSnapshot;
@@ -59,36 +50,7 @@ export function RepositoryDetailSurface({
   onLifecycleChange: (lifecycle: string) => Promise<void>;
   onCondition: (condition: Condition) => void;
   onOpenReport?: (reportPath: string) => void;
-  connections?: ConnectionsSnapshot;
-  onOpenConnections?: (repositoryId: string) => void;
 }): ReactElement {
-  const relatedNodeIds = new Set(
-    connections.nodes
-      .filter((node) => node.repository_id === repository.id)
-      .map((node) => node.id),
-  );
-  const relatedConnections = connections.connections.filter(
-    (connection) =>
-      relatedNodeIds.has(connection.source_node_id) ||
-      relatedNodeIds.has(connection.target_node_id),
-  );
-  relatedConnections.forEach((connection) => {
-    relatedNodeIds.add(connection.source_node_id);
-    relatedNodeIds.add(connection.target_node_id);
-  });
-  const relatedNodes = connections.nodes.filter((node) =>
-    relatedNodeIds.has(node.id),
-  );
-  const relatedWorkflows = connections.workflows.filter(
-    (workflow) =>
-      workflow.participating_repositories.includes(repository.id) ||
-      workflow.steps.some((step) => relatedNodeIds.has(step.node_id)),
-  );
-  const nodeLabel = (nodeId: string): string => {
-    const node = connections.nodes.find((candidate) => candidate.id === nodeId);
-    return node?.label_override?.trim() || node?.label || nodeId;
-  };
-
   return (
     <section
       className="repository-detail-surface"
@@ -401,74 +363,6 @@ export function RepositoryDetailSurface({
                 <ChevronRight size={15} />
               </button>
             ))}
-          </div>
-        )}
-      </div>
-      <div className="drawer-section repository-connections-section">
-        <div className="drawer-section-title">
-          <div>
-            <h3>Connections and workflows</h3>
-            <small>
-              {relatedNodes.length} nodes · {relatedConnections.length}{" "}
-              relationships · {relatedWorkflows.length} workflows
-            </small>
-          </div>
-          <button
-            className="button button-quiet"
-            type="button"
-            onClick={() => onOpenConnections(repository.id)}
-          >
-            <GitBranch size={13} />
-            Open in map
-          </button>
-        </div>
-        {relatedConnections.length === 0 && relatedWorkflows.length === 0 ? (
-          <div className="drawer-empty">
-            <GitBranch size={17} />
-            No discovered relationships yet. Refresh Connections to inspect
-            local evidence.
-          </div>
-        ) : (
-          <div className="repository-connections-list">
-            {relatedConnections.slice(0, 8).map((connection) => (
-              <div className="repository-connection-row" key={connection.id}>
-                <div>
-                  <strong>
-                    {nodeLabel(connection.source_node_id)}{" "}
-                    <ChevronRight size={12} />{" "}
-                    {nodeLabel(connection.target_node_id)}
-                  </strong>
-                  <span>
-                    {connection.label_override?.trim() ||
-                      connection.label ||
-                      connection.relationship_type}
-                  </span>
-                </div>
-                <StatusPill
-                  tone={connection.status === "Stale" ? "amber" : "slate"}
-                >
-                  {connection.status}
-                </StatusPill>
-              </div>
-            ))}
-            {relatedWorkflows.slice(0, 5).map((workflow) => (
-              <div className="repository-connection-row" key={workflow.id}>
-                <div>
-                  <strong>
-                    {workflow.name_override?.trim() || workflow.name}
-                  </strong>
-                  <span>
-                    {workflow.steps.length} ordered steps · {workflow.scope}
-                  </span>
-                </div>
-                <StatusPill tone="violet">Workflow</StatusPill>
-              </div>
-            ))}
-            {(relatedConnections.length > 8 || relatedWorkflows.length > 5) && (
-              <small className="repository-connections-more">
-                Open the map to inspect all related records and their evidence.
-              </small>
-            )}
           </div>
         )}
       </div>

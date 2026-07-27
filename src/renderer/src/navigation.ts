@@ -5,7 +5,6 @@ import {
   FolderGit2,
   GitBranch,
   LayoutDashboard,
-  Network,
   Settings2,
 } from "lucide-react";
 
@@ -14,7 +13,6 @@ export type NavItem =
   | "remediation"
   | "analytics"
   | "groups"
-  | "connections"
   | "remote"
   | "activity"
   | "settings";
@@ -28,7 +26,6 @@ export const navItems: Array<{
   { id: "remediation", label: "Remediation", icon: ClipboardCheck },
   { id: "analytics", label: "Analytics", icon: ChartNoAxesCombined },
   { id: "groups", label: "Groups", icon: FolderGit2 },
-  { id: "connections", label: "Connections", icon: Network },
   { id: "remote", label: "Remote catalog", icon: GitBranch },
   { id: "activity", label: "Activity", icon: Activity },
   { id: "settings", label: "Settings", icon: Settings2 },
@@ -57,11 +54,6 @@ export const pageCopy: Record<
     eyebrow: "Local refresh history",
     title: "See the portfolio move.",
     body: "Read-only trends for health, delivery, quality, workspace activity, and release readiness from local refresh evidence.",
-  },
-  connections: {
-    eyebrow: "Evidence-backed process map",
-    title: "See how the portfolio moves.",
-    body: "Connect repositories, tools, services, environments, and workflows while keeping every discovery reviewable and local-only.",
   },
   remote: {
     eyebrow: "Read-only provider boundary",

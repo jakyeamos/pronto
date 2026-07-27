@@ -1,4 +1,3 @@
-pub mod connections;
 pub mod core;
 pub mod quality;
 pub mod remediation;
@@ -22,15 +21,6 @@ pub fn run() {
             core::get_analytics,
             core::register_root,
             core::refresh,
-            core::refresh_connections,
-            core::upsert_connection_node,
-            core::delete_connection_node,
-            core::upsert_connection,
-            core::delete_connection,
-            core::upsert_workflow,
-            core::delete_workflow,
-            core::set_connection_review,
-            core::set_connection_adapter_enabled,
             core::refresh_github,
             core::refresh_remediation,
             core::set_remediation_action_status,

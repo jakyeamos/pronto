@@ -221,13 +221,6 @@ function makePortfolio(
       audit_status: "Not configured",
       ...qualityOverrides,
     },
-    connections: {
-      nodes: [],
-      connections: [],
-      workflows: [],
-      adapters: [],
-      generated_at: "2026-07-26T11:00:00Z",
-    },
     remediation,
     retention_days: 90,
     generated_at: "2026-07-26T11:00:00Z",

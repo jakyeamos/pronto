@@ -1,7 +1,3 @@
-use crate::connections::{
-    self, Connection, ConnectionInput, ConnectionNode, ConnectionNodeInput, ConnectionsSnapshot,
-    Workflow, WorkflowInput,
-};
 use crate::quality::{
     self, QualityFreshness, QualityGateRequirement, QualityGateStatus, QualityPortfolioSnapshot,
     QualitySnapshot,
@@ -19,7 +15,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 const STORE_VERSION: u8 = 5;
-const SQLITE_SCHEMA_VERSION: i64 = 8;
+const SQLITE_SCHEMA_VERSION: i64 = 9;
 const DEFAULT_RETENTION_DAYS: i64 = 90;
 const DEFAULT_MAX_UNTRACKED_BYTES: u64 = 2_000_000;
 const DEFAULT_MAX_MANIFEST_BYTES: u64 = 64 * 1024;
@@ -566,8 +562,6 @@ pub struct StoreState {
     #[serde(default)]
     pub quality: QualityPortfolioSnapshot,
     #[serde(default)]
-    pub connections: ConnectionsSnapshot,
-    #[serde(default)]
     pub remediation: RemediationRun,
     pub retention_days: i64,
 }
@@ -587,7 +581,6 @@ impl Default for StoreState {
             remote_repositories: Vec::new(),
             provider_status: ProviderStatus::default(),
             quality: QualityPortfolioSnapshot::default(),
-            connections: ConnectionsSnapshot::default(),
             remediation: remediation::empty_run(),
             retention_days: DEFAULT_RETENTION_DAYS,
         }
@@ -607,8 +600,6 @@ pub struct PortfolioSnapshot {
     pub provider_status: ProviderStatus,
     #[serde(default)]
     pub quality: QualityPortfolioSnapshot,
-    #[serde(default)]
-    pub connections: ConnectionsSnapshot,
     #[serde(default)]
     pub remediation: RemediationRun,
     pub retention_days: i64,
@@ -669,7 +660,6 @@ const AGENT_REPOSITORY_SCHEMA: &str = "pronto-agent-repository/v1";
 const AGENT_QUALITY_SCHEMA: &str = "pronto-agent-quality/v1";
 const AGENT_ATTENTION_SCHEMA: &str = "pronto-agent-attention/v1";
 const AGENT_ACTIVITY_SCHEMA: &str = "pronto-agent-activity/v1";
-const AGENT_CONNECTIONS_SCHEMA: &str = "pronto-agent-connections/v1";
 const AGENT_PREPARATION_SCHEMA: &str = "pronto-agent-preparation/v1";
 const AGENT_RELEASE_SCHEMA: &str = "pronto-agent-release/v1";
 
@@ -818,14 +808,6 @@ pub struct AgentActivityReport {
     pub scope: String,
     pub events: Vec<EventRecord>,
     pub action_audits: Vec<ActionAudit>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AgentConnectionsReport {
-    pub schema_version: String,
-    pub generated_at: String,
-    pub scope: String,
-    pub connections: ConnectionsSnapshot,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1020,36 +1002,6 @@ fn initialize_store(connection: &SqliteConnection) -> Result<(), String> {
              );
              CREATE INDEX IF NOT EXISTS idx_analytics_samples_scope_time
                  ON analytics_samples (repository_id, observed_at);
-             CREATE TABLE IF NOT EXISTS connection_nodes (
-                 id TEXT PRIMARY KEY,
-                 identity TEXT NOT NULL,
-                 payload_json TEXT NOT NULL
-             );
-             CREATE UNIQUE INDEX IF NOT EXISTS idx_connection_nodes_identity
-                 ON connection_nodes (identity);
-             CREATE TABLE IF NOT EXISTS connections (
-                 id TEXT PRIMARY KEY,
-                 fingerprint TEXT NOT NULL,
-                 payload_json TEXT NOT NULL
-             );
-             CREATE UNIQUE INDEX IF NOT EXISTS idx_connections_fingerprint
-                 ON connections (fingerprint);
-             CREATE TABLE IF NOT EXISTS workflows (
-                 id TEXT PRIMARY KEY,
-                 payload_json TEXT NOT NULL
-             );
-             CREATE TABLE IF NOT EXISTS workflow_steps (
-                 id TEXT PRIMARY KEY,
-                 workflow_id TEXT NOT NULL,
-                 position INTEGER NOT NULL,
-                 payload_json TEXT NOT NULL
-             );
-             CREATE INDEX IF NOT EXISTS idx_workflow_steps_workflow_position
-                 ON workflow_steps (workflow_id, position);
-             CREATE TABLE IF NOT EXISTS connection_adapters (
-                 id TEXT PRIMARY KEY,
-                 payload_json TEXT NOT NULL
-             );
              CREATE TABLE IF NOT EXISTS remediation_runs (
                  id TEXT PRIMARY KEY,
                  generated_at TEXT NOT NULL,
@@ -1436,97 +1388,6 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
         )
         .collect::<Result<Vec<_>, String>>()?;
 
-    let connection_node_payloads = connection
-        .prepare("SELECT payload_json FROM connection_nodes ORDER BY id")
-        .map_err(|error| format!("Could not prepare connection node query: {error}"))?
-        .query_map([], |row| row.get::<_, String>(0))
-        .map_err(|error| format!("Could not read connection nodes: {error}"))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|error| format!("Could not decode connection node rows: {error}"))?;
-    let nodes = connection_node_payloads
-        .into_iter()
-        .map(|payload| {
-            serde_json::from_str::<ConnectionNode>(&payload)
-                .map_err(|error| format!("Could not decode connection node: {error}"))
-        })
-        .collect::<Result<Vec<_>, String>>()?;
-
-    let connection_payloads = connection
-        .prepare("SELECT payload_json FROM connections ORDER BY fingerprint, id")
-        .map_err(|error| format!("Could not prepare connections query: {error}"))?
-        .query_map([], |row| row.get::<_, String>(0))
-        .map_err(|error| format!("Could not read connections: {error}"))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|error| format!("Could not decode connection rows: {error}"))?;
-    let connection_records = connection_payloads
-        .into_iter()
-        .map(|payload| {
-            serde_json::from_str::<Connection>(&payload)
-                .map_err(|error| format!("Could not decode connection: {error}"))
-        })
-        .collect::<Result<Vec<_>, String>>()?;
-
-    let workflow_payloads = connection
-        .prepare("SELECT payload_json FROM workflows ORDER BY id")
-        .map_err(|error| format!("Could not prepare workflows query: {error}"))?
-        .query_map([], |row| row.get::<_, String>(0))
-        .map_err(|error| format!("Could not read workflows: {error}"))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|error| format!("Could not decode workflow rows: {error}"))?;
-    let mut workflows = workflow_payloads
-        .into_iter()
-        .map(|payload| {
-            serde_json::from_str::<Workflow>(&payload)
-                .map_err(|error| format!("Could not decode workflow: {error}"))
-        })
-        .collect::<Result<Vec<_>, String>>()?;
-    let workflow_step_rows = connection
-        .prepare(
-            "SELECT workflow_id, payload_json FROM workflow_steps
-             ORDER BY workflow_id, position, id",
-        )
-        .map_err(|error| format!("Could not prepare workflow steps query: {error}"))?
-        .query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        })
-        .map_err(|error| format!("Could not read workflow steps: {error}"))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|error| format!("Could not decode workflow step rows: {error}"))?;
-    let mut steps_by_workflow = HashMap::<String, Vec<connections::WorkflowStep>>::new();
-    for (workflow_id, payload) in workflow_step_rows {
-        let step = serde_json::from_str::<connections::WorkflowStep>(&payload)
-            .map_err(|error| format!("Could not decode workflow step: {error}"))?;
-        steps_by_workflow.entry(workflow_id).or_default().push(step);
-    }
-    for workflow in &mut workflows {
-        workflow.steps = steps_by_workflow.remove(&workflow.id).unwrap_or_default();
-    }
-    let adapter_payloads = connection
-        .prepare("SELECT payload_json FROM connection_adapters ORDER BY id")
-        .map_err(|error| format!("Could not prepare connection adapters query: {error}"))?
-        .query_map([], |row| row.get::<_, String>(0))
-        .map_err(|error| format!("Could not read connection adapters: {error}"))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|error| format!("Could not decode connection adapter rows: {error}"))?;
-    let mut adapters = adapter_payloads
-        .into_iter()
-        .map(|payload| {
-            serde_json::from_str(&payload)
-                .map_err(|error| format!("Could not decode connection adapter: {error}"))
-        })
-        .collect::<Result<Vec<_>, String>>()?;
-    if adapters.is_empty() {
-        adapters = connections::default_adapters();
-    }
-    let mut connections_snapshot = ConnectionsSnapshot {
-        nodes,
-        connections: connection_records,
-        workflows,
-        adapters,
-        generated_at: metadata_value(&connection, "connections_generated_at")?.unwrap_or_default(),
-    };
-    connections::normalize_snapshot(&mut connections_snapshot);
-
     let remediation = connection
         .query_row(
             "SELECT payload_json FROM remediation_runs ORDER BY generated_at DESC, id DESC LIMIT 1",
@@ -1555,7 +1416,6 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
         remote_repositories,
         provider_status,
         quality,
-        connections: connections_snapshot,
         remediation,
         retention_days,
     })
@@ -1591,11 +1451,6 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
         "action_audits",
         "provider_identities",
         "remote_repositories",
-        "connection_nodes",
-        "connections",
-        "workflows",
-        "workflow_steps",
-        "connection_adapters",
         "remediation_runs",
     ] {
         transaction
@@ -1634,13 +1489,6 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
             params!["quality_summary_json", quality_summary_json],
         )
         .map_err(|error| format!("Could not save quality summary: {error}"))?;
-    transaction
-        .execute(
-            "INSERT OR REPLACE INTO metadata (key, value) VALUES (?1, ?2)",
-            params!["connections_generated_at", state.connections.generated_at],
-        )
-        .map_err(|error| format!("Could not save connections generation time: {error}"))?;
-
     for root in &state.roots {
         let ignore_patterns_json = serde_json::to_string(&root.ignore_patterns)
             .map_err(|error| format!("Could not encode root ignore patterns: {error}"))?;
@@ -1789,63 +1637,6 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
                 params![repository.id, payload],
             )
             .map_err(|error| format!("Could not save remote repository: {error}"))?;
-    }
-
-    for node in &state.connections.nodes {
-        let payload = serde_json::to_string(node)
-            .map_err(|error| format!("Could not encode connection node: {error}"))?;
-        transaction
-            .execute(
-                "INSERT INTO connection_nodes (id, identity, payload_json)
-                 VALUES (?1, ?2, ?3)",
-                params![node.id, node.identity, payload],
-            )
-            .map_err(|error| format!("Could not save connection node: {error}"))?;
-    }
-    for connection_record in &state.connections.connections {
-        let payload = serde_json::to_string(connection_record)
-            .map_err(|error| format!("Could not encode connection: {error}"))?;
-        transaction
-            .execute(
-                "INSERT INTO connections (id, fingerprint, payload_json)
-                 VALUES (?1, ?2, ?3)",
-                params![connection_record.id, connection_record.fingerprint, payload],
-            )
-            .map_err(|error| format!("Could not save connection: {error}"))?;
-    }
-    for workflow in &state.connections.workflows {
-        let mut workflow_without_steps = workflow.clone();
-        workflow_without_steps.steps = Vec::new();
-        let payload = serde_json::to_string(&workflow_without_steps)
-            .map_err(|error| format!("Could not encode workflow: {error}"))?;
-        transaction
-            .execute(
-                "INSERT INTO workflows (id, payload_json) VALUES (?1, ?2)",
-                params![workflow.id, payload],
-            )
-            .map_err(|error| format!("Could not save workflow: {error}"))?;
-        for step in &workflow.steps {
-            let payload = serde_json::to_string(step)
-                .map_err(|error| format!("Could not encode workflow step: {error}"))?;
-            transaction
-                .execute(
-                    "INSERT INTO workflow_steps
-                     (id, workflow_id, position, payload_json)
-                     VALUES (?1, ?2, ?3, ?4)",
-                    params![step.id, workflow.id, step.order, payload],
-                )
-                .map_err(|error| format!("Could not save workflow step: {error}"))?;
-        }
-    }
-    for adapter in &state.connections.adapters {
-        let payload = serde_json::to_string(adapter)
-            .map_err(|error| format!("Could not encode connection adapter: {error}"))?;
-        transaction
-            .execute(
-                "INSERT INTO connection_adapters (id, payload_json) VALUES (?1, ?2)",
-                params![adapter.id, payload],
-            )
-            .map_err(|error| format!("Could not save connection adapter: {error}"))?;
     }
 
     let remediation_payload = serde_json::to_string(&state.remediation)
@@ -2403,7 +2194,6 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
         remote_repositories: state.remote_repositories.clone(),
         provider_status: state.provider_status.clone(),
         quality: state.quality.clone(),
-        connections: state.connections.clone(),
         remediation: state.remediation.clone(),
         retention_days: state.retention_days,
         generated_at: iso_now(),
@@ -7126,13 +6916,6 @@ fn scan_and_persist_scoped(
     }
     repositories.sort_by(|left, right| left.name.to_lowercase().cmp(&right.name.to_lowercase()));
     state.repositories = repositories;
-    state.connections = connections::refresh_snapshot(
-        &state.connections,
-        &state.repositories,
-        &state.remote_repositories,
-        target_repository_ids,
-        &iso_now(),
-    );
     apply_quality_evidence_scoped(state, target_repository_ids, None);
     apply_release_threshold_conditions(state);
     prune_events(state);
@@ -7607,324 +7390,6 @@ fn open_workspace_at(
     Ok(snapshot_from_store(path, &state))
 }
 
-fn refresh_connections_at(
-    path: &Path,
-    repository_id: Option<&str>,
-) -> Result<PortfolioSnapshot, String> {
-    let mut state = load_store(path)?;
-    let target_repository_ids = repository_id
-        .map(|id| {
-            if state
-                .repositories
-                .iter()
-                .any(|repository| repository.id == id)
-            {
-                Ok(HashSet::from([id.to_string()]))
-            } else {
-                Err("Repository is not registered".to_string())
-            }
-        })
-        .transpose()?;
-    state.connections = connections::refresh_snapshot(
-        &state.connections,
-        &state.repositories,
-        &state.remote_repositories,
-        target_repository_ids.as_ref(),
-        &iso_now(),
-    );
-    save_store(path, &state)?;
-    Ok(snapshot_from_store(path, &state))
-}
-
-fn upsert_connection_node_at(
-    path: &Path,
-    input: ConnectionNodeInput,
-) -> Result<PortfolioSnapshot, String> {
-    let mut state = load_store(path)?;
-    if let Some(identity) = input
-        .identity
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-    {
-        let conflicts = state.connections.nodes.iter().any(|node| {
-            node.identity == identity && input.node_id.as_deref() != Some(node.id.as_str())
-        });
-        if conflicts {
-            return Err(format!(
-                "A connection node with stable identity '{identity}' already exists"
-            ));
-        }
-    }
-    let observed_at = iso_now();
-    if let Some(node_id) = input.node_id.as_deref() {
-        let Some(existing) = connections::find_node_mut(&mut state.connections, node_id) else {
-            return Err("Connection node is not available".to_string());
-        };
-        if existing.origin != "Manual" {
-            return Err("Discovered nodes are edited through review controls".to_string());
-        }
-        existing.kind = input.kind;
-        existing.label = input.label;
-        if let Some(identity) = input.identity {
-            existing.identity = identity;
-        }
-        existing.repository_id = input.repository_id;
-        existing.last_seen_at = Some(observed_at);
-    } else {
-        state
-            .connections
-            .nodes
-            .push(connections::manual_node(input, &observed_at));
-    }
-    connections::normalize_snapshot(&mut state.connections);
-    save_store(path, &state)?;
-    Ok(snapshot_from_store(path, &state))
-}
-
-fn delete_connection_node_at(path: &Path, node_id: &str) -> Result<PortfolioSnapshot, String> {
-    let mut state = load_store(path)?;
-    let Some(node) = state
-        .connections
-        .nodes
-        .iter()
-        .find(|node| node.id == node_id)
-    else {
-        return Err("Connection node is not available".to_string());
-    };
-    if node.origin != "Manual" {
-        return Err("Only manual connection nodes can be deleted".to_string());
-    }
-    state.connections.nodes.retain(|node| node.id != node_id);
-    state.connections.connections.retain(|connection| {
-        connection.origin != "Manual"
-            || (connection.source_node_id != node_id && connection.target_node_id != node_id)
-    });
-    state.connections.workflows.retain(|workflow| {
-        workflow.origin != "Manual" || workflow.steps.iter().all(|step| step.node_id != node_id)
-    });
-    save_store(path, &state)?;
-    Ok(snapshot_from_store(path, &state))
-}
-
-fn upsert_connection_at(path: &Path, input: ConnectionInput) -> Result<PortfolioSnapshot, String> {
-    let mut state = load_store(path)?;
-    if !state
-        .connections
-        .nodes
-        .iter()
-        .any(|node| node.id == input.source_node_id)
-        || !state
-            .connections
-            .nodes
-            .iter()
-            .any(|node| node.id == input.target_node_id)
-    {
-        return Err("Both connection endpoints must be present in the map".to_string());
-    }
-    let observed_at = iso_now();
-    if let Some(connection_id) = input.connection_id.as_deref() {
-        let Some(existing) =
-            connections::find_connection_mut(&mut state.connections, connection_id)
-        else {
-            return Err("Connection is not available".to_string());
-        };
-        if existing.origin != "Manual" {
-            return Err("Discovered connections are edited through review controls".to_string());
-        }
-        existing.source_node_id = input.source_node_id;
-        existing.target_node_id = input.target_node_id;
-        existing.relationship_type = input.relationship_type;
-        if let Some(label) = input.label {
-            existing.label = label;
-        }
-        if let Some(confidence) = input.confidence {
-            existing.confidence = confidence;
-        }
-        existing.last_seen_at = Some(observed_at);
-    } else {
-        state
-            .connections
-            .connections
-            .push(connections::manual_connection(input, &observed_at));
-    }
-    connections::normalize_snapshot(&mut state.connections);
-    save_store(path, &state)?;
-    Ok(snapshot_from_store(path, &state))
-}
-
-fn delete_connection_at(path: &Path, connection_id: &str) -> Result<PortfolioSnapshot, String> {
-    let mut state = load_store(path)?;
-    let Some(connection) = state
-        .connections
-        .connections
-        .iter()
-        .find(|connection| connection.id == connection_id)
-    else {
-        return Err("Connection is not available".to_string());
-    };
-    if connection.origin != "Manual" {
-        return Err("Only manual connections can be deleted".to_string());
-    }
-    state
-        .connections
-        .connections
-        .retain(|connection| connection.id != connection_id);
-    save_store(path, &state)?;
-    Ok(snapshot_from_store(path, &state))
-}
-
-fn upsert_workflow_at(path: &Path, input: WorkflowInput) -> Result<PortfolioSnapshot, String> {
-    let mut state = load_store(path)?;
-    let node_ids = state
-        .connections
-        .nodes
-        .iter()
-        .map(|node| node.id.as_str())
-        .collect::<HashSet<_>>();
-    if input
-        .steps
-        .iter()
-        .any(|step| !node_ids.contains(step.node_id.as_str()))
-    {
-        return Err("Workflow steps must reference nodes in the map".to_string());
-    }
-    let observed_at = iso_now();
-    if let Some(workflow_id) = input.workflow_id.as_deref() {
-        let Some(existing) = connections::find_workflow_mut(&mut state.connections, workflow_id)
-        else {
-            return Err("Workflow is not available".to_string());
-        };
-        if existing.origin != "Manual" {
-            return Err("Discovered workflows are edited through review controls".to_string());
-        }
-        let replacement = connections::manual_workflow(input, &observed_at);
-        *existing = replacement;
-    } else {
-        state
-            .connections
-            .workflows
-            .push(connections::manual_workflow(input, &observed_at));
-    }
-    connections::normalize_snapshot(&mut state.connections);
-    save_store(path, &state)?;
-    Ok(snapshot_from_store(path, &state))
-}
-
-fn delete_workflow_at(path: &Path, workflow_id: &str) -> Result<PortfolioSnapshot, String> {
-    let mut state = load_store(path)?;
-    let Some(workflow) = state
-        .connections
-        .workflows
-        .iter()
-        .find(|workflow| workflow.id == workflow_id)
-    else {
-        return Err("Workflow is not available".to_string());
-    };
-    if workflow.origin != "Manual" {
-        return Err("Only manual workflows can be deleted".to_string());
-    }
-    state
-        .connections
-        .workflows
-        .retain(|workflow| workflow.id != workflow_id);
-    save_store(path, &state)?;
-    Ok(snapshot_from_store(path, &state))
-}
-
-fn set_connection_review_at(
-    path: &Path,
-    record_type: &str,
-    record_id: &str,
-    review_state: &str,
-    label: Option<String>,
-) -> Result<PortfolioSnapshot, String> {
-    let mut state = load_store(path)?;
-    let normalized_state = match review_state {
-        "Suggested" | "Confirmed" | "Overridden" | "Hidden" => review_state,
-        _ => return Err("Unsupported connection review state".to_string()),
-    };
-    match record_type {
-        "node" => {
-            let Some(node) = connections::find_node_mut(&mut state.connections, record_id) else {
-                return Err("Connection node is not available".to_string());
-            };
-            node.status = if normalized_state == "Hidden" {
-                "Hidden".to_string()
-            } else {
-                "Active".to_string()
-            };
-            if let Some(label) = label {
-                node.label_override = Some(label);
-            }
-            if normalized_state == "Overridden" {
-                node.kind_override = Some(node.kind.clone());
-            }
-        }
-        "connection" => {
-            let Some(connection) =
-                connections::find_connection_mut(&mut state.connections, record_id)
-            else {
-                return Err("Connection is not available".to_string());
-            };
-            connection.review_state = normalized_state.to_string();
-            connection.status = if normalized_state == "Hidden" {
-                "Hidden".to_string()
-            } else {
-                "Active".to_string()
-            };
-            if let Some(label) = label {
-                connection.label_override = Some(label);
-            }
-        }
-        "workflow" => {
-            let Some(workflow) = connections::find_workflow_mut(&mut state.connections, record_id)
-            else {
-                return Err("Workflow is not available".to_string());
-            };
-            workflow.review_state = normalized_state.to_string();
-            workflow.status = if normalized_state == "Hidden" {
-                "Hidden".to_string()
-            } else {
-                "Active".to_string()
-            };
-            if let Some(label) = label {
-                workflow.name_override = Some(label);
-            }
-        }
-        _ => return Err("Unsupported connection record type".to_string()),
-    }
-    connections::normalize_snapshot(&mut state.connections);
-    save_store(path, &state)?;
-    Ok(snapshot_from_store(path, &state))
-}
-
-fn set_connection_adapter_enabled_at(
-    path: &Path,
-    adapter_id: &str,
-    enabled: bool,
-) -> Result<PortfolioSnapshot, String> {
-    let mut state = load_store(path)?;
-    let Some(adapter) = state
-        .connections
-        .adapters
-        .iter_mut()
-        .find(|adapter| adapter.id == adapter_id)
-    else {
-        return Err("Connection adapter is not available".to_string());
-    };
-    adapter.enabled = enabled;
-    if !enabled {
-        adapter.freshness = if adapter_id == "deep-code" {
-            "Not analyzed".to_string()
-        } else {
-            "Not enabled".to_string()
-        };
-    }
-    save_store(path, &state)?;
-    Ok(snapshot_from_store(path, &state))
-}
-
 #[tauri::command]
 pub fn get_snapshot() -> Result<PortfolioSnapshot, String> {
     let path = store_path();
@@ -7951,71 +7416,6 @@ pub async fn refresh() -> Result<PortfolioSnapshot, String> {
     })
     .await
     .map_err(|error| format!("Local refresh task failed: {error}"))?
-}
-
-#[tauri::command]
-pub async fn refresh_connections(
-    repository_id: Option<String>,
-) -> Result<PortfolioSnapshot, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        refresh_connections_at(&store_path(), repository_id.as_deref())
-    })
-    .await
-    .map_err(|error| format!("Connections refresh task failed: {error}"))?
-}
-
-#[tauri::command]
-pub fn upsert_connection_node(input: ConnectionNodeInput) -> Result<PortfolioSnapshot, String> {
-    upsert_connection_node_at(&store_path(), input)
-}
-
-#[tauri::command]
-pub fn delete_connection_node(node_id: String) -> Result<PortfolioSnapshot, String> {
-    delete_connection_node_at(&store_path(), &node_id)
-}
-
-#[tauri::command]
-pub fn upsert_connection(input: ConnectionInput) -> Result<PortfolioSnapshot, String> {
-    upsert_connection_at(&store_path(), input)
-}
-
-#[tauri::command]
-pub fn delete_connection(connection_id: String) -> Result<PortfolioSnapshot, String> {
-    delete_connection_at(&store_path(), &connection_id)
-}
-
-#[tauri::command]
-pub fn upsert_workflow(input: WorkflowInput) -> Result<PortfolioSnapshot, String> {
-    upsert_workflow_at(&store_path(), input)
-}
-
-#[tauri::command]
-pub fn delete_workflow(workflow_id: String) -> Result<PortfolioSnapshot, String> {
-    delete_workflow_at(&store_path(), &workflow_id)
-}
-
-#[tauri::command]
-pub fn set_connection_review(
-    record_type: String,
-    record_id: String,
-    review_state: String,
-    label: Option<String>,
-) -> Result<PortfolioSnapshot, String> {
-    set_connection_review_at(
-        &store_path(),
-        &record_type,
-        &record_id,
-        &review_state,
-        label,
-    )
-}
-
-#[tauri::command]
-pub fn set_connection_adapter_enabled(
-    adapter_id: String,
-    enabled: bool,
-) -> Result<PortfolioSnapshot, String> {
-    set_connection_adapter_enabled_at(&store_path(), &adapter_id, enabled)
 }
 
 #[tauri::command]
@@ -8892,57 +8292,6 @@ fn agent_activity_report(
     })
 }
 
-fn agent_connections_report(
-    snapshot: &PortfolioSnapshot,
-    query: Option<&str>,
-) -> Result<AgentConnectionsReport, String> {
-    let repository_id = query
-        .map(|value| find_cli_repository(snapshot, value).map(|repository| repository.id.clone()))
-        .transpose()?;
-    let mut connections = snapshot.connections.clone();
-    if let Some(repository_id) = repository_id.as_deref() {
-        let mut node_ids = connections
-            .nodes
-            .iter()
-            .filter(|node| node.repository_id.as_deref() == Some(repository_id))
-            .map(|node| node.id.clone())
-            .collect::<HashSet<_>>();
-        for connection in &connections.connections {
-            if node_ids.contains(&connection.source_node_id)
-                || node_ids.contains(&connection.target_node_id)
-            {
-                node_ids.insert(connection.source_node_id.clone());
-                node_ids.insert(connection.target_node_id.clone());
-            }
-        }
-        connections
-            .nodes
-            .retain(|node| node_ids.contains(&node.id) || node.origin == "Manual");
-        connections.connections.retain(|connection| {
-            node_ids.contains(&connection.source_node_id)
-                || node_ids.contains(&connection.target_node_id)
-        });
-        connections.workflows.retain(|workflow| {
-            workflow
-                .participating_repositories
-                .iter()
-                .any(|id| id == repository_id)
-                || workflow
-                    .steps
-                    .iter()
-                    .any(|step| node_ids.contains(&step.node_id))
-        });
-    }
-    Ok(AgentConnectionsReport {
-        schema_version: AGENT_CONNECTIONS_SCHEMA.to_string(),
-        generated_at: snapshot.generated_at.clone(),
-        scope: query
-            .map(|value| format!("repository:{value}"))
-            .unwrap_or_else(|| "fleet".to_string()),
-        connections,
-    })
-}
-
 fn launch_desktop_focus(repository: Option<&RepositorySnapshot>) -> Result<(), String> {
     if !cfg!(target_os = "macos") {
         return Err(
@@ -9142,26 +8491,6 @@ fn print_human_activity(report: &AgentActivityReport) {
     }
 }
 
-fn print_human_connections(report: &AgentConnectionsReport) {
-    println!(
-        "PRONTO CONNECTIONS · {} nodes · {} relationships · {} workflows",
-        report.connections.nodes.len(),
-        report.connections.connections.len(),
-        report.connections.workflows.len()
-    );
-    for connection in report
-        .connections
-        .connections
-        .iter()
-        .filter(|connection| connection.status != "Stale")
-    {
-        println!(
-            "  {} · {} · {}",
-            connection.relationship_type, connection.source_node_id, connection.target_node_id
-        );
-    }
-}
-
 fn print_human_preparation(report: &AgentPreparationReport) {
     let preparation = &report.preparation;
     println!(
@@ -9196,7 +8525,7 @@ fn print_human_release(report: &AgentReleaseReport) {
 
 fn print_cli_usage() {
     println!(
-        "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto connections [<repository>] [--json] | pronto summary [--product <name> | --group <name>] [--json] | pronto repo <repository> [--json] | pronto quality [<repository>] [--json] | pronto remediation [<repository>] [--json] | pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json] | pronto remediation export [output-dir] [--json] | pronto remediation set-status <action-id> <status> [--notes <text>] [--json] | pronto attention [--json] | pronto activity [<repository>] [--limit <n>] [--json] | pronto prepare <repository> [--workspace <id>] [--json] | pronto release preview <repository> [--workspace <id>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality feed [--json] | pronto clone <owner/repository> [--json]"
+        "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto summary [--product <name> | --group <name>] [--json] | pronto repo <repository> [--json] | pronto quality [<repository>] [--json] | pronto remediation [<repository>] [--json] | pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json] | pronto remediation export [output-dir] [--json] | pronto remediation set-status <action-id> <status> [--notes <text>] [--json] | pronto attention [--json] | pronto activity [<repository>] [--limit <n>] [--json] | pronto prepare <repository> [--workspace <id>] [--json] | pronto release preview <repository> [--workspace <id>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality feed [--json] | pronto clone <owner/repository> [--json]"
     );
 }
 
@@ -9243,31 +8572,6 @@ pub fn run_cli(arguments: Vec<String>) {
                 Ok(snapshot) => print_human_status(&snapshot),
                 Err(error) => {
                     eprintln!("Pronto could not read local state: {error}");
-                    std::process::exit(1);
-                }
-            }
-        }
-        "connections" => {
-            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
-                eprintln!("Pronto CLI error: {error}");
-                std::process::exit(2);
-            });
-            if positionals.len() > 1 {
-                eprintln!("Usage: pronto connections [<repository>] [--json]");
-                std::process::exit(2);
-            }
-            let query = positionals.first().map(String::as_str);
-            let result = load_store_with_quality(&path)
-                .map(|state| snapshot_from_store(&path, &state))
-                .and_then(|snapshot| agent_connections_report(&snapshot, query));
-            match result {
-                Ok(report) if json => println!(
-                    "{}",
-                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
-                ),
-                Ok(report) => print_human_connections(&report),
-                Err(error) => {
-                    eprintln!("Pronto could not read connections: {error}");
                     std::process::exit(1);
                 }
             }
@@ -9859,7 +9163,6 @@ pub fn run_cli(arguments: Vec<String>) {
                     remote_repositories: Vec::new(),
                     provider_status: ProviderStatus::default(),
                     quality: QualityPortfolioSnapshot::default(),
-                    connections: ConnectionsSnapshot::default(),
                     remediation: remediation::empty_run(),
                     retention_days: DEFAULT_RETENTION_DAYS,
                     generated_at: iso_now(),
@@ -11072,111 +10375,6 @@ mod tests {
             .expect("provider identity table should exist after migration");
         assert_eq!(provider_identity_table, "provider_identities");
         fs::remove_dir_all(root).expect("fixture root should be removable");
-    }
-
-    #[test]
-    fn persists_connection_records_and_workflow_steps_in_dedicated_tables() {
-        let root = fixture_root();
-        let database = root.join("registry.db");
-        let observed_at = "2026-07-26T12:00:00Z";
-        let source = connections::manual_node(
-            connections::ConnectionNodeInput {
-                node_id: Some("manual-source".to_string()),
-                kind: "tool".to_string(),
-                label: "Release tool".to_string(),
-                identity: Some("manual:release-tool".to_string()),
-                repository_id: None,
-            },
-            observed_at,
-        );
-        let target = connections::manual_node(
-            connections::ConnectionNodeInput {
-                node_id: Some("manual-target".to_string()),
-                kind: "environment".to_string(),
-                label: "Production".to_string(),
-                identity: Some("manual:production".to_string()),
-                repository_id: None,
-            },
-            observed_at,
-        );
-        let connection = connections::manual_connection(
-            connections::ConnectionInput {
-                connection_id: Some("manual-deploy".to_string()),
-                source_node_id: source.id.clone(),
-                target_node_id: target.id.clone(),
-                relationship_type: "deployment".to_string(),
-                label: Some("Deploys to".to_string()),
-                confidence: None,
-            },
-            observed_at,
-        );
-        let workflow = connections::manual_workflow(
-            connections::WorkflowInput {
-                workflow_id: Some("manual-release-workflow".to_string()),
-                name: "Release to production".to_string(),
-                scope: "Local".to_string(),
-                repository_ids: Vec::new(),
-                steps: vec![
-                    connections::WorkflowStepInput {
-                        node_id: source.id.clone(),
-                        action_label: "Prepare release".to_string(),
-                        command: Some("pronto deploy --token super-secret".to_string()),
-                        connection_id: Some(connection.id.clone()),
-                    },
-                    connections::WorkflowStepInput {
-                        node_id: target.id.clone(),
-                        action_label: "Promote environment".to_string(),
-                        command: None,
-                        connection_id: None,
-                    },
-                ],
-            },
-            observed_at,
-        );
-        let state = StoreState {
-            connections: ConnectionsSnapshot {
-                nodes: vec![source, target],
-                connections: vec![connection],
-                workflows: vec![workflow],
-                adapters: connections::default_adapters(),
-                generated_at: observed_at.to_string(),
-            },
-            ..StoreState::default()
-        };
-
-        save_store(&database, &state).expect("connection state should persist");
-        let loaded = load_store(&database).expect("connection state should round-trip");
-
-        assert_eq!(loaded.connections.nodes.len(), 2);
-        assert_eq!(loaded.connections.connections.len(), 1);
-        assert_eq!(loaded.connections.workflows.len(), 1);
-        assert_eq!(loaded.connections.workflows[0].steps.len(), 2);
-        assert_eq!(
-            loaded.connections.workflows[0].steps[0].command.as_deref(),
-            Some("pronto deploy --token [REDACTED]")
-        );
-        assert_eq!(
-            loaded.connections.generated_at, observed_at,
-            "connection generation metadata should round-trip"
-        );
-
-        let connection = SqliteConnection::open(&database).expect("database should open");
-        for table in [
-            "connection_nodes",
-            "connections",
-            "workflows",
-            "workflow_steps",
-            "connection_adapters",
-        ] {
-            let count: i64 = connection
-                .query_row(&format!("SELECT count(*) FROM {table}"), [], |row| {
-                    row.get(0)
-                })
-                .expect("connection table should be queryable");
-            assert!(count > 0, "{table} should contain persisted records");
-        }
-
-        fs::remove_dir_all(root).expect("connection persistence fixture should be removable");
     }
 
     #[test]

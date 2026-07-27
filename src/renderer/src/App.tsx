@@ -17,7 +17,6 @@ import { AppOverlays } from "./components/AppOverlays";
 import { AppSidebar } from "./components/AppSidebar";
 import { AppTopbar } from "./components/AppTopbar";
 import { formatTime, StatusPill } from "./components/ConsolePrimitives";
-import { ConnectionsSurface } from "./components/ConnectionsSurface";
 import { RepositoryDetailSurface } from "./components/Drawers";
 import { PortfolioCollectionsSurface } from "./components/PortfolioCollectionsSurface";
 import { QualityGatesSurface } from "./components/QualityGatesSurface";
@@ -43,13 +42,10 @@ import type {
   Condition,
   ExternalTool,
   AnalyticsSnapshot,
-  ConnectionInput,
-  ConnectionNodeInput,
   PortfolioSnapshot,
   RemediationActionStatus,
   RepositoryPreparation,
   RepositorySnapshot,
-  WorkflowInput,
 } from "./types";
 import "./styles.css";
 
@@ -256,78 +252,6 @@ export function App(): ReactElement {
     [loadSnapshot],
   );
 
-  const handleRefreshConnections = useCallback(
-    async (repositoryId?: string): Promise<void> => {
-      await loadSnapshot(() => api.refreshConnections(repositoryId));
-    },
-    [loadSnapshot],
-  );
-
-  const handleSaveConnectionNode = useCallback(
-    async (input: ConnectionNodeInput): Promise<void> => {
-      await loadSnapshot(() => api.upsertConnectionNode(input));
-    },
-    [loadSnapshot],
-  );
-
-  const handleDeleteConnectionNode = useCallback(
-    async (nodeId: string): Promise<void> => {
-      await loadSnapshot(() => api.deleteConnectionNode(nodeId));
-    },
-    [loadSnapshot],
-  );
-
-  const handleSaveConnection = useCallback(
-    async (input: ConnectionInput): Promise<void> => {
-      await loadSnapshot(() => api.upsertConnection(input));
-    },
-    [loadSnapshot],
-  );
-
-  const handleDeleteConnection = useCallback(
-    async (connectionId: string): Promise<void> => {
-      await loadSnapshot(() => api.deleteConnection(connectionId));
-    },
-    [loadSnapshot],
-  );
-
-  const handleSaveWorkflow = useCallback(
-    async (input: WorkflowInput): Promise<void> => {
-      await loadSnapshot(() => api.upsertWorkflow(input));
-    },
-    [loadSnapshot],
-  );
-
-  const handleDeleteWorkflow = useCallback(
-    async (workflowId: string): Promise<void> => {
-      await loadSnapshot(() => api.deleteWorkflow(workflowId));
-    },
-    [loadSnapshot],
-  );
-
-  const handleConnectionReview = useCallback(
-    async (
-      recordType: "node" | "connection" | "workflow",
-      recordId: string,
-      reviewState: "Suggested" | "Confirmed" | "Overridden" | "Hidden",
-      label?: string,
-    ): Promise<void> => {
-      await loadSnapshot(() =>
-        api.setConnectionReview(recordType, recordId, reviewState, label),
-      );
-    },
-    [loadSnapshot],
-  );
-
-  const handleToggleConnectionAdapter = useCallback(
-    async (adapterId: string, enabled: boolean): Promise<void> => {
-      await loadSnapshot(() =>
-        api.setConnectionAdapterEnabled(adapterId, enabled),
-      );
-    },
-    [loadSnapshot],
-  );
-
   const handleConfirmRefresh = useCallback(async (): Promise<void> => {
     await loadSnapshot(api.refresh);
     setIsRefreshConfirmationOpen(false);
@@ -349,13 +273,6 @@ export function App(): ReactElement {
     },
     [],
   );
-
-  const handleOpenConnections = useCallback((repositoryId: string): void => {
-    setActiveNav("connections");
-    setSelectedRepositoryId(repositoryId);
-    setSelectedEvidence(null);
-    setSelectedPreparation(null);
-  }, []);
 
   const handleOpenWorkspace = useCallback(
     async (workspaceId: string, tool: ExternalTool): Promise<void> => {
@@ -460,9 +377,7 @@ export function App(): ReactElement {
   const dateLabel = currentDateLabel();
   const isPortfolio = activeNav === "portfolio";
   const showingRepositoryDetail = Boolean(
-    selectedRepository &&
-    activeNav !== "connections" &&
-    activeNav !== "remediation",
+    selectedRepository && activeNav !== "remediation",
   );
 
   return (
@@ -491,9 +406,7 @@ export function App(): ReactElement {
           isRefreshing={isRefreshing}
           onQueryChange={setQuery}
           onRefresh={() => {
-            if (activeNav === "connections") {
-              void handleRefreshConnections(selectedRepositoryId ?? undefined);
-            } else if (activeNav === "remediation") {
+            if (activeNav === "remediation") {
               void handleRefreshRemediation();
             } else {
               setIsRefreshConfirmationOpen(true);
@@ -573,8 +486,6 @@ export function App(): ReactElement {
               onOpenReport={(reportPath) =>
                 void handleOpenQualityReport(reportPath)
               }
-              connections={snapshot.connections}
-              onOpenConnections={handleOpenConnections}
             />
           ) : isPortfolio ? (
             <>
@@ -620,24 +531,6 @@ export function App(): ReactElement {
               onRefresh={handleRefreshRemediation}
               onExport={handleExportRemediation}
               onUpdateStatus={handleRemediationStatus}
-              onOpenRepository={handleOpenRepository}
-            />
-          ) : activeNav === "connections" ? (
-            <ConnectionsSurface
-              connections={snapshot.connections}
-              repositories={snapshot.repositories}
-              globalQuery={query}
-              selectedRepositoryId={selectedRepositoryId}
-              isRefreshing={isRefreshing}
-              onRefresh={handleRefreshConnections}
-              onSaveNode={handleSaveConnectionNode}
-              onDeleteNode={handleDeleteConnectionNode}
-              onSaveConnection={handleSaveConnection}
-              onDeleteConnection={handleDeleteConnection}
-              onSaveWorkflow={handleSaveWorkflow}
-              onDeleteWorkflow={handleDeleteWorkflow}
-              onReview={handleConnectionReview}
-              onToggleAdapter={handleToggleConnectionAdapter}
               onOpenRepository={handleOpenRepository}
             />
           ) : activeNav === "analytics" ? (

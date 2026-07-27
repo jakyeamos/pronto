@@ -3,8 +3,6 @@ import { open } from "@tauri-apps/plugin-dialog";
 import type {
   AiPayloadPreview,
   AnalyticsSnapshot,
-  ConnectionInput,
-  ConnectionNodeInput,
   ExternalTool,
   PortfolioSnapshot,
   RemediationActionStatus,
@@ -12,32 +10,7 @@ import type {
   RepositoryPreparation,
   ReleaseRecipeConfig,
   ReleaseRuleConfig,
-  WorkflowInput,
 } from "./types";
-
-const fallbackConnectionAdapters = [
-  {
-    id: "static-discovery",
-    enabled: true,
-    freshness: "Not run",
-    permission_state: "Local read-only",
-  },
-  {
-    id: "deep-code",
-    enabled: false,
-    freshness: "Not analyzed",
-    permission_state: "Opt-in local read-only",
-    failure_message:
-      "Only validated JavaScript/TypeScript, Rust, and Python fixtures are analyzed.",
-  },
-  {
-    id: "runtime-provider",
-    enabled: false,
-    freshness: "Not enabled",
-    permission_state: "Opt-in provider/runtime read-only",
-    failure_message: "Network and runtime queries stay off by default.",
-  },
-];
 
 export const emptySnapshot: PortfolioSnapshot = {
   roots: [],
@@ -59,13 +32,6 @@ export const emptySnapshot: PortfolioSnapshot = {
   quality: {
     audit_status: "Not configured",
     matched_repository_count: 0,
-  },
-  connections: {
-    nodes: [],
-    connections: [],
-    workflows: [],
-    adapters: fallbackConnectionAdapters,
-    generated_at: new Date().toISOString(),
   },
   remediation: {
     schema_version: "pronto-remediation/v1",
@@ -119,109 +85,6 @@ export async function refresh(): Promise<PortfolioSnapshot> {
     throw new Error("Open Pronto as a desktop app to scan local repositories.");
   }
   return invoke<PortfolioSnapshot>("refresh");
-}
-
-export async function refreshConnections(
-  repositoryId?: string,
-): Promise<PortfolioSnapshot> {
-  if (!isDesktopBridgeAvailable()) {
-    throw new Error(
-      "Connections refresh is available in the Pronto desktop app.",
-    );
-  }
-  return invoke<PortfolioSnapshot>("refresh_connections", {
-    repository_id: repositoryId ?? null,
-  });
-}
-
-export async function upsertConnectionNode(
-  input: ConnectionNodeInput,
-): Promise<PortfolioSnapshot> {
-  if (!isDesktopBridgeAvailable()) {
-    throw new Error("Manual connection nodes require the Pronto desktop app.");
-  }
-  return invoke<PortfolioSnapshot>("upsert_connection_node", { input });
-}
-
-export async function deleteConnectionNode(
-  nodeId: string,
-): Promise<PortfolioSnapshot> {
-  if (!isDesktopBridgeAvailable()) {
-    throw new Error("Manual connection nodes require the Pronto desktop app.");
-  }
-  return invoke<PortfolioSnapshot>("delete_connection_node", {
-    node_id: nodeId,
-  });
-}
-
-export async function upsertConnection(
-  input: ConnectionInput,
-): Promise<PortfolioSnapshot> {
-  if (!isDesktopBridgeAvailable()) {
-    throw new Error("Manual connections require the Pronto desktop app.");
-  }
-  return invoke<PortfolioSnapshot>("upsert_connection", { input });
-}
-
-export async function deleteConnection(
-  connectionId: string,
-): Promise<PortfolioSnapshot> {
-  if (!isDesktopBridgeAvailable()) {
-    throw new Error("Manual connections require the Pronto desktop app.");
-  }
-  return invoke<PortfolioSnapshot>("delete_connection", {
-    connection_id: connectionId,
-  });
-}
-
-export async function upsertWorkflow(
-  input: WorkflowInput,
-): Promise<PortfolioSnapshot> {
-  if (!isDesktopBridgeAvailable()) {
-    throw new Error("Manual workflows require the Pronto desktop app.");
-  }
-  return invoke<PortfolioSnapshot>("upsert_workflow", { input });
-}
-
-export async function deleteWorkflow(
-  workflowId: string,
-): Promise<PortfolioSnapshot> {
-  if (!isDesktopBridgeAvailable()) {
-    throw new Error("Manual workflows require the Pronto desktop app.");
-  }
-  return invoke<PortfolioSnapshot>("delete_workflow", {
-    workflow_id: workflowId,
-  });
-}
-
-export async function setConnectionReview(
-  recordType: "node" | "connection" | "workflow",
-  recordId: string,
-  reviewState: "Suggested" | "Confirmed" | "Overridden" | "Hidden",
-  label?: string,
-): Promise<PortfolioSnapshot> {
-  if (!isDesktopBridgeAvailable()) {
-    throw new Error("Connection review requires the Pronto desktop app.");
-  }
-  return invoke<PortfolioSnapshot>("set_connection_review", {
-    record_type: recordType,
-    record_id: recordId,
-    review_state: reviewState,
-    label: label ?? null,
-  });
-}
-
-export async function setConnectionAdapterEnabled(
-  adapterId: string,
-  enabled: boolean,
-): Promise<PortfolioSnapshot> {
-  if (!isDesktopBridgeAvailable()) {
-    throw new Error("Connection adapters require the Pronto desktop app.");
-  }
-  return invoke<PortfolioSnapshot>("set_connection_adapter_enabled", {
-    adapter_id: adapterId,
-    enabled,
-  });
 }
 
 export async function refreshGithub(): Promise<PortfolioSnapshot> {
