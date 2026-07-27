@@ -9,6 +9,10 @@ matrix time. Four unavailable paths are under
 being assigned invented gates. The root is configured to ignore `not-mine` and
 `test-fixtures`.
 
+The active Pronto workspace is also represented below because it is the
+application consuming this matrix. Its row is based on the current workspace
+scripts and the latest scoped Quality Runner refresh.
+
 This is a read-only recommendation report. It does not claim that a gate passes
 and it does not run tests, builds, audits, or network refreshes.
 
@@ -39,6 +43,24 @@ includes labels such as `pre_cr`, `pre_pr`, version/platform matrix jobs,
 
 The `Remove from gate list` column means remove from Pronto's gate taxonomy,
 not delete the underlying CI report or QR artifact.
+
+## CI configuration and evidence in Pronto
+
+For each available repository row, Pronto treats every `K`, `N`, `A`, and `C`
+marker as part of that repository's ideal CI profile. `C` is already scoped by
+the matrix's repository-specific capability assessment. The repository
+configuration count is displayed as `configured ideal gates / ideal gates`.
+Configuration is discovered from QR capability and repository-scan artifacts,
+plus imported CI check names; it does not claim that a gate has passed.
+
+Pronto keeps execution evidence separate. It shows both `fresh passing ideal
+gates / ideal gates` and `covered ideal gates / ideal gates`: the former is the
+release-relevant count of fresh passing results, while the latter counts ideal
+gates with any imported result. Each gate retains its source, status, and
+freshness. Failed, blocked, and stale evidence remains visible as an evidence
+update and does not become a passing result. Release rules independently
+require a fresh pass. `PENDING`, `FIXTURE?`, and rows with no recommended gates
+are shown as not scored rather than as zero.
 
 ## Project matrix
 
@@ -84,6 +106,7 @@ not delete the underlying CI report or QR artifact.
 | marketing-autoresearch          |   review |   K   |   N   |   A   |  K   |   K    |   K   |  C   |    A    |  C   | Tests (`tests`)                                                       | pre_cr, quality, truth_file                                                                                                     | Node/typed application; quality is aggregate evidence                |
 | participant-dedup               |   review |   A   |   A   |   A   |  A   |   C    |   A   |  C   |    A    |  C   | —                                                                     | —                                                                                                                               | Node/typed app with API, test and build scripts                      |
 | portfolio                       |   review |   K   |   N   |   K   |  K   |   K    |   K   |  K   |    N    |  N   | Tests; Secrets; Deps                                                  | pre_cr, pre_pr, quality, truth_file                                                                                             | Node/typed app with security/dependency scripts                      |
+| pronto                          |   review |   A   |   A   |   C   |  A   |   A    |   A   |  C   |    A    |  C   | —                                                                     | —                                                                                                                               | Node/typed Tauri app with build/type/test/lint/format scripts        |
 | pre-cr-suite-lsp                |   review |   K   |   N   |   A   |  K   |   A    |   K   |  K   |    N    |  C   | Tests; Secrets (`security_secrets_scan`)                              | pre_cr, pre_pr, truth_file, validate_18, validate_20                                                                            | Node package with build/type/test/security signals                   |
 | quality-evidence-contract       |   review |   C   |   A   |   C   |  C   |   C    |   C   |  C   |    A    |  C   | —                                                                     | —                                                                                                                               | Python package with tests                                            |
 | quality-runner                  |   review |   K   |   N   |   K   |  K   |   K    |   K   |  K   |    A    |  C   | Tests (`tests`)                                                       | pre_cr, pre_pr, python_3_12, python_3_13, python_3_14, truth_file                                                               | Python package with QR evidence                                      |

@@ -75,6 +75,15 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 - Unit tests cover Git parsing, dirty-line aggregation, operation detection, condition ordering, expected fingerprints, and prohibited-operation guards.
 - Typecheck and production build validate renderer/main/preload boundaries.
 - CLI smoke checks validate human-readable and JSON status output against a temporary fixture repository.
+- Agent-facing CLI projections preserve the full `pronto status --json` snapshot while adding focused, versioned read-only envelopes:
+  - `pronto summary --json` for fleet counts and repository summaries;
+  - `pronto repo <repository> --json` for one repository plus its product/group memberships;
+  - `pronto quality [<repository>] --json` for fleet or repository quality evidence;
+  - `pronto attention --json` for conditions, dirty workspaces, synchronization gaps, and quality gaps;
+  - `pronto activity [<repository>] --limit <n> --json` for bounded events and action audits;
+  - `pronto prepare <repository> --json` for pull-request, release, and recipe evidence;
+  - `pronto release preview <repository> --json` for the release-specific evidence and review boundary.
+- These projections are derived from the same SQLite-backed snapshot consumed by the renderer. They are local/private outputs and are not public-export contracts.
 - The behavior inventory in `docs/pronto-behavior-spec.xlsx` tracks each implemented feature, source function, test method, evidence, and remaining open question.
 - Tauri interaction verification is performed when the local desktop runtime can launch; provider and release rows remain explicitly blocked rather than being marked verified from static code.
 
