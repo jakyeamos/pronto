@@ -13,14 +13,14 @@ import type {
 } from "../types";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
 
-export function qualityStatusTone(status: QualityGateStatus): string {
+function qualityStatusTone(status: QualityGateStatus): string {
   if (status === "Passed") return "mint";
   if (status === "Failed") return "coral";
   if (status === "Blocked") return "red";
   return "slate";
 }
 
-export function qualityFreshnessTone(freshness: QualityFreshness): string {
+function qualityFreshnessTone(freshness: QualityFreshness): string {
   if (freshness === "Fresh") return "mint";
   if (freshness === "Stale" || freshness === "Conflicted") return "amber";
   return "slate";
@@ -300,7 +300,7 @@ export function qualityEvidenceSummary(quality: QualityPortfolioSnapshot): {
   };
 }
 
-export function QualityReadinessSummary({
+function QualityReadinessSummary({
   readiness,
   compact = false,
 }: {

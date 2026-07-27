@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/renderer/src/main.tsx",
+    "bin/pronto.mjs",
+    "bin/precr-coverage.mjs",
+    "vite.config.ts",
+    "eslint.config.js"
+  ],
+  "project": [
+    "src/renderer/src/**/*.{ts,tsx}",
+    "bin/*.mjs",
+    "vite.config.ts",
+    "eslint.config.js"
+  ]
+}

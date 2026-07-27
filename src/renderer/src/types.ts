@@ -145,14 +145,14 @@ export interface ReleaseRecipeConfig {
   commit_message: string;
 }
 
-export interface AiPayloadCategory {
+interface AiPayloadCategory {
   category: string;
   included: boolean;
   item_count: number;
   byte_count: number;
 }
 
-export interface AiSourceReference {
+interface AiSourceReference {
   sha: string;
   subject: string;
   committed_at: string;
@@ -184,7 +184,7 @@ export interface GroupConfig {
   updated_at: string;
 }
 
-export interface ConnectionEvidence {
+interface ConnectionEvidence {
   adapter: string;
   source_path?: string;
   detail: string;
@@ -193,7 +193,7 @@ export interface ConnectionEvidence {
   command?: string;
 }
 
-export type ConnectionNodeKind =
+type ConnectionNodeKind =
   | "repository"
   | "workspace"
   | "package"
@@ -237,7 +237,7 @@ export interface Connection {
   evidence: ConnectionEvidence[];
 }
 
-export interface WorkflowStep {
+interface WorkflowStep {
   id: string;
   order: number;
   node_id: string;
@@ -261,7 +261,7 @@ export interface Workflow {
   steps: WorkflowStep[];
 }
 
-export interface ConnectionAdapterStatus {
+interface ConnectionAdapterStatus {
   id: string;
   enabled: boolean;
   freshness: string;
@@ -339,7 +339,7 @@ export interface RemoteRepositorySnapshot {
   ci_commit?: string;
 }
 
-export interface CheckSnapshot {
+interface CheckSnapshot {
   context: string;
   state: string;
   required: boolean;
@@ -349,7 +349,7 @@ export interface CheckSnapshot {
   head_sha?: string;
 }
 
-export interface PullRequestSnapshot {
+interface PullRequestSnapshot {
   id: string;
   provider: string;
   repository_id: string;
@@ -368,7 +368,7 @@ export interface PullRequestSnapshot {
   head_commit?: string;
 }
 
-export interface ReleaseSnapshot {
+interface ReleaseSnapshot {
   id: string;
   provider: string;
   repository_id: string;
@@ -390,7 +390,7 @@ export interface ProviderStatus {
   repository_count: number;
 }
 
-export interface EvidenceItem {
+interface EvidenceItem {
   label: string;
   value: string;
   source: string;
@@ -412,7 +412,7 @@ export interface Condition {
   freshness?: string;
 }
 
-export interface AgentManifest {
+interface AgentManifest {
   task_id?: string;
   title?: string;
   target_branch?: string;
@@ -422,7 +422,7 @@ export interface AgentManifest {
   source_session_id?: string;
 }
 
-export interface ActivitySignal {
+interface ActivitySignal {
   source: string;
   summary: string;
   confidence: string;
@@ -433,7 +433,7 @@ export interface ActivitySignal {
   working_directory?: string;
 }
 
-export interface WorkspaceActivity {
+interface WorkspaceActivity {
   state: string;
   confidence: string;
   signals: ActivitySignal[];
@@ -469,7 +469,7 @@ export interface WorkspaceSummary {
   activity: WorkspaceActivity;
 }
 
-export interface BranchSummary {
+interface BranchSummary {
   name: string;
   role: string;
   role_confidence: string;
@@ -511,7 +511,7 @@ export interface RepositorySnapshot {
   last_activity_at?: string;
 }
 
-export interface PullRequestPreparation {
+interface PullRequestPreparation {
   repository_id: string;
   workspace_id: string;
   head_branch: string;
@@ -531,7 +531,7 @@ export interface PullRequestPreparation {
   existing_pull_request?: PullRequestSnapshot;
 }
 
-export interface ReleaseCommitSummary {
+interface ReleaseCommitSummary {
   sha: string;
   subject: string;
   category: string;
@@ -539,19 +539,19 @@ export interface ReleaseCommitSummary {
   committed_at: string;
 }
 
-export interface ReleaseNoteSection {
+interface ReleaseNoteSection {
   category: string;
   commits: ReleaseCommitSummary[];
 }
 
-export interface ReleaseRuleTrace {
+interface ReleaseRuleTrace {
   label: string;
   status: string;
   value: string;
   source: string;
 }
 
-export interface ReleasePreparation {
+interface ReleasePreparation {
   repository_id: string;
   target_branch?: string;
   baseline_status: string;
@@ -569,7 +569,7 @@ export interface ReleasePreparation {
   evidence: EvidenceItem[];
 }
 
-export interface ReleaseRecipeStep {
+interface ReleaseRecipeStep {
   order: number;
   label: string;
   status: string;
@@ -596,7 +596,7 @@ export interface RepositoryPreparation {
   generated_at: string;
 }
 
-export interface SubmoduleSummary {
+interface SubmoduleSummary {
   path: string;
   commit?: string;
   status: string;
@@ -622,13 +622,7 @@ export interface ActionAudit {
   completed_at?: string | null;
 }
 
-export interface ActionPreflight {
-  audit: ActionAudit;
-  allowed: boolean;
-  target_label: string;
-}
-
-export interface RemediationEvidence {
+interface RemediationEvidence {
   source: string;
   label: string;
   status: string;
@@ -661,14 +655,14 @@ export interface RemediationAction {
   notes?: string | null;
 }
 
-export interface RemediationProgress {
+interface RemediationProgress {
   verified_weight: number;
   total_weight: number;
   deferred_weight: number;
   percentage: number;
 }
 
-export interface RemediationTrack {
+interface RemediationTrack {
   domain: string;
   label: string;
   status: string;
@@ -677,7 +671,7 @@ export interface RemediationTrack {
   total_weight: number;
 }
 
-export interface RemediationPlan {
+interface RemediationPlan {
   schema_version: string;
   id: string;
   repository_id: string;
@@ -692,14 +686,14 @@ export interface RemediationPlan {
   actions: RemediationAction[];
 }
 
-export interface RemediationExclusion {
+interface RemediationExclusion {
   repository_id: string;
   repository_name: string;
   repository_path: string;
   reason: string;
 }
 
-export interface RemediationRefreshStep {
+interface RemediationRefreshStep {
   id: string;
   label: string;
   status: string;

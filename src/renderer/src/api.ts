@@ -1,12 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import type {
-  ActionPreflight,
   AiPayloadPreview,
   AnalyticsSnapshot,
   ConnectionInput,
   ConnectionNodeInput,
-  ConnectionsSnapshot,
   ExternalTool,
   PortfolioSnapshot,
   RemediationActionStatus,
@@ -85,14 +83,6 @@ export const emptySnapshot: PortfolioSnapshot = {
   retention_days: 90,
   generated_at: new Date().toISOString(),
   storage_path: "",
-};
-
-export const emptyConnections: ConnectionsSnapshot = {
-  nodes: [],
-  connections: [],
-  workflows: [],
-  adapters: fallbackConnectionAdapters,
-  generated_at: new Date().toISOString(),
 };
 
 export const emptyAnalytics: AnalyticsSnapshot = {
@@ -376,19 +366,6 @@ export async function previewAiSummary(
   return invoke<AiPayloadPreview>("preview_ai_summary", {
     repository_id: repositoryId,
     workspace_id: workspaceId,
-  });
-}
-
-export async function preflightAction(
-  action: string,
-  repositoryId?: string,
-): Promise<ActionPreflight> {
-  if (!isDesktopBridgeAvailable()) {
-    throw new Error("Action preflight is available in the Pronto desktop app.");
-  }
-  return invoke<ActionPreflight>("preflight_action", {
-    action,
-    repository_id: repositoryId ?? null,
   });
 }
 
