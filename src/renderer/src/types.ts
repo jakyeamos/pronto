@@ -77,6 +77,7 @@ export interface QualityMaturity {
   score?: number;
   score_display?: string;
   scored_dimension_count?: number;
+  dimension_scores?: Record<string, number>;
   audit_id?: string;
   observed_at?: string;
   freshness: QualityFreshness;
@@ -86,7 +87,13 @@ export interface QualityMaturity {
 export interface QualityReadiness {
   score?: number;
   score_display?: string;
+  configuration_score?: number;
+  configuration_score_display?: string;
   applicable_gate_ids: string[];
+  configured_gate_ids: string[];
+  unconfigured_gate_ids: string[];
+  covered_gate_ids: string[];
+  fresh_passing_gate_ids: string[];
   missing_gate_ids: string[];
   stale_gate_ids: string[];
   failed_gate_ids: string[];
@@ -117,7 +124,17 @@ export interface QualityPortfolioSnapshot {
   ci_readiness_score_display?: string;
   ci_readiness_full_repository_count?: number;
   ci_readiness_repository_count?: number;
+  ci_readiness_unscored_repository_count?: number;
   ci_readiness_open_gate_counts?: Record<string, number>;
+  ci_evidence_fresh_passing_gate_count?: number;
+  ci_evidence_ideal_gate_count?: number;
+  ci_configuration_configured_gate_count?: number;
+  ci_configuration_ideal_gate_count?: number;
+  ci_configuration_full_repository_count?: number;
+  ci_configuration_repository_count?: number;
+  ci_configuration_unscored_repository_count?: number;
+  feed_schema?: string;
+  provenance_hash?: string;
 }
 
 export interface ReleaseRecipeConfig {
@@ -165,6 +182,132 @@ export interface GroupConfig {
   repository_ids: string[];
   created_at: string;
   updated_at: string;
+}
+
+export interface ConnectionEvidence {
+  adapter: string;
+  source_path?: string;
+  detail: string;
+  observed_at: string;
+  freshness: string;
+  command?: string;
+}
+
+export type ConnectionNodeKind =
+  | "repository"
+  | "workspace"
+  | "package"
+  | "module"
+  | "tool"
+  | "service"
+  | "environment"
+  | "data-store"
+  | "person"
+  | "team"
+  | string;
+
+export interface ConnectionNode {
+  id: string;
+  kind: ConnectionNodeKind;
+  label: string;
+  identity: string;
+  repository_id?: string;
+  origin: string;
+  confidence: string;
+  status: string;
+  label_override?: string;
+  kind_override?: string;
+  last_seen_at?: string;
+  evidence: ConnectionEvidence[];
+}
+
+export interface Connection {
+  id: string;
+  fingerprint: string;
+  source_node_id: string;
+  target_node_id: string;
+  relationship_type: string;
+  label: string;
+  origin: string;
+  review_state: string;
+  confidence: string;
+  status: string;
+  label_override?: string;
+  last_seen_at?: string;
+  evidence: ConnectionEvidence[];
+}
+
+export interface WorkflowStep {
+  id: string;
+  order: number;
+  node_id: string;
+  action_label: string;
+  command?: string;
+  connection_id?: string;
+  evidence: ConnectionEvidence[];
+}
+
+export interface Workflow {
+  id: string;
+  name: string;
+  scope: string;
+  origin: string;
+  status: string;
+  review_state: string;
+  participating_repositories: string[];
+  name_override?: string;
+  last_seen_at?: string;
+  evidence: ConnectionEvidence[];
+  steps: WorkflowStep[];
+}
+
+export interface ConnectionAdapterStatus {
+  id: string;
+  enabled: boolean;
+  freshness: string;
+  permission_state: string;
+  failure_message?: string;
+  last_run_at?: string;
+}
+
+export interface ConnectionsSnapshot {
+  nodes: ConnectionNode[];
+  connections: Connection[];
+  workflows: Workflow[];
+  adapters: ConnectionAdapterStatus[];
+  generated_at: string;
+}
+
+export interface ConnectionNodeInput {
+  node_id?: string;
+  kind: string;
+  label: string;
+  identity?: string;
+  repository_id?: string;
+}
+
+export interface ConnectionInput {
+  connection_id?: string;
+  source_node_id: string;
+  target_node_id: string;
+  relationship_type: string;
+  label?: string;
+  confidence?: string;
+}
+
+export interface WorkflowStepInput {
+  node_id: string;
+  action_label: string;
+  command?: string;
+  connection_id?: string;
+}
+
+export interface WorkflowInput {
+  workflow_id?: string;
+  name: string;
+  scope: string;
+  repository_ids: string[];
+  steps: WorkflowStepInput[];
 }
 
 export interface ProviderIdentity {
@@ -485,6 +628,107 @@ export interface ActionPreflight {
   target_label: string;
 }
 
+export interface RemediationEvidence {
+  source: string;
+  label: string;
+  status: string;
+  freshness: string;
+  observed_at?: string | null;
+  report_path?: string | null;
+  detail: string;
+}
+
+export type RemediationActionStatus =
+  "open" | "in_progress" | "blocked" | "deferred" | "verified";
+
+export interface RemediationAction {
+  id: string;
+  stable_key: string;
+  repository_id: string;
+  domain: string;
+  title: string;
+  summary: string;
+  severity: string;
+  priority: string;
+  weight: number;
+  status: RemediationActionStatus;
+  acceptance_criteria: string[];
+  evidence: RemediationEvidence[];
+  related_finding_ids: string[];
+  source_run_id?: string | null;
+  updated_at: string;
+  completed_at?: string | null;
+  notes?: string | null;
+}
+
+export interface RemediationProgress {
+  verified_weight: number;
+  total_weight: number;
+  deferred_weight: number;
+  percentage: number;
+}
+
+export interface RemediationTrack {
+  domain: string;
+  label: string;
+  status: string;
+  action_ids: string[];
+  verified_weight: number;
+  total_weight: number;
+}
+
+export interface RemediationPlan {
+  schema_version: string;
+  id: string;
+  repository_id: string;
+  repository_name: string;
+  repository_path: string;
+  generated_at: string;
+  source_refresh_id?: string | null;
+  current_stage: string;
+  status: string;
+  progress: RemediationProgress;
+  tracks: RemediationTrack[];
+  actions: RemediationAction[];
+}
+
+export interface RemediationExclusion {
+  repository_id: string;
+  repository_name: string;
+  repository_path: string;
+  reason: string;
+}
+
+export interface RemediationRefreshStep {
+  id: string;
+  label: string;
+  status: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  detail: string;
+  evidence_path?: string | null;
+}
+
+export interface RemediationRun {
+  schema_version: string;
+  id: string;
+  generated_at: string;
+  source_refresh_id?: string | null;
+  status: string;
+  message?: string | null;
+  eligible_repository_ids: string[];
+  eligible_repository_paths: string[];
+  refresh_steps: RemediationRefreshStep[];
+  excluded_repositories: RemediationExclusion[];
+  plans: RemediationPlan[];
+}
+
+export interface RemediationExport {
+  run_id: string;
+  output_path: string;
+  files: string[];
+}
+
 export interface PortfolioSnapshot {
   roots: RootConfig[];
   repositories: RepositorySnapshot[];
@@ -496,7 +740,54 @@ export interface PortfolioSnapshot {
   remote_repositories: RemoteRepositorySnapshot[];
   provider_status: ProviderStatus;
   quality: QualityPortfolioSnapshot;
+  connections: ConnectionsSnapshot;
+  remediation: RemediationRun;
   retention_days: number;
   generated_at: string;
   storage_path: string;
+}
+
+export interface AnalyticsMetricSample {
+  observed_at: string;
+  repository_count: number;
+  workspace_count: number;
+  branch_count: number;
+  active_condition_count: number;
+  dirty_workspace_count: number;
+  unsynced_workspace_count: number;
+  active_workspace_count: number;
+  interrupted_workspace_count: number;
+  idle_workspace_count: number;
+  unknown_workspace_count: number;
+  ahead_commit_count: number;
+  behind_commit_count: number;
+  commits_last_30_days?: number;
+  ci_readiness_score?: number;
+  maturity_score?: number;
+  findings_total?: number;
+  high_severity_findings?: number;
+  ci_readiness_scored_repository_count: number;
+  maturity_scored_repository_count: number;
+  findings_repository_count: number;
+  release_rule_repository_count: number;
+  release_ready_repository_count: number;
+  quality_freshness?: string;
+}
+
+export interface AnalyticsRepositorySeries {
+  repository_id: string;
+  name: string;
+  samples: AnalyticsMetricSample[];
+}
+
+export interface AnalyticsSnapshot {
+  schema_version: string;
+  generated_at: string;
+  source: string;
+  freshness: string;
+  range_days: number;
+  retention_days: number;
+  history_available_from?: string;
+  portfolio_samples: AnalyticsMetricSample[];
+  repositories: AnalyticsRepositorySeries[];
 }

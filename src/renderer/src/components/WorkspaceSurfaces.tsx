@@ -16,6 +16,10 @@ import type {
   RootConfig,
 } from "../types";
 import { formatTime } from "./ConsolePrimitives";
+import {
+  qualityConfigurationSummary,
+  qualityEvidenceSummary,
+} from "./QualityComponents";
 
 export function DeferredSurface({
   eyebrow,
@@ -208,67 +212,36 @@ function RootSettingsCard({
 
 function MaturityAuditCard({
   quality,
-  onPick,
-  onClear,
 }: {
   quality: QualityPortfolioSnapshot;
-  onPick: () => Promise<void>;
-  onClear: () => Promise<void>;
 }): ReactElement {
-  const [isBusy, setIsBusy] = useState(false);
-
-  const run = async (action: () => Promise<void>): Promise<void> => {
-    setIsBusy(true);
-    try {
-      await action();
-    } finally {
-      setIsBusy(false);
-    }
-  };
-
+  const configuration = qualityConfigurationSummary(quality);
+  const evidence = qualityEvidenceSummary(quality);
   return (
     <section className="surface-panel quality-audit-settings">
       <div className="surface-heading">
         <div>
-          <p className="eyebrow">Optional external evidence</p>
-          <h2>Maturity audit</h2>
+          <p className="eyebrow">Quality Runner evidence</p>
+          <h2>Canonical maturity feed</h2>
           <p>
-            Import the latest valid workspace audit without executing an audit
-            or recalculating its scores.
-            CI readiness is a separate
-            Pronto-derived score for tracking gate updates.
+            Pronto reads the validated Quality Runner feed without executing an
+            audit or recalculating its scores. CI configuration is compared with
+            each repository&apos;s ideal gate profile; execution evidence is
+            tracked separately.
           </p>
         </div>
         <ClipboardCheck size={18} className="muted-icon" />
       </div>
       <div className="quality-audit-settings-grid">
         <div className="quality-audit-root">
-          <span>Configured audit root</span>
-          <strong>{quality.audit_root ?? "Not configured"}</strong>
+          <span>Feed path</span>
+          <strong>
+            {quality.audit_root ??
+              "~/.quality-runner/fleet-audit/current/maturity.json"}
+          </strong>
           <small>
-            Only summary metadata and matched finding artifacts are imported.
+            The path is owned by Quality Runner and cannot be changed here.
           </small>
-        </div>
-        <div className="quality-audit-actions">
-          <button
-            className="button button-secondary"
-            type="button"
-            onClick={() => void run(onPick)}
-            disabled={isBusy}
-          >
-            <FolderPlus size={14} />
-            Choose audit root
-          </button>
-          {quality.audit_root && (
-            <button
-              className="button button-quiet"
-              type="button"
-              onClick={() => void run(onClear)}
-              disabled={isBusy}
-            >
-              Clear
-            </button>
-          )}
         </div>
       </div>
       <div className="quality-audit-metadata">
@@ -299,15 +272,23 @@ function MaturityAuditCard({
           </small>
         </div>
         <div>
-          <span>CI readiness</span>
+          <span>CI configuration</span>
           <strong>
-            {quality.ci_readiness_score_display
-              ? `${quality.ci_readiness_score_display} / 4`
+            {configuration.ideal > 0
+              ? `${configuration.configured} / ${configuration.ideal}`
               : "Not assessed"}
           </strong>
           <small>
-            {quality.ci_readiness_full_repository_count ?? 0}/
-            {quality.ci_readiness_repository_count ?? 0} repositories at 4/4
+            {configuration.ideal === 0
+              ? "No matched recommendation profile"
+              : `${configuration.fullRepositories}/${configuration.repositories} repositories at ideal configuration${
+                  configuration.unscoredRepositories > 0
+                    ? ` · ${configuration.unscoredRepositories} not scored`
+                    : ""
+                }`}
+            {evidence.ideal > 0
+              ? ` · ${evidence.freshPassing}/${evidence.ideal} fresh passing evidence`
+              : ""}
           </small>
         </div>
       </div>
@@ -324,8 +305,6 @@ export function SettingsSurface({
   onSaveRoot,
   onSaveRetention,
   quality,
-  onPickAuditRoot,
-  onClearAuditRoot,
 }: {
   roots: RootConfig[];
   storagePath: string;
@@ -340,8 +319,6 @@ export function SettingsSurface({
   ) => Promise<void>;
   onSaveRetention: (retentionDays: number) => Promise<void>;
   quality: QualityPortfolioSnapshot;
-  onPickAuditRoot: () => Promise<void>;
-  onClearAuditRoot: () => Promise<void>;
 }): ReactElement {
   const [retentionInput, setRetentionInput] = useState(String(retentionDays));
   const [isSavingRetention, setIsSavingRetention] = useState(false);
@@ -392,11 +369,7 @@ export function SettingsSurface({
           </div>
         )}
       </section>
-      <MaturityAuditCard
-        quality={quality}
-        onPick={onPickAuditRoot}
-        onClear={onClearAuditRoot}
-      />
+      <MaturityAuditCard quality={quality} />
       <div className="surface-settings-grid">
         <section className="surface-panel surface-info-card">
           <Database size={17} />

@@ -2,6 +2,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type {
   AiPayloadPreview,
+  AnalyticsSnapshot,
+  Condition,
+  ProductConfig,
   PortfolioSnapshot,
   QualityEvidence,
   QualityFindings,
@@ -12,6 +15,7 @@ import type {
   QualityReadiness,
   QualitySnapshot,
   QualityGateStatus,
+  RemediationRun,
   ReleaseRuleConfig,
   RepositoryPreparation,
   RepositorySnapshot,
@@ -20,12 +24,17 @@ import type {
 import { PreparationDrawer } from "./PreparationDrawer";
 import { qualityGateChoices } from "./ReleaseRuleEditor";
 import { CommandCenterSurface } from "./CommandCenterSurface";
+import { AppSidebar } from "./AppSidebar";
+import { AttentionQueue } from "./PortfolioComponents";
 import {
   QualityAttentionList,
   QualityEvidenceList,
   qualityAttentionItems,
 } from "./QualityComponents";
 import { QualityGatesSurface } from "./QualityGatesSurface";
+import { RepositoryDetailSurface } from "./Drawers";
+import { PortfolioCollectionsSurface } from "./PortfolioCollectionsSurface";
+import { navItems } from "../navigation";
 
 const canonicalGateDefinitions = [
   ["build", "Build"],
@@ -119,6 +128,10 @@ function makeReadiness(
       "typecheck",
       "secrets_scan",
     ],
+    configured_gate_ids: [],
+    unconfigured_gate_ids: [],
+    covered_gate_ids: [],
+    fresh_passing_gate_ids: [],
     missing_gate_ids: [],
     stale_gate_ids: [],
     failed_gate_ids: [],
@@ -172,6 +185,21 @@ function makePortfolio(
   repositories: RepositorySnapshot[],
   qualityOverrides: Partial<QualityPortfolioSnapshot> = {},
 ): PortfolioSnapshot {
+  const remediation: RemediationRun = {
+    schema_version: "pronto-remediation/v1",
+    id: "remediation-1",
+    generated_at: "2026-07-26T11:00:00Z",
+    source_refresh_id: null,
+    status: "not_run",
+    message: null,
+    eligible_repository_ids: repositories.map((repository) => repository.id),
+    eligible_repository_paths: repositories.map(
+      (repository) => repository.path,
+    ),
+    refresh_steps: [],
+    excluded_repositories: [],
+    plans: [],
+  };
   return {
     roots: [],
     repositories,
@@ -193,6 +221,14 @@ function makePortfolio(
       audit_status: "Not configured",
       ...qualityOverrides,
     },
+    connections: {
+      nodes: [],
+      connections: [],
+      workflows: [],
+      adapters: [],
+      generated_at: "2026-07-26T11:00:00Z",
+    },
+    remediation,
     retention_days: 90,
     generated_at: "2026-07-26T11:00:00Z",
     storage_path: "/tmp/pronto/registry.db",
@@ -202,6 +238,21 @@ function makePortfolio(
 const noop = async (): Promise<void> => undefined;
 const noopRepository = (_repository: RepositorySnapshot): void => undefined;
 const noopReport = (_reportPath: string): void => undefined;
+const noopCondition = (
+  _repository: RepositorySnapshot,
+  _condition: Condition,
+): void => undefined;
+
+const analyticsSnapshot: AnalyticsSnapshot = {
+  schema_version: "pronto-analytics/v1",
+  generated_at: "2026-07-26T11:00:00Z",
+  source: "Local refresh snapshots",
+  freshness: "Unavailable until the first local refresh",
+  range_days: 30,
+  retention_days: 90,
+  portfolio_samples: [],
+  repositories: [],
+};
 
 function preparation(): RepositoryPreparation {
   return {
@@ -317,6 +368,18 @@ describe("quality evidence surfaces", () => {
         ci_readiness: makeReadiness({
           score: 2.67,
           score_display: "2.67",
+          configuration_score: 0.67,
+          configuration_score_display: "0.67",
+          configured_gate_ids: ["build"],
+          unconfigured_gate_ids: [
+            "tests",
+            "lint",
+            "formatter",
+            "typecheck",
+            "secrets_scan",
+          ],
+          covered_gate_ids: ["build"],
+          fresh_passing_gate_ids: ["build"],
           missing_gate_ids: ["tests"],
         }),
         ingestion_status: "Available",
@@ -336,6 +399,12 @@ describe("quality evidence surfaces", () => {
           ci_readiness_score_display: "2.67",
           ci_readiness_full_repository_count: 0,
           ci_readiness_repository_count: 1,
+          ci_configuration_configured_gate_count: 1,
+          ci_configuration_ideal_gate_count: 6,
+          ci_configuration_full_repository_count: 0,
+          ci_configuration_repository_count: 1,
+          ci_evidence_fresh_passing_gate_count: 1,
+          ci_evidence_ideal_gate_count: 6,
         })}
         repositories={[repository]}
         onOpenRepository={noopRepository}
@@ -345,8 +414,9 @@ describe("quality evidence surfaces", () => {
 
     expect(markup).toContain("Quality gate matrix");
     expect(markup).toContain("1.933");
-    expect(markup).toContain("CI readiness");
-    expect(markup).toContain("2.67");
+    expect(markup).toContain("CI configuration");
+    expect(markup).toContain("1/6");
+    expect(markup).toContain("Fresh passing evidence: 1/6");
     expect(markup).toContain("Tests");
     expect(markup).toContain("8 canonical");
     expect(markup).toContain("Show 1 custom gate");
@@ -378,12 +448,10 @@ describe("quality evidence surfaces", () => {
     );
     expect(unconfigured).toContain("Not configured");
     expect(unconfigured).toContain("No CI, local, or QR gate evidence");
-    expect(unconfigured).toContain(
-      "Not assessed; refresh to evaluate gate updates",
-    );
+    expect(unconfigured).toContain("No matched recommendation profile");
   });
 
-  it("surfaces maturity and CI readiness in the command center", () => {
+  it("surfaces imported maturity and CI configuration against the ideal profile", () => {
     const repository = makeRepository();
     const markup = renderToStaticMarkup(
       <CommandCenterSurface
@@ -399,9 +467,16 @@ describe("quality evidence surfaces", () => {
             ci_readiness_score_display: "2.67",
             ci_readiness_full_repository_count: 0,
             ci_readiness_repository_count: 1,
+            ci_configuration_configured_gate_count: 1,
+            ci_configuration_ideal_gate_count: 6,
+            ci_configuration_full_repository_count: 0,
+            ci_configuration_repository_count: 1,
+            ci_evidence_fresh_passing_gate_count: 0,
+            ci_evidence_ideal_gate_count: 6,
             ci_readiness_open_gate_counts: { tests: 1 },
           }).quality
         }
+        analytics={analyticsSnapshot}
         repositories={[repository]}
         allRepositories={[repository]}
         events={[]}
@@ -414,10 +489,11 @@ describe("quality evidence surfaces", () => {
       />,
     );
 
-    expect(markup).toContain("CI maturity readiness");
+    expect(markup).toContain("CI configuration vs ideal");
     expect(markup).toContain("1.933");
-    expect(markup).toContain("2.67");
-    expect(markup).toContain("CI updates needed");
+    expect(markup).toContain("1/6");
+    expect(markup).toContain("Fresh passing evidence");
+    expect(markup).toContain("0/6");
     expect(markup).toContain("Tests (1)");
   });
 
@@ -506,5 +582,130 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("Detailed report");
     expect(markup).not.toContain("stdout");
     expect(markup).not.toContain("tracked file contents");
+  });
+
+  it("uses Portfolio as the merged destination and embeds the matrix without duplicate overview cards", () => {
+    expect(navItems.map((item) => item.label)).toContain("Portfolio");
+    expect(navItems.map((item) => item.label)).not.toContain("Quality gates");
+    expect(navItems.map((item) => item.label)).not.toContain("Products");
+
+    const repository = makeRepository();
+    const markup = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([repository])}
+        repositories={[repository]}
+        showOverview={false}
+        onOpenRepository={noopRepository}
+      />,
+    );
+    expect(markup).toContain("Quality gate matrix");
+    expect(markup).not.toContain("Repositories matched");
+    expect(markup).not.toContain("Fleet maturity");
+  });
+
+  it("nests release products under the Groups destination", () => {
+    const repository = makeRepository();
+    const product: ProductConfig = {
+      id: "product-1",
+      name: "Pronto",
+      repository_ids: [repository.id],
+      release_mode: "Independent",
+      created_at: "2026-07-26T11:00:00Z",
+      updated_at: "2026-07-26T11:00:00Z",
+    };
+    const markup = renderToStaticMarkup(
+      <PortfolioCollectionsSurface
+        groups={[]}
+        products={[product]}
+        repositories={[repository]}
+        onSaveGroup={noop}
+        onDeleteGroup={noop}
+        onSaveProduct={noop}
+        onDeleteProduct={noop}
+      />,
+    );
+    expect(markup).toContain("Groups");
+    expect(markup).toContain("Release products");
+    expect(markup).toContain('class="surface-panel collection-subsection"');
+  });
+
+  it("starts the Attention queue and repository groups collapsed", () => {
+    const repository = makeRepository({
+      quality: makeQuality({
+        gates: [makeGate("build", "Build", "Failed", "Fresh")],
+      }),
+    });
+    const markup = renderToStaticMarkup(
+      <AttentionQueue
+        repositories={[repository]}
+        onCondition={noopCondition}
+        onOpenRepository={noopRepository}
+      />,
+    );
+    expect(markup).toContain("Attention queue");
+    expect(markup).toContain('class="rail-section attention-queue"');
+    expect(markup).not.toContain('class="rail-section attention-queue" open');
+    expect(markup).not.toContain(
+      'class="attention-group quality-attention-group" open',
+    );
+  });
+
+  it("keeps the sidebar repository index searchable and status-only", () => {
+    const repository = makeRepository({ name: "Local project" });
+    const markup = renderToStaticMarkup(
+      <AppSidebar
+        activeNav="portfolio"
+        activeConditionCount={0}
+        rootCount={1}
+        repositories={[repository]}
+        selectedRepositoryId={null}
+        onNavigate={() => undefined}
+        onOpenRepository={noopRepository}
+      />,
+    );
+    expect(markup).toContain("Repositories");
+    expect(markup).toContain("Find a repository");
+    expect(markup).toContain("Local project");
+    expect(markup).not.toContain("/tmp/pronto");
+    expect(markup).not.toContain("main");
+    expect(markup).not.toContain("Quality gates");
+  });
+
+  it("renders repository detail as a full page with quality, maturity, QR, and release context", () => {
+    const repository = makeRepository({
+      quality: makeQuality({
+        gates: [
+          makeGate("build", "Build", "Passed", "Fresh", [makeEvidence()]),
+        ],
+      }),
+      release_rule: {
+        name: "Ready to release",
+        operator: "AND",
+        required_commit_types: [],
+        allow_first_release: false,
+        required_quality_gates: [{ gate_id: "build", source: "CI" }],
+      },
+    });
+    const markup = renderToStaticMarkup(
+      <RepositoryDetailSurface
+        repository={repository}
+        analytics={analyticsSnapshot}
+        onBack={() => undefined}
+        onOpenWorkspace={async () => undefined}
+        onPrepareRepository={async () => undefined}
+        onLifecycleChange={async () => undefined}
+        onCondition={() => undefined}
+      />,
+    );
+    expect(markup).toContain("Back to Portfolio");
+    expect(markup).toContain("/tmp/pronto");
+    expect(markup).toContain("Quality gates");
+    expect(markup).toContain("Release rule trace");
+    expect(markup).toContain("Workspaces");
+    expect(markup).toContain("Conditions");
+    expect(markup).toContain("Branches");
+    expect(markup).toContain("Not scored");
+    expect(markup).not.toContain("drawer-layer");
+    expect(markup).not.toContain("drawer-scrim");
   });
 });

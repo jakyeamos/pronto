@@ -136,14 +136,19 @@ export function AttentionQueue({
     attention.reduce((total, group) => total + group.conditions.length, 0) +
     qualityAttention.reduce((total, group) => total + group.items.length, 0);
   return (
-    <section className="rail-section">
-      <div className="section-heading">
+    <details className="rail-section attention-queue">
+      <summary className="section-heading attention-queue-summary">
         <div>
           <p className="eyebrow">Evidence-led queue</p>
           <h2>Attention queue</h2>
         </div>
-        <span className="section-count">{attentionCount}</span>
-      </div>
+        <span
+          className="section-count"
+          aria-label={`${attentionCount} attention items`}
+        >
+          {attentionCount}
+        </span>
+      </summary>
       {attention.length === 0 && qualityAttention.length === 0 ? (
         <div className="rail-empty">
           <ShieldCheck size={18} />
@@ -152,7 +157,7 @@ export function AttentionQueue({
       ) : (
         <div className="attention-list">
           {attention.map(({ repository, conditions }) => (
-            <details className="attention-group" key={repository.id} open>
+            <details className="attention-group" key={repository.id}>
               <summary>
                 <span className="summary-repo">
                   <span className="tiny-repo-mark">
@@ -190,7 +195,6 @@ export function AttentionQueue({
             <details
               className="attention-group quality-attention-group"
               key={`quality-${repository.id}`}
-              open
             >
               <summary>
                 <span className="summary-repo">
@@ -213,7 +217,7 @@ export function AttentionQueue({
           ))}
         </div>
       )}
-    </section>
+    </details>
   );
 }
 

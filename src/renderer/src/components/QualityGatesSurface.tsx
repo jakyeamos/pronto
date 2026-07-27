@@ -12,6 +12,8 @@ import {
   QualityFindingsSummary,
   QualityGateCell,
   QualityMaturitySummary,
+  qualityConfigurationSummary,
+  qualityEvidenceSummary,
   qualityGateDisplayLabel,
 } from "./QualityComponents";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
@@ -68,7 +70,10 @@ function totalHighFindings(repositories: RepositorySnapshot[]): number {
 }
 
 function readinessGapSummary(quality: PortfolioSnapshot["quality"]): string {
-  if (quality.ci_readiness_score == null) return "CI readiness not assessed";
+  const configuration = qualityConfigurationSummary(quality);
+  if (configuration.ideal === 0) {
+    return "CI configuration profile not available";
+  }
   const entries = Object.entries(quality.ci_readiness_open_gate_counts ?? {})
     .sort(
       ([leftId, leftCount], [rightId, rightCount]) =>
@@ -76,7 +81,7 @@ function readinessGapSummary(quality: PortfolioSnapshot["quality"]): string {
     )
     .slice(0, 3);
   return entries.length > 0
-    ? `Open updates: ${entries
+    ? `Evidence updates: ${entries
         .map(
           ([gateId, count]) => `${qualityGateDisplayLabel(gateId)} (${count})`,
         )
@@ -89,11 +94,13 @@ export function QualityGatesSurface({
   repositories,
   onOpenRepository,
   onOpenReport,
+  showOverview = true,
 }: {
   snapshot: PortfolioSnapshot;
   repositories: RepositorySnapshot[];
   onOpenRepository: (repository: RepositorySnapshot) => void;
   onOpenReport?: (reportPath: string) => void;
+  showOverview?: boolean;
 }): ReactElement {
   const [showCustomGates, setShowCustomGates] = useState(false);
   const discoveredCustomGates = customGateColumns(repositories);
@@ -116,59 +123,76 @@ export function QualityGatesSurface({
   );
   const highFindings = totalHighFindings(repositories);
   const portfolioQuality = snapshot.quality;
+  const configuration = qualityConfigurationSummary(portfolioQuality);
+  const evidence = qualityEvidenceSummary(portfolioQuality);
   return (
     <>
-      <section className="quality-overview-grid">
-        <div className="quality-overview-card quality-overview-card-accent">
-          <span>Fleet maturity</span>
-          <strong>
-            {portfolioQuality.maturity_score_display ?? "—"}
-            <small>/4</small>
-          </strong>
-          <small>
-            {portfolioQuality.scored_dimension_count
-              ? `${portfolioQuality.scored_dimension_count} dimensions · `
-              : ""}
-            {portfolioQuality.audit_status}
-          </small>
-          <div className="quality-overview-secondary">
-            <span>CI readiness</span>
+      {showOverview && (
+        <section className="quality-overview-grid">
+          <div className="quality-overview-card quality-overview-card-accent">
+            <span>Fleet maturity</span>
             <strong>
-              {portfolioQuality.ci_readiness_score_display ?? "—"}
+              {portfolioQuality.maturity_score_display ?? "—"}
               <small>/4</small>
             </strong>
             <small>
-              {portfolioQuality.ci_readiness_score == null
-                ? "Not assessed; refresh to evaluate repositories"
-                : `${portfolioQuality.ci_readiness_full_repository_count ?? 0}/${portfolioQuality.ci_readiness_repository_count ?? 0} repositories at full readiness`}
+              {portfolioQuality.scored_dimension_count
+                ? `${portfolioQuality.scored_dimension_count} dimensions · `
+                : ""}
+              {portfolioQuality.audit_status}
             </small>
-            <small>{readinessGapSummary(portfolioQuality)}</small>
+            <div className="quality-overview-secondary">
+              <span>CI configuration</span>
+              <strong>
+                {configuration.ideal > 0
+                  ? `${configuration.configured}/${configuration.ideal}`
+                  : "—"}
+              </strong>
+              <small>
+                {configuration.ideal === 0
+                  ? "No matched recommendation profile"
+                  : `${configuration.fullRepositories}/${configuration.repositories} repositories at ideal configuration${
+                      configuration.unscoredRepositories > 0
+                        ? ` · ${configuration.unscoredRepositories} not scored`
+                        : ""
+                    }`}
+              </small>
+              <small>{readinessGapSummary(portfolioQuality)}</small>
+            </div>
+            <ClipboardCheck size={18} />
           </div>
-          <ClipboardCheck size={18} />
-        </div>
-        <div className="quality-overview-card">
-          <span>Repositories matched</span>
-          <strong>{portfolioQuality.matched_repository_count}</strong>
-          <small>
-            {portfolioQuality.latest_audit_at
-              ? `Audit ${formatTime(portfolioQuality.latest_audit_at)}`
-              : "No audit run imported"}
-          </small>
-          <GitBranch size={18} />
-        </div>
-        <div className="quality-overview-card">
-          <span>Imported gate evidence</span>
-          <strong>{configuredGateCount}</strong>
-          <small>CI, local, and QR sources kept separate</small>
-          <CheckCircle2 size={18} />
-        </div>
-        <div className="quality-overview-card">
-          <span>High-severity QR findings</span>
-          <strong>{highFindings}</strong>
-          <small>Critical and high items in current reports</small>
-          <ShieldCheck size={18} />
-        </div>
-      </section>
+          <div className="quality-overview-card">
+            <span>Repositories matched</span>
+            <strong>{portfolioQuality.matched_repository_count}</strong>
+            <small>
+              {portfolioQuality.latest_audit_at
+                ? `Audit ${formatTime(portfolioQuality.latest_audit_at)}`
+                : "No audit run imported"}
+            </small>
+            <GitBranch size={18} />
+          </div>
+          <div className="quality-overview-card">
+            <span>Fresh passing evidence</span>
+            <strong>
+              {evidence.ideal > 0
+                ? `${evidence.freshPassing}/${evidence.ideal}`
+                : "—"}
+            </strong>
+            <small>
+              {evidence.ideal > 0
+                ? "Fresh CI, local, and QR passes"
+                : "No matched recommendation profile"}
+            </small>
+            <CheckCircle2 size={18} />
+          </div>
+          <div className="quality-overview-card">
+            <span>High-severity QR findings</span>
+            <strong>{highFindings}</strong>
+            <small>Critical and high items in current reports</small>
+            <ShieldCheck size={18} />
+          </div>
+        </section>
+      )}
 
       <section className="surface-panel quality-matrix-panel">
         <div className="surface-heading quality-matrix-heading">

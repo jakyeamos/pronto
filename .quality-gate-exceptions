@@ -1,0 +1,9 @@
+# These files are intentionally consolidated while the renderer/native feature
+# surface stabilizes. Each exception is path-specific and should be removed as
+# the corresponding responsibility is extracted.
+oversized-source src/renderer/src/App.tsx root desktop composition keeps navigation, snapshot state, and Tauri command wiring in one parity boundary
+oversized-source src/renderer/src/api.ts typed IPC contract remains co-located so renderer commands and native invoke names stay reviewable together
+oversized-source src/renderer/src/components/AnalyticsComponents.tsx analytics surface and chart composition share the same evidence formatting and unavailable-state rules
+oversized-source src/renderer/src/components/ConnectionsSurface.tsx connection map, workflow editor, and evidence inspector share selection and review state
+oversized-source src/renderer/src/components/Drawers.tsx existing shared preparation and action drawer keeps cross-surface release/provider state transitions in one boundary
+oversized-source src/renderer/src/types.ts shared snapshot and command types are kept together to preserve renderer/native contract parity

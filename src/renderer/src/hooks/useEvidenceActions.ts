@@ -15,12 +15,12 @@ type SelectedEvidence = {
 export function useEvidenceActions({
   selectedEvidence,
   loadSnapshot,
-  setSelectedRepository,
+  setSelectedRepositoryId,
   setSelectedEvidence,
 }: {
   selectedEvidence: SelectedEvidence | null;
   loadSnapshot: (operation: () => Promise<PortfolioSnapshot>) => Promise<void>;
-  setSelectedRepository: Dispatch<SetStateAction<RepositorySnapshot | null>>;
+  setSelectedRepositoryId: Dispatch<SetStateAction<string | null>>;
   setSelectedEvidence: Dispatch<SetStateAction<SelectedEvidence | null>>;
 }): {
   handleCondition: (
@@ -31,10 +31,10 @@ export function useEvidenceActions({
 } {
   const handleCondition = useCallback(
     (repository: RepositorySnapshot, condition: Condition): void => {
-      setSelectedRepository(null);
+      setSelectedRepositoryId(repository.id);
       setSelectedEvidence({ repository, condition });
     },
-    [setSelectedEvidence, setSelectedRepository],
+    [setSelectedEvidence, setSelectedRepositoryId],
   );
 
   const handleExpected = useCallback(async (): Promise<void> => {

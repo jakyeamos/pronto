@@ -10,27 +10,45 @@ import { IconButton } from "./ConsolePrimitives";
 
 export function AppTopbar({
   activeNavLabel,
-  isCommandCenter,
+  isPortfolio,
+  repositoryName,
   query,
   searchInputRef,
   isRefreshing,
   onQueryChange,
   onRefresh,
+  onBackToPortfolio,
 }: {
   activeNavLabel: string | undefined;
-  isCommandCenter: boolean;
+  isPortfolio: boolean;
+  repositoryName?: string;
   query: string;
   searchInputRef: RefObject<HTMLInputElement | null>;
   isRefreshing: boolean;
   onQueryChange: (query: string) => void;
   onRefresh: () => void;
+  onBackToPortfolio?: () => void;
 }): ReactElement {
   return (
     <header className="topbar">
       <div className="breadcrumbs">
         <span>Workspace</span>
         <ChevronRight size={13} />
-        <strong>{activeNavLabel}</strong>
+        {repositoryName && onBackToPortfolio ? (
+          <>
+            <button
+              className="breadcrumb-button"
+              type="button"
+              onClick={onBackToPortfolio}
+            >
+              {activeNavLabel}
+            </button>
+            <ChevronRight size={13} />
+            <strong>{repositoryName}</strong>
+          </>
+        ) : (
+          <strong>{activeNavLabel}</strong>
+        )}
       </div>
       <div className="topbar-actions">
         <label className="search-box">
@@ -39,8 +57,10 @@ export function AppTopbar({
             ref={searchInputRef}
             aria-label="Search repositories"
             placeholder={
-              isCommandCenter
-                ? "Search repos, branches, paths"
+              isPortfolio
+                ? repositoryName
+                  ? "Search this portfolio"
+                  : "Search repos, branches, paths"
                 : "Search local portfolio"
             }
             value={query}

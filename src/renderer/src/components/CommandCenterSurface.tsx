@@ -12,14 +12,20 @@ import {
   Sparkles,
 } from "lucide-react";
 import type {
+  AnalyticsSnapshot,
   Condition,
   EventRecord,
   QualityPortfolioSnapshot,
   RepositorySnapshot,
 } from "../types";
+import { AnalyticsDashboardBand } from "./AnalyticsComponents";
 import { EmptyState, NoMatchesState } from "./ConsolePrimitives";
 import { AttentionQueue, RepositoryRow, Timeline } from "./PortfolioComponents";
-import { qualityGateDisplayLabel } from "./QualityComponents";
+import {
+  qualityConfigurationSummary,
+  qualityEvidenceSummary,
+  qualityGateDisplayLabel,
+} from "./QualityComponents";
 
 export type Filter = "all" | "attention" | "dirty" | "sync";
 
@@ -30,6 +36,7 @@ export function CommandCenterSurface({
   repositoryCount,
   rootCount,
   quality,
+  analytics,
   repositories,
   allRepositories,
   events,
@@ -47,6 +54,7 @@ export function CommandCenterSurface({
   repositoryCount: number;
   rootCount: number;
   quality: QualityPortfolioSnapshot;
+  analytics: AnalyticsSnapshot;
   repositories: RepositorySnapshot[];
   allRepositories: RepositorySnapshot[];
   events: EventRecord[];
@@ -58,6 +66,8 @@ export function CommandCenterSurface({
   onCondition: (repository: RepositorySnapshot, condition: Condition) => void;
   onOpenQualityReport?: (reportPath: string) => void;
 }): ReactElement {
+  const configuration = qualityConfigurationSummary(quality);
+  const evidence = qualityEvidenceSummary(quality);
   const openGateSummary = Object.entries(
     quality.ci_readiness_open_gate_counts ?? {},
   )
@@ -99,15 +109,16 @@ export function CommandCenterSurface({
       </section>
       <section
         className="command-quality-summary"
-        aria-label="Quality maturity"
+        aria-label="Quality configuration"
       >
         <div className="command-quality-summary-heading">
           <div>
             <p className="eyebrow">Quality evidence</p>
-            <h2>CI maturity readiness</h2>
+            <h2>CI configuration vs ideal</h2>
             <p>
-              Imported maturity stays exact; CI readiness tracks the gate work
-              still needed for a full score.
+              Imported maturity stays exact. This compares discovered gate
+              configuration with each repository&apos;s recommended profile;
+              execution evidence remains separate.
             </p>
           </div>
           <ShieldCheck size={19} />
@@ -122,28 +133,38 @@ export function CommandCenterSurface({
             <small>Quality Runner audit</small>
           </div>
           <div>
-            <span>CI readiness</span>
+            <span>CI configuration</span>
             <strong>
-              {quality.ci_readiness_score_display ?? "Not assessed"}
-              {quality.ci_readiness_score_display && <small>/4</small>}
+              {configuration.ideal > 0
+                ? `${configuration.configured}/${configuration.ideal}`
+                : "Not assessed"}
             </strong>
             <small>
-              {quality.ci_readiness_score == null
-                ? "Refresh to evaluate gate updates"
-                : `${quality.ci_readiness_full_repository_count ?? 0}/${quality.ci_readiness_repository_count ?? 0} repositories at 4/4`}
+              {configuration.ideal === 0
+                ? "No matched recommendation profile"
+                : `${configuration.fullRepositories}/${configuration.repositories} repositories at ideal configuration${
+                    configuration.unscoredRepositories > 0
+                      ? ` · ${configuration.unscoredRepositories} not scored`
+                      : ""
+                  }`}
             </small>
           </div>
           <div>
-            <span>CI updates needed</span>
+            <span>Fresh passing evidence</span>
             <strong>
-              {Object.values(
-                quality.ci_readiness_open_gate_counts ?? {},
-              ).reduce((total, count) => total + count, 0)}
+              {evidence.ideal > 0
+                ? `${evidence.freshPassing}/${evidence.ideal}`
+                : "Not assessed"}
             </strong>
-            <small>{openGateSummary || "No open gate updates"}</small>
+            <small>
+              {openGateSummary
+                ? `Evidence updates: ${openGateSummary}`
+                : "No open gate updates"}
+            </small>
           </div>
         </div>
       </section>
+      <AnalyticsDashboardBand analytics={analytics} />
       <div className="content-grid">
         <section className="portfolio-panel">
           <div className="panel-heading">

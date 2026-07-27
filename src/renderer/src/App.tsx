@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import * as api from "./api";
+import { AnalyticsSurface } from "./components/AnalyticsComponents";
 import {
   CommandCenterSurface,
   type Filter,
@@ -16,8 +17,11 @@ import { AppOverlays } from "./components/AppOverlays";
 import { AppSidebar } from "./components/AppSidebar";
 import { AppTopbar } from "./components/AppTopbar";
 import { formatTime, StatusPill } from "./components/ConsolePrimitives";
-import { PortfolioConfigSurface } from "./components/PortfolioConfigSurface";
+import { ConnectionsSurface } from "./components/ConnectionsSurface";
+import { RepositoryDetailSurface } from "./components/Drawers";
+import { PortfolioCollectionsSurface } from "./components/PortfolioCollectionsSurface";
 import { QualityGatesSurface } from "./components/QualityGatesSurface";
+import { RemediationSurface } from "./components/RemediationSurface";
 import { RemoteCatalogSurface } from "./components/RemoteCatalogSurface";
 import { RefreshConfirmationDialog } from "./components/RefreshConfirmationDialog";
 import { useEvidenceActions } from "./hooks/useEvidenceActions";
@@ -38,9 +42,14 @@ import { navItems, pageCopy, type NavItem } from "./navigation";
 import type {
   Condition,
   ExternalTool,
+  AnalyticsSnapshot,
+  ConnectionInput,
+  ConnectionNodeInput,
   PortfolioSnapshot,
+  RemediationActionStatus,
   RepositoryPreparation,
   RepositorySnapshot,
+  WorkflowInput,
 } from "./types";
 import "./styles.css";
 
@@ -48,11 +57,15 @@ export function App(): ReactElement {
   const [snapshot, setSnapshot] = useState<PortfolioSnapshot>(
     api.emptySnapshot,
   );
-  const [activeNav, setActiveNav] = useState<NavItem>("command");
+  const [analytics, setAnalytics] = useState<AnalyticsSnapshot>(
+    api.emptyAnalytics,
+  );
+  const [activeNav, setActiveNav] = useState<NavItem>("portfolio");
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
-  const [selectedRepository, setSelectedRepository] =
-    useState<RepositorySnapshot | null>(null);
+  const [selectedRepositoryId, setSelectedRepositoryId] = useState<
+    string | null
+  >(null);
   const [selectedEvidence, setSelectedEvidence] = useState<{
     repository: RepositorySnapshot;
     condition: Condition;
@@ -65,14 +78,35 @@ export function App(): ReactElement {
     useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const selectedRepository = useMemo(
+    () =>
+      selectedRepositoryId
+        ? (snapshot.repositories.find(
+            (repository) => repository.id === selectedRepositoryId,
+          ) ?? null)
+        : null,
+    [selectedRepositoryId, snapshot.repositories],
+  );
 
   const loadSnapshot = useCallback(
     async (operation: () => Promise<PortfolioSnapshot>): Promise<void> => {
       setIsRefreshing(true);
       setError(null);
+      setNotice(null);
       try {
         setSnapshot(await operation());
+        try {
+          setAnalytics(await api.getAnalytics());
+        } catch (caught) {
+          setAnalytics(api.emptyAnalytics);
+          setError(
+            caught instanceof Error
+              ? caught.message
+              : "Pronto could not load local analytics history.",
+          );
+        }
       } catch (caught) {
         setError(
           caught instanceof Error
@@ -90,10 +124,24 @@ export function App(): ReactElement {
     void loadSnapshot(api.getSnapshot);
   }, [loadSnapshot]);
 
+  useEffect(() => {
+    if (
+      selectedRepositoryId &&
+      !snapshot.repositories.some(
+        (repository) => repository.id === selectedRepositoryId,
+      )
+    ) {
+      setSelectedRepositoryId(null);
+      setSelectedEvidence(null);
+      setSelectedPreparation(null);
+      setError("That repository is no longer in the current local snapshot.");
+    }
+  }, [selectedRepositoryId, snapshot.repositories]);
+
   useAppKeyboardShortcuts(searchInputRef, () => {
     if (selectedEvidence) setSelectedEvidence(null);
     else if (selectedPreparation) setSelectedPreparation(null);
-    else if (selectedRepository) setSelectedRepository(null);
+    else if (selectedRepositoryId) setSelectedRepositoryId(null);
   });
 
   const handleAddRoot = useCallback(async (): Promise<void> => {
@@ -178,30 +226,112 @@ export function App(): ReactElement {
     await loadSnapshot(api.refreshGithub);
   }, [loadSnapshot]);
 
-  const handleConfirmRefresh = useCallback(async (): Promise<void> => {
-    await loadSnapshot(api.refresh);
-    setIsRefreshConfirmationOpen(false);
+  const handleRefreshRemediation = useCallback(async (): Promise<void> => {
+    await loadSnapshot(api.refreshRemediation);
   }, [loadSnapshot]);
 
-  const handleSaveAuditRoot = useCallback(
-    async (auditRoot: string | null): Promise<void> => {
-      await loadSnapshot(() => api.setMaturityAuditRoot(auditRoot));
-    },
-    [loadSnapshot],
-  );
-
-  const handlePickAuditRoot = useCallback(async (): Promise<void> => {
+  const handleExportRemediation = useCallback(async (): Promise<void> => {
+    setError(null);
     try {
-      const auditRoot = await api.pickMaturityAuditRoot();
-      if (auditRoot) await handleSaveAuditRoot(auditRoot);
+      const result = await api.exportRemediation();
+      setNotice(`Remediation plans exported to ${result.output_path}.`);
     } catch (caught) {
       setError(
         caught instanceof Error
           ? caught.message
-          : "Pronto could not configure that maturity audit root.",
+          : "Pronto could not export the remediation plans.",
       );
     }
-  }, [handleSaveAuditRoot]);
+  }, []);
+
+  const handleRemediationStatus = useCallback(
+    async (
+      actionId: string,
+      status: RemediationActionStatus,
+    ): Promise<void> => {
+      await loadSnapshot(() =>
+        api.setRemediationActionStatus(actionId, status),
+      );
+    },
+    [loadSnapshot],
+  );
+
+  const handleRefreshConnections = useCallback(
+    async (repositoryId?: string): Promise<void> => {
+      await loadSnapshot(() => api.refreshConnections(repositoryId));
+    },
+    [loadSnapshot],
+  );
+
+  const handleSaveConnectionNode = useCallback(
+    async (input: ConnectionNodeInput): Promise<void> => {
+      await loadSnapshot(() => api.upsertConnectionNode(input));
+    },
+    [loadSnapshot],
+  );
+
+  const handleDeleteConnectionNode = useCallback(
+    async (nodeId: string): Promise<void> => {
+      await loadSnapshot(() => api.deleteConnectionNode(nodeId));
+    },
+    [loadSnapshot],
+  );
+
+  const handleSaveConnection = useCallback(
+    async (input: ConnectionInput): Promise<void> => {
+      await loadSnapshot(() => api.upsertConnection(input));
+    },
+    [loadSnapshot],
+  );
+
+  const handleDeleteConnection = useCallback(
+    async (connectionId: string): Promise<void> => {
+      await loadSnapshot(() => api.deleteConnection(connectionId));
+    },
+    [loadSnapshot],
+  );
+
+  const handleSaveWorkflow = useCallback(
+    async (input: WorkflowInput): Promise<void> => {
+      await loadSnapshot(() => api.upsertWorkflow(input));
+    },
+    [loadSnapshot],
+  );
+
+  const handleDeleteWorkflow = useCallback(
+    async (workflowId: string): Promise<void> => {
+      await loadSnapshot(() => api.deleteWorkflow(workflowId));
+    },
+    [loadSnapshot],
+  );
+
+  const handleConnectionReview = useCallback(
+    async (
+      recordType: "node" | "connection" | "workflow",
+      recordId: string,
+      reviewState: "Suggested" | "Confirmed" | "Overridden" | "Hidden",
+      label?: string,
+    ): Promise<void> => {
+      await loadSnapshot(() =>
+        api.setConnectionReview(recordType, recordId, reviewState, label),
+      );
+    },
+    [loadSnapshot],
+  );
+
+  const handleToggleConnectionAdapter = useCallback(
+    async (adapterId: string, enabled: boolean): Promise<void> => {
+      await loadSnapshot(() =>
+        api.setConnectionAdapterEnabled(adapterId, enabled),
+      );
+    },
+    [loadSnapshot],
+  );
+
+  const handleConfirmRefresh = useCallback(async (): Promise<void> => {
+    await loadSnapshot(api.refresh);
+    setIsRefreshConfirmationOpen(false);
+  }, [loadSnapshot]);
 
   const handleOpenQualityReport = useCallback(
     async (reportPath: string): Promise<void> => {
@@ -209,6 +339,23 @@ export function App(): ReactElement {
     },
     [loadSnapshot],
   );
+
+  const handleOpenRepository = useCallback(
+    (repository: RepositorySnapshot): void => {
+      setActiveNav("portfolio");
+      setSelectedRepositoryId(repository.id);
+      setSelectedEvidence(null);
+      setSelectedPreparation(null);
+    },
+    [],
+  );
+
+  const handleOpenConnections = useCallback((repositoryId: string): void => {
+    setActiveNav("connections");
+    setSelectedRepositoryId(repositoryId);
+    setSelectedEvidence(null);
+    setSelectedPreparation(null);
+  }, []);
 
   const handleOpenWorkspace = useCallback(
     async (workspaceId: string, tool: ExternalTool): Promise<void> => {
@@ -249,6 +396,16 @@ export function App(): ReactElement {
     [selectedRepository],
   );
 
+  const handleLifecycleChange = useCallback(
+    async (lifecycle: string): Promise<void> => {
+      if (!selectedRepository) return;
+      await loadSnapshot(() =>
+        api.setRepositoryLifecycle(selectedRepository.id, lifecycle),
+      );
+    },
+    [loadSnapshot, selectedRepository],
+  );
+
   const {
     handleSaveReleaseRule,
     handleSaveReleaseRecipe,
@@ -260,14 +417,14 @@ export function App(): ReactElement {
     selectedPreparation,
     loadSnapshot,
     setSnapshot,
-    setSelectedRepository,
+    setSelectedRepositoryId,
     setSelectedPreparation,
     setError,
   });
   const { handleCondition, handleExpected } = useEvidenceActions({
     selectedEvidence,
     loadSnapshot,
-    setSelectedRepository,
+    setSelectedRepositoryId,
     setSelectedEvidence,
   });
 
@@ -301,7 +458,12 @@ export function App(): ReactElement {
   const activePage = pageCopy[activeNav];
   const activeNavLabel = navItems.find((item) => item.id === activeNav)?.label;
   const dateLabel = currentDateLabel();
-  const isCommandCenter = activeNav === "command";
+  const isPortfolio = activeNav === "portfolio";
+  const showingRepositoryDetail = Boolean(
+    selectedRepository &&
+    activeNav !== "connections" &&
+    activeNav !== "remediation",
+  );
 
   return (
     <div className="app-shell">
@@ -309,53 +471,68 @@ export function App(): ReactElement {
         activeNav={activeNav}
         activeConditionCount={activeConditionCount}
         rootCount={snapshot.roots.length}
+        repositories={snapshot.repositories}
+        selectedRepositoryId={selectedRepositoryId}
         onNavigate={(nav) => {
           setActiveNav(nav);
-          setSelectedRepository(null);
+          setSelectedRepositoryId(null);
           setSelectedEvidence(null);
           setSelectedPreparation(null);
         }}
+        onOpenRepository={handleOpenRepository}
       />
       <main className="main-content">
         <AppTopbar
           activeNavLabel={activeNavLabel}
-          isCommandCenter={isCommandCenter}
+          isPortfolio={isPortfolio}
+          repositoryName={selectedRepository?.name}
           query={query}
           searchInputRef={searchInputRef}
           isRefreshing={isRefreshing}
           onQueryChange={setQuery}
-          onRefresh={() => setIsRefreshConfirmationOpen(true)}
+          onRefresh={() => {
+            if (activeNav === "connections") {
+              void handleRefreshConnections(selectedRepositoryId ?? undefined);
+            } else if (activeNav === "remediation") {
+              void handleRefreshRemediation();
+            } else {
+              setIsRefreshConfirmationOpen(true);
+            }
+          }}
+          onBackToPortfolio={() => setSelectedRepositoryId(null)}
         />
         <div className="content-scroll">
-          <section className="page-intro">
-            <div>
-              <p className="eyebrow">
-                {isCommandCenter ? dateLabel : activePage.eyebrow}
-              </p>
-              <h1>{activePage.title}</h1>
-              <p className="intro-copy">{activePage.body}</p>
-            </div>
-            <div className="intro-actions">
-              {isCommandCenter && (
-                <span className="snapshot-freshness">
-                  Snapshot {formatTime(snapshot.generated_at)}
-                </span>
-              )}
-              <StatusPill tone="mint" icon={<ShieldCheck size={12} />}>
-                Local only
-              </StatusPill>
-              {(isCommandCenter || activeNav === "settings") && (
-                <button
-                  className="button button-secondary"
-                  type="button"
-                  onClick={handleAddRoot}
-                >
-                  <FolderPlus size={15} />
-                  Add root
-                </button>
-              )}
-            </div>
-          </section>
+          {!showingRepositoryDetail && (
+            <section className="page-intro">
+              <div>
+                <p className="eyebrow">
+                  {isPortfolio ? dateLabel : activePage.eyebrow}
+                </p>
+                <h1>{activePage.title}</h1>
+                <p className="intro-copy">{activePage.body}</p>
+              </div>
+              <div className="intro-actions">
+                {isPortfolio && (
+                  <span className="snapshot-freshness">
+                    Snapshot {formatTime(snapshot.generated_at)}
+                  </span>
+                )}
+                <StatusPill tone="mint" icon={<ShieldCheck size={12} />}>
+                  Local only
+                </StatusPill>
+                {(isPortfolio || activeNav === "settings") && (
+                  <button
+                    className="button button-secondary"
+                    type="button"
+                    onClick={handleAddRoot}
+                  >
+                    <FolderPlus size={15} />
+                    Add root
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
           {error && (
             <div className="error-banner" role="alert">
               <AlertTriangle size={16} />
@@ -369,38 +546,104 @@ export function App(): ReactElement {
               </button>
             </div>
           )}
-          {isCommandCenter ? (
-            <CommandCenterSurface
-              activeConditionCount={activeConditionCount}
-              dirtyCount={dirtyCount}
-              unsyncedCount={unsyncedCount}
-              repositoryCount={snapshot.repositories.length}
-              rootCount={snapshot.roots.length}
-              quality={snapshot.quality}
-              repositories={repositories}
-              allRepositories={snapshot.repositories}
-              events={snapshot.events}
-              filter={filter}
-              onFilterChange={setFilter}
-              onClearFilters={() => {
-                setQuery("");
-                setFilter("all");
-              }}
-              onAddRoot={handleAddRoot}
-              onOpenRepository={setSelectedRepository}
-              onCondition={handleCondition}
-              onOpenQualityReport={(reportPath) =>
-                void handleOpenQualityReport(reportPath)
+          {notice && (
+            <div className="success-banner" role="status">
+              <ShieldCheck size={16} />
+              <span>{notice}</span>
+              <button
+                type="button"
+                onClick={() => setNotice(null)}
+                aria-label="Dismiss notice"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+          {showingRepositoryDetail && selectedRepository ? (
+            <RepositoryDetailSurface
+              repository={selectedRepository}
+              analytics={analytics}
+              onBack={() => setSelectedRepositoryId(null)}
+              onOpenWorkspace={handleOpenWorkspace}
+              onPrepareRepository={handlePrepareRepository}
+              onLifecycleChange={handleLifecycleChange}
+              onCondition={(condition) =>
+                handleCondition(selectedRepository, condition)
               }
-            />
-          ) : activeNav === "quality" ? (
-            <QualityGatesSurface
-              snapshot={snapshot}
-              repositories={snapshot.repositories}
-              onOpenRepository={setSelectedRepository}
               onOpenReport={(reportPath) =>
                 void handleOpenQualityReport(reportPath)
               }
+              connections={snapshot.connections}
+              onOpenConnections={handleOpenConnections}
+            />
+          ) : isPortfolio ? (
+            <>
+              <CommandCenterSurface
+                activeConditionCount={activeConditionCount}
+                dirtyCount={dirtyCount}
+                unsyncedCount={unsyncedCount}
+                repositoryCount={snapshot.repositories.length}
+                rootCount={snapshot.roots.length}
+                quality={snapshot.quality}
+                analytics={analytics}
+                repositories={repositories}
+                allRepositories={snapshot.repositories}
+                events={snapshot.events}
+                filter={filter}
+                onFilterChange={setFilter}
+                onClearFilters={() => {
+                  setQuery("");
+                  setFilter("all");
+                }}
+                onAddRoot={handleAddRoot}
+                onOpenRepository={handleOpenRepository}
+                onCondition={handleCondition}
+                onOpenQualityReport={(reportPath) =>
+                  void handleOpenQualityReport(reportPath)
+                }
+              />
+              <QualityGatesSurface
+                snapshot={snapshot}
+                repositories={snapshot.repositories}
+                showOverview={false}
+                onOpenRepository={handleOpenRepository}
+                onOpenReport={(reportPath) =>
+                  void handleOpenQualityReport(reportPath)
+                }
+              />
+            </>
+          ) : activeNav === "remediation" ? (
+            <RemediationSurface
+              run={snapshot.remediation}
+              repositories={snapshot.repositories}
+              isRefreshing={isRefreshing}
+              onRefresh={handleRefreshRemediation}
+              onExport={handleExportRemediation}
+              onUpdateStatus={handleRemediationStatus}
+              onOpenRepository={handleOpenRepository}
+            />
+          ) : activeNav === "connections" ? (
+            <ConnectionsSurface
+              connections={snapshot.connections}
+              repositories={snapshot.repositories}
+              globalQuery={query}
+              selectedRepositoryId={selectedRepositoryId}
+              isRefreshing={isRefreshing}
+              onRefresh={handleRefreshConnections}
+              onSaveNode={handleSaveConnectionNode}
+              onDeleteNode={handleDeleteConnectionNode}
+              onSaveConnection={handleSaveConnection}
+              onDeleteConnection={handleDeleteConnection}
+              onSaveWorkflow={handleSaveWorkflow}
+              onDeleteWorkflow={handleDeleteWorkflow}
+              onReview={handleConnectionReview}
+              onToggleAdapter={handleToggleConnectionAdapter}
+              onOpenRepository={handleOpenRepository}
+            />
+          ) : activeNav === "analytics" ? (
+            <AnalyticsSurface
+              analytics={analytics}
+              repositories={snapshot.repositories}
             />
           ) : activeNav === "activity" ? (
             <ActivitySurface
@@ -417,24 +660,16 @@ export function App(): ReactElement {
               onSaveRoot={handleSaveRoot}
               onSaveRetention={handleSaveRetention}
               quality={snapshot.quality}
-              onPickAuditRoot={handlePickAuditRoot}
-              onClearAuditRoot={() => handleSaveAuditRoot(null)}
-            />
-          ) : activeNav === "products" ? (
-            <PortfolioConfigSurface
-              kind="product"
-              items={snapshot.products}
-              repositories={snapshot.repositories}
-              onSave={handleSaveProduct}
-              onDelete={handleDeleteProduct}
             />
           ) : activeNav === "groups" ? (
-            <PortfolioConfigSurface
-              kind="group"
-              items={snapshot.groups}
+            <PortfolioCollectionsSurface
+              groups={snapshot.groups}
+              products={snapshot.products}
               repositories={snapshot.repositories}
-              onSave={handleSaveGroup}
-              onDelete={handleDeleteGroup}
+              onSaveGroup={handleSaveGroup}
+              onDeleteGroup={handleDeleteGroup}
+              onSaveProduct={handleSaveProduct}
+              onDeleteProduct={handleDeleteProduct}
             />
           ) : activeNav === "remote" ? (
             <RemoteCatalogSurface
@@ -468,29 +703,13 @@ export function App(): ReactElement {
         />
       )}
       <AppOverlays
-        selectedRepository={selectedRepository}
         selectedEvidence={selectedEvidence}
         selectedPreparation={selectedPreparation}
-        onCloseRepository={() => {
-          setSelectedRepository(null);
-          setSelectedPreparation(null);
-        }}
-        onOpenWorkspace={handleOpenWorkspace}
-        onPrepareRepository={handlePrepareRepository}
         onSaveReleaseRule={handleSaveReleaseRule}
         onSaveReleaseRecipe={handleSaveReleaseRecipe}
         onConfirmReleaseVersion={handleConfirmReleaseVersion}
         onSaveAiPermission={handleSaveAiPermission}
         onPreviewAiSummary={handlePreviewAiSummary}
-        onOpenReport={(reportPath) => void handleOpenQualityReport(reportPath)}
-        onLifecycleChange={async (lifecycle) => {
-          if (!selectedRepository) return;
-          await loadSnapshot(() =>
-            api.setRepositoryLifecycle(selectedRepository.id, lifecycle),
-          );
-          setSelectedRepository(null);
-        }}
-        onCondition={handleCondition}
         onCloseEvidence={() => setSelectedEvidence(null)}
         onExpected={() => void handleExpected()}
         onClosePreparation={() => setSelectedPreparation(null)}

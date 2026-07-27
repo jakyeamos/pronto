@@ -1,18 +1,20 @@
 import {
   Activity,
+  ChartNoAxesCombined,
+  ClipboardCheck,
   FolderGit2,
   GitBranch,
   LayoutDashboard,
-  PackageOpen,
-  ShieldCheck,
+  Network,
   Settings2,
 } from "lucide-react";
 
 export type NavItem =
-  | "command"
-  | "quality"
-  | "products"
+  | "portfolio"
+  | "remediation"
+  | "analytics"
   | "groups"
+  | "connections"
   | "remote"
   | "activity"
   | "settings";
@@ -22,10 +24,11 @@ export const navItems: Array<{
   label: string;
   icon: typeof LayoutDashboard;
 }> = [
-  { id: "command", label: "Command center", icon: LayoutDashboard },
-  { id: "quality", label: "Quality gates", icon: ShieldCheck },
-  { id: "products", label: "Products", icon: PackageOpen },
+  { id: "portfolio", label: "Portfolio", icon: LayoutDashboard },
+  { id: "remediation", label: "Remediation", icon: ClipboardCheck },
+  { id: "analytics", label: "Analytics", icon: ChartNoAxesCombined },
   { id: "groups", label: "Groups", icon: FolderGit2 },
+  { id: "connections", label: "Connections", icon: Network },
   { id: "remote", label: "Remote catalog", icon: GitBranch },
   { id: "activity", label: "Activity", icon: Activity },
   { id: "settings", label: "Settings", icon: Settings2 },
@@ -35,25 +38,30 @@ export const pageCopy: Record<
   NavItem,
   { eyebrow: string; title: string; body: string }
 > = {
-  command: {
+  portfolio: {
     eyebrow: "Local evidence",
     title: "Know what needs attention.",
     body: "A factual view of your projects, workspaces, and Git state—freshness included.",
   },
-  products: {
-    eyebrow: "Manual configuration",
-    title: "Give the portfolio a shape.",
-    body: "Name operational products, attach repositories intentionally, and keep release modes explicit.",
-  },
-  quality: {
-    eyebrow: "Read-only quality evidence",
-    title: "See every gate in context.",
-    body: "Compare repository evidence, maturity, and release impact without running a command from the app.",
+  remediation: {
+    eyebrow: "Fresh evidence → focused work",
+    title: "Turn the latest scan into a plan.",
+    body: "Review per-repository actions from current QR, maturity, CI ideal-state, provider, branch, and local evidence.",
   },
   groups: {
     eyebrow: "Manual configuration",
     title: "Keep related work together.",
     body: "Use explicit labels across repositories without asking Pronto to guess your organization.",
+  },
+  analytics: {
+    eyebrow: "Local refresh history",
+    title: "See the portfolio move.",
+    body: "Read-only trends for health, delivery, quality, workspace activity, and release readiness from local refresh evidence.",
+  },
+  connections: {
+    eyebrow: "Evidence-backed process map",
+    title: "See how the portfolio moves.",
+    body: "Connect repositories, tools, services, environments, and workflows while keeping every discovery reviewable and local-only.",
   },
   remote: {
     eyebrow: "Read-only provider boundary",

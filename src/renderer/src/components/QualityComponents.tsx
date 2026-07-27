@@ -7,6 +7,7 @@ import type {
   QualityGate,
   QualityGateStatus,
   QualityMaturity,
+  QualityPortfolioSnapshot,
   QualityReadiness,
   RepositorySnapshot,
 } from "../types";
@@ -270,6 +271,35 @@ export function qualityGateDisplayLabel(gateId: string): string {
   );
 }
 
+export function qualityConfigurationSummary(
+  quality: QualityPortfolioSnapshot,
+): {
+  configured: number;
+  ideal: number;
+  fullRepositories: number;
+  repositories: number;
+  unscoredRepositories: number;
+} {
+  return {
+    configured: quality.ci_configuration_configured_gate_count ?? 0,
+    ideal: quality.ci_configuration_ideal_gate_count ?? 0,
+    fullRepositories: quality.ci_configuration_full_repository_count ?? 0,
+    repositories: quality.ci_configuration_repository_count ?? 0,
+    unscoredRepositories:
+      quality.ci_configuration_unscored_repository_count ?? 0,
+  };
+}
+
+export function qualityEvidenceSummary(quality: QualityPortfolioSnapshot): {
+  freshPassing: number;
+  ideal: number;
+} {
+  return {
+    freshPassing: quality.ci_evidence_fresh_passing_gate_count ?? 0,
+    ideal: quality.ci_evidence_ideal_gate_count ?? 0,
+  };
+}
+
 export function QualityReadinessSummary({
   readiness,
   compact = false,
@@ -278,29 +308,58 @@ export function QualityReadinessSummary({
   compact?: boolean;
 }): ReactElement {
   const openGateIds = readinessOpenGateIds(readiness);
+  const configuredGateIds = readiness.configured_gate_ids ?? [];
+  const unconfiguredGateIds = readiness.unconfigured_gate_ids ?? [];
+  const applicableGateCount = readiness.applicable_gate_ids.length;
+  const evidenceGateCount = readiness.covered_gate_ids.length;
+  const freshPassingGateCount = readiness.fresh_passing_gate_ids ?? [];
   return (
     <div
       className={`quality-readiness${compact ? " quality-readiness-compact" : ""}`}
     >
       <div className="quality-readiness-heading">
-        <span>CI readiness</span>
+        <span>CI configuration</span>
         <strong>
-          {readiness.score_display ?? "—"}
-          <small>/4</small>
+          {readiness.configuration_score == null
+            ? "—"
+            : `${configuredGateIds.length}/${applicableGateCount}`}
         </strong>
       </div>
-      {readiness.score == null ? (
-        <small>Not assessed; refresh to evaluate gate updates</small>
-      ) : openGateIds.length > 0 ? (
-        <details className="quality-readiness-disclosure">
-          <summary>
-            {openGateIds.length} gate update
-            {openGateIds.length === 1 ? "" : "s"} needed
-          </summary>
-          <span>{openGateIds.map(qualityGateDisplayLabel).join(", ")}</span>
-        </details>
+      {readiness.configuration_score == null ? (
+        <small>No matched recommendation profile</small>
       ) : (
-        <small>All applicable gates have fresh passes</small>
+        <>
+          <small>
+            {configuredGateIds.length}/{applicableGateCount} ideal gates
+            configured
+          </small>
+          <small>
+            Fresh passing evidence: {freshPassingGateCount.length}/
+            {applicableGateCount}
+          </small>
+          <small>
+            Imported evidence: {evidenceGateCount}/{applicableGateCount}
+          </small>
+          {unconfiguredGateIds.length > 0 ? (
+            <details className="quality-readiness-disclosure">
+              <summary>
+                {unconfiguredGateIds.length} gate configuration update
+                {unconfiguredGateIds.length === 1 ? "" : "s"} needed
+              </summary>
+              <span>
+                {unconfiguredGateIds.map(qualityGateDisplayLabel).join(", ")}
+              </span>
+            </details>
+          ) : openGateIds.length > 0 ? (
+            <details className="quality-readiness-disclosure">
+              <summary>
+                {openGateIds.length} gate evidence update
+                {openGateIds.length === 1 ? "" : "s"} needed
+              </summary>
+              <span>{openGateIds.map(qualityGateDisplayLabel).join(", ")}</span>
+            </details>
+          ) : null}
+        </>
       )}
     </div>
   );

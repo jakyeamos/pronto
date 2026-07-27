@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import {
   AlertTriangle,
+  ArrowLeft,
   BellOff,
   Check,
   ChevronRight,
@@ -11,7 +12,13 @@ import {
   TerminalSquare,
   X,
 } from "lucide-react";
-import type { Condition, ExternalTool, RepositorySnapshot } from "../types";
+import type {
+  AnalyticsSnapshot,
+  Condition,
+  ConnectionsSnapshot,
+  ExternalTool,
+  RepositorySnapshot,
+} from "../types";
 import {
   ConditionPill,
   formatTime,
@@ -21,298 +28,491 @@ import {
 import {
   QualityFindingsSummary,
   QualityGateCell,
+  QualityGateStatusPill,
   QualityMaturitySummary,
 } from "./QualityComponents";
+import { RepositoryAnalyticsPanel } from "./AnalyticsComponents";
 
-export function DetailDrawer({
+export function RepositoryDetailSurface({
   repository,
-  onClose,
+  analytics,
+  onBack,
   onOpenWorkspace,
   onPrepareRepository,
   onLifecycleChange,
   onCondition,
   onOpenReport,
+  connections = {
+    nodes: [],
+    connections: [],
+    workflows: [],
+    adapters: [],
+    generated_at: "",
+  },
+  onOpenConnections = () => undefined,
 }: {
   repository: RepositorySnapshot;
-  onClose: () => void;
+  analytics: AnalyticsSnapshot;
+  onBack: () => void;
   onOpenWorkspace: (workspaceId: string, tool: ExternalTool) => Promise<void>;
   onPrepareRepository: (workspaceId?: string) => Promise<void>;
   onLifecycleChange: (lifecycle: string) => Promise<void>;
   onCondition: (condition: Condition) => void;
   onOpenReport?: (reportPath: string) => void;
+  connections?: ConnectionsSnapshot;
+  onOpenConnections?: (repositoryId: string) => void;
 }): ReactElement {
+  const relatedNodeIds = new Set(
+    connections.nodes
+      .filter((node) => node.repository_id === repository.id)
+      .map((node) => node.id),
+  );
+  const relatedConnections = connections.connections.filter(
+    (connection) =>
+      relatedNodeIds.has(connection.source_node_id) ||
+      relatedNodeIds.has(connection.target_node_id),
+  );
+  relatedConnections.forEach((connection) => {
+    relatedNodeIds.add(connection.source_node_id);
+    relatedNodeIds.add(connection.target_node_id);
+  });
+  const relatedNodes = connections.nodes.filter((node) =>
+    relatedNodeIds.has(node.id),
+  );
+  const relatedWorkflows = connections.workflows.filter(
+    (workflow) =>
+      workflow.participating_repositories.includes(repository.id) ||
+      workflow.steps.some((step) => relatedNodeIds.has(step.node_id)),
+  );
+  const nodeLabel = (nodeId: string): string => {
+    const node = connections.nodes.find((candidate) => candidate.id === nodeId);
+    return node?.label_override?.trim() || node?.label || nodeId;
+  };
+
   return (
-    <div className="drawer-layer" role="presentation">
-      <button
-        className="drawer-scrim"
-        aria-label="Close repository detail"
-        type="button"
-        onClick={onClose}
-      />
-      <aside className="detail-drawer" aria-label={`${repository.name} detail`}>
-        <div className="drawer-header">
-          <div>
-            <p className="eyebrow">Repository detail</p>
-            <h2>{repository.name}</h2>
-          </div>
-          <IconButton label="Close repository detail" onClick={onClose}>
-            <X size={18} />
-          </IconButton>
+    <section
+      className="repository-detail-surface"
+      aria-label={`${repository.name} detail`}
+    >
+      <div className="repository-detail-toolbar">
+        <button
+          className="button button-quiet repository-back-button"
+          type="button"
+          onClick={onBack}
+        >
+          <ArrowLeft size={15} />
+          Back to Portfolio
+        </button>
+        <StatusPill tone="slate" icon={<GitBranch size={11} />}>
+          {repository.provider_state}
+        </StatusPill>
+      </div>
+      <div className="repository-detail-header">
+        <div>
+          <p className="eyebrow">Repository detail</p>
+          <h1>{repository.name}</h1>
+          <p className="repository-detail-path">{repository.path}</p>
+          <p className="repository-detail-remote">
+            {repository.remote_url ?? "No remote identity connected"}
+          </p>
         </div>
-        <p className="drawer-path">{repository.path}</p>
-        <div className="detail-summary-grid">
-          <div>
-            <span>Current branch</span>
-            <strong>{repository.branch}</strong>
-          </div>
-          <div>
-            <span>Default branch</span>
-            <strong>{repository.default_branch ?? "Unknown"}</strong>
-          </div>
-          <div>
-            <span>Lifecycle</span>
-            <select
-              className="drawer-select"
-              aria-label={`Lifecycle for ${repository.name}`}
-              value={repository.lifecycle}
-              onChange={(event) => void onLifecycleChange(event.target.value)}
-            >
-              <option>Unconfirmed</option>
-              <option>Active</option>
-              <option>Maintenance</option>
-              <option>Paused</option>
-              <option>Archived</option>
-            </select>
-            {repository.lifecycle === "Unconfirmed" && (
-              <small>{repository.lifecycle_candidate} candidate</small>
-            )}
-          </div>
-          <div>
-            <span>Remote freshness</span>
-            <strong>
-              {repository.last_fetch_at
-                ? formatTime(repository.last_fetch_at)
-                : "Not fetched by Pronto"}
-            </strong>
-          </div>
+        <StatusPill tone={repository.lifecycle === "Active" ? "mint" : "slate"}>
+          {repository.lifecycle}
+        </StatusPill>
+      </div>
+      <div className="detail-summary-grid">
+        <div>
+          <span>Current branch</span>
+          <strong>{repository.branch}</strong>
         </div>
-        <div className="drawer-section quality-detail-section">
-          <div className="drawer-section-title">
-            <div>
-              <h3>Quality gates</h3>
-              <small>
-                {repository.quality.ingestion_status} · evidence is read-only
-                and source-specific.
-              </small>
-            </div>
-            <StatusPill
-              tone={
-                repository.quality.ingestion_status === "Available"
-                  ? "mint"
-                  : "slate"
-              }
-            >
-              {repository.quality.ingestion_status}
-            </StatusPill>
-          </div>
-          <div className="quality-detail-overview">
-            <QualityMaturitySummary
-              maturity={repository.quality.maturity}
-              readiness={repository.quality.ci_readiness}
-              onOpenReport={onOpenReport}
-            />
-            <QualityFindingsSummary
-              findings={repository.quality.findings}
-              onOpenReport={onOpenReport}
-            />
-          </div>
-          <div className="quality-detail-gates">
-            {repository.quality.gates.map((gate) => (
-              <QualityGateCell
-                gate={gate}
-                key={gate.id}
-                onOpenReport={onOpenReport}
-              />
-            ))}
-          </div>
-          {repository.quality.ingestion_message && (
-            <p className="quality-inline-empty">
-              <ShieldCheck size={14} /> {repository.quality.ingestion_message}
-            </p>
+        <div>
+          <span>Default branch</span>
+          <strong>{repository.default_branch ?? "Unknown"}</strong>
+        </div>
+        <div>
+          <span>Lifecycle</span>
+          <select
+            className="drawer-select"
+            aria-label={`Lifecycle for ${repository.name}`}
+            value={repository.lifecycle}
+            onChange={(event) => void onLifecycleChange(event.target.value)}
+          >
+            <option>Unconfirmed</option>
+            <option>Active</option>
+            <option>Maintenance</option>
+            <option>Paused</option>
+            <option>Archived</option>
+          </select>
+          {repository.lifecycle === "Unconfirmed" && (
+            <small>{repository.lifecycle_candidate} candidate</small>
           )}
         </div>
-        <div className="drawer-section">
-          <div className="drawer-section-title">
-            <h3>Workspaces</h3>
-            <span>{repository.workspaces.length}</span>
+        <div>
+          <span>Remote freshness</span>
+          <strong>
+            {repository.last_fetch_at
+              ? formatTime(repository.last_fetch_at)
+              : "Not fetched by Pronto"}
+          </strong>
+        </div>
+      </div>
+      <div className="drawer-section quality-detail-section">
+        <div className="drawer-section-title">
+          <div>
+            <h3>Quality gates</h3>
+            <small>
+              {repository.quality.ingestion_status} · evidence is read-only and
+              source-specific.
+            </small>
           </div>
-          <div className="workspace-list">
-            {repository.workspaces.map((workspace) => (
-              <div className="workspace-card" key={workspace.id}>
-                <div className="workspace-card-top">
-                  <span className="workspace-name">
-                    <MonitorDot size={13} />
-                    {workspace.is_primary
-                      ? "Primary checkout"
-                      : "Linked worktree"}
-                  </span>
-                  <StatusPill tone={workspace.dirty ? "coral" : "mint"}>
-                    {workspace.dirty ? "Dirty" : "Clean"}
-                  </StatusPill>
-                </div>
-                <strong>{workspace.branch}</strong>
-                <span>{workspace.path}</span>
-                <small>
-                  {workspace.sync_state} · {workspace.remote_freshness}
-                </small>
-                <div className="workspace-activity">
-                  <StatusPill
-                    tone={
-                      workspace.activity.state === "Active"
-                        ? "blue"
-                        : workspace.activity.state.startsWith("Interrupted")
-                          ? "coral"
-                          : "slate"
-                    }
-                  >
-                    {workspace.activity.state}
-                  </StatusPill>
-                  <span>{workspace.activity.confidence} confidence</span>
-                </div>
-                <small>
-                  {workspace.activity.signals
-                    .map((signal) => signal.summary)
-                    .join(" · ")}
-                </small>
-                {workspace.activity.manifest && (
-                  <small>
-                    {workspace.activity.manifest.title ||
-                      workspace.activity.manifest.task_id ||
-                      "Structured agent task metadata"}
-                  </small>
+          <StatusPill
+            tone={
+              repository.quality.ingestion_status === "Available"
+                ? "mint"
+                : "slate"
+            }
+          >
+            {repository.quality.ingestion_status}
+          </StatusPill>
+        </div>
+        <div className="quality-detail-overview">
+          <QualityMaturitySummary
+            maturity={repository.quality.maturity}
+            readiness={repository.quality.ci_readiness}
+            onOpenReport={onOpenReport}
+          />
+          <QualityFindingsSummary
+            findings={repository.quality.findings}
+            onOpenReport={onOpenReport}
+          />
+        </div>
+        <div className="quality-detail-gates">
+          {repository.quality.gates.map((gate) => (
+            <QualityGateCell
+              gate={gate}
+              key={gate.id}
+              onOpenReport={onOpenReport}
+            />
+          ))}
+        </div>
+        {repository.quality.ingestion_message && (
+          <p className="quality-inline-empty">
+            <ShieldCheck size={14} /> {repository.quality.ingestion_message}
+          </p>
+        )}
+      </div>
+      <RepositoryAnalyticsPanel repository={repository} analytics={analytics} />
+      <div className="drawer-section repository-release-rule">
+        <div className="drawer-section-title">
+          <div>
+            <h3>Release rule trace</h3>
+            <small>
+              Required gates are evaluated against their selected evidence
+              source.
+            </small>
+          </div>
+          <StatusPill tone={repository.release_rule ? "mint" : "slate"}>
+            {repository.release_rule ? "Configured" : "Not configured"}
+          </StatusPill>
+        </div>
+        {repository.release_rule ? (
+          <>
+            <div className="repository-release-rule-meta">
+              <strong>{repository.release_rule.name}</strong>
+              <span>
+                {repository.release_rule.operator} evaluation ·{" "}
+                {repository.release_rule.required_quality_gates.length} quality
+                gate
+                {repository.release_rule.required_quality_gates.length === 1
+                  ? ""
+                  : "s"}
+              </span>
+            </div>
+            {repository.release_rule.required_quality_gates.length === 0 ? (
+              <p className="quality-inline-empty">
+                No quality gates are required by this rule.
+              </p>
+            ) : (
+              <div className="repository-release-rule-list">
+                {repository.release_rule.required_quality_gates.map(
+                  (requirement) => {
+                    const gate = repository.quality.gates.find(
+                      (candidate) => candidate.id === requirement.gate_id,
+                    );
+                    return (
+                      <div
+                        className="repository-release-rule-row"
+                        key={requirement.gate_id + "-" + requirement.source}
+                      >
+                        <span>
+                          <strong>{gate?.label ?? requirement.gate_id}</strong>
+                          <small>{requirement.source} evidence</small>
+                        </span>
+                        {gate ? (
+                          <QualityGateStatusPill
+                            status={gate.status}
+                            freshness={gate.freshness}
+                          />
+                        ) : (
+                          <StatusPill tone="slate">Not configured</StatusPill>
+                        )}
+                      </div>
+                    );
+                  },
                 )}
-                <div className="workspace-actions">
-                  {(
-                    [
-                      ["file_browser", "Finder"],
-                      ["terminal", "Terminal"],
-                      ["editor", "Editor"],
-                      ["git_client", "Git client"],
-                    ] as Array<[ExternalTool, string]>
-                  ).map(([tool, label]) => (
-                    <button
-                      className="button button-quiet"
-                      type="button"
-                      key={tool}
-                      onClick={() => void onOpenWorkspace(workspace.id, tool)}
-                    >
-                      {label}
-                    </button>
-                  ))}
+              </div>
+            )}
+            <small className="repository-release-rule-note">
+              Open Review PR / release evidence for the complete eligibility
+              trace.
+            </small>
+          </>
+        ) : (
+          <p className="quality-inline-empty">
+            Add a release rule during preparation to evaluate quality gates
+            before release.
+          </p>
+        )}
+      </div>
+      <div className="drawer-section">
+        <div className="drawer-section-title">
+          <h3>Workspaces</h3>
+          <span>{repository.workspaces.length}</span>
+        </div>
+        <div className="workspace-list">
+          {repository.workspaces.map((workspace) => (
+            <div className="workspace-card" key={workspace.id}>
+              <div className="workspace-card-top">
+                <span className="workspace-name">
+                  <MonitorDot size={13} />
+                  {workspace.is_primary
+                    ? "Primary checkout"
+                    : "Linked worktree"}
+                </span>
+                <StatusPill tone={workspace.dirty ? "coral" : "mint"}>
+                  {workspace.dirty ? "Dirty" : "Clean"}
+                </StatusPill>
+              </div>
+              <strong>{workspace.branch}</strong>
+              <span>{workspace.path}</span>
+              <small>
+                {workspace.sync_state} · {workspace.remote_freshness}
+              </small>
+              <div className="workspace-activity">
+                <StatusPill
+                  tone={
+                    workspace.activity.state === "Active"
+                      ? "blue"
+                      : workspace.activity.state.startsWith("Interrupted")
+                        ? "coral"
+                        : "slate"
+                  }
+                >
+                  {workspace.activity.state}
+                </StatusPill>
+                <span>{workspace.activity.confidence} confidence</span>
+              </div>
+              <small>
+                {workspace.activity.signals
+                  .map((signal) => signal.summary)
+                  .join(" · ")}
+              </small>
+              {workspace.activity.manifest && (
+                <small>
+                  {workspace.activity.manifest.title ||
+                    workspace.activity.manifest.task_id ||
+                    "Structured agent task metadata"}
+                </small>
+              )}
+              <div className="workspace-actions">
+                {(
+                  [
+                    ["file_browser", "Finder"],
+                    ["terminal", "Terminal"],
+                    ["editor", "Editor"],
+                    ["git_client", "Git client"],
+                  ] as Array<[ExternalTool, string]>
+                ).map(([tool, label]) => (
                   <button
                     className="button button-quiet"
                     type="button"
-                    onClick={() => void onPrepareRepository(workspace.id)}
+                    key={tool}
+                    onClick={() => void onOpenWorkspace(workspace.id, tool)}
                   >
-                    Review preparation
+                    {label}
                   </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        {repository.submodules.length > 0 && (
-          <div className="drawer-section">
-            <div className="drawer-section-title">
-              <h3>Submodules</h3>
-              <span>{repository.submodules.length}</span>
-            </div>
-            <div className="branch-table">
-              {repository.submodules.map((submodule) => (
-                <div className="branch-row" key={submodule.path}>
-                  <div>
-                    <strong>{submodule.path}</strong>
-                    <span>{submodule.commit ?? "Commit unavailable"}</span>
-                  </div>
-                  <StatusPill
-                    tone={submodule.status === "Checked out" ? "mint" : "amber"}
-                  >
-                    {submodule.status}
-                  </StatusPill>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        <div className="drawer-section">
-          <div className="drawer-section-title">
-            <h3>Conditions</h3>
-            <span>{repository.conditions.length}</span>
-          </div>
-          {repository.conditions.length === 0 ? (
-            <div className="drawer-empty">
-              <ShieldCheck size={17} />
-              No current conditions.
-            </div>
-          ) : (
-            <div className="drawer-conditions">
-              {repository.conditions.map((condition) => (
+                ))}
                 <button
-                  className="drawer-condition"
+                  className="button button-quiet"
                   type="button"
-                  key={condition.id}
-                  onClick={() => onCondition(condition)}
+                  onClick={() => void onPrepareRepository(workspace.id)}
                 >
-                  <ConditionPill condition={condition} />
-                  <span>{condition.summary}</span>
-                  <ChevronRight size={15} />
+                  Review preparation
                 </button>
-              ))}
+              </div>
             </div>
-          )}
+          ))}
         </div>
+      </div>
+      {repository.submodules.length > 0 && (
         <div className="drawer-section">
           <div className="drawer-section-title">
-            <h3>Branches</h3>
-            <span>{repository.branches.length}</span>
+            <h3>Submodules</h3>
+            <span>{repository.submodules.length}</span>
           </div>
           <div className="branch-table">
-            {repository.branches.map((branch) => (
-              <div className="branch-row" key={branch.name}>
+            {repository.submodules.map((submodule) => (
+              <div className="branch-row" key={submodule.path}>
                 <div>
-                  <strong>{branch.name}</strong>
-                  <span>
-                    {branch.role} · {branch.role_confidence} confidence
-                  </span>
+                  <strong>{submodule.path}</strong>
+                  <span>{submodule.commit ?? "Commit unavailable"}</span>
                 </div>
                 <StatusPill
-                  tone={
-                    branch.integration_state === "Integration eligible"
-                      ? "mint"
-                      : "slate"
-                  }
+                  tone={submodule.status === "Checked out" ? "mint" : "amber"}
                 >
-                  {branch.integration_state}
+                  {submodule.status}
                 </StatusPill>
               </div>
             ))}
           </div>
         </div>
-        <div className="drawer-footer">
-          <StatusPill tone="slate" icon={<GitBranch size={11} />}>
-            {repository.provider_state}
-          </StatusPill>
+      )}
+      <div className="drawer-section">
+        <div className="drawer-section-title">
+          <h3>Conditions</h3>
+          <span>{repository.conditions.length}</span>
+        </div>
+        {repository.conditions.length === 0 ? (
+          <div className="drawer-empty">
+            <ShieldCheck size={17} />
+            No current conditions.
+          </div>
+        ) : (
+          <div className="drawer-conditions">
+            {repository.conditions.map((condition) => (
+              <button
+                className="drawer-condition"
+                type="button"
+                key={condition.id}
+                onClick={() => onCondition(condition)}
+              >
+                <ConditionPill condition={condition} />
+                <span>{condition.summary}</span>
+                <ChevronRight size={15} />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="drawer-section repository-connections-section">
+        <div className="drawer-section-title">
+          <div>
+            <h3>Connections and workflows</h3>
+            <small>
+              {relatedNodes.length} nodes · {relatedConnections.length}{" "}
+              relationships · {relatedWorkflows.length} workflows
+            </small>
+          </div>
           <button
-            className="button button-secondary"
+            className="button button-quiet"
             type="button"
-            onClick={() => void onPrepareRepository(repository.workspace.id)}
+            onClick={() => onOpenConnections(repository.id)}
           >
-            <TerminalSquare size={15} />
-            Review PR / release evidence
+            <GitBranch size={13} />
+            Open in map
           </button>
         </div>
-      </aside>
-    </div>
+        {relatedConnections.length === 0 && relatedWorkflows.length === 0 ? (
+          <div className="drawer-empty">
+            <GitBranch size={17} />
+            No discovered relationships yet. Refresh Connections to inspect
+            local evidence.
+          </div>
+        ) : (
+          <div className="repository-connections-list">
+            {relatedConnections.slice(0, 8).map((connection) => (
+              <div className="repository-connection-row" key={connection.id}>
+                <div>
+                  <strong>
+                    {nodeLabel(connection.source_node_id)}{" "}
+                    <ChevronRight size={12} />{" "}
+                    {nodeLabel(connection.target_node_id)}
+                  </strong>
+                  <span>
+                    {connection.label_override?.trim() ||
+                      connection.label ||
+                      connection.relationship_type}
+                  </span>
+                </div>
+                <StatusPill
+                  tone={connection.status === "Stale" ? "amber" : "slate"}
+                >
+                  {connection.status}
+                </StatusPill>
+              </div>
+            ))}
+            {relatedWorkflows.slice(0, 5).map((workflow) => (
+              <div className="repository-connection-row" key={workflow.id}>
+                <div>
+                  <strong>
+                    {workflow.name_override?.trim() || workflow.name}
+                  </strong>
+                  <span>
+                    {workflow.steps.length} ordered steps · {workflow.scope}
+                  </span>
+                </div>
+                <StatusPill tone="violet">Workflow</StatusPill>
+              </div>
+            ))}
+            {(relatedConnections.length > 8 || relatedWorkflows.length > 5) && (
+              <small className="repository-connections-more">
+                Open the map to inspect all related records and their evidence.
+              </small>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="drawer-section">
+        <div className="drawer-section-title">
+          <h3>Branches</h3>
+          <span>{repository.branches.length}</span>
+        </div>
+        <div className="branch-table">
+          {repository.branches.map((branch) => (
+            <div className="branch-row" key={branch.name}>
+              <div>
+                <strong>{branch.name}</strong>
+                <span>
+                  {branch.role} · {branch.role_confidence} confidence
+                </span>
+              </div>
+              <StatusPill
+                tone={
+                  branch.integration_state === "Integration eligible"
+                    ? "mint"
+                    : "slate"
+                }
+              >
+                {branch.integration_state}
+              </StatusPill>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="drawer-footer">
+        <StatusPill tone="slate" icon={<GitBranch size={11} />}>
+          {repository.provider_state}
+        </StatusPill>
+        <button
+          className="button button-secondary"
+          type="button"
+          onClick={() => void onPrepareRepository(repository.workspace.id)}
+        >
+          <TerminalSquare size={15} />
+          Review PR / release evidence
+        </button>
+      </div>
+    </section>
   );
 }
 

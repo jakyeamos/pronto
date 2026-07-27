@@ -20,7 +20,7 @@ export function usePreparationActions({
   selectedPreparation,
   loadSnapshot,
   setSnapshot,
-  setSelectedRepository,
+  setSelectedRepositoryId,
   setSelectedPreparation,
   setError,
 }: {
@@ -28,7 +28,7 @@ export function usePreparationActions({
   selectedPreparation: SelectedPreparation | null;
   loadSnapshot: (operation: () => Promise<PortfolioSnapshot>) => Promise<void>;
   setSnapshot: Dispatch<SetStateAction<PortfolioSnapshot>>;
-  setSelectedRepository: Dispatch<SetStateAction<RepositorySnapshot | null>>;
+  setSelectedRepositoryId: Dispatch<SetStateAction<string | null>>;
   setSelectedPreparation: Dispatch<SetStateAction<SelectedPreparation | null>>;
   setError: Dispatch<SetStateAction<string | null>>;
 }): {
@@ -49,14 +49,8 @@ export function usePreparationActions({
         api.setReleaseRule(selectedRepository.id, releaseRule),
       );
       setSelectedPreparation(null);
-      setSelectedRepository(null);
     },
-    [
-      loadSnapshot,
-      selectedRepository,
-      setSelectedPreparation,
-      setSelectedRepository,
-    ],
+    [loadSnapshot, selectedRepository, setSelectedPreparation],
   );
 
   const handleSaveReleaseRecipe = useCallback(
@@ -66,14 +60,8 @@ export function usePreparationActions({
         api.setReleaseRecipe(selectedRepository.id, releaseRecipe),
       );
       setSelectedPreparation(null);
-      setSelectedRepository(null);
     },
-    [
-      loadSnapshot,
-      selectedRepository,
-      setSelectedPreparation,
-      setSelectedRepository,
-    ],
+    [loadSnapshot, selectedRepository, setSelectedPreparation],
   );
 
   const handleConfirmReleaseVersion = useCallback(
@@ -90,7 +78,7 @@ export function usePreparationActions({
             (repository) => repository.id === selectedRepository.id,
           ) ?? null;
         if (!nextRepository) {
-          setSelectedRepository(null);
+          setSelectedRepositoryId(null);
           setSelectedPreparation(null);
           return;
         }
@@ -98,7 +86,7 @@ export function usePreparationActions({
           nextRepository.id,
           selectedPreparation.preparation.pull_request.workspace_id,
         );
-        setSelectedRepository(nextRepository);
+        setSelectedRepositoryId(nextRepository.id);
         setSelectedPreparation({
           repository: nextRepository,
           preparation,
@@ -117,7 +105,7 @@ export function usePreparationActions({
       selectedRepository,
       setError,
       setSelectedPreparation,
-      setSelectedRepository,
+      setSelectedRepositoryId,
       setSnapshot,
     ],
   );
@@ -135,7 +123,7 @@ export function usePreparationActions({
           nextSnapshot.repositories.find(
             (repository) => repository.id === selectedRepository.id,
           ) ?? null;
-        setSelectedRepository(nextRepository);
+        setSelectedRepositoryId(nextRepository?.id ?? null);
         setSelectedPreparation((current) =>
           current && nextRepository
             ? { ...current, repository: nextRepository }
@@ -154,7 +142,7 @@ export function usePreparationActions({
       selectedRepository,
       setError,
       setSelectedPreparation,
-      setSelectedRepository,
+      setSelectedRepositoryId,
       setSnapshot,
     ],
   );
