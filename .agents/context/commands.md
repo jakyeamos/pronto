@@ -11,13 +11,16 @@ pnpm --dir "$PRONTO_ROOT" run cli next --json
 ```
 
 The CLI reads and writes Pronto's local SQLite-backed snapshot. JSON is the
-preferred agent interface. `status --json` remains the complete legacy
-snapshot; use a focused projection when one is available.
+preferred agent interface. `doctor --json` is the read-only freshness and
+storage gate; it never refreshes or writes the snapshot. `status --json`
+remains the complete legacy snapshot; use a focused projection when one is
+available.
 
 ## Focused read and preview surfaces
 
 | Need                      | Command                                                  | Contract                       |
 | ------------------------- | -------------------------------------------------------- | ------------------------------ |
+| Freshness/storage gate    | `doctor [--max-age <minutes>] --json`                    | `pronto-agent-doctor/v1`       |
 | Daily orientation         | `next [<repository>] [--limit <n>] --json`               | `pronto-agent-next/v1`         |
 | Fold preparation          | `fold preview [<repository>] [--target <branch>] --json` | `pronto-agent-fold-preview/v1` |
 | Fleet orientation         | `summary --json`                                         | `pronto-agent-summary/v1`      |
@@ -39,6 +42,10 @@ a branch/workspace change that needs fresh evidence. It performs a local
 read-only Git scan but persists the resulting snapshot and audit record, so it
 is state-changing even though it does not modify a repository.
 
+Run `doctor --json` before routing across repositories. A non-zero exit or
+`ready: false` is a hard stop for routing; refresh or repair only the scoped
+evidence it identifies, then rerun doctor.
+
 The following commands can change local Pronto state or touch an external
 boundary and require explicit task scope: `root add`, `root exclude`, `refresh`,
 `refresh-github`, `clone`, `remediation refresh`, `remediation export`, and
@@ -54,6 +61,8 @@ commands within their own authorization boundaries.
 
 - `generated_at` identifies the snapshot time; re-check it after a meaningful
   state change.
+- `doctor` reports storage, registered roots, per-repository scan freshness,
+  local path availability, and quality warnings without changing local state.
 - Workspace `sync_state` is healthy only when it is exactly `Synced`.
 - `Ahead by N`, `Behind by N`, divergence, `No upstream`, dirty workspaces,
   active operations, missing/stale quality evidence, `Unknown`, and `Blocked`

@@ -4,10 +4,10 @@ use crate::quality::{
 };
 use crate::remediation::{self, RemediationRun};
 use chrono::{DateTime, SecondsFormat, Utc};
-use rusqlite::{params, Connection as SqliteConnection, OptionalExtension, Row};
+use rusqlite::{params, Connection as SqliteConnection, OpenFlags, OptionalExtension, Row};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -668,6 +668,9 @@ const MAX_AGENT_NEXT_LIMIT: usize = 50;
 const AGENT_FOLD_PREVIEW_SCHEMA: &str = "pronto-agent-fold-preview/v1";
 const DEFAULT_AGENT_FOLD_PREVIEW_LIMIT: usize = 24;
 const MAX_AGENT_FOLD_PREVIEW_LIMIT: usize = 100;
+const AGENT_DOCTOR_SCHEMA: &str = "pronto-agent-doctor/v1";
+const DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES: i64 = 60;
+const MAX_AGENT_DOCTOR_MAX_AGE_MINUTES: i64 = 10_080;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConditionSummary {
@@ -897,6 +900,37 @@ pub struct AgentFoldPreview {
     pub candidate_total: usize,
     pub candidates: Vec<AgentFoldCandidate>,
     pub live_verification_required: bool,
+    pub authorization: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentDoctorCheck {
+    pub id: String,
+    pub status: String,
+    pub summary: String,
+    pub evidence: Vec<String>,
+    pub next_safe_step: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentDoctorReport {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub scope: String,
+    pub status: String,
+    pub ready: bool,
+    pub storage_path: String,
+    pub max_age_minutes: i64,
+    pub root_count: usize,
+    pub repository_count: usize,
+    pub workspace_count: usize,
+    pub oldest_scan_at: Option<String>,
+    pub oldest_scan_age_minutes: Option<i64>,
+    pub stale_repository_ids: Vec<String>,
+    pub invalid_scan_repository_ids: Vec<String>,
+    pub unavailable_paths: Vec<String>,
+    pub checks: Vec<AgentDoctorCheck>,
+    pub next_safe_step: String,
     pub authorization: String,
 }
 
@@ -1200,19 +1234,35 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
     }
 
     let connection = open_store(path)?;
-    let version = metadata_value(&connection, "store_version")?
+    load_store_from_connection(&connection)
+}
+
+fn load_store_read_only(path: &Path) -> Result<StoreState, String> {
+    if !path.is_file() {
+        return Err(format!(
+            "Pronto database does not exist at {}",
+            path.display()
+        ));
+    }
+    let connection = SqliteConnection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .map_err(|error| format!("Could not open local Pronto database read-only: {error}"))?;
+    load_store_from_connection(&connection)
+}
+
+fn load_store_from_connection(connection: &SqliteConnection) -> Result<StoreState, String> {
+    let version = metadata_value(connection, "store_version")?
         .and_then(|value| value.parse::<u8>().ok())
         .unwrap_or(STORE_VERSION)
         .max(STORE_VERSION);
-    let retention_days = metadata_value(&connection, "retention_days")?
+    let retention_days = metadata_value(connection, "retention_days")?
         .and_then(|value| value.parse::<i64>().ok())
         .unwrap_or(DEFAULT_RETENTION_DAYS);
-    let mut provider_status = match metadata_value(&connection, "provider_status_json")? {
+    let mut provider_status = match metadata_value(connection, "provider_status_json")? {
         Some(payload) => serde_json::from_str(&payload)
             .map_err(|error| format!("Could not decode provider status: {error}"))?,
         None => ProviderStatus::default(),
     };
-    let quality = match metadata_value(&connection, "quality_summary_json")? {
+    let quality = match metadata_value(connection, "quality_summary_json")? {
         Some(payload) => serde_json::from_str(&payload)
             .map_err(|error| format!("Could not decode quality summary: {error}"))?,
         None => QualityPortfolioSnapshot::default(),
@@ -8601,6 +8651,296 @@ fn agent_fold_preview_report(
     })
 }
 
+fn agent_doctor_check(
+    id: &str,
+    status: &str,
+    summary: String,
+    evidence: Vec<String>,
+    next_safe_step: String,
+) -> AgentDoctorCheck {
+    AgentDoctorCheck {
+        id: id.to_string(),
+        status: status.to_string(),
+        summary,
+        evidence,
+        next_safe_step,
+    }
+}
+
+fn agent_doctor_report(
+    snapshot: &PortfolioSnapshot,
+    storage_path: &Path,
+    max_age_minutes: i64,
+) -> AgentDoctorReport {
+    let max_age_minutes = max_age_minutes.max(0);
+    let now = Utc::now();
+    let mut missing_root_paths = Vec::new();
+    let mut unavailable_paths = BTreeSet::new();
+    for root in &snapshot.roots {
+        if !Path::new(&root.path).is_dir() {
+            missing_root_paths.push(root.path.clone());
+            unavailable_paths.insert(root.path.clone());
+        }
+    }
+    for repository in &snapshot.repositories {
+        if !Path::new(&repository.path).is_dir() {
+            unavailable_paths.insert(repository.path.clone());
+        }
+        for workspace in &repository.workspaces {
+            if !Path::new(&workspace.path).is_dir() {
+                unavailable_paths.insert(workspace.path.clone());
+            }
+        }
+    }
+
+    let mut stale_repository_ids = Vec::new();
+    let mut invalid_scan_repository_ids = Vec::new();
+    let mut oldest_scan: Option<(DateTime<Utc>, i64)> = None;
+    for repository in &snapshot.repositories {
+        let Ok(parsed) = DateTime::parse_from_rfc3339(&repository.last_scan_at) else {
+            invalid_scan_repository_ids.push(repository.id.clone());
+            continue;
+        };
+        let observed_at = parsed.with_timezone(&Utc);
+        let age_minutes = now.signed_duration_since(observed_at).num_minutes();
+        if age_minutes < 0 {
+            invalid_scan_repository_ids.push(repository.id.clone());
+            continue;
+        }
+        if age_minutes > max_age_minutes {
+            stale_repository_ids.push(repository.id.clone());
+        }
+        if oldest_scan
+            .as_ref()
+            .is_none_or(|(oldest, _)| observed_at < *oldest)
+        {
+            oldest_scan = Some((observed_at, age_minutes));
+        }
+    }
+
+    let mut checks = vec![agent_doctor_check(
+        "storage",
+        "Passed",
+        "The Pronto database loaded through a read-only connection.".to_string(),
+        vec![storage_path.display().to_string()],
+        "Continue using focused Pronto projections for the requested scope.".to_string(),
+    )];
+    if snapshot.roots.is_empty() {
+        checks.push(agent_doctor_check(
+            "roots",
+            "Blocked",
+            "No discovery roots are registered.".to_string(),
+            Vec::new(),
+            "Register an explicit discovery root and run a scoped refresh before routing work."
+                .to_string(),
+        ));
+    } else if missing_root_paths.is_empty() {
+        checks.push(agent_doctor_check(
+            "roots",
+            "Passed",
+            format!(
+                "{} registered discovery roots are available.",
+                snapshot.roots.len()
+            ),
+            snapshot
+                .roots
+                .iter()
+                .map(|root| root.path.clone())
+                .collect(),
+            "Keep refreshes scoped to the repository or root required by the task.".to_string(),
+        ));
+    } else {
+        checks.push(agent_doctor_check(
+            "roots",
+            "Blocked",
+            format!(
+                "{} registered discovery root(s) are unavailable.",
+                missing_root_paths.len()
+            ),
+            missing_root_paths.clone(),
+            "Inspect the registered roots and restore or explicitly reconfigure unavailable paths before routing work.".to_string(),
+        ));
+    }
+
+    if snapshot.repositories.is_empty() {
+        checks.push(agent_doctor_check(
+            "snapshot",
+            "Blocked",
+            "The persisted snapshot contains no repositories.".to_string(),
+            Vec::new(),
+            "Run a scoped refresh after confirming the discovery root; do not infer an empty portfolio from this report.".to_string(),
+        ));
+    } else if !stale_repository_ids.is_empty() || !invalid_scan_repository_ids.is_empty() {
+        let mut evidence = stale_repository_ids.clone();
+        evidence.extend(
+            invalid_scan_repository_ids
+                .iter()
+                .map(|id| format!("invalid timestamp: {id}")),
+        );
+        checks.push(agent_doctor_check(
+            "snapshot",
+            "Blocked",
+            format!(
+                "{} repository snapshot(s) exceed the {} minute freshness window or have invalid scan timestamps.",
+                stale_repository_ids.len() + invalid_scan_repository_ids.len(),
+                max_age_minutes
+            ),
+            evidence,
+            "Run a scoped `pronto refresh <repository> --json` for every stale or invalid repository, then rerun doctor.".to_string(),
+        ));
+    } else {
+        checks.push(agent_doctor_check(
+            "snapshot",
+            "Passed",
+            format!(
+                "All {} repository snapshots are within the {} minute freshness window.",
+                snapshot.repositories.len(),
+                max_age_minutes
+            ),
+            snapshot
+                .repositories
+                .iter()
+                .map(|repository| format!("{}: {}", repository.id, repository.last_scan_at))
+                .collect(),
+            "Use the focused projection that matches the task scope.".to_string(),
+        ));
+    }
+
+    let unavailable_paths = unavailable_paths.into_iter().collect::<Vec<_>>();
+    if unavailable_paths.is_empty() {
+        checks.push(agent_doctor_check(
+            "paths",
+            "Passed",
+            format!(
+                "All {} repository and workspace paths are available.",
+                snapshot.repositories.len()
+                    + snapshot
+                        .repositories
+                        .iter()
+                        .map(|repository| repository.workspaces.len())
+                        .sum::<usize>()
+            ),
+            Vec::new(),
+            "Treat the persisted paths as local evidence and still recheck live state before mutation.".to_string(),
+        ));
+    } else {
+        checks.push(agent_doctor_check(
+            "paths",
+            "Blocked",
+            format!(
+                "{} registered repository or workspace path(s) are unavailable.",
+                unavailable_paths.len()
+            ),
+            unavailable_paths.clone(),
+            "Preserve the affected work and inspect path ownership before refreshing or folding anything.".to_string(),
+        ));
+    }
+
+    if snapshot.quality.audit_status == "Ready" {
+        checks.push(agent_doctor_check(
+            "quality",
+            "Passed",
+            "Quality evidence reports Ready in the persisted portfolio snapshot.".to_string(),
+            vec![snapshot.quality.audit_status.clone()],
+            "Keep quality evidence separate from fresh local execution proof.".to_string(),
+        ));
+    } else {
+        checks.push(agent_doctor_check(
+            "quality",
+            "Warning",
+            format!(
+                "Quality evidence is {} and does not block local portfolio routing.",
+                snapshot.quality.audit_status
+            ),
+            vec![snapshot.quality.audit_status.clone()],
+            "Do not treat quality or maturity as passing evidence until its source is fresh and verified.".to_string(),
+        ));
+    }
+
+    let blocking = checks
+        .iter()
+        .any(|check| check.status == "Blocked" || check.status == "Unknown");
+    let warning = checks.iter().any(|check| check.status == "Warning");
+    let ready = !blocking;
+    let status = if blocking {
+        "Blocked"
+    } else if warning {
+        "Ready with warnings"
+    } else {
+        "Ready"
+    };
+    let next_safe_step = checks
+        .iter()
+        .find(|check| check.status == "Blocked" || check.status == "Unknown")
+        .map(|check| check.next_safe_step.clone())
+        .unwrap_or_else(|| {
+            "Proceed with the focused Pronto projection appropriate to the task.".to_string()
+        });
+
+    AgentDoctorReport {
+        schema_version: AGENT_DOCTOR_SCHEMA.to_string(),
+        generated_at: iso_now(),
+        scope: "fleet".to_string(),
+        status: status.to_string(),
+        ready,
+        storage_path: storage_path.to_string_lossy().to_string(),
+        max_age_minutes,
+        root_count: snapshot.roots.len(),
+        repository_count: snapshot.repositories.len(),
+        workspace_count: snapshot
+            .repositories
+            .iter()
+            .map(|repository| repository.workspaces.len())
+            .sum(),
+        oldest_scan_at: oldest_scan
+            .as_ref()
+            .map(|(observed_at, _)| observed_at.to_rfc3339_opts(SecondsFormat::Secs, true)),
+        oldest_scan_age_minutes: oldest_scan.map(|(_, age_minutes)| age_minutes),
+        stale_repository_ids,
+        invalid_scan_repository_ids,
+        unavailable_paths,
+        checks,
+        next_safe_step,
+        authorization: "Inspection only; doctor does not refresh, write Pronto state, modify Git, access provider state, or authorize repository mutations.".to_string(),
+    }
+}
+
+fn agent_doctor_error_report(
+    storage_path: &Path,
+    max_age_minutes: i64,
+    error: String,
+) -> AgentDoctorReport {
+    let next_safe_step =
+        "Inspect or repair the local Pronto database; do not route work from this failed state."
+            .to_string();
+    AgentDoctorReport {
+        schema_version: AGENT_DOCTOR_SCHEMA.to_string(),
+        generated_at: iso_now(),
+        scope: "fleet".to_string(),
+        status: "Blocked".to_string(),
+        ready: false,
+        storage_path: storage_path.to_string_lossy().to_string(),
+        max_age_minutes: max_age_minutes.max(0),
+        root_count: 0,
+        repository_count: 0,
+        workspace_count: 0,
+        oldest_scan_at: None,
+        oldest_scan_age_minutes: None,
+        stale_repository_ids: Vec::new(),
+        invalid_scan_repository_ids: Vec::new(),
+        unavailable_paths: Vec::new(),
+        checks: vec![agent_doctor_check(
+            "storage",
+            "Blocked",
+            error,
+            vec![storage_path.display().to_string()],
+            next_safe_step.clone(),
+        )],
+        next_safe_step,
+        authorization: "Inspection only; doctor does not refresh, write Pronto state, modify Git, access provider state, or authorize repository mutations.".to_string(),
+    }
+}
+
 fn agent_summary(snapshot: &PortfolioSnapshot, scope: &str) -> AgentSummary {
     let repositories = snapshot
         .repositories
@@ -8843,6 +9183,24 @@ fn print_human_fold_preview(report: &AgentFoldPreview) {
     }
 }
 
+fn print_human_doctor(report: &AgentDoctorReport) {
+    println!("PRONTO DOCTOR · {} · {}", report.status, report.scope);
+    println!(
+        "Snapshot: {} roots · {} repositories · {} workspaces · max age {} minutes",
+        report.root_count, report.repository_count, report.workspace_count, report.max_age_minutes
+    );
+    if let (Some(oldest_scan_at), Some(oldest_scan_age_minutes)) = (
+        report.oldest_scan_at.as_deref(),
+        report.oldest_scan_age_minutes,
+    ) {
+        println!("Oldest scan: {oldest_scan_at} · {oldest_scan_age_minutes} minutes ago");
+    }
+    for check in &report.checks {
+        println!("  {} · {} · {}", check.status, check.id, check.summary);
+    }
+    println!("Next: {}", report.next_safe_step);
+}
+
 fn print_human_repository(detail: &AgentRepositoryDetail) {
     let repository = &detail.repository;
     println!(
@@ -9003,7 +9361,7 @@ fn print_human_release(report: &AgentReleaseReport) {
 
 fn print_cli_usage() {
     println!(
-        "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto summary [--product <name> | --group <name>] [--json] | pronto next [<repository>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto fold preview [<repository>] [--target <branch>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto repo <repository> [--json] | pronto quality [<repository>] [--json] | pronto remediation [<repository>] [--json] | pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json] | pronto remediation export [output-dir] [--json] | pronto remediation set-status <action-id> <status> [--notes <text>] [--json] | pronto attention [--json] | pronto activity [<repository>] [--limit <n>] [--json] | pronto prepare <repository> [--workspace <id>] [--json] | pronto release preview <repository> [--workspace <id>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality feed [--json] | pronto clone <owner/repository> [--json]"
+        "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto summary [--product <name> | --group <name>] [--json] | pronto doctor [--max-age <minutes>] [--json] | pronto next [<repository>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto fold preview [<repository>] [--target <branch>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto repo <repository> [--json] | pronto quality [<repository>] [--json] | pronto remediation [<repository>] [--json] | pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json] | pronto remediation export [output-dir] [--json] | pronto remediation set-status <action-id> <status> [--notes <text>] [--json] | pronto attention [--json] | pronto activity [<repository>] [--limit <n>] [--json] | pronto prepare <repository> [--workspace <id>] [--json] | pronto release preview <repository> [--workspace <id>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality feed [--json] | pronto clone <owner/repository> [--json]"
     );
 }
 
@@ -9097,6 +9455,61 @@ pub fn run_cli(arguments: Vec<String>) {
                     eprintln!("Pronto could not read local state: {error}");
                     std::process::exit(1);
                 }
+            }
+        }
+        "doctor" => {
+            let max_age_minutes = cli_option(&arguments, "--max-age")
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                })
+                .map(|value| {
+                    let parsed = value.parse::<i64>().unwrap_or_else(|_| {
+                        eprintln!(
+                            "Pronto CLI error: --max-age must be a non-negative integer"
+                        );
+                        std::process::exit(2);
+                    });
+                    if parsed < 0 {
+                        eprintln!(
+                            "Pronto CLI error: --max-age must be a non-negative integer"
+                        );
+                        std::process::exit(2);
+                    }
+                    if parsed > MAX_AGENT_DOCTOR_MAX_AGE_MINUTES {
+                        eprintln!(
+                            "Pronto CLI error: --max-age must be {MAX_AGENT_DOCTOR_MAX_AGE_MINUTES} or less"
+                        );
+                        std::process::exit(2);
+                    }
+                    parsed
+                })
+                .unwrap_or(DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES);
+            let positionals = cli_positionals(&arguments, &["--max-age"]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if !positionals.is_empty() {
+                eprintln!("Usage: pronto doctor [--max-age <minutes>] [--json]");
+                std::process::exit(2);
+            }
+            let report = match load_store_read_only(&path) {
+                Ok(state) => {
+                    let snapshot = snapshot_from_store(&path, &state);
+                    agent_doctor_report(&snapshot, &path, max_age_minutes)
+                }
+                Err(error) => agent_doctor_error_report(&path, max_age_minutes, error),
+            };
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                );
+            } else {
+                print_human_doctor(&report);
+            }
+            if !report.ready {
+                std::process::exit(1);
             }
         }
         "next" => {
@@ -10134,6 +10547,56 @@ mod tests {
         assert!(candidate.authorization.contains("Preview only"));
 
         fs::remove_dir_all(root).expect("fold preview fixture should be removable");
+    }
+
+    #[test]
+    fn doctor_report_blocks_stale_and_unavailable_snapshot() {
+        let root = fixture_root();
+        fixture_repository(&root);
+        let store = root.join("registry.db");
+        let mut snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        let repository = snapshot
+            .repositories
+            .first_mut()
+            .expect("fixture repository should be present");
+        repository.last_scan_at = (Utc::now() - chrono::Duration::hours(2)).to_rfc3339();
+        repository.workspaces[0].path =
+            root.join("missing-workspace").to_string_lossy().to_string();
+
+        let report = agent_doctor_report(&snapshot, &store, 60);
+
+        assert_eq!(report.schema_version, AGENT_DOCTOR_SCHEMA);
+        assert!(!report.ready);
+        assert_eq!(report.status, "Blocked");
+        assert_eq!(report.stale_repository_ids.len(), 1);
+        assert!(report.invalid_scan_repository_ids.is_empty());
+        assert!(report
+            .unavailable_paths
+            .iter()
+            .any(|path| path.ends_with("missing-workspace")));
+        assert!(report
+            .checks
+            .iter()
+            .any(|check| check.id == "snapshot" && check.status == "Blocked"));
+        assert!(report
+            .checks
+            .iter()
+            .any(|check| check.id == "paths" && check.status == "Blocked"));
+        assert!(report.authorization.contains("does not refresh"));
+
+        fs::remove_dir_all(root).expect("doctor fixture should be removable");
+    }
+
+    #[test]
+    fn doctor_read_only_load_does_not_create_missing_store() {
+        let root = fixture_root();
+        let store = root.join("missing.db");
+
+        assert!(load_store_read_only(&store).is_err());
+        assert!(!store.exists());
+
+        fs::remove_dir_all(root).expect("doctor read-only fixture should be removable");
     }
 
     #[test]
