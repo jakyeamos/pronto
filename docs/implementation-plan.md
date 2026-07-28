@@ -76,7 +76,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 - Typecheck and production build validate renderer/main/preload boundaries.
 - CLI smoke checks validate human-readable and JSON status output against a temporary fixture repository.
 - Agent-facing CLI projections preserve the full `pronto status --json` snapshot while adding focused, versioned read-only envelopes:
-  - `pronto doctor [--max-age <minutes>] --json` for a fail-closed storage, freshness, and local-path gate before agent routing; a blocked report exits non-zero and never writes the snapshot;
+  - `pronto doctor [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] --json` for a fail-closed storage, freshness, and local-path gate before agent routing; scoped checks prevent unrelated fleet rows from blocking repository work, while blocked reports exit non-zero and never write the snapshot;
   - `pronto next [<repository>] [--limit <n>] --json` for bounded daily orientation, ranked attention, and safe inspection follow-ups;
   - `pronto fold preview [<repository>] [--target <branch>] --json` for advisory branch/worktree candidates and preservation reasons before the reviewed fold workflow;
   - `pronto summary --json` for fleet counts and repository summaries;

@@ -18,18 +18,18 @@ available.
 
 ## Focused read and preview surfaces
 
-| Need                      | Command                                                  | Contract                       |
-| ------------------------- | -------------------------------------------------------- | ------------------------------ |
-| Freshness/storage gate    | `doctor [--max-age <minutes>] --json`                    | `pronto-agent-doctor/v1`       |
-| Daily orientation         | `next [<repository>] [--limit <n>] --json`               | `pronto-agent-next/v1`         |
-| Fold preparation          | `fold preview [<repository>] [--target <branch>] --json` | `pronto-agent-fold-preview/v1` |
-| Fleet orientation         | `summary --json`                                         | `pronto-agent-summary/v1`      |
-| One repository            | `repo <absolute-repo-path> --json`                       | `pronto-agent-repository/v1`   |
-| Quality evidence          | `quality [<repository>] --json`                          | `pronto-agent-quality/v1`      |
-| Work requiring attention  | `attention --json`                                       | `pronto-agent-attention/v1`    |
-| Recent transitions/audits | `activity [<repository>] --limit <n> --json`             | `pronto-agent-activity/v1`     |
-| Preparation preflight     | `prepare <repository> [--workspace <id>] --json`         | `pronto-agent-preparation/v1`  |
-| Release preflight         | `release preview <repository> [--workspace <id>] --json` | `pronto-agent-release/v1`      |
+| Need                      | Command                                                                                                     | Contract                       |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Freshness/storage gate    | `doctor [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] --json`                   | `pronto-agent-doctor/v1`       |
+| Daily orientation         | `next [<repository>] [--product <name> \| --group <name>] [--limit <n>] --json`                             | `pronto-agent-next/v1`         |
+| Fold preparation          | `fold preview [<repository>] [--target <branch>] [--product <name> \| --group <name>] [--limit <n>] --json` | `pronto-agent-fold-preview/v1` |
+| Fleet orientation         | `summary [--product <name> \| --group <name>] --json`                                                       | `pronto-agent-summary/v1`      |
+| One repository            | `repo <absolute-repo-path> --json`                                                                          | `pronto-agent-repository/v1`   |
+| Quality evidence          | `quality [<repository>] --json`                                                                             | `pronto-agent-quality/v1`      |
+| Work requiring attention  | `attention --json`                                                                                          | `pronto-agent-attention/v1`    |
+| Recent transitions/audits | `activity [<repository>] --limit <n> --json`                                                                | `pronto-agent-activity/v1`     |
+| Preparation preflight     | `prepare <repository> [--workspace <id>] --json`                                                            | `pronto-agent-preparation/v1`  |
+| Release preflight         | `release preview <repository> [--workspace <id>] --json`                                                    | `pronto-agent-release/v1`      |
 
 Resolve a repository with `git rev-parse --show-toplevel` and pass the
 absolute path, repository name, ID, or an exact workspace path. Do not pass `.`
@@ -42,9 +42,11 @@ a branch/workspace change that needs fresh evidence. It performs a local
 read-only Git scan but persists the resulting snapshot and audit record, so it
 is state-changing even though it does not modify a repository.
 
-Run `doctor --json` before routing across repositories. A non-zero exit or
-`ready: false` is a hard stop for routing; refresh or repair only the scoped
-evidence it identifies, then rerun doctor.
+Run `doctor --json` before routing across repositories. For repository-local
+work, pass the resolved repository path; this prevents unrelated fleet rows
+from blocking the task. A non-zero exit or `ready: false` is a hard stop for
+the selected scope; refresh or repair only the evidence it identifies, then
+rerun doctor.
 
 The following commands can change local Pronto state or touch an external
 boundary and require explicit task scope: `root add`, `root exclude`, `refresh`,

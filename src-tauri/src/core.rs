@@ -8667,16 +8667,39 @@ fn agent_doctor_check(
     }
 }
 
+fn agent_doctor_relevant_roots<'a>(
+    snapshot: &'a PortfolioSnapshot,
+    scope: &str,
+) -> Vec<&'a RootConfig> {
+    if scope == "fleet" {
+        return snapshot.roots.iter().collect();
+    }
+    snapshot
+        .roots
+        .iter()
+        .filter(|root| {
+            snapshot.repositories.iter().any(|repository| {
+                Path::new(&repository.path).starts_with(Path::new(&root.path))
+                    || repository.workspaces.iter().any(|workspace| {
+                        Path::new(&workspace.path).starts_with(Path::new(&root.path))
+                    })
+            })
+        })
+        .collect()
+}
+
 fn agent_doctor_report(
     snapshot: &PortfolioSnapshot,
     storage_path: &Path,
     max_age_minutes: i64,
+    scope: &str,
 ) -> AgentDoctorReport {
     let max_age_minutes = max_age_minutes.max(0);
     let now = Utc::now();
+    let relevant_roots = agent_doctor_relevant_roots(snapshot, scope);
     let mut missing_root_paths = Vec::new();
     let mut unavailable_paths = BTreeSet::new();
-    for root in &snapshot.roots {
+    for root in &relevant_roots {
         if !Path::new(&root.path).is_dir() {
             missing_root_paths.push(root.path.clone());
             unavailable_paths.insert(root.path.clone());
@@ -8725,13 +8748,26 @@ fn agent_doctor_report(
         vec![storage_path.display().to_string()],
         "Continue using focused Pronto projections for the requested scope.".to_string(),
     )];
-    if snapshot.roots.is_empty() {
+    if relevant_roots.is_empty() && (scope == "fleet" || snapshot.repositories.is_empty()) {
         checks.push(agent_doctor_check(
             "roots",
             "Blocked",
-            "No discovery roots are registered.".to_string(),
+            "No discovery roots are registered for this scope.".to_string(),
             Vec::new(),
             "Register an explicit discovery root and run a scoped refresh before routing work."
+                .to_string(),
+        ));
+    } else if relevant_roots.is_empty() {
+        checks.push(agent_doctor_check(
+            "roots",
+            "Warning",
+            "No registered discovery root covers the scoped repositories.".to_string(),
+            snapshot
+                .repositories
+                .iter()
+                .map(|repository| repository.path.clone())
+                .collect(),
+            "Keep the repository scope explicit; register a covering root before relying on discovery refresh."
                 .to_string(),
         ));
     } else if missing_root_paths.is_empty() {
@@ -8740,10 +8776,9 @@ fn agent_doctor_report(
             "Passed",
             format!(
                 "{} registered discovery roots are available.",
-                snapshot.roots.len()
+                relevant_roots.len()
             ),
-            snapshot
-                .roots
+            relevant_roots
                 .iter()
                 .map(|root| root.path.clone())
                 .collect(),
@@ -8880,12 +8915,12 @@ fn agent_doctor_report(
     AgentDoctorReport {
         schema_version: AGENT_DOCTOR_SCHEMA.to_string(),
         generated_at: iso_now(),
-        scope: "fleet".to_string(),
+        scope: scope.to_string(),
         status: status.to_string(),
         ready,
         storage_path: storage_path.to_string_lossy().to_string(),
         max_age_minutes,
-        root_count: snapshot.roots.len(),
+        root_count: relevant_roots.len(),
         repository_count: snapshot.repositories.len(),
         workspace_count: snapshot
             .repositories
@@ -8908,15 +8943,20 @@ fn agent_doctor_report(
 fn agent_doctor_error_report(
     storage_path: &Path,
     max_age_minutes: i64,
+    scope: &str,
+    check_id: &str,
     error: String,
 ) -> AgentDoctorReport {
-    let next_safe_step =
+    let next_safe_step = if check_id == "storage" {
         "Inspect or repair the local Pronto database; do not route work from this failed state."
-            .to_string();
+            .to_string()
+    } else {
+        "Resolve the doctor scope query and rerun doctor before routing work.".to_string()
+    };
     AgentDoctorReport {
         schema_version: AGENT_DOCTOR_SCHEMA.to_string(),
         generated_at: iso_now(),
-        scope: "fleet".to_string(),
+        scope: scope.to_string(),
         status: "Blocked".to_string(),
         ready: false,
         storage_path: storage_path.to_string_lossy().to_string(),
@@ -8930,7 +8970,7 @@ fn agent_doctor_error_report(
         invalid_scan_repository_ids: Vec::new(),
         unavailable_paths: Vec::new(),
         checks: vec![agent_doctor_check(
-            "storage",
+            check_id,
             "Blocked",
             error,
             vec![storage_path.display().to_string()],
@@ -9361,7 +9401,7 @@ fn print_human_release(report: &AgentReleaseReport) {
 
 fn print_cli_usage() {
     println!(
-        "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto summary [--product <name> | --group <name>] [--json] | pronto doctor [--max-age <minutes>] [--json] | pronto next [<repository>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto fold preview [<repository>] [--target <branch>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto repo <repository> [--json] | pronto quality [<repository>] [--json] | pronto remediation [<repository>] [--json] | pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json] | pronto remediation export [output-dir] [--json] | pronto remediation set-status <action-id> <status> [--notes <text>] [--json] | pronto attention [--json] | pronto activity [<repository>] [--limit <n>] [--json] | pronto prepare <repository> [--workspace <id>] [--json] | pronto release preview <repository> [--workspace <id>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality feed [--json] | pronto clone <owner/repository> [--json]"
+        "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto summary [--product <name> | --group <name>] [--json] | pronto doctor [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] [--json] | pronto next [<repository>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto fold preview [<repository>] [--target <branch>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto repo <repository> [--json] | pronto quality [<repository>] [--json] | pronto remediation [<repository>] [--json] | pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json] | pronto remediation export [output-dir] [--json] | pronto remediation set-status <action-id> <status> [--notes <text>] [--json] | pronto attention [--json] | pronto activity [<repository>] [--limit <n>] [--json] | pronto prepare <repository> [--workspace <id>] [--json] | pronto release preview <repository> [--workspace <id>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality feed [--json] | pronto clone <owner/repository> [--json]"
     );
 }
 
@@ -9458,6 +9498,14 @@ pub fn run_cli(arguments: Vec<String>) {
             }
         }
         "doctor" => {
+            let product_name = cli_option(&arguments, "--product").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let group_name = cli_option(&arguments, "--group").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
             let max_age_minutes = cli_option(&arguments, "--max-age")
                 .unwrap_or_else(|error| {
                     eprintln!("Pronto CLI error: {error}");
@@ -9485,20 +9533,59 @@ pub fn run_cli(arguments: Vec<String>) {
                     parsed
                 })
                 .unwrap_or(DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES);
-            let positionals = cli_positionals(&arguments, &["--max-age"]).unwrap_or_else(|error| {
-                eprintln!("Pronto CLI error: {error}");
-                std::process::exit(2);
-            });
-            if !positionals.is_empty() {
-                eprintln!("Usage: pronto doctor [--max-age <minutes>] [--json]");
+            let positionals = cli_positionals(&arguments, &["--max-age", "--product", "--group"])
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                });
+            if positionals.len() > 1 {
+                eprintln!(
+                    "Usage: pronto doctor [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] [--json]"
+                );
                 std::process::exit(2);
             }
+            let query = positionals.first().map(String::as_str);
+            let base_scope = product_name
+                .as_deref()
+                .map(|value| format!("product:{value}"))
+                .or_else(|| group_name.as_deref().map(|value| format!("group:{value}")))
+                .unwrap_or_else(|| "fleet".to_string());
+            let scope = query
+                .map(|value| format!("{base_scope}; current_repository:{value}"))
+                .unwrap_or(base_scope);
             let report = match load_store_read_only(&path) {
                 Ok(state) => {
                     let snapshot = snapshot_from_store(&path, &state);
-                    agent_doctor_report(&snapshot, &path, max_age_minutes)
+                    let scoped_snapshot = filter_snapshot_by_collection(
+                        snapshot,
+                        product_name.as_deref(),
+                        group_name.as_deref(),
+                    )
+                    .and_then(|snapshot| {
+                        if let Some(query) = query {
+                            let repository_id = find_cli_repository(&snapshot, query)?.id.clone();
+                            let repository_ids = [repository_id].into_iter().collect();
+                            Ok(filter_snapshot_to_repository_ids(snapshot, &repository_ids))
+                        } else {
+                            Ok(snapshot)
+                        }
+                    });
+                    match scoped_snapshot {
+                        Ok(snapshot) => {
+                            agent_doctor_report(&snapshot, &path, max_age_minutes, &scope)
+                        }
+                        Err(error) => agent_doctor_error_report(
+                            &path,
+                            max_age_minutes,
+                            &scope,
+                            "scope",
+                            error,
+                        ),
+                    }
                 }
-                Err(error) => agent_doctor_error_report(&path, max_age_minutes, error),
+                Err(error) => {
+                    agent_doctor_error_report(&path, max_age_minutes, &scope, "storage", error)
+                }
             };
             if json {
                 println!(
@@ -10564,7 +10651,7 @@ mod tests {
         repository.workspaces[0].path =
             root.join("missing-workspace").to_string_lossy().to_string();
 
-        let report = agent_doctor_report(&snapshot, &store, 60);
+        let report = agent_doctor_report(&snapshot, &store, 60, "repository:fixture");
 
         assert_eq!(report.schema_version, AGENT_DOCTOR_SCHEMA);
         assert!(!report.ready);
@@ -10586,6 +10673,62 @@ mod tests {
         assert!(report.authorization.contains("does not refresh"));
 
         fs::remove_dir_all(root).expect("doctor fixture should be removable");
+    }
+
+    #[test]
+    fn scoped_doctor_ignores_unrelated_stale_repositories() {
+        let root = fixture_root();
+        let first_repository = fixture_repository(&root);
+        let second_root = root.join("second");
+        fs::create_dir_all(&second_root).expect("second repository parent should be creatable");
+        fixture_repository(&second_root);
+        let store = root.join("registry.db");
+        let mut snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        assert_eq!(snapshot.repositories.len(), 2);
+        let first_repository_path = canonical_path(&first_repository)
+            .expect("first repository should canonicalize")
+            .to_string_lossy()
+            .to_string();
+        let selected_id = snapshot
+            .repositories
+            .iter()
+            .find(|repository| repository.path == first_repository_path)
+            .expect("first repository should be registered")
+            .id
+            .clone();
+        let unrelated = snapshot
+            .repositories
+            .iter_mut()
+            .find(|repository| repository.id != selected_id)
+            .expect("second repository should be registered");
+        unrelated.last_scan_at = (Utc::now() - chrono::Duration::hours(2)).to_rfc3339();
+        unrelated.workspaces[0].path = root
+            .join("missing-unrelated-workspace")
+            .to_string_lossy()
+            .to_string();
+        let mut scoped_snapshot = snapshot;
+        scoped_snapshot
+            .repositories
+            .retain(|repository| repository.id == selected_id);
+        let report = agent_doctor_report(
+            &scoped_snapshot,
+            &store,
+            60,
+            "current_repository:/Users/jakyeamos/Documents/pronto",
+        );
+
+        assert!(report.ready);
+        assert!(matches!(
+            report.status.as_str(),
+            "Ready" | "Ready with warnings"
+        ));
+        assert_eq!(report.repository_count, 1);
+        assert_eq!(report.root_count, 1);
+        assert!(report.stale_repository_ids.is_empty());
+        assert!(report.unavailable_paths.is_empty());
+
+        fs::remove_dir_all(root).expect("scoped doctor fixture should be removable");
     }
 
     #[test]
