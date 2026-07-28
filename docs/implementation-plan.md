@@ -77,6 +77,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 - CLI smoke checks validate human-readable and JSON status output against a temporary fixture repository.
 - Agent-facing CLI projections preserve the full `pronto status --json` snapshot while adding focused, versioned read-only envelopes:
   - `pronto next [<repository>] [--limit <n>] --json` for bounded daily orientation, ranked attention, and safe inspection follow-ups;
+  - `pronto fold preview [<repository>] [--target <branch>] --json` for advisory branch/worktree candidates and preservation reasons before the reviewed fold workflow;
   - `pronto summary --json` for fleet counts and repository summaries;
   - `pronto repo <repository> --json` for one repository plus its product/group memberships;
   - `pronto quality [<repository>] --json` for fleet or repository quality evidence;
@@ -86,7 +87,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
   - `pronto release preview <repository> --json` for the release-specific evidence and review boundary.
 - These projections are derived from the same SQLite-backed snapshot consumed by the renderer. They are local/private outputs and are not public-export contracts.
 - The agent operating route is provider-neutral: the global home contract routes portfolio, workspace, branch, quality, and release triage to the `$pronto` skill; this repository's `.agents/context/` packet supplies the live CLI contract.
-- `$pronto` is an evidence and preflight surface, not an autonomous Git operator. Branch cleanup and folding compose with the reviewed `fold-feature-branches` workflow, which owns live ref classification, integration, and pruning authorization.
+- `$pronto` is an evidence and preflight surface, not an autonomous Git operator. `fold preview` supplies persisted branch/worktree candidates, while the reviewed `fold-feature-branches` workflow owns live ref classification, integration, and pruning authorization.
 - The behavior inventory in `docs/pronto-behavior-spec.xlsx` tracks each implemented feature, source function, test method, evidence, and remaining open question.
 - Tauri interaction verification is performed when the local desktop runtime can launch; provider and release rows remain explicitly blocked rather than being marked verified from static code.
 

@@ -665,6 +665,9 @@ const AGENT_RELEASE_SCHEMA: &str = "pronto-agent-release/v1";
 const AGENT_NEXT_SCHEMA: &str = "pronto-agent-next/v1";
 const DEFAULT_AGENT_NEXT_LIMIT: usize = 12;
 const MAX_AGENT_NEXT_LIMIT: usize = 50;
+const AGENT_FOLD_PREVIEW_SCHEMA: &str = "pronto-agent-fold-preview/v1";
+const DEFAULT_AGENT_FOLD_PREVIEW_LIMIT: usize = 24;
+const MAX_AGENT_FOLD_PREVIEW_LIMIT: usize = 100;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConditionSummary {
@@ -854,6 +857,47 @@ pub struct AgentNextReport {
     pub attention_total: usize,
     pub attention: Vec<AgentAttentionItem>,
     pub actions: Vec<AgentNextAction>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentFoldCandidate {
+    pub repository_id: String,
+    pub repository_name: String,
+    pub repository_path: String,
+    pub source_branch: String,
+    pub target_branch: Option<String>,
+    pub target_source: String,
+    pub target_confidence: String,
+    pub workspace_id: Option<String>,
+    pub workspace_path: Option<String>,
+    pub role: String,
+    pub role_confidence: String,
+    pub integration_state: String,
+    pub dirty: Option<bool>,
+    pub sync_state: Option<String>,
+    pub ahead: u64,
+    pub behind: u64,
+    pub upstream: Option<String>,
+    pub operation: Option<String>,
+    pub activity_state: Option<String>,
+    pub activity_confidence: Option<String>,
+    pub decision: String,
+    pub reason: String,
+    pub next_safe_step: String,
+    pub authorization: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentFoldPreview {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub scope: String,
+    pub repository_count: usize,
+    pub branch_total: usize,
+    pub candidate_total: usize,
+    pub candidates: Vec<AgentFoldCandidate>,
+    pub live_verification_required: bool,
+    pub authorization: String,
 }
 
 #[derive(Debug)]
@@ -8290,6 +8334,273 @@ fn agent_next_report(
     })
 }
 
+fn agent_fold_target(
+    repository: &RepositorySnapshot,
+    requested_target: Option<&str>,
+) -> (Option<String>, String, String) {
+    if let Some(target) = requested_target
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        return (
+            Some(target.to_string()),
+            "Explicit command target".to_string(),
+            "Explicit".to_string(),
+        );
+    }
+    match repository.default_branch.clone() {
+        Some(target) => (
+            Some(target),
+            "Pronto observed default branch".to_string(),
+            "High".to_string(),
+        ),
+        None => (
+            None,
+            "No observed default branch".to_string(),
+            "Unknown".to_string(),
+        ),
+    }
+}
+
+fn agent_fold_candidate_decision(
+    branch: &BranchSummary,
+    target: Option<&str>,
+    workspace: Option<&WorkspaceSummary>,
+) -> (String, String, String) {
+    if let Some(workspace) = workspace {
+        if let Some(operation) = workspace.operation.as_deref() {
+            return (
+                "blocked_operation".to_string(),
+                format!("Git operation in progress: {operation}"),
+                "Resolve the in-progress Git operation before evaluating this branch.".to_string(),
+            );
+        }
+        if workspace.activity.state == "Active" {
+            return (
+                "preserve_active".to_string(),
+                "Agent activity is active for this workspace.".to_string(),
+                "Wait for or hand off the active agent; do not integrate or prune this branch."
+                    .to_string(),
+            );
+        }
+        if workspace.dirty {
+            return (
+                "preserve_dirty".to_string(),
+                "The linked workspace has uncommitted changes.".to_string(),
+                "Preserve the workspace and inspect its complete diff before any fold decision."
+                    .to_string(),
+            );
+        }
+    }
+    let Some(target) = target else {
+        return (
+            "target_unknown".to_string(),
+            "No target branch was observed for this repository.".to_string(),
+            "Identify the repository's canonical integration target before considering a fold."
+                .to_string(),
+        );
+    };
+    if branch.target_branch.as_deref() != Some(target) {
+        return (
+            "target_mismatch".to_string(),
+            format!(
+                "Pronto observed {} as this branch's target, not {target}.",
+                branch.target_branch.as_deref().unwrap_or("an unknown branch")
+            ),
+            "Confirm the canonical integration target with the fold workflow before classifying this branch.".to_string(),
+        );
+    }
+    let Some(workspace) = workspace else {
+        return (
+            "live_check_required".to_string(),
+            "No registered workspace provides cleanliness or activity evidence for this branch."
+                .to_string(),
+            "Run live ref and worktree classification; do not treat this snapshot as fold authorization.".to_string(),
+        );
+    };
+    if workspace.activity.confidence == "Low" {
+        return (
+            "activity_uncertain".to_string(),
+            "Workspace activity evidence is explicitly uncertain.".to_string(),
+            "Recheck live workspace ownership and activity before integration or pruning."
+                .to_string(),
+        );
+    }
+    match branch.integration_state.as_str() {
+        "Already integrated" => (
+            "prune_review".to_string(),
+            "Pronto observed no unique commits relative to the observed target.".to_string(),
+            "Verify remote ancestry or patch equivalence, PR/protection state, and worktree cleanliness before authorizing pruning.".to_string(),
+        ),
+        "Integration eligible" if workspace.upstream.is_none() => (
+            "preserve_unpublished".to_string(),
+            "The branch has unique commits but no tracked upstream is recorded.".to_string(),
+            "Preserve the unpublished branch; stabilize and push it only with explicit task scope before integration.".to_string(),
+        ),
+        "Integration eligible" if workspace.sync_state != "Synced" => (
+            "refresh_before_integration".to_string(),
+            format!(
+                "The branch has unique commits but its workspace is {}.",
+                workspace.sync_state
+            ),
+            "Refresh scoped evidence and verify the live remote head before integration.".to_string(),
+        ),
+        "Integration eligible" => (
+            "review_for_integration".to_string(),
+            "Pronto observed a clean branch with unique commits relative to the observed target.".to_string(),
+            "Run fold-feature-branches live classification and review the complete source diff before integration.".to_string(),
+        ),
+        "Blocked" => (
+            "blocked".to_string(),
+            "Pronto observed the branch as blocked for integration.".to_string(),
+            "Inspect the linked workspace and condition evidence; preserve the branch until the blocker is resolved.".to_string(),
+        ),
+        "No unique commits" => (
+            "no_unique_commits".to_string(),
+            "Pronto observed no unique commits for this branch against its recorded target.".to_string(),
+            "Verify live remote and worktree state; do not prune unless supersession is proven.".to_string(),
+        ),
+        _ => (
+            "inspect".to_string(),
+            format!(
+                "Pronto recorded integration state: {}.",
+                branch.integration_state
+            ),
+            "Inspect the live branch, worktree, ancestry, and remote evidence before choosing a workflow.".to_string(),
+        ),
+    }
+}
+
+fn agent_fold_decision_priority(decision: &str) -> u8 {
+    match decision {
+        "preserve_dirty" | "preserve_active" | "blocked_operation" | "blocked" => 0,
+        "target_unknown" | "target_mismatch" | "live_check_required" | "activity_uncertain" => 1,
+        "preserve_unpublished" | "refresh_before_integration" => 2,
+        "review_for_integration" => 3,
+        "prune_review" => 4,
+        "no_unique_commits" => 5,
+        _ => 6,
+    }
+}
+
+fn agent_fold_candidate(
+    repository: &RepositorySnapshot,
+    branch: &BranchSummary,
+    target: Option<&str>,
+    target_source: &str,
+    target_confidence: &str,
+) -> AgentFoldCandidate {
+    let workspace = branch.workspace_id.as_deref().and_then(|workspace_id| {
+        repository
+            .workspaces
+            .iter()
+            .find(|workspace| workspace.id == workspace_id)
+    });
+    let (decision, reason, next_safe_step) =
+        agent_fold_candidate_decision(branch, target, workspace);
+    AgentFoldCandidate {
+        repository_id: repository.id.clone(),
+        repository_name: repository.name.clone(),
+        repository_path: repository.path.clone(),
+        source_branch: branch.name.clone(),
+        target_branch: target.map(str::to_string),
+        target_source: target_source.to_string(),
+        target_confidence: target_confidence.to_string(),
+        workspace_id: branch.workspace_id.clone(),
+        workspace_path: workspace.map(|item| item.path.clone()),
+        role: branch.role.clone(),
+        role_confidence: branch.role_confidence.clone(),
+        integration_state: branch.integration_state.clone(),
+        dirty: workspace.map(|item| item.dirty),
+        sync_state: workspace.map(|item| item.sync_state.clone()),
+        ahead: workspace.map(|item| item.ahead).unwrap_or(branch.ahead),
+        behind: workspace.map(|item| item.behind).unwrap_or(branch.behind),
+        upstream: workspace.and_then(|item| item.upstream.clone()),
+        operation: workspace.and_then(|item| item.operation.clone()),
+        activity_state: workspace.map(|item| item.activity.state.clone()),
+        activity_confidence: workspace.map(|item| item.activity.confidence.clone()),
+        decision,
+        reason,
+        next_safe_step: next_safe_step.to_string(),
+        authorization: "Preview only; Git, provider, branch, worktree, merge, rebase, push, and delete mutations require explicit authorization.".to_string(),
+    }
+}
+
+fn agent_fold_preview_report(
+    snapshot: &PortfolioSnapshot,
+    query: Option<&str>,
+    requested_target: Option<&str>,
+    scope: &str,
+    limit: usize,
+) -> Result<AgentFoldPreview, String> {
+    let repositories = if let Some(query) = query {
+        vec![find_cli_repository(snapshot, query)?]
+    } else {
+        snapshot.repositories.iter().collect::<Vec<_>>()
+    };
+    let branch_total = repositories
+        .iter()
+        .map(|repository| repository.branches.len())
+        .sum();
+    let mut candidates = Vec::new();
+    for repository in &repositories {
+        let (target, target_source, target_confidence) =
+            agent_fold_target(repository, requested_target);
+        for branch in repository
+            .branches
+            .iter()
+            .filter(|branch| target.as_deref().is_none_or(|target| branch.name != target))
+        {
+            let mut candidate_branch = branch.clone();
+            let explicit_local_target = requested_target
+                .and_then(|_| target.as_deref())
+                .filter(|target| repository.branches.iter().any(|item| &item.name == target));
+            if let Some(target) = explicit_local_target {
+                let workspace = branch.workspace_id.as_deref().and_then(|workspace_id| {
+                    repository
+                        .workspaces
+                        .iter()
+                        .find(|workspace| workspace.id == workspace_id)
+                });
+                candidate_branch.target_branch = Some(target.to_string());
+                candidate_branch.target_confidence = "Explicit".to_string();
+                candidate_branch.integration_state = branch_integration_state(
+                    Path::new(&repository.path),
+                    &branch.name,
+                    Some(target),
+                    workspace,
+                );
+            }
+            candidates.push(agent_fold_candidate(
+                repository,
+                &candidate_branch,
+                target.as_deref(),
+                &target_source,
+                &target_confidence,
+            ));
+        }
+    }
+    candidates.sort_by(|left, right| {
+        agent_fold_decision_priority(&left.decision)
+            .cmp(&agent_fold_decision_priority(&right.decision))
+            .then_with(|| left.repository_name.cmp(&right.repository_name))
+            .then_with(|| left.source_branch.cmp(&right.source_branch))
+    });
+    let candidate_total = candidates.len();
+    candidates.truncate(limit);
+    Ok(AgentFoldPreview {
+        schema_version: AGENT_FOLD_PREVIEW_SCHEMA.to_string(),
+        generated_at: snapshot.generated_at.clone(),
+        scope: scope.to_string(),
+        repository_count: repositories.len(),
+        branch_total,
+        candidate_total,
+        candidates,
+        live_verification_required: true,
+        authorization: "Inspection only; use fold-feature-branches for live ref classification, reviewed integration, and any authorized pruning.".to_string(),
+    })
+}
+
 fn agent_summary(snapshot: &PortfolioSnapshot, scope: &str) -> AgentSummary {
     let repositories = snapshot
         .repositories
@@ -8508,6 +8819,30 @@ fn print_human_next(report: &AgentNextReport) {
     }
 }
 
+fn print_human_fold_preview(report: &AgentFoldPreview) {
+    println!(
+        "PRONTO FOLD PREVIEW · {} · {} candidates",
+        report.scope, report.candidate_total
+    );
+    println!(
+        "Branches: {} observed · live verification required: {}",
+        report.branch_total, report.live_verification_required
+    );
+    for candidate in &report.candidates {
+        println!(
+            "  {} · {} -> {} · {} · {}",
+            candidate.repository_name,
+            candidate.source_branch,
+            candidate
+                .target_branch
+                .as_deref()
+                .unwrap_or("unknown target"),
+            candidate.decision,
+            candidate.reason
+        );
+    }
+}
+
 fn print_human_repository(detail: &AgentRepositoryDetail) {
     let repository = &detail.repository;
     println!(
@@ -8668,7 +9003,7 @@ fn print_human_release(report: &AgentReleaseReport) {
 
 fn print_cli_usage() {
     println!(
-        "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto summary [--product <name> | --group <name>] [--json] | pronto next [<repository>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto repo <repository> [--json] | pronto quality [<repository>] [--json] | pronto remediation [<repository>] [--json] | pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json] | pronto remediation export [output-dir] [--json] | pronto remediation set-status <action-id> <status> [--notes <text>] [--json] | pronto attention [--json] | pronto activity [<repository>] [--limit <n>] [--json] | pronto prepare <repository> [--workspace <id>] [--json] | pronto release preview <repository> [--workspace <id>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality feed [--json] | pronto clone <owner/repository> [--json]"
+        "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto summary [--product <name> | --group <name>] [--json] | pronto next [<repository>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto fold preview [<repository>] [--target <branch>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto repo <repository> [--json] | pronto quality [<repository>] [--json] | pronto remediation [<repository>] [--json] | pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json] | pronto remediation export [output-dir] [--json] | pronto remediation set-status <action-id> <status> [--notes <text>] [--json] | pronto attention [--json] | pronto activity [<repository>] [--limit <n>] [--json] | pronto prepare <repository> [--workspace <id>] [--json] | pronto release preview <repository> [--workspace <id>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality feed [--json] | pronto clone <owner/repository> [--json]"
     );
 }
 
@@ -8830,6 +9165,99 @@ pub fn run_cli(arguments: Vec<String>) {
                 Ok(report) => print_human_next(&report),
                 Err(error) => {
                     eprintln!("Pronto could not read next-step state: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "fold" => {
+            if arguments.get(1).map(String::as_str) != Some("preview") {
+                eprintln!(
+                    "Usage: pronto fold preview [<repository>] [--target <branch>] [--product <name> | --group <name>] [--limit <n>] [--json]"
+                );
+                std::process::exit(2);
+            }
+            let command_arguments = &arguments[1..];
+            let target = cli_option(command_arguments, "--target").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if target
+                .as_deref()
+                .is_some_and(|value| value.trim().is_empty())
+            {
+                eprintln!("Pronto CLI error: --target requires a non-empty branch name");
+                std::process::exit(2);
+            }
+            let product_name = cli_option(command_arguments, "--product").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let group_name = cli_option(command_arguments, "--group").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let limit = cli_option(command_arguments, "--limit")
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                })
+                .map(|value| {
+                    let parsed = value.parse::<usize>().unwrap_or_else(|_| {
+                        eprintln!("Pronto CLI error: --limit must be a non-negative integer");
+                        std::process::exit(2);
+                    });
+                    if parsed > MAX_AGENT_FOLD_PREVIEW_LIMIT {
+                        eprintln!(
+                            "Pronto CLI error: --limit must be {MAX_AGENT_FOLD_PREVIEW_LIMIT} or less"
+                        );
+                        std::process::exit(2);
+                    }
+                    parsed
+                })
+                .unwrap_or(DEFAULT_AGENT_FOLD_PREVIEW_LIMIT);
+            let positionals = cli_positionals(
+                command_arguments,
+                &["--target", "--product", "--group", "--limit"],
+            )
+            .unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if positionals.len() > 1 {
+                eprintln!(
+                    "Usage: pronto fold preview [<repository>] [--target <branch>] [--product <name> | --group <name>] [--limit <n>] [--json]"
+                );
+                std::process::exit(2);
+            }
+            let query = positionals.first().map(String::as_str);
+            let base_scope = product_name
+                .as_deref()
+                .map(|value| format!("product:{value}"))
+                .or_else(|| group_name.as_deref().map(|value| format!("group:{value}")))
+                .unwrap_or_else(|| "fleet".to_string());
+            let scope = query
+                .map(|value| format!("{base_scope}; current_repository:{value}"))
+                .unwrap_or(base_scope);
+            let result = load_store_with_quality(&path)
+                .map(|state| snapshot_from_store(&path, &state))
+                .and_then(|snapshot| {
+                    filter_snapshot_by_collection(
+                        snapshot,
+                        product_name.as_deref(),
+                        group_name.as_deref(),
+                    )
+                })
+                .and_then(|snapshot| {
+                    agent_fold_preview_report(&snapshot, query, target.as_deref(), &scope, limit)
+                });
+            match result {
+                Ok(report) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(report) => print_human_fold_preview(&report),
+                Err(error) => {
+                    eprintln!("Pronto could not read fold preview state: {error}");
                     std::process::exit(1);
                 }
             }
@@ -9659,6 +10087,53 @@ mod tests {
             .contains("explicit authorization"));
 
         fs::remove_dir_all(root).expect("next report fixture should be removable");
+    }
+
+    #[test]
+    fn fold_preview_preserves_unpublished_branch_and_requires_live_verification() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        git(&repository, &["switch", "-c", "dev"]);
+        git(&repository, &["switch", "-c", "feature/fold-preview"]);
+        fs::write(repository.join("feature.txt"), "feature\n")
+            .expect("feature file should be writable");
+        git(&repository, &["add", "feature.txt"]);
+        git(&repository, &["commit", "-m", "Feature preview"]);
+        let store = root.join("registry.db");
+        let mut snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        snapshot.repositories[0].workspaces[0].activity.state =
+            "Interrupted with unpushed commits".to_string();
+        snapshot.repositories[0].workspaces[0].activity.confidence = "Medium".to_string();
+        let repository_path = snapshot.repositories[0].path.clone();
+
+        let report = agent_fold_preview_report(
+            &snapshot,
+            Some(&repository_path),
+            Some("dev"),
+            "repository:fixture",
+            10,
+        )
+        .expect("fold preview should resolve the repository");
+
+        assert_eq!(report.schema_version, AGENT_FOLD_PREVIEW_SCHEMA);
+        assert_eq!(report.repository_count, 1);
+        assert_eq!(report.branch_total, 3);
+        assert_eq!(report.candidate_total, 2);
+        assert_eq!(report.candidates.len(), 2);
+        let candidate = report
+            .candidates
+            .iter()
+            .find(|candidate| candidate.source_branch == "feature/fold-preview")
+            .expect("feature branch should be in fold preview");
+        assert_eq!(candidate.target_branch.as_deref(), Some("dev"));
+        assert_eq!(candidate.decision, "preserve_unpublished");
+        assert_eq!(candidate.integration_state, "Integration eligible");
+        assert_eq!(candidate.dirty, Some(false));
+        assert!(report.live_verification_required);
+        assert!(candidate.authorization.contains("Preview only"));
+
+        fs::remove_dir_all(root).expect("fold preview fixture should be removable");
     }
 
     #[test]

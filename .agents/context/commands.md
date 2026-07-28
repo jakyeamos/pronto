@@ -16,16 +16,17 @@ snapshot; use a focused projection when one is available.
 
 ## Focused read and preview surfaces
 
-| Need                      | Command                                                  | Contract                      |
-| ------------------------- | -------------------------------------------------------- | ----------------------------- |
-| Daily orientation         | `next [<repository>] [--limit <n>] --json`               | `pronto-agent-next/v1`        |
-| Fleet orientation         | `summary --json`                                         | `pronto-agent-summary/v1`     |
-| One repository            | `repo <absolute-repo-path> --json`                       | `pronto-agent-repository/v1`  |
-| Quality evidence          | `quality [<repository>] --json`                          | `pronto-agent-quality/v1`     |
-| Work requiring attention  | `attention --json`                                       | `pronto-agent-attention/v1`   |
-| Recent transitions/audits | `activity [<repository>] --limit <n> --json`             | `pronto-agent-activity/v1`    |
-| Preparation preflight     | `prepare <repository> [--workspace <id>] --json`         | `pronto-agent-preparation/v1` |
-| Release preflight         | `release preview <repository> [--workspace <id>] --json` | `pronto-agent-release/v1`     |
+| Need                      | Command                                                  | Contract                       |
+| ------------------------- | -------------------------------------------------------- | ------------------------------ |
+| Daily orientation         | `next [<repository>] [--limit <n>] --json`               | `pronto-agent-next/v1`         |
+| Fold preparation          | `fold preview [<repository>] [--target <branch>] --json` | `pronto-agent-fold-preview/v1` |
+| Fleet orientation         | `summary --json`                                         | `pronto-agent-summary/v1`      |
+| One repository            | `repo <absolute-repo-path> --json`                       | `pronto-agent-repository/v1`   |
+| Quality evidence          | `quality [<repository>] --json`                          | `pronto-agent-quality/v1`      |
+| Work requiring attention  | `attention --json`                                       | `pronto-agent-attention/v1`    |
+| Recent transitions/audits | `activity [<repository>] --limit <n> --json`             | `pronto-agent-activity/v1`     |
+| Preparation preflight     | `prepare <repository> [--workspace <id>] --json`         | `pronto-agent-preparation/v1`  |
+| Release preflight         | `release preview <repository> [--workspace <id>] --json` | `pronto-agent-release/v1`      |
 
 Resolve a repository with `git rev-parse --show-toplevel` and pass the
 absolute path, repository name, ID, or an exact workspace path. Do not pass `.`
@@ -44,10 +45,10 @@ boundary and require explicit task scope: `root add`, `root exclude`, `refresh`,
 `remediation set-status`. They do not authorize Git branch cleanup, merging,
 pushing, deletion, provider mutation, or release publication.
 
-There is no Pronto command that means “clean branches,” “fold dev,” “delete
-branch,” or “push.” Use Pronto for inventory and preflight, then use the
-reviewed branch-folding workflow and ordinary Git commands within their own
-authorization boundaries.
+`fold preview` is an advisory projection only; it does not clean branches,
+fold dev, delete branches, or push. Use it for persisted branch/worktree
+evidence, then use the reviewed branch-folding workflow and ordinary Git
+commands within their own authorization boundaries.
 
 ## Evidence interpretation
 
