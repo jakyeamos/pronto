@@ -186,14 +186,13 @@ evidence_refs = [
 [[quality_runner.prevention.gates]]
 id = "smoke"
 command = "pnpm smoke"
-state = "unavailable"
+state = "candidate"
 required = false
 owner = "pronto-maintainers"
 rationale = "The current smoke script passed locally, but lacks CI and intentional-failure evidence."
 bootstrap = "pnpm install --frozen-lockfile"
 mutation_risk = "isolated-only"
 scope = "Read-only Pronto CLI startup"
-blocker = "package.json does not define a smoke script."
 timeout_seconds = 120
 evidence_refs = [
   "repeat-pass:docs/quality-prevention.md",
