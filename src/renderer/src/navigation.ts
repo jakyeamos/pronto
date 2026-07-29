@@ -6,12 +6,14 @@ import {
   GitBranch,
   LayoutDashboard,
   Settings2,
+  Sparkles,
 } from "lucide-react";
 
 export type NavItem =
   | "portfolio"
   | "remediation"
   | "analytics"
+  | "skills"
   | "groups"
   | "remote"
   | "activity"
@@ -25,6 +27,7 @@ export const navItems: Array<{
   { id: "portfolio", label: "Portfolio", icon: LayoutDashboard },
   { id: "remediation", label: "Remediation", icon: ClipboardCheck },
   { id: "analytics", label: "Analytics", icon: ChartNoAxesCombined },
+  { id: "skills", label: "Skills", icon: Sparkles },
   { id: "groups", label: "Groups", icon: FolderGit2 },
   { id: "remote", label: "Remote catalog", icon: GitBranch },
   { id: "activity", label: "Activity", icon: Activity },
@@ -54,6 +57,11 @@ export const pageCopy: Record<
     eyebrow: "Local refresh history",
     title: "See the portfolio move.",
     body: "Read-only trends for health, delivery, quality, workspace activity, and release readiness from local refresh evidence.",
+  },
+  skills: {
+    eyebrow: "Provider-neutral corpus",
+    title: "Know what your skills are doing.",
+    body: "Inspect sources, provider compatibility, hosting, and observed local usage without retaining prompts or skill bodies.",
   },
   remote: {
     eyebrow: "Read-only provider boundary",

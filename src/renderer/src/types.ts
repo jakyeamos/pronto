@@ -78,6 +78,12 @@ export interface QualityMaturity {
   score_display?: string;
   scored_dimension_count?: number;
   dimension_scores?: Record<string, number>;
+  gaps?: Array<{
+    dimension: string;
+    status: string;
+    score?: number;
+    message: string;
+  }>;
   audit_id?: string;
   observed_at?: string;
   freshness: QualityFreshness;
@@ -375,6 +381,7 @@ export interface RepositorySnapshot {
   pull_requests: PullRequestSnapshot[];
   releases: ReleaseSnapshot[];
   quality: QualitySnapshot;
+  project_compass: ProjectCompassSummary;
   release_rule?: ReleaseRuleConfig;
   release_recipe?: ReleaseRecipeConfig;
   confirmed_release_version?: string;
@@ -383,6 +390,27 @@ export interface RepositorySnapshot {
   last_scan_at: string;
   last_fetch_at?: string;
   last_activity_at?: string;
+}
+
+interface ProjectCompassTargetSummary {
+  progress_percent: number | null;
+  confidence: string;
+  confidence_percent: number;
+}
+
+interface ProjectCompassSummary {
+  status: "Ready" | "Missing" | "Invalid";
+  contract_path: string;
+  revision: number | null;
+  updated_at: string | null;
+  project_name: string | null;
+  identity: string | null;
+  audience: string | null;
+  mvp: ProjectCompassTargetSummary;
+  complete_product: ProjectCompassTargetSummary;
+  open_blockers: number;
+  open_drift: number;
+  error: string | null;
 }
 
 interface PullRequestPreparation {
@@ -545,6 +573,29 @@ interface RemediationTrack {
   total_weight: number;
 }
 
+interface RemediationCoverage {
+  surface: string;
+  label: string;
+  status: string;
+  detail: string;
+  action_ids: string[];
+}
+
+interface RemediationGoalProfile {
+  schema_version: string;
+  target_state: string;
+  label: string;
+  source: string;
+  confidence: string;
+  reason: string;
+  contract_path: string;
+  required_gate_ids: string[];
+  optional_gate_ids: string[];
+  evidence_max_age_days: number;
+  closure_criteria: string[];
+  error?: string | null;
+}
+
 interface RemediationPlan {
   schema_version: string;
   id: string;
@@ -553,9 +604,11 @@ interface RemediationPlan {
   repository_path: string;
   generated_at: string;
   source_refresh_id?: string | null;
+  goal: RemediationGoalProfile;
   current_stage: string;
   status: string;
   progress: RemediationProgress;
+  coverage: RemediationCoverage[];
   tracks: RemediationTrack[];
   actions: RemediationAction[];
 }
@@ -565,6 +618,24 @@ interface RemediationExclusion {
   repository_name: string;
   repository_path: string;
   reason: string;
+}
+
+interface RemediationClosure {
+  id: string;
+  repository_id: string;
+  repository_name: string;
+  repository_path: string;
+  plan_id: string;
+  target_state: string;
+  goal_source: string;
+  closed_at: string;
+  source_refresh_id?: string | null;
+  disposition: string;
+  summary: string;
+  resolved_action_count: number;
+  verified_action_count: number;
+  deferred_action_count: number;
+  last_evidence_at?: string | null;
 }
 
 interface RemediationRefreshStep {
@@ -588,6 +659,7 @@ export interface RemediationRun {
   eligible_repository_paths: string[];
   refresh_steps: RemediationRefreshStep[];
   excluded_repositories: RemediationExclusion[];
+  closures: RemediationClosure[];
   plans: RemediationPlan[];
 }
 
@@ -628,11 +700,11 @@ export interface AnalyticsMetricSample {
   unknown_workspace_count: number;
   ahead_commit_count: number;
   behind_commit_count: number;
-  commits_last_30_days?: number;
-  ci_readiness_score?: number;
-  maturity_score?: number;
-  findings_total?: number;
-  high_severity_findings?: number;
+  commits_last_30_days?: number | null;
+  ci_readiness_score?: number | null;
+  maturity_score?: number | null;
+  findings_total?: number | null;
+  high_severity_findings?: number | null;
   ci_readiness_scored_repository_count: number;
   maturity_scored_repository_count: number;
   findings_repository_count: number;
@@ -657,4 +729,53 @@ export interface AnalyticsSnapshot {
   history_available_from?: string;
   portfolio_samples: AnalyticsMetricSample[];
   repositories: AnalyticsRepositorySeries[];
+}
+
+export interface SkillUsage {
+  recent_count: number;
+  all_time_count: number;
+  by_provider: Record<string, number>;
+  last_seen_at?: string;
+  telemetry_source: string;
+}
+
+export interface SkillProviderState {
+  state: string;
+  reason: string;
+  source_path?: string;
+}
+
+export interface SkillSource {
+  path: string;
+  root: string;
+  provenance: string;
+  sha256: string;
+  hosted_in_jakye_agent_setup: boolean;
+}
+
+export interface SkillRecord {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  family: string;
+  lifecycle: string;
+  hosted_in_jakye_agent_setup: boolean;
+  sources: SkillSource[];
+  providers: Record<string, SkillProviderState>;
+  parity_score?: number | null;
+  parity_evidence: string[];
+  usage: SkillUsage;
+}
+
+export interface SkillsSnapshot {
+  schema_version: string;
+  generated_at: string;
+  refreshed_at?: string;
+  freshness: string;
+  source: string;
+  recent_days: number;
+  roots: string[];
+  skills: SkillRecord[];
+  telemetry_gap: string;
 }

@@ -174,6 +174,28 @@ function makeRepository(
     pull_requests: [],
     releases: [],
     quality: makeQuality(),
+    project_compass: {
+      status: "Missing",
+      contract_path: ".project-compass/contract.json",
+      revision: null,
+      updated_at: null,
+      project_name: null,
+      identity: null,
+      audience: null,
+      mvp: {
+        progress_percent: null,
+        confidence: "unknown",
+        confidence_percent: 0,
+      },
+      complete_product: {
+        progress_percent: null,
+        confidence: "unknown",
+        confidence_percent: 0,
+      },
+      open_blockers: 0,
+      open_drift: 0,
+      error: null,
+    },
     ai_permission: "Disabled",
     conditions: [],
     last_scan_at: "2026-07-26T11:00:00Z",
@@ -186,7 +208,7 @@ function makePortfolio(
   qualityOverrides: Partial<QualityPortfolioSnapshot> = {},
 ): PortfolioSnapshot {
   const remediation: RemediationRun = {
-    schema_version: "pronto-remediation/v1",
+    schema_version: "pronto-remediation/v3",
     id: "remediation-1",
     generated_at: "2026-07-26T11:00:00Z",
     source_refresh_id: null,
@@ -198,6 +220,7 @@ function makePortfolio(
     ),
     refresh_steps: [],
     excluded_repositories: [],
+    closures: [],
     plans: [],
   };
   return {
@@ -319,6 +342,28 @@ function aiPreview(): AiPayloadPreview {
 describe("quality evidence surfaces", () => {
   it("renders the canonical matrix, maturity, QR severity, and source evidence", () => {
     const repository = makeRepository({
+      project_compass: {
+        status: "Ready",
+        contract_path: ".project-compass/contract.json",
+        revision: 3,
+        updated_at: "2026-07-28T00:00:00Z",
+        project_name: "Pronto",
+        identity: "A local-first portfolio command center",
+        audience: "Developers with many active repositories",
+        mvp: {
+          progress_percent: 75,
+          confidence: "high",
+          confidence_percent: 100,
+        },
+        complete_product: {
+          progress_percent: 50,
+          confidence: "medium",
+          confidence_percent: 60,
+        },
+        open_blockers: 2,
+        open_drift: 1,
+        error: null,
+      },
       quality: makeQuality({
         gates: [
           makeGate("build", "Build", "Passed", "Fresh", [
@@ -357,6 +402,14 @@ describe("quality evidence surfaces", () => {
           audit_id: "audit-1",
           observed_at: "2026-07-26T11:00:00Z",
           freshness: "Fresh",
+          gaps: [
+            {
+              dimension: "change_surface_coverage",
+              status: "missing",
+              score: 0,
+              message: "No repository-owned change-surface matrix was found.",
+            },
+          ],
         }),
         ci_readiness: makeReadiness({
           score: 2.67,
@@ -419,6 +472,9 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("CI · GitHub check · build");
     expect(markup).toContain("Expand evidence");
     expect(markup).toContain("Detailed report");
+    expect(markup).toContain(
+      "No repository-owned change-surface matrix was found.",
+    );
   });
 
   it("renders empty and unconfigured repository states", () => {
@@ -442,6 +498,66 @@ describe("quality evidence surfaces", () => {
     expect(unconfigured).toContain("Not configured");
     expect(unconfigured).toContain("No CI, local, or QR gate evidence");
     expect(unconfigured).toContain("No matched recommendation profile");
+  });
+
+  it("shows configured conditional gates before passing evidence exists", () => {
+    const repository = makeRepository({
+      quality: makeQuality({
+        ci_readiness: makeReadiness({
+          applicable_gate_ids: [
+            "build",
+            "runtime_smoke",
+            "tests",
+            "lint",
+            "formatter",
+            "typecheck",
+            "dead_code",
+            "secrets_scan",
+            "dependency_audit",
+          ],
+          configured_gate_ids: [
+            "build",
+            "runtime_smoke",
+            "tests",
+            "lint",
+            "formatter",
+            "typecheck",
+            "dead_code",
+            "secrets_scan",
+            "dependency_audit",
+          ],
+          missing_gate_ids: [
+            "build",
+            "runtime_smoke",
+            "tests",
+            "lint",
+            "formatter",
+            "typecheck",
+            "dead_code",
+            "secrets_scan",
+            "dependency_audit",
+          ],
+        }),
+      }),
+    });
+
+    const markup = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([repository])}
+        repositories={[repository]}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup).toContain("Dependency audit");
+    expect(markup).toContain("Configured");
+    expect(markup).not.toContain("No CI, local, or QR gate evidence");
+    expect(markup).not.toContain("Not applicable for this repository");
+    expect(
+      markup.match(
+        />Configured<\/span><span class="quality-gate-evidence-count">No evidence/g,
+      ),
+    ).toHaveLength(9);
   });
 
   it("surfaces imported maturity and CI configuration against the ideal profile", () => {
@@ -666,10 +782,34 @@ describe("quality evidence surfaces", () => {
 
   it("renders repository detail as a full page with quality, maturity, QR, and release context", () => {
     const repository = makeRepository({
+      project_compass: {
+        status: "Ready",
+        contract_path: ".project-compass/contract.json",
+        revision: 3,
+        updated_at: "2026-07-28T00:00:00Z",
+        project_name: "Pronto",
+        identity: "A local-first portfolio command center",
+        audience: "Developers with many active repositories",
+        mvp: {
+          progress_percent: 75,
+          confidence: "high",
+          confidence_percent: 100,
+        },
+        complete_product: {
+          progress_percent: 50,
+          confidence: "medium",
+          confidence_percent: 60,
+        },
+        open_blockers: 2,
+        open_drift: 1,
+        error: null,
+      },
       quality: makeQuality({
-        gates: [
-          makeGate("build", "Build", "Passed", "Fresh", [makeEvidence()]),
-        ],
+        gates: [makeGate("build", "Build")],
+        ci_readiness: makeReadiness({
+          applicable_gate_ids: ["build", "dependency_audit"],
+          configured_gate_ids: ["build", "dependency_audit"],
+        }),
       }),
       release_rule: {
         name: "Ready to release",
@@ -693,11 +833,18 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("Back to Portfolio");
     expect(markup).toContain("/tmp/pronto");
     expect(markup).toContain("Quality gates");
+    expect(markup).toContain("Project Compass");
+    expect(markup).toContain("MVP");
+    expect(markup).toContain("75%");
+    expect(markup).toContain("Complete product");
     expect(markup).toContain("Release rule trace");
     expect(markup).toContain("Workspaces");
     expect(markup).toContain("Conditions");
     expect(markup).toContain("Branches");
     expect(markup).toContain("Not scored");
+    expect(markup).toContain("Configured");
+    expect(markup).toContain("Dependency audit");
+    expect(markup).toContain("Awaiting evidence");
     expect(markup).not.toContain("drawer-layer");
     expect(markup).not.toContain("drawer-scrim");
   });

@@ -20,10 +20,12 @@ const environment = { ...globalThis.process.env };
 if (existsSync("/opt/homebrew/bin")) {
   environment.PATH = `/opt/homebrew/bin:${environment.PATH ?? ""}`;
 }
+const jsonRequested = globalThis.process.argv.includes("--json");
 const result = spawnSync(
   cargo,
   [
     "run",
+    ...(jsonRequested ? ["--quiet"] : []),
     "--manifest-path",
     join(projectRoot, "src-tauri", "Cargo.toml"),
     "--bin",

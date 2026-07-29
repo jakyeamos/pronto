@@ -1,0 +1,8 @@
+{
+  "schema_version": "pronto-remediation-goal/v1",
+  "target_state": "active_maintained",
+  "reason": "Pronto is the actively maintained local-first command center for repository portfolio evidence, governed remediation, and release preflight.",
+  "additional_required_gate_ids": [],
+  "optional_gate_ids": ["runtime_smoke"],
+  "evidence_max_age_days": 14
+}

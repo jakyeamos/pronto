@@ -1,0 +1,81 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: ${{ matrix.name }}
+    runs-on: macos-14
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Build
+            command: pnpm build:bundle
+            prerequisite: none
+          - name: Tests
+            command: pnpm test
+            prerequisite: none
+          - name: Runtime smoke
+            command: pnpm smoke
+            prerequisite: none
+          - name: Lint
+            command: pnpm lint
+            prerequisite: none
+          - name: Formatter
+            command: pnpm format:check
+            prerequisite: none
+          - name: Typecheck
+            command: pnpm typecheck
+            prerequisite: none
+          - name: Dead-code
+            command: pnpm audit:dead-code
+            prerequisite: none
+          - name: Secrets scan
+            command: pnpm audit:secrets
+            prerequisite: gitleaks
+          - name: Dependency audit
+            command: pnpm audit:dependencies
+            prerequisite: cargo-audit
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Select stable Rust
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install gitleaks
+        if: matrix.prerequisite == 'gitleaks'
+        run: brew install gitleaks
+
+      - name: Install cargo-audit
+        if: matrix.prerequisite == 'cargo-audit'
+        run: cargo install cargo-audit --locked
+
+      - name: Run ${{ matrix.name }}
+        run: ${{ matrix.command }}

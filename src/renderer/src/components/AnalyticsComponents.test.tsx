@@ -118,6 +118,28 @@ describe("analytics charts", () => {
     expect(unavailable).toContain("Fresh passing evidence score Unavailable");
   });
 
+  it("treats serialized null metrics as unavailable instead of crashing", () => {
+    const unavailable = renderToStaticMarkup(
+      <AnalyticsSurface
+        analytics={makeAnalytics([
+          makeSample({
+            ci_readiness_score: null,
+            maturity_score: null,
+            findings_total: null,
+            high_severity_findings: null,
+            quality_freshness: "Fresh",
+          }),
+        ])}
+        repositories={[]}
+      />,
+    );
+
+    expect(unavailable).toContain("Evidence unavailable");
+    expect(unavailable).toContain("Maturity Unavailable");
+    expect(unavailable).toContain("Fresh passing evidence score Unavailable");
+    expect(unavailable).toContain("Unavailable findings");
+  });
+
   it("keeps composition and comparison charts legible with accessible summaries", () => {
     const composition = renderToStaticMarkup(
       <StackedBarChart

@@ -1,8 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { normalizeSkillsSnapshot } from "./skillsSnapshot";
 import type {
   AiPayloadPreview,
   AnalyticsSnapshot,
+  SkillsSnapshot,
   ExternalTool,
   PortfolioSnapshot,
   RemediationActionStatus,
@@ -34,7 +36,7 @@ export const emptySnapshot: PortfolioSnapshot = {
     matched_repository_count: 0,
   },
   remediation: {
-    schema_version: "pronto-remediation/v1",
+    schema_version: "pronto-remediation/v3",
     id: "",
     generated_at: new Date().toISOString(),
     source_refresh_id: null,
@@ -44,6 +46,7 @@ export const emptySnapshot: PortfolioSnapshot = {
     eligible_repository_paths: [],
     refresh_steps: [],
     excluded_repositories: [],
+    closures: [],
     plans: [],
   },
   retention_days: 90,
@@ -62,6 +65,17 @@ export const emptyAnalytics: AnalyticsSnapshot = {
   repositories: [],
 };
 
+export const emptySkills: SkillsSnapshot = {
+  schema_version: "pronto-skills/v2",
+  generated_at: new Date().toISOString(),
+  freshness: "Unavailable until the first skills refresh",
+  source: "Local skill roots and local session records",
+  recent_days: 30,
+  roots: [],
+  skills: [],
+  telemetry_gap: "No skills refresh has been recorded.",
+};
+
 function isDesktopBridgeAvailable(): boolean {
   return "__TAURI_INTERNALS__" in window;
 }
@@ -78,6 +92,27 @@ export async function getAnalytics(): Promise<AnalyticsSnapshot> {
     return emptyAnalytics;
   }
   return invoke<AnalyticsSnapshot>("get_analytics");
+}
+
+export async function getSkills(): Promise<SkillsSnapshot> {
+  if (!isDesktopBridgeAvailable()) return emptySkills;
+  return normalizeSkillsSnapshot(await invoke<unknown>("get_skills"));
+}
+
+export async function refreshSkills(): Promise<SkillsSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Skills refresh is available in the Pronto desktop app.");
+  }
+  return normalizeSkillsSnapshot(await invoke<unknown>("refresh_skills"));
+}
+
+export async function openSkillSource(path: string): Promise<void> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error(
+      "Opening skill sources is available in the Pronto desktop app.",
+    );
+  }
+  await invoke("open_skill_source", { path });
 }
 
 export async function refresh(): Promise<PortfolioSnapshot> {

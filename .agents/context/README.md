@@ -1,5 +1,7 @@
 # Pronto agent context
 
+Last reviewed: 2026-07-29.
+
 Pronto is the local-first portfolio and Git evidence surface for this machine.
 Use this index when a task needs portfolio-wide repository state, workspace
 triage, branch integration evidence, quality evidence, or release preparation.

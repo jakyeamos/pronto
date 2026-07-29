@@ -1,0 +1,461 @@
+{
+  "schema_version": 1,
+  "revision": 4,
+  "project": {
+    "name": "Pronto",
+    "identity": "A local-first macOS command center for understanding and safely coordinating a portfolio of Git repositories and agent workspaces.",
+    "audience": "Developers and repository operators managing multiple local codebases, worktrees, quality signals, and release-preparation workflows.",
+    "core_loop": "Register repository roots, refresh evidence, inspect ranked conditions and remediation, take a separately authorized action, then refresh to verify the resulting state.",
+    "north_star": "A user can trust Pronto to show current repository truth and the next safe action without silently modifying source, Git history, provider state, or releases.",
+    "not_this": [
+      "An autonomous Git operator",
+      "A cloud-required collaboration service",
+      "An AI system that makes operational decisions by default"
+    ]
+  },
+  "targets": {
+    "mvp": {
+      "definition": "A dependable macOS desktop and CLI command center that turns current local Git, workspace, quality, and freshness evidence into a clear safe next action without modifying repositories."
+    },
+    "complete_product": {
+      "definition": "A trustworthy portfolio operating surface that adds read-only provider, pull-request, and release-preparation context plus governed operational handoffs while preserving explicit authorization and evidence boundaries."
+    }
+  },
+  "pillars": [
+    {
+      "id": "portfolio-orientation",
+      "name": "Portfolio orientation",
+      "outcomes": [
+        {
+          "id": "durable-local-inventory",
+          "name": "The user can discover repositories and worktrees into a durable, local portfolio snapshot.",
+          "targets": ["mvp", "complete_product"],
+          "maturity": 100,
+          "confidence": "high",
+          "layers": {
+            "intended": "Local repository evidence remains useful without an account, network access, or operational authority.",
+            "planned": "The accepted architecture uses a Tauri and Rust core, SQLite persistence, and shared renderer and CLI contracts.",
+            "implemented": "The core registers roots, discovers repositories and linked worktrees, scans Git state, and persists versioned SQLite snapshots.",
+            "verified": "Rust and renderer tests pass, the installed bundle matches the current release build, and a provider-native macOS interaction opened the live Pronto repository detail with current portfolio, Compass, quality, workspace, condition, branch, and analytics evidence."
+          },
+          "evidence": [
+            {
+              "ref": "package.json",
+              "note": "Defines Pronto as a local-first portfolio command center and exposes desktop and CLI workflows.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": "docs/implementation-plan.md",
+              "note": "Defines the local evidence foundation, SQLite persistence, repository discovery, and shared projection contracts.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": "src-tauri/src/core.rs",
+              "note": "Implements the local portfolio, Git, workspace, persistence, and focused projection core.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": "pnpm app:check",
+              "note": "Verified that the installed macOS application bundle and executable match the current release build.",
+              "observed_at": "2026-07-29T18:47:32Z"
+            },
+            {
+              "ref": "src/renderer/src/components/AnalyticsComponents.test.tsx",
+              "note": "Covers unavailable JSON metrics and prevents the null-maturity crash reproduced in the installed repository detail.",
+              "observed_at": "2026-07-29T18:47:32Z"
+            }
+          ],
+          "blockers": []
+        },
+        {
+          "id": "explainable-next-action",
+          "name": "The user can see ranked conditions, evidence freshness, uncertainty, and a bounded next safe action.",
+          "targets": ["mvp", "complete_product"],
+          "maturity": 75,
+          "confidence": "high",
+          "layers": {
+            "intended": "Facts, freshness, and evidence are visible before derived labels, and portfolio state precedes repository detail.",
+            "planned": "Focused route, doctor, next, repository, quality, attention, and activity projections provide bounded agent and UI orientation.",
+            "implemented": "The renderer and CLI expose evidence-backed conditions, freshness, attention, and fail-closed routing.",
+            "verified": "Focused Rust and renderer tests pass, and the scoped live route returns Ready with current snapshot evidence."
+          },
+          "evidence": [
+            {
+              "ref": "docs/product-decisions.md",
+              "note": "Preserves the local-first, explicit-evidence, read-only product boundary.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": ".agents/context/commands.md",
+              "note": "Documents the focused route and evidence contracts used by agents.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": "src/renderer/src/App.tsx",
+              "note": "Owns the portfolio navigation and primary renderer surfaces.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            }
+          ],
+          "blockers": []
+        }
+      ]
+    },
+    {
+      "id": "safe-coordination",
+      "name": "Safe repository coordination",
+      "outcomes": [
+        {
+          "id": "preserve-workspace-truth",
+          "name": "The user can distinguish dirty, synchronized, interrupted, active, unpublished, and integration-ready work before acting.",
+          "targets": ["mvp", "complete_product"],
+          "maturity": 75,
+          "confidence": "high",
+          "layers": {
+            "intended": "Agent workspaces are operational objects, and modifying work requires fresh evidence and explicit authority.",
+            "planned": "Workspace, branch, activity, operation, and fold-preview evidence remain separate from Git mutation.",
+            "implemented": "Pronto records Git status, upstream state, operations, worktree activity, integration classification, and preservation reasons.",
+            "verified": "Core tests cover Git parsing, conditions, self-process exclusion, idle-shell exclusion, and fetch freshness. Live scoped routing exposes the dirty primary workspace and unpublished branch without assigning the invoking shell as an active owner."
+          },
+          "evidence": [
+            {
+              "ref": "docs/implementation-plan.md",
+              "note": "Defines workspace evidence, operation detection, branch classification, and prohibited mutations.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": "src-tauri/src/core.rs",
+              "note": "Implements workspace scans, bounded agent-process classification, self-process exclusion, activity evidence, conditions, and integration-state projections.",
+              "observed_at": "2026-07-29T18:18:28Z"
+            }
+          ],
+          "blockers": []
+        },
+        {
+          "id": "governed-handoffs",
+          "name": "The user receives safe preflights and audited handoffs without hidden destructive or history-rewriting actions.",
+          "targets": ["mvp", "complete_product"],
+          "maturity": 75,
+          "confidence": "high",
+          "layers": {
+            "intended": "Actions begin with non-destructive local inspection and keep destructive or provider mutations behind explicit future contracts.",
+            "planned": "Read-only action preflights, audit records, route gates, and fold previews prepare ordinary Git or provider workflows without executing them.",
+            "implemented": "The core records preflights and audits and refuses unsupported modifying operations; CLI projections state their authorization boundaries.",
+            "verified": "Tests exercise prohibited-operation guards and focused projection contracts, and live remediation preserves unpublished work."
+          },
+          "evidence": [
+            {
+              "ref": "docs/product-decisions.md",
+              "note": "Accepts safe non-destructive local actions and explicit future contracts for modifying operations.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": ".agents/context/commands.md",
+              "note": "Defines read-only and state-changing command boundaries.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            }
+          ],
+          "blockers": []
+        }
+      ]
+    },
+    {
+      "id": "quality-remediation",
+      "name": "Quality and remediation",
+      "outcomes": [
+        {
+          "id": "quality-evidence",
+          "name": "The user can distinguish configured ideals from fresh passing quality, CI, finding, and maturity evidence.",
+          "targets": ["mvp", "complete_product"],
+          "maturity": 75,
+          "confidence": "medium",
+          "layers": {
+            "intended": "Missing, stale, failed, blocked, or unavailable evidence never appears as passing.",
+            "planned": "Pronto consumes Quality Runner maturity and gate evidence read-only and preserves provenance and freshness.",
+            "implemented": "Quality projections expose configured, covered, fresh passing, missing, stale, failed, and blocked gates plus findings and maturity.",
+            "verified": "Quality Runner discovered all nine repository-required gate commands, the current dirty checkout passed every local gate, and the installed macOS app shows all nine configured gates separately from the zero fresh passing results. Provider-native CI proof remains unavailable until the workflow is published and runs."
+          },
+          "evidence": [
+            {
+              "ref": "src-tauri/src/quality.rs",
+              "note": "Implements quality evidence, CI readiness, findings, maturity, and freshness projections.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": "src/renderer/src/components/QualityComponents.test.tsx",
+              "note": "Exercises renderer handling of quality evidence states.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": ".quality-runner.toml",
+              "note": "Defines the nine required Pronto quality capabilities and their executable repository commands.",
+              "observed_at": "2026-07-29T18:18:28Z"
+            },
+            {
+              "ref": ".quality-runner/runs/pronto-remediation-20260729-v5/capability-matrix.json",
+              "note": "The latest Quality Runner inspection records all repository-specific capabilities and 416 current findings without mutating source files.",
+              "observed_at": "2026-07-29T18:49:31Z"
+            },
+            {
+              "ref": "pnpm app:check",
+              "note": "The installed macOS app matches bundle 26903050491a and displays Build through Dependency audit as configured with no imported evidence while preserving 0/9 fresh passing evidence.",
+              "observed_at": "2026-07-29T19:04:06Z"
+            }
+          ],
+          "blockers": [
+            {
+              "kind": "verification",
+              "summary": "The configured GitHub workflow is unpublished, so Pronto cannot yet ingest provider-native fresh passing check runs."
+            }
+          ]
+        },
+        {
+          "id": "complete-remediation-coverage",
+          "name": "Every repository-level warning shown in the UI receives an explicit remediation disposition and resolved repositories leave the active queue.",
+          "targets": ["mvp", "complete_product"],
+          "maturity": 75,
+          "confidence": "high",
+          "layers": {
+            "intended": "Fleet remediation covers every repository surface tracked in the UI, and evidence-backed completion is retained outside the active queue.",
+            "planned": "The remediation contract maps sixteen UI surfaces to clear, actionable, blocked, deferred, verified, or not-applicable dispositions.",
+            "implemented": "The v3 remediation queue includes coverage entries, concrete action links, goal profiles, deterministic fleet ranking, and retained closures.",
+            "verified": "Rust and renderer tests pass, and live fleet validation found all forty-two active plans with all sixteen coverage entries and no unresolved entry lacking an action."
+          },
+          "evidence": [
+            {
+              "ref": "docs/development.md",
+              "note": "Documents the remediation coverage, goal, ranking, and closure contracts.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": "src-tauri/src/remediation.rs",
+              "note": "Implements the remediation queue, sixteen-surface coverage ledger, and retained closures.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": "src/renderer/src/components/RemediationSurface.tsx",
+              "note": "Renders repository remediation and UI tracking coverage.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            }
+          ],
+          "blockers": []
+        }
+      ]
+    },
+    {
+      "id": "provider-release-context",
+      "name": "Provider and release context",
+      "outcomes": [
+        {
+          "id": "read-only-provider-context",
+          "name": "The user can connect read-only GitHub identity and inspect remote repository and pull-request context with explicit freshness.",
+          "targets": ["complete_product"],
+          "maturity": 75,
+          "confidence": "high",
+          "layers": {
+            "intended": "GitHub begins read-only, with no automatic pull-request creation, merge, release, or publish behavior.",
+            "planned": "Provider identity, repository mapping, remote catalog, and pull-request snapshots expand only after local persistence and permission boundaries.",
+            "implemented": "Provider state, mapped repositories, pull-request snapshots, and provider refresh commands are represented in the core and UI.",
+            "verified": "A scoped live GitHub refresh authenticated as github:jakyeamos, matched the repository, recorded current provider freshness, and preserved that evidence through a subsequent local rescan."
+          },
+          "evidence": [
+            {
+              "ref": "docs/product-decisions.md",
+              "note": "Defines the initial read-only GitHub boundary.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": "src-tauri/src/core.rs",
+              "note": "Implements provider snapshot, repository mapping, scoped refresh, and provider-state preservation across local rescans.",
+              "observed_at": "2026-07-29T18:18:28Z"
+            },
+            {
+              "ref": "pnpm cli refresh-github \"$(git rev-parse --show-toplevel)\" --json",
+              "note": "The scoped adapter completed successfully with connected GitHub identity and current repository evidence.",
+              "observed_at": "2026-07-29T18:02:43Z"
+            }
+          ],
+          "blockers": []
+        },
+        {
+          "id": "release-preparation",
+          "name": "The user can inspect a deterministic, evidence-backed release candidate and recipe before any release mutation.",
+          "targets": ["complete_product"],
+          "maturity": 50,
+          "confidence": "medium",
+          "layers": {
+            "intended": "Release preparation remains permission-aware, reviewable, and separate from publication.",
+            "planned": "Release rules, candidate traceability, validation gates, isolated worktrees, and draft-release handoff follow stable single-repository behavior.",
+            "implemented": "Prepare and release-preview projections represent baselines, candidates, blockers, and recipes without publishing.",
+            "verified": "Source tests cover preview contracts, but Pronto has no confirmed release baseline or provider-native release proof for this revision."
+          },
+          "evidence": [
+            {
+              "ref": "docs/implementation-plan.md",
+              "note": "Defines pull-request and release-preparation outcomes and their evidence boundaries.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": ".agents/context/commands.md",
+              "note": "Documents prepare and release-preview as non-operational projections.",
+              "observed_at": "2026-07-29T17:43:37Z"
+            }
+          ],
+          "blockers": [
+            {
+              "kind": "verification",
+              "summary": "No real release candidate has completed the intended provider-native review and publication boundary."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "source_layers": {
+    "intended": [
+      {
+        "ref": "docs/product-decisions.md",
+        "note": "Accepted product direction and authority boundaries.",
+        "observed_at": "2026-07-29T17:43:37Z"
+      },
+      {
+        "ref": "package.json",
+        "note": "Current product identity and supported local workflows.",
+        "observed_at": "2026-07-29T17:43:37Z"
+      }
+    ],
+    "planned": [
+      {
+        "ref": "docs/implementation-plan.md",
+        "note": "Current phase and verification strategy.",
+        "observed_at": "2026-07-29T17:43:37Z"
+      }
+    ],
+    "implemented": [
+      {
+        "ref": "src-tauri/src",
+        "note": "Canonical Rust core and CLI projection implementation.",
+        "observed_at": "2026-07-29T17:43:37Z"
+      },
+      {
+        "ref": "src/renderer/src",
+        "note": "Canonical desktop renderer implementation.",
+        "observed_at": "2026-07-29T17:43:37Z"
+      }
+    ],
+    "verified": [
+      {
+        "ref": "src-tauri/src",
+        "note": "Rust unit and projection tests passed in the current dirty checkout.",
+        "observed_at": "2026-07-29T17:43:37Z"
+      },
+      {
+        "ref": "src/renderer/src",
+        "note": "Renderer tests, typecheck, lint, formatting, dead-code audit, and build passed in the current dirty checkout.",
+        "observed_at": "2026-07-29T17:43:37Z"
+      }
+    ]
+  },
+  "drift": [
+    {
+      "kind": "verification-gap",
+      "summary": "Repository-specific Quality Runner and local passing evidence now exist, but fresh passing GitHub check evidence requires publishing and running the new workflow.",
+      "status": "open",
+      "observed_at": "2026-07-29T18:18:28Z",
+      "evidence": [
+        {
+          "ref": ".quality-runner/runs/pronto-remediation-20260729/capability-matrix.json",
+          "note": "Quality Runner discovered the repository gate commands; execution and provider check evidence remain separate.",
+          "observed_at": "2026-07-29T18:16:24Z"
+        },
+        {
+          "ref": ".github/workflows/quality.yml",
+          "note": "The nine-check workflow exists only in the dirty checkout and has not produced provider-native check runs.",
+          "observed_at": "2026-07-29T18:18:28Z"
+        }
+      ]
+    },
+    {
+      "kind": "implementation-drift",
+      "summary": "Workspace activity detection can count the shell invoking a scan as an active owner, creating a false coordination blocker.",
+      "status": "resolved",
+      "observed_at": "2026-07-29T18:18:28Z",
+      "evidence": [
+        {
+          "ref": "src-tauri/src/core.rs",
+          "note": "Activity candidates are now restricted to recognized agent processes and exclude the scanner process and its ancestors.",
+          "observed_at": "2026-07-29T18:18:28Z"
+        },
+        {
+          "ref": "pnpm cli route \"$(git rev-parse --show-toplevel)\" --json",
+          "note": "The refreshed scoped route reports no associated process for the dirty primary workspace.",
+          "observed_at": "2026-07-29T18:03:00Z"
+        }
+      ]
+    },
+    {
+      "kind": "verification-gap",
+      "summary": "Scoped provider freshness is now proven for Pronto; release preparation still lacks a real release-candidate and publication-boundary exercise.",
+      "status": "open",
+      "observed_at": "2026-07-29T18:18:28Z",
+      "evidence": [
+        {
+          "ref": "pnpm cli refresh-github \"$(git rev-parse --show-toplevel)\" --json",
+          "note": "The repository now has fresh provider-native read evidence; no release mutation was attempted.",
+          "observed_at": "2026-07-29T18:02:43Z"
+        },
+        {
+          "ref": "docs/product-decisions.md",
+          "note": "Release behavior remains behind explicit evidence and authorization boundaries.",
+          "observed_at": "2026-07-29T18:18:28Z"
+        }
+      ]
+    },
+    {
+      "kind": "implementation-drift",
+      "summary": "Repository detail crashed when optional analytics metrics arrived as serialized JSON null values.",
+      "status": "resolved",
+      "observed_at": "2026-07-29T18:47:32Z",
+      "evidence": [
+        {
+          "ref": "src/renderer/src/types.ts",
+          "note": "The renderer contract now matches nullable optional analytics fields emitted by the Rust API.",
+          "observed_at": "2026-07-29T18:47:32Z"
+        },
+        {
+          "ref": "src/renderer/src/components/ChartPrimitives.tsx",
+          "note": "Charts now exclude null and undefined metrics and render them as unavailable.",
+          "observed_at": "2026-07-29T18:47:32Z"
+        },
+        {
+          "ref": "pnpm app:check",
+          "note": "The rebuilt installed app opened Pronto repository detail and displayed unavailable maturity without blanking the WebView.",
+          "observed_at": "2026-07-29T18:47:32Z"
+        }
+      ]
+    },
+    {
+      "kind": "implementation-drift",
+      "summary": "Quality configuration and execution evidence were conflated in repository gate cards, and the applicable dependency-audit gate was omitted when no execution artifact existed.",
+      "status": "resolved",
+      "observed_at": "2026-07-29T19:04:06Z",
+      "evidence": [
+        {
+          "ref": "src/renderer/src/components/QualityComponents.tsx",
+          "note": "Gate cards now show configured state independently from imported execution evidence.",
+          "observed_at": "2026-07-29T19:04:06Z"
+        },
+        {
+          "ref": "src/renderer/src/components/Drawers.tsx",
+          "note": "Repository detail now includes every applicable gate, including dependency audit, even before execution evidence exists.",
+          "observed_at": "2026-07-29T19:04:06Z"
+        },
+        {
+          "ref": "pnpm app:check",
+          "note": "The installed app displayed 9/9 configured, 0/9 fresh passing, and nine configured gate cards with no evidence.",
+          "observed_at": "2026-07-29T19:04:06Z"
+        }
+      ]
+    }
+  ],
+  "updated_at": "2026-07-29T19:04:06Z"
+}

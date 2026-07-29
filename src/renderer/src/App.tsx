@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import * as api from "./api";
 import { AnalyticsSurface } from "./components/AnalyticsComponents";
+import { SkillsSurface } from "./components/SkillsComponents";
 import {
   CommandCenterSurface,
   type Filter,
@@ -46,6 +47,7 @@ import type {
   RemediationActionStatus,
   RepositoryPreparation,
   RepositorySnapshot,
+  SkillsSnapshot,
 } from "./types";
 import "./styles.css";
 
@@ -56,6 +58,7 @@ export function App(): ReactElement {
   const [analytics, setAnalytics] = useState<AnalyticsSnapshot>(
     api.emptyAnalytics,
   );
+  const [skills, setSkills] = useState<SkillsSnapshot>(api.emptySkills);
   const [activeNav, setActiveNav] = useState<NavItem>("portfolio");
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -118,7 +121,42 @@ export function App(): ReactElement {
 
   useEffect(() => {
     void loadSnapshot(api.getSnapshot);
+    void api
+      .getSkills()
+      .then(setSkills)
+      .catch(() => setSkills(api.emptySkills));
   }, [loadSnapshot]);
+
+  const handleRefreshSkills = useCallback(async (): Promise<void> => {
+    setIsRefreshing(true);
+    setError(null);
+    try {
+      setSkills(await api.refreshSkills());
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Pronto could not refresh the skills corpus.",
+      );
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  const handleOpenSkillSource = useCallback(
+    async (path: string): Promise<void> => {
+      try {
+        await api.openSkillSource(path);
+      } catch (caught) {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Pronto could not open that skill source.",
+        );
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (
@@ -537,6 +575,13 @@ export function App(): ReactElement {
             <AnalyticsSurface
               analytics={analytics}
               repositories={snapshot.repositories}
+            />
+          ) : activeNav === "skills" ? (
+            <SkillsSurface
+              snapshot={skills}
+              isRefreshing={isRefreshing}
+              onRefresh={() => void handleRefreshSkills()}
+              onOpenSource={(path) => void handleOpenSkillSource(path)}
             />
           ) : activeNav === "activity" ? (
             <ActivitySurface
