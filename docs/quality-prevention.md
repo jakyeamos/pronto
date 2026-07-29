@@ -8,8 +8,8 @@ occurrence is a policy violation.
 
 ## Current evidence
 
-The clean pilot worktree was created from `origin/main` at
-`65e26a270f26a056972c09bb32679dbe862b8c4a`. Dependencies were installed with
+The clean pilot worktree was reconciled onto `origin/main` at
+`bd259121c827f63a6ef85a2524200e75d40930b2`. Dependencies were installed with
 `pnpm install --frozen-lockfile` using pnpm 11.9.0 and Node 22.14.0.
 
 The following commands passed twice on the unchanged local worktree:
@@ -17,16 +17,21 @@ The following commands passed twice on the unchanged local worktree:
 - `pnpm lint` with ESLint 10.8.0.
 - `pnpm format:check` with Prettier 3.9.6.
 - `pnpm typecheck` with TypeScript 5.9.3.
-- `pnpm test` with Cargo 1.97.1 and Vitest 4.1.10; each run passed 54 Rust
-  tests and 14 renderer tests.
+- `pnpm test` with Cargo 1.97.1 and Vitest 4.1.10.
+- `pnpm smoke`, which exercises the read-only CLI help path.
 
 That is repeatability evidence, not certification. None of these checks has a
 checked-in intentional-failure fixture or execution evidence from the pilot CI
 environment yet, so each remains `candidate` and advisory.
 
-`pnpm smoke` is unavailable on the canonical branch because `package.json`
-does not define a `smoke` script. It must not be certified from evidence in a
-different or dirty checkout.
+The warmed implementation-loop speed trial measured 14.944 seconds for those
+five native commands and 20.608 seconds for the same commands followed by
+`qr task check`, an added 5.664 seconds (37.9%). The separate one-time
+`qr task start` baseline capture took 7.706 seconds. QR's analysis phase took
+0.594 seconds with 124 cache hits and zero misses; snapshot and artifact work
+accounted for the remainder of the 5.468-second task check. An initial cold
+native run took 36.462 seconds because `pnpm test` spent 27.019 seconds warming
+the Rust build cache, so it is not used as the steady-state comparison.
 
 The first post-pilot `format:check` also showed that Prettier traversed
 `.quality-runner` evidence artifacts. The pilot now excludes that generated
