@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import type { ReactElement } from "react";
+import { type ReactElement, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   ChevronRight,
@@ -25,6 +24,11 @@ import {
   remediationStatusLabel,
   remediationStatusTone,
 } from "./RemediationActionRow";
+import {
+  remediationMaturityPolicySummary,
+  RemediationMaturityPolicyCriteria,
+  RemediationMaturityPolicyMeta,
+} from "./RemediationMaturityPolicy";
 
 export function RemediationSurface({
   run,
@@ -268,6 +272,8 @@ export function RemediationSurface({
                   {remediationStatusLabel(closure.goal_source)} ·{" "}
                   {closure.disposition} ·{" "}
                   {formatRemediationTime(closure.closed_at)}
+                  {closure.maturity_policy &&
+                    ` · ${remediationMaturityPolicySummary(closure.maturity_policy)}`}
                 </small>
               </div>
             ))}
@@ -389,6 +395,11 @@ export function RemediationSurface({
                     {selectedPlan.goal.required_gate_ids.length} required gates
                   </span>
                   <code>{selectedPlan.goal.contract_path}</code>
+                  {selectedPlan.goal.maturity_policy && (
+                    <RemediationMaturityPolicyMeta
+                      policy={selectedPlan.goal.maturity_policy}
+                    />
+                  )}
                 </div>
                 <details>
                   <summary>Goal-specific closure contract</summary>
@@ -396,6 +407,11 @@ export function RemediationSurface({
                     {selectedPlan.goal.closure_criteria.map((criterion) => (
                       <li key={criterion}>{criterion}</li>
                     ))}
+                    {selectedPlan.goal.maturity_policy && (
+                      <RemediationMaturityPolicyCriteria
+                        policy={selectedPlan.goal.maturity_policy}
+                      />
+                    )}
                   </ul>
                 </details>
               </div>
