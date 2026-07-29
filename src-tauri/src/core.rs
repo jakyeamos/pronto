@@ -891,10 +891,24 @@ pub struct AgentFoldCandidate {
     pub operation: Option<String>,
     pub activity_state: Option<String>,
     pub activity_confidence: Option<String>,
+    pub merge_preview: Option<AgentFoldMergePreview>,
     pub decision: String,
     pub reason: String,
     pub next_safe_step: String,
     pub authorization: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentFoldMergePreview {
+    pub merge_strategy: String,
+    pub fast_forwardable: bool,
+    pub target_is_ancestor: bool,
+    pub source_is_ancestor: bool,
+    pub merge_base: String,
+    pub target_only_commits: u64,
+    pub source_only_commits: u64,
+    pub conflict_count: u64,
+    pub conflict_breakdown: BTreeMap<String, u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -8721,6 +8735,119 @@ fn agent_fold_decision_priority(decision: &str) -> u8 {
     }
 }
 
+fn git_is_ancestor(path: &Path, ancestor: &str, descendant: &str) -> bool {
+    run_git(
+        path,
+        vec![
+            "merge-base".to_string(),
+            "--is-ancestor".to_string(),
+            ancestor.to_string(),
+            descendant.to_string(),
+        ],
+    )
+    .map(|result| result.success)
+    .unwrap_or(false)
+}
+
+fn merge_tree_conflicts(output: &str) -> BTreeMap<String, u64> {
+    let mut breakdown = BTreeMap::new();
+    for line in output.lines() {
+        let trimmed = line.trim();
+        let kind = if let Some(kind) = trimmed
+            .strip_prefix("CONFLICT (")
+            .and_then(|value| value.split_once(')'))
+            .map(|(kind, _)| kind)
+        {
+            Some(kind.to_string())
+        } else {
+            match trimmed {
+                "changed in both" => Some("content".to_string()),
+                "added in both" => Some("add/add".to_string()),
+                "removed in local" | "removed in remote" => Some("modify/delete".to_string()),
+                "removed in both" => Some("delete/delete".to_string()),
+                _ => None,
+            }
+        };
+        let Some(kind) = kind else {
+            continue;
+        };
+        *breakdown.entry(kind).or_insert(0) += 1;
+    }
+    breakdown
+}
+
+fn agent_fold_merge_preview(
+    path: &Path,
+    source_branch: &str,
+    target_branch: &str,
+) -> Option<AgentFoldMergePreview> {
+    let merge_base = git_owned(
+        path,
+        vec![
+            "merge-base".to_string(),
+            target_branch.to_string(),
+            source_branch.to_string(),
+        ],
+    )?;
+    let target_is_ancestor = git_is_ancestor(path, target_branch, source_branch);
+    let source_is_ancestor = git_is_ancestor(path, source_branch, target_branch);
+    let merge_strategy = if target_is_ancestor {
+        "fast-forward"
+    } else if source_is_ancestor {
+        "already-integrated"
+    } else {
+        "three-way-merge"
+    };
+    let target_only_commits = git_owned(
+        path,
+        vec![
+            "rev-list".to_string(),
+            "--count".to_string(),
+            format!("{merge_base}..{target_branch}"),
+        ],
+    )?
+    .parse()
+    .ok()?;
+    let source_only_commits = git_owned(
+        path,
+        vec![
+            "rev-list".to_string(),
+            "--count".to_string(),
+            format!("{merge_base}..{source_branch}"),
+        ],
+    )?
+    .parse()
+    .ok()?;
+    let conflict_breakdown = if merge_strategy == "three-way-merge" {
+        run_git(
+            path,
+            vec![
+                "merge-tree".to_string(),
+                merge_base.clone(),
+                target_branch.to_string(),
+                source_branch.to_string(),
+            ],
+        )
+        .ok()
+        .map(|result| merge_tree_conflicts(&result.stdout))
+        .unwrap_or_default()
+    } else {
+        BTreeMap::new()
+    };
+    let conflict_count = conflict_breakdown.values().sum();
+    Some(AgentFoldMergePreview {
+        merge_strategy: merge_strategy.to_string(),
+        fast_forwardable: target_is_ancestor,
+        target_is_ancestor,
+        source_is_ancestor,
+        merge_base,
+        target_only_commits,
+        source_only_commits,
+        conflict_count,
+        conflict_breakdown,
+    })
+}
+
 fn agent_fold_candidate(
     repository: &RepositorySnapshot,
     branch: &BranchSummary,
@@ -8757,6 +8884,12 @@ fn agent_fold_candidate(
         operation: workspace.and_then(|item| item.operation.clone()),
         activity_state: workspace.map(|item| item.activity.state.clone()),
         activity_confidence: workspace.map(|item| item.activity.confidence.clone()),
+        merge_preview: target.and_then(|target| {
+            let merge_path = workspace
+                .map(|item| Path::new(item.path.as_str()))
+                .unwrap_or_else(|| Path::new(&repository.path));
+            agent_fold_merge_preview(merge_path, &branch.name, target)
+        }),
         decision,
         reason,
         next_safe_step: next_safe_step.to_string(),
@@ -9567,6 +9700,28 @@ fn print_human_fold_preview(report: &AgentFoldPreview) {
             candidate.decision,
             candidate.reason
         );
+        if let Some(preview) = &candidate.merge_preview {
+            let breakdown = if preview.conflict_breakdown.is_empty() {
+                "none".to_string()
+            } else {
+                preview
+                    .conflict_breakdown
+                    .iter()
+                    .map(|(kind, count)| format!("{kind} {count}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            };
+            println!(
+                "    Merge: {} · fast-forwardable: {} · base: {} · target-only: {} · source-only: {} · conflicts: {} ({})",
+                preview.merge_strategy,
+                preview.fast_forwardable,
+                preview.merge_base,
+                preview.target_only_commits,
+                preview.source_only_commits,
+                preview.conflict_count,
+                breakdown
+            );
+        }
     }
 }
 
