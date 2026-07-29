@@ -1597,15 +1597,7 @@ fn load_store_from_connection(connection: &SqliteConnection) -> Result<StoreStat
 
 fn load_store_with_quality(path: &Path) -> Result<StoreState, String> {
     let mut state = load_store(path)?;
-    let fleet_audit_root = state
-        .remediation
-        .refresh_steps
-        .iter()
-        .find(|step| step.id == "qr_fleet_run")
-        .and_then(|step| step.evidence_path.as_deref())
-        .map(PathBuf::from)
-        .filter(|root| root.is_dir());
-    apply_quality_evidence_scoped(&mut state, None, fleet_audit_root.as_deref());
+    apply_quality_evidence_scoped(&mut state, None, None);
     Ok(state)
 }
 
@@ -3001,11 +2993,24 @@ fn apply_quality_evidence(state: &mut StoreState) {
     apply_quality_evidence_scoped(state, None, None);
 }
 
+fn persisted_fleet_audit_root(state: &StoreState) -> Option<PathBuf> {
+    state
+        .remediation
+        .refresh_steps
+        .iter()
+        .find(|step| step.id == "qr_fleet_run")
+        .and_then(|step| step.evidence_path.as_deref())
+        .map(PathBuf::from)
+        .filter(|root| root.is_dir())
+}
+
 fn apply_quality_evidence_scoped(
     state: &mut StoreState,
     target_repository_ids: Option<&HashSet<String>>,
     fleet_audit_root: Option<&Path>,
 ) {
+    let persisted_fleet_root = persisted_fleet_audit_root(state);
+    let fleet_audit_root = fleet_audit_root.or(persisted_fleet_root.as_deref());
     let feed_path = quality::canonical_maturity_feed_path();
     let audit = quality::maturity_feed_import(feed_path.as_deref(), &state.repositories);
     let fleet = quality::fleet_audit_import(fleet_audit_root, &state.repositories);
@@ -3065,6 +3070,28 @@ fn apply_quality_evidence_scoped(
         state.quality.latest_audit_id.as_deref(),
         fleet_audit_root,
     );
+}
+
+fn maturity_coverage_gaps(repositories: &[RepositorySnapshot]) -> Vec<String> {
+    repositories
+        .iter()
+        .filter(|repository| !remediation::is_excluded_repository(repository))
+        .filter(|repository| remediation::repository_requires_maturity(repository))
+        .filter_map(|repository| {
+            let maturity = &repository.quality.maturity;
+            if maturity.score.is_none() {
+                Some(format!("{} (missing)", repository.name))
+            } else if maturity.freshness != QualityFreshness::Fresh {
+                Some(format!(
+                    "{} ({})",
+                    repository.name,
+                    maturity.freshness.as_str().to_ascii_lowercase()
+                ))
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 fn refresh_github_at(path: &Path) -> Result<PortfolioSnapshot, String> {
@@ -3791,20 +3818,40 @@ fn refresh_remediation_at(
     let mut final_state = load_store(path)?;
     let scoped_fleet_root = scoped_artifact_root.as_deref().map(Path::new);
     apply_quality_evidence_scoped(&mut final_state, Some(&eligible_ids), scoped_fleet_root);
+    let maturity_repository_count = final_state
+        .repositories
+        .iter()
+        .filter(|repository| !remediation::is_excluded_repository(repository))
+        .filter(|repository| remediation::repository_requires_maturity(repository))
+        .count();
+    let maturity_gaps = maturity_coverage_gaps(&final_state.repositories);
+    let quality_import_completed = feed_published && maturity_gaps.is_empty();
+    let quality_import_detail = if !feed_published {
+        "The canonical QR maturity feed was not published; prior maturity evidence was retained."
+            .to_string()
+    } else if maturity_gaps.is_empty() {
+        format!(
+            "Pronto imported the canonical feed plus replay-validated scoped audit evidence; all {maturity_repository_count} maturity-applicable repositories have fresh scores, and CI ideal-state projections were refreshed."
+        )
+    } else {
+        format!(
+            "The canonical QR maturity feed was published, but the checkpoint is incomplete because {} maturity-applicable repositories lack fresh scores: {}.",
+            maturity_gaps.len(),
+            maturity_gaps.join(", ")
+        )
+    };
     set_remediation_refresh_step(
         &mut steps,
         "quality_import",
-        if feed_published {
+        if quality_import_completed {
             "completed"
         } else {
             "blocked"
         },
-        if feed_published {
-            "Pronto imported the current QR maturity feed and refreshed CI ideal-state projections."
-        } else {
-            "The current QR maturity feed was not published; prior maturity evidence was retained."
-        },
-        final_state.quality.latest_audit_path.clone(),
+        quality_import_detail,
+        scoped_artifact_root
+            .clone()
+            .or_else(|| final_state.quality.latest_audit_path.clone()),
     );
     set_remediation_refresh_step(
         &mut steps,
@@ -11985,6 +12032,104 @@ mod tests {
         );
 
         fs::remove_dir_all(root).expect("cli root fixture should be removable");
+    }
+
+    #[test]
+    fn ordinary_refresh_retains_persisted_scoped_maturity_evidence() {
+        let root = fixture_root();
+        fixture_repository(&root);
+        let store = root.join("registry.db");
+        let snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        let repository = &snapshot.repositories[0];
+        let audit_root = root.join("qr-audit");
+        let findings_root = audit_root.join("findings");
+        fs::create_dir_all(&findings_root).expect("findings root should be creatable");
+        let observed_at = iso_now();
+        fs::write(
+            findings_root.join("repository.json"),
+            serde_json::to_string(&serde_json::json!({
+                "audit_id": "audit-scoped",
+                "as_of": observed_at,
+                "repository": {
+                    "primary_path": repository.path,
+                    "checkouts": [{
+                        "path": repository.workspace.path,
+                        "head": repository.workspace.last_commit,
+                        "branch": repository.branch
+                    }]
+                },
+                "findings": [{
+                    "applicable": true,
+                    "dimension": "quality_commands",
+                    "finding_id": "finding-quality-commands",
+                    "label": "quality commands",
+                    "message": "Quality commands need work.",
+                    "priority": "P1",
+                    "score": 2,
+                    "schema": "quality-runner-environment-legibility-finding-v0.1",
+                    "severity": "observation"
+                }]
+            }))
+            .expect("scoped QR finding should encode"),
+        )
+        .expect("scoped QR finding should be writable");
+
+        let mut state = load_store(&store).expect("fixture store should reload");
+        state.remediation.refresh_steps = vec![remediation::RemediationRefreshStep {
+            id: "qr_fleet_run".to_string(),
+            label: "Fresh Quality Runner fleet run".to_string(),
+            status: "completed".to_string(),
+            evidence_path: Some(audit_root.to_string_lossy().to_string()),
+            ..remediation::RemediationRefreshStep::default()
+        }];
+        apply_quality_evidence_scoped(&mut state, None, None);
+        assert_eq!(state.repositories[0].quality.maturity.score, Some(2.0));
+        assert_eq!(
+            state.repositories[0].quality.maturity.freshness,
+            QualityFreshness::Fresh
+        );
+        save_store(&store, &state).expect("scoped maturity state should persist");
+
+        let mut persisted = load_store(&store).expect("scoped maturity state should reload");
+        let refreshed = scan_and_persist_scoped(&store, &mut persisted, None)
+            .expect("ordinary refresh should succeed");
+        assert_eq!(refreshed.repositories[0].quality.maturity.score, Some(2.0));
+        assert_eq!(
+            refreshed.repositories[0].quality.maturity.freshness,
+            QualityFreshness::Fresh
+        );
+
+        fs::remove_dir_all(root).expect("scoped maturity fixture should be removable");
+    }
+
+    #[test]
+    fn maturity_checkpoint_reports_missing_and_stale_applicable_repositories() {
+        let root = fixture_root();
+        fixture_repository(&root);
+        let store = root.join("registry.db");
+        let mut snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        let repository_name = snapshot.repositories[0].name.clone();
+        snapshot.repositories[0].lifecycle = "Active".to_string();
+        snapshot.repositories[0].lifecycle_candidate = "Active".to_string();
+
+        assert_eq!(
+            maturity_coverage_gaps(&snapshot.repositories),
+            vec![format!("{repository_name} (missing)")]
+        );
+
+        snapshot.repositories[0].quality.maturity.score = Some(2.0);
+        snapshot.repositories[0].quality.maturity.freshness = QualityFreshness::Stale;
+        assert_eq!(
+            maturity_coverage_gaps(&snapshot.repositories),
+            vec![format!("{repository_name} (stale)")]
+        );
+
+        snapshot.repositories[0].quality.maturity.freshness = QualityFreshness::Fresh;
+        assert!(maturity_coverage_gaps(&snapshot.repositories).is_empty());
+
+        fs::remove_dir_all(root).expect("maturity coverage fixture should be removable");
     }
 
     #[test]
