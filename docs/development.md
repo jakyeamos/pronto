@@ -35,6 +35,18 @@ pnpm app:check
 
 These build/install commands do not modify the local Pronto database.
 
+## Rust toolchain contract
+
+Pronto's minimum supported Rust version is `1.88.0`, matching the current
+locked dependency graph. Verify the minimum explicitly with:
+
+```sh
+cargo +1.88.0 check --manifest-path src-tauri/Cargo.toml --locked
+```
+
+The `MSRV` GitHub Actions job runs this command independently from the stable
+Rust build so a dependency update cannot silently raise the minimum.
+
 ## Remediation queue contract
 
 `pronto remediation --json` exposes `pronto-remediation/v3`. The `plans`

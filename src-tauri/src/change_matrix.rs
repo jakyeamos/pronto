@@ -335,7 +335,9 @@ fn read_and_assess_inner(
                 gaps.push(format!("Surface {} remains {status}.", index + 1));
             }
         }
-        if operation.is_none_or(|selected| operations.iter().any(|item| item == selected)) {
+        if operation.map_or(true, |selected| {
+            operations.iter().any(|item| item == selected)
+        }) {
             surfaces.push(ChangeMatrixSurface {
                 id: surface
                     .get("id")

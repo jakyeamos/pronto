@@ -2284,7 +2284,7 @@ fn fleet_maturity_gaps(findings: &[Value]) -> Vec<QualityMaturityGap> {
                 && finding
                     .get("score")
                     .and_then(Value::as_f64)
-                    .is_none_or(|score| score < 4.0)
+                    .map_or(true, |score| score < 4.0)
         })
         .filter_map(|finding| {
             Some(QualityMaturityGap {

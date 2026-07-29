@@ -2970,7 +2970,7 @@ fn apply_provider_refresh_at(
             .into_iter()
             .filter(|remote| {
                 normalize_remote_name(&remote.full_name)
-                    .is_none_or(|name| !target_names.contains(&name))
+                    .map_or(true, |name| !target_names.contains(&name))
             })
             .collect::<Vec<_>>();
         merged.extend(refreshed_remote_repositories.into_iter().filter(|remote| {
@@ -8917,11 +8917,11 @@ fn agent_fold_preview_report(
     for repository in &repositories {
         let (target, target_source, target_confidence) =
             agent_fold_target(repository, requested_target);
-        for branch in repository
-            .branches
-            .iter()
-            .filter(|branch| target.as_deref().is_none_or(|target| branch.name != target))
-        {
+        for branch in repository.branches.iter().filter(|branch| {
+            target
+                .as_deref()
+                .map_or(true, |target| branch.name != target)
+        }) {
             let mut candidate_branch = branch.clone();
             let explicit_local_target = requested_target
                 .and_then(|_| target.as_deref())
@@ -9056,7 +9056,7 @@ fn agent_doctor_report(
         }
         if oldest_scan
             .as_ref()
-            .is_none_or(|(oldest, _)| observed_at < *oldest)
+            .map_or(true, |(oldest, _)| observed_at < *oldest)
         {
             oldest_scan = Some((observed_at, age_minutes));
         }
@@ -9527,7 +9527,7 @@ fn agent_activity_report(
         .filter(|event| {
             repository_id
                 .as_deref()
-                .is_none_or(|id| event.repository_id == id)
+                .map_or(true, |id| event.repository_id == id)
         })
         .take(limit)
         .cloned()
@@ -9536,9 +9536,9 @@ fn agent_activity_report(
         .action_audits
         .iter()
         .filter(|audit| {
-            repository_id
-                .as_deref()
-                .is_none_or(|id| audit.target_ids.iter().any(|target| target == id))
+            repository_id.as_deref().map_or(true, |id| {
+                audit.target_ids.iter().any(|target| target == id)
+            })
         })
         .take(limit)
         .cloned()

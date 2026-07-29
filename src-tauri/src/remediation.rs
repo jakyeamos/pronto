@@ -1351,7 +1351,7 @@ fn add_release_evidence_seeds(
         || repository
             .release_rule
             .as_ref()
-            .is_none_or(|rule| rule.allow_first_release)
+            .map_or(true, |rule| rule.allow_first_release)
     {
         return;
     }

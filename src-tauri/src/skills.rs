@@ -345,10 +345,9 @@ fn invocation_candidates(
                 if is_recent {
                     entry.recent_count += 1;
                 }
-                if timestamp
-                    .as_ref()
-                    .is_some_and(|value| entry.last_seen_at.as_ref().is_none_or(|old| value > old))
-                {
+                if timestamp.as_ref().is_some_and(|value| {
+                    entry.last_seen_at.as_ref().map_or(true, |old| value > old)
+                }) {
                     entry.last_seen_at = timestamp.clone();
                 }
                 entry.telemetry_source =
@@ -757,14 +756,18 @@ fn empty_snapshot() -> SkillsSnapshot {
     }
 }
 
+fn is_discovered_source(requested: &Path, candidates: &[Candidate]) -> bool {
+    requested.file_name().is_some_and(|name| name == "SKILL.md")
+        && candidates
+            .iter()
+            .any(|candidate| candidate.path == requested)
+}
+
 pub fn open_source(path: &str) -> Result<(), String> {
     let requested = PathBuf::from(path);
-    let allowed = root_specs()
-        .into_iter()
-        .map(|(_, path, _, _)| path)
-        .any(|root| requested.starts_with(root));
-    if !allowed || requested.file_name().is_none_or(|name| name != "SKILL.md") {
-        return Err("Skill source is outside the discovered skill roots".into());
+    let (candidates, _) = discover_candidates();
+    if !requested.is_file() || !is_discovered_source(&requested, &candidates) {
+        return Err("Skill source is not an exact currently discovered source".into());
     }
     #[cfg(target_os = "macos")]
     {
@@ -827,6 +830,23 @@ mod tests {
         let state = provider_state("gemini", &[], Some(&source));
         assert_eq!(state.state, "native");
         assert_eq!(state.source_path, Some("/tmp/example/SKILL.md".to_string()));
+    }
+
+    #[test]
+    fn source_opening_requires_an_exact_discovered_path() {
+        let discovered = vec![candidate(None, "same")];
+        assert!(is_discovered_source(
+            Path::new("/tmp/example/SKILL.md"),
+            &discovered
+        ));
+        assert!(!is_discovered_source(
+            Path::new("/tmp/example/../outside/SKILL.md"),
+            &discovered
+        ));
+        assert!(!is_discovered_source(
+            Path::new("/tmp/example-copy/SKILL.md"),
+            &discovered
+        ));
     }
 
     #[cfg(unix)]
