@@ -1601,6 +1601,12 @@ fn load_store_with_quality(path: &Path) -> Result<StoreState, String> {
     Ok(state)
 }
 
+fn load_store_read_only_with_quality(path: &Path) -> Result<StoreState, String> {
+    let mut state = load_store_read_only(path)?;
+    apply_quality_evidence_scoped(&mut state, None, None);
+    Ok(state)
+}
+
 fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
     let mut connection = open_store(path)?;
     let transaction = connection
@@ -10236,7 +10242,7 @@ pub fn run_cli(arguments: Vec<String>) {
             let scope = query
                 .map(|value| format!("{base_scope}; current_repository:{value}"))
                 .unwrap_or(base_scope);
-            let report = match load_store_read_only(&path) {
+            let report = match load_store_read_only_with_quality(&path) {
                 Ok(state) => {
                     let snapshot = snapshot_from_store(&path, &state);
                     let scoped_snapshot = filter_snapshot_by_collection(
@@ -12101,6 +12107,88 @@ mod tests {
         );
 
         fs::remove_dir_all(root).expect("scoped maturity fixture should be removable");
+    }
+
+    #[test]
+    fn read_only_route_load_recovers_persisted_scoped_maturity_evidence() {
+        let root = fixture_root();
+        fixture_repository(&root);
+        let store = root.join("registry.db");
+        let snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        let repository = &snapshot.repositories[0];
+        let audit_root = root.join("qr-audit");
+        let findings_root = audit_root.join("findings");
+        fs::create_dir_all(&findings_root).expect("findings root should be creatable");
+        fs::write(
+            findings_root.join("repository.json"),
+            serde_json::to_string(&serde_json::json!({
+                "audit_id": "audit-route-scoped",
+                "as_of": iso_now(),
+                "repository": {
+                    "primary_path": repository.path,
+                    "checkouts": [{
+                        "path": repository.workspace.path,
+                        "head": repository.workspace.last_commit,
+                        "branch": repository.branch
+                    }]
+                },
+                "findings": [{
+                    "applicable": true,
+                    "dimension": "quality_commands",
+                    "finding_id": "finding-route-quality-commands",
+                    "label": "quality commands",
+                    "message": "Quality commands need work.",
+                    "priority": "P1",
+                    "score": 2,
+                    "schema": "quality-runner-environment-legibility-finding-v0.1",
+                    "severity": "observation"
+                }]
+            }))
+            .expect("scoped QR finding should encode"),
+        )
+        .expect("scoped QR finding should be writable");
+
+        let mut state = load_store(&store).expect("fixture store should reload");
+        state.remediation.refresh_steps = vec![remediation::RemediationRefreshStep {
+            id: "qr_fleet_run".to_string(),
+            label: "Fresh Quality Runner fleet run".to_string(),
+            status: "completed".to_string(),
+            evidence_path: Some(audit_root.to_string_lossy().to_string()),
+            ..remediation::RemediationRefreshStep::default()
+        }];
+        save_store(&store, &state).expect("scoped audit provenance should persist");
+
+        let state = load_store_read_only_with_quality(&store)
+            .expect("route should hydrate quality without opening the store for writes");
+        let snapshot = snapshot_from_store(&store, &state);
+        let repository_path = snapshot.repositories[0].path.clone();
+        let report = agent_route_report(
+            &snapshot,
+            &store,
+            60,
+            &format!("repository:{repository_path}"),
+            Some(&repository_path),
+            3,
+        )
+        .expect("route report should build");
+
+        assert_eq!(
+            report
+                .repository
+                .as_ref()
+                .and_then(|detail| detail.repository.quality.maturity.score),
+            Some(2.0)
+        );
+        assert_eq!(
+            report
+                .repository
+                .as_ref()
+                .map(|detail| &detail.repository.quality.maturity.freshness),
+            Some(&QualityFreshness::Fresh)
+        );
+
+        fs::remove_dir_all(root).expect("route maturity fixture should be removable");
     }
 
     #[test]
