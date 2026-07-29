@@ -6,3 +6,4 @@ pnpm-lock.yaml
 docs/pronto-behavior-spec.xlsx
 .aios/**
 .pre-cr/**
+.quality-runner/**
