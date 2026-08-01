@@ -31,23 +31,24 @@ intentionally withholds follow-up projections and exits non-zero; use its
 
 ## Focused read and preview surfaces
 
-| Need                      | Command                                                                                                     | Contract                       |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Agent routing envelope    | `route [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] [--limit <n>] --json`      | `pronto-agent-route/v1`        |
-| Freshness/storage gate    | `doctor [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] --json`                   | `pronto-agent-doctor/v1`       |
-| Daily orientation         | `next [<repository>] [--product <name> \| --group <name>] [--limit <n>] --json`                             | `pronto-agent-next/v1`         |
-| Fold preparation          | `fold preview [<repository>] [--target <branch>] [--product <name> \| --group <name>] [--limit <n>] --json` | `pronto-agent-fold-preview/v1` |
-| Fleet orientation         | `summary [--product <name> \| --group <name>] --json`                                                       | `pronto-agent-summary/v1`      |
-| One repository            | `repo <absolute-repo-path> --json`                                                                          | `pronto-agent-repository/v1`   |
-| Quality evidence          | `quality [<repository>] --json`                                                                             | `pronto-agent-quality/v1`      |
-| Skill topology            | `skills [<skill-id>] --json`                                                                                | `pronto-skills/v2`             |
-| Repository change matrix  | `change-matrix repo <repository> [--operation <add\|change\|remove>] --json`                                | `pronto-change-matrix/v1`      |
-| Skill change matrix       | `change-matrix skill <skill-id> [--operation <add\|change\|remove>] --json`                                 | `pronto-change-matrix/v1`      |
-| Active remediation        | `remediation [<repository>] --json`                                                                         | `pronto-remediation/v3`        |
-| Work requiring attention  | `attention --json`                                                                                          | `pronto-agent-attention/v1`    |
-| Recent transitions/audits | `activity [<repository>] --limit <n> --json`                                                                | `pronto-agent-activity/v1`     |
-| Preparation preflight     | `prepare <repository> [--workspace <id>] --json`                                                            | `pronto-agent-preparation/v1`  |
-| Release preflight         | `release preview <repository> [--workspace <id>] --json`                                                    | `pronto-agent-release/v1`      |
+| Need                      | Command                                                                                                                                                       | Contract                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Agent routing envelope    | `route [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] [--limit <n>] --json`                                                        | `pronto-agent-route/v1`        |
+| Freshness/storage gate    | `doctor [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] --json`                                                                     | `pronto-agent-doctor/v1`       |
+| Daily orientation         | `next [<repository>] [--product <name> \| --group <name>] [--limit <n>] --json`                                                                               | `pronto-agent-next/v1`         |
+| Fold preparation          | `fold preview [<repository>] [--target <branch>] [--product <name> \| --group <name>] [--limit <n>] --json`                                                   | `pronto-agent-fold-preview/v1` |
+| Fleet orientation         | `summary [--product <name> \| --group <name>] --json`                                                                                                         | `pronto-agent-summary/v1`      |
+| One repository            | `repo <absolute-repo-path> --json`                                                                                                                            | `pronto-agent-repository/v1`   |
+| Quality evidence          | `quality [<repository>] --json`                                                                                                                               | `pronto-agent-quality/v1`      |
+| Finding adjudication      | `quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] --json` | repository-owned overlay       |
+| Skill topology            | `skills [<skill-id>] --json`                                                                                                                                  | `pronto-skills/v2`             |
+| Repository change matrix  | `change-matrix repo <repository> [--operation <add\|change\|remove>] --json`                                                                                  | `pronto-change-matrix/v1`      |
+| Skill change matrix       | `change-matrix skill <skill-id> [--operation <add\|change\|remove>] --json`                                                                                   | `pronto-change-matrix/v1`      |
+| Active remediation        | `remediation [<repository>] --json`                                                                                                                           | `pronto-remediation/v3`        |
+| Work requiring attention  | `attention --json`                                                                                                                                            | `pronto-agent-attention/v1`    |
+| Recent transitions/audits | `activity [<repository>] --limit <n> --json`                                                                                                                  | `pronto-agent-activity/v1`     |
+| Preparation preflight     | `prepare <repository> [--workspace <id>] --json`                                                                                                              | `pronto-agent-preparation/v1`  |
+| Release preflight         | `release preview <repository> [--workspace <id>] --json`                                                                                                      | `pronto-agent-release/v1`      |
 
 Resolve a repository with `git rev-parse --show-toplevel` and pass the
 absolute path, repository name, ID, or an exact workspace path. Do not pass `.`
@@ -125,8 +126,11 @@ needed.
 The following commands can change local Pronto state or touch an external
 boundary and require explicit task scope: `root add`, `root exclude`, `refresh`,
 `refresh-github`, `clone`, `remediation refresh`, `remediation export`, and
-`remediation set-status`. They do not authorize Git branch cleanup, merging,
-pushing, deletion, provider mutation, or release publication.
+`remediation set-status`. `quality disposition set` writes the selected
+repository's `.pronto/quality-finding-dispositions.json` review ledger and
+therefore also requires an exact repository, finding fingerprint, disposition,
+reason, and reviewer. These commands do not authorize Git branch cleanup,
+merging, pushing, deletion, provider mutation, or release publication.
 
 Use `refresh-github <repository|group|product> --json` when live provider
 evidence is needed for a bounded scope. Omitting the target refreshes the whole
@@ -154,5 +158,17 @@ operations that depend on current Git state still require live verification.
 - A preview or configured ideal is not execution proof. Keep source tests,
   local validation, live browser/device evidence, and release/provider proof
   distinct.
+- Quality finding `total` remains the immutable detector count.
+  `actionable_total`, `reviewed_total`, `unreviewed_total`, and
+  `disposition_counts` are reconciled from the repository-owned
+  `pronto-quality-finding-dispositions/v1` ledger. Missing, invalid, expired,
+  absent, or scope-mismatched dispositions never suppress a finding.
+- Supported finding dispositions are `confirmed`, `false_positive`,
+  `accepted_intentional`, `accepted_risk`, `deferred`, `fixed`, and
+  `superseded`. Confirmed and deferred findings remain actionable; false
+  positives, accepted intentional behavior, and accepted risk leave the active
+  remediation queue while their review evidence remains visible. Fixed or
+  superseded decisions attached to a current finding are treated as stale
+  rather than silently hiding a recurrence.
 - Preserve `schema_version`, freshness, evidence, and uncertainty fields when
   handing JSON to another agent.

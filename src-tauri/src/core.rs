@@ -6,7 +6,7 @@ use crate::quality::{
 };
 use crate::remediation::{self, RemediationRun};
 use crate::skills::{self, SkillsSnapshot};
-use chrono::{DateTime, SecondsFormat, Utc};
+use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use rusqlite::{params, Connection as SqliteConnection, OpenFlags, OptionalExtension, Row};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -293,6 +293,17 @@ impl Default for WorkspaceActivity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkspaceSyncDetail {
+    pub reason: String,
+    pub evidence_observed_at: Option<String>,
+    pub evidence_expires_at: Option<String>,
+    pub evidence_window_minutes: i64,
+    pub next_safe_action: String,
+    pub scoped_refresh_command: String,
+    pub authorization: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceSummary {
     pub id: String,
     pub path: String,
@@ -318,6 +329,8 @@ pub struct WorkspaceSummary {
     pub role_confidence: String,
     #[serde(default)]
     pub activity: WorkspaceActivity,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sync_detail: Option<WorkspaceSyncDetail>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -675,6 +688,7 @@ const DEFAULT_AGENT_FOLD_PREVIEW_LIMIT: usize = 24;
 const MAX_AGENT_FOLD_PREVIEW_LIMIT: usize = 100;
 const AGENT_DOCTOR_SCHEMA: &str = "pronto-agent-doctor/v1";
 const DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES: i64 = 2_880;
+const WORKSPACE_SYNC_EVIDENCE_MAX_AGE_MINUTES: i64 = DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES;
 const MAX_AGENT_DOCTOR_MAX_AGE_MINUTES: i64 = 10_080;
 const AGENT_ROUTE_SCHEMA: &str = "pronto-agent-route/v1";
 
@@ -711,6 +725,8 @@ pub struct AgentWorkspaceSummary {
     pub last_commit: Option<String>,
     pub last_commit_at: Option<String>,
     pub last_activity_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sync_detail: Option<WorkspaceSyncDetail>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -2355,9 +2371,13 @@ fn load_analytics_at(path: &Path) -> Result<AnalyticsSnapshot, String> {
 }
 
 fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
+    let mut repositories = state.repositories.clone();
+    for repository in &mut repositories {
+        hydrate_workspace_sync_details(repository);
+    }
     PortfolioSnapshot {
         roots: state.roots.clone(),
-        repositories: state.repositories.clone(),
+        repositories,
         products: state.products.clone(),
         groups: state.groups.clone(),
         events: state.events.iter().rev().take(24).cloned().collect(),
@@ -2371,6 +2391,110 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
         generated_at: iso_now(),
         storage_path: path.to_string_lossy().to_string(),
     }
+}
+
+fn shell_quote_for_display(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+fn workspace_sync_reason(workspace: &WorkspaceSummary) -> String {
+    match (
+        workspace.upstream.as_deref(),
+        workspace.ahead,
+        workspace.behind,
+    ) {
+        (None, _, _) => format!(
+            "Workspace branch '{}' has no tracked upstream, so Pronto cannot compare it to a remote branch.",
+            workspace.branch
+        ),
+        (Some(upstream), ahead, behind) if ahead > 0 && behind > 0 => format!(
+            "Workspace branch '{}' is ahead by {} commit{} and behind by {} commit{} relative to '{}'.",
+            workspace.branch,
+            ahead,
+            if ahead == 1 { "" } else { "s" },
+            behind,
+            if behind == 1 { "" } else { "s" },
+            upstream
+        ),
+        (Some(upstream), ahead, _) if ahead > 0 => format!(
+            "Workspace branch '{}' is ahead by {} commit{} relative to '{}'.",
+            workspace.branch,
+            ahead,
+            if ahead == 1 { "" } else { "s" },
+            upstream
+        ),
+        (Some(upstream), _, behind) if behind > 0 => format!(
+            "Workspace branch '{}' is behind by {} commit{} relative to '{}'.",
+            workspace.branch,
+            behind,
+            if behind == 1 { "" } else { "s" },
+            upstream
+        ),
+        _ => format!(
+            "Pronto recorded sync state '{}' for workspace branch '{}', but the comparison counts are unavailable.",
+            workspace.sync_state, workspace.branch
+        ),
+    }
+}
+
+fn workspace_sync_detail(
+    workspace: &WorkspaceSummary,
+    repository_path: &str,
+    observed_at: &str,
+) -> Option<WorkspaceSyncDetail> {
+    if !workspace_requires_sync_attention(workspace) {
+        return None;
+    }
+
+    let observed = DateTime::parse_from_rfc3339(observed_at)
+        .ok()
+        .map(|timestamp| timestamp.with_timezone(&Utc));
+    let evidence_observed_at =
+        observed.map(|timestamp| timestamp.to_rfc3339_opts(SecondsFormat::Secs, true));
+    let evidence_expires_at = observed.map(|timestamp| {
+        (timestamp + Duration::minutes(WORKSPACE_SYNC_EVIDENCE_MAX_AGE_MINUTES))
+            .to_rfc3339_opts(SecondsFormat::Secs, true)
+    });
+
+    Some(WorkspaceSyncDetail {
+        reason: workspace_sync_reason(workspace),
+        evidence_observed_at,
+        evidence_expires_at,
+        evidence_window_minutes: WORKSPACE_SYNC_EVIDENCE_MAX_AGE_MINUTES,
+        next_safe_action: "Run the repository-scoped local refresh command below, then reopen this detail to compare the newly observed evidence. Do not choose a merge, rebase, pull, or push from this view.".to_string(),
+        scoped_refresh_command: format!(
+            "pronto refresh {} --json",
+            shell_quote_for_display(repository_path)
+        ),
+        authorization: "Read-only local Git scan; it persists Pronto evidence only and does not pull, push, merge, rebase, or edit repository files.".to_string(),
+    })
+}
+
+fn hydrate_workspace_sync_details(repository: &mut RepositorySnapshot) {
+    let repository_path = repository.path.clone();
+    let observed_at = repository.last_scan_at.clone();
+
+    if repository.workspaces.is_empty() {
+        repository.workspace.sync_detail =
+            workspace_sync_detail(&repository.workspace, &repository_path, &observed_at);
+        return;
+    }
+
+    for workspace in &mut repository.workspaces {
+        workspace.sync_detail = workspace_sync_detail(workspace, &repository_path, &observed_at);
+    }
+    repository.workspace.sync_detail = repository
+        .workspaces
+        .iter()
+        .find(|workspace| workspace.is_primary)
+        .or_else(|| {
+            repository
+                .workspaces
+                .iter()
+                .find(|workspace| workspace.id == repository.workspace.id)
+        })
+        .and_then(|workspace| workspace.sync_detail.clone())
+        .or_else(|| workspace_sync_detail(&repository.workspace, &repository_path, &observed_at));
 }
 
 fn git_process(path: &Path) -> Command {
@@ -3067,6 +3191,10 @@ fn apply_quality_evidence_scoped(
             imported.ingestion_status = "Available".to_string();
             imported.ingestion_message = None;
         }
+        quality::reconcile_finding_dispositions(
+            Path::new(&repository.path),
+            &mut imported.findings,
+        );
         repository.quality = imported;
     }
     quality::update_ci_readiness_summary(&mut state.quality, &state.repositories);
@@ -6310,6 +6438,7 @@ fn scan_workspace(
         role,
         role_confidence,
         activity,
+        sync_detail: None,
     };
     workspace.integration_state =
         branch_integration_state(path, &workspace.branch, default_branch, Some(&workspace));
@@ -8296,6 +8425,7 @@ fn agent_workspace_summary(workspace: &WorkspaceSummary) -> AgentWorkspaceSummar
         last_commit: workspace.last_commit.clone(),
         last_commit_at: workspace.last_commit_at.clone(),
         last_activity_at: workspace.last_activity_at.clone(),
+        sync_detail: workspace.sync_detail.clone(),
     }
 }
 
@@ -8385,6 +8515,41 @@ fn agent_gate_evidence(gate: &quality::QualityGate) -> Vec<AgentEvidenceReferenc
         .collect()
 }
 
+fn agent_workspace_sync_evidence(workspace: &WorkspaceSummary) -> Vec<AgentEvidenceReference> {
+    let Some(detail) = workspace.sync_detail.as_ref() else {
+        return Vec::new();
+    };
+    vec![
+        AgentEvidenceReference {
+            source: "Local workspace scan".to_string(),
+            label: "Why unsynced".to_string(),
+            status: Some(workspace.sync_state.clone()),
+            freshness: None,
+            observed_at: detail.evidence_observed_at.clone(),
+            value: Some(detail.reason.clone()),
+            report_path: None,
+        },
+        AgentEvidenceReference {
+            source: "Local workspace scan".to_string(),
+            label: "Evidence expires".to_string(),
+            status: Some("Expiry timestamp".to_string()),
+            freshness: None,
+            observed_at: detail.evidence_observed_at.clone(),
+            value: detail.evidence_expires_at.clone(),
+            report_path: None,
+        },
+        AgentEvidenceReference {
+            source: "Pronto scoped refresh contract".to_string(),
+            label: "Next safe scoped refresh".to_string(),
+            status: Some("Read-only local scan".to_string()),
+            freshness: None,
+            observed_at: None,
+            value: Some(detail.scoped_refresh_command.clone()),
+            report_path: None,
+        },
+    ]
+}
+
 fn agent_attention_report(snapshot: &PortfolioSnapshot) -> AgentAttentionReport {
     let mut items = Vec::new();
     for repository in &snapshot.repositories {
@@ -8450,7 +8615,7 @@ fn agent_attention_report(snapshot: &PortfolioSnapshot) -> AgentAttentionReport 
                     "Workspace {} is {} (ahead {}, behind {})",
                     workspace.branch, workspace.sync_state, workspace.ahead, workspace.behind
                 ),
-                evidence: Vec::new(),
+                evidence: agent_workspace_sync_evidence(workspace),
             });
         }
 
@@ -8566,31 +8731,46 @@ fn agent_next_action(item: &AgentAttentionItem) -> AgentNextAction {
     let (recommended_projection, next_safe_step) = match item.category.as_str() {
         "quality_gate" => (
             "quality",
-            "Read the repository quality projection before changing code or recording remediation status.",
+            "Read the repository quality projection before changing code or recording remediation status.".to_string(),
         ),
         "quality_findings" => (
             "quality",
-            "Read the repository quality projection and source report before planning remediation.",
+            "Read the repository quality projection and source report before planning remediation.".to_string(),
         ),
         "quality_maturity" => (
             "quality",
-            "Inspect quality freshness and source provenance; stale or missing maturity evidence is not a pass.",
+            "Inspect quality freshness and source provenance; stale or missing maturity evidence is not a pass.".to_string(),
         ),
-        "synchronization" => (
-            "repo",
-            "Inspect branch and upstream evidence; refresh only this repository if the snapshot is stale.",
-        ),
+        "synchronization" => {
+            let command = item
+                .evidence
+                .iter()
+                .find(|evidence| evidence.label == "Next safe scoped refresh")
+                .and_then(|evidence| evidence.value.clone())
+                .unwrap_or_else(|| {
+                    format!(
+                        "pronto refresh {} --json",
+                        shell_quote_for_display(&item.repository_path)
+                    )
+                });
+            (
+                "repo",
+                format!(
+                    "Inspect this workspace's sync detail, then run `{command}` only when a fresh local comparison is needed; reopen the repository projection afterward."
+                ),
+            )
+        }
         "workspace" => (
             "repo",
-            "Inspect the repository projection; preserve dirty workspace contents and active work.",
+            "Inspect the repository projection; preserve dirty workspace contents and active work.".to_string(),
         ),
         "condition" => (
             "repo",
-            "Inspect the repository projection and condition evidence before choosing a workflow.",
+            "Inspect the repository projection and condition evidence before choosing a workflow.".to_string(),
         ),
         _ => (
             "attention",
-            "Inspect the linked evidence before taking any repository, provider, remediation, or release action.",
+            "Inspect the linked evidence before taking any repository, provider, remediation, or release action.".to_string(),
         ),
     };
     AgentNextAction {
@@ -8603,8 +8783,12 @@ fn agent_next_action(item: &AgentAttentionItem) -> AgentNextAction {
         status: item.status.clone(),
         summary: item.summary.clone(),
         recommended_projection: recommended_projection.to_string(),
-        next_safe_step: next_safe_step.to_string(),
-        authorization: "Inspection only; Git, provider, remediation, and release mutations require explicit authorization.".to_string(),
+        next_safe_step,
+        authorization: if item.category == "synchronization" {
+            "Scoped refresh is a read-only local Git scan; it persists Pronto evidence but does not pull, push, merge, rebase, or edit repository files.".to_string()
+        } else {
+            "Inspection only; Git, provider, remediation, and release mutations require explicit authorization.".to_string()
+        },
     }
 }
 
@@ -9869,6 +10053,21 @@ fn print_human_repository(detail: &AgentRepositoryDetail) {
             workspace.sync_state,
             workspace.path
         );
+        if let Some(detail) = workspace.sync_detail.as_ref() {
+            println!("    why unsynced: {}", detail.reason);
+            println!(
+                "    evidence expires: {}",
+                detail
+                    .evidence_expires_at
+                    .as_deref()
+                    .unwrap_or("unavailable")
+            );
+            println!(
+                "    next safe scoped refresh: {}",
+                detail.scoped_refresh_command
+            );
+            println!("    authorization: {}", detail.authorization);
+        }
     }
 }
 
@@ -10015,7 +10214,7 @@ fn print_human_release(report: &AgentReleaseReport) {
 
 fn print_cli_usage() {
     println!(
-        "Usage: pronto . | pronto skills [<skill-id>] [--json] | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--json] | pronto status [--json] | pronto help"
+        "Usage: pronto . | pronto skills [<skill-id>] [--json] | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--json] | pronto quality [<repository>] [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] | pronto status [--json] | pronto help"
     );
 }
 
@@ -11678,7 +11877,11 @@ pub fn run_cli(arguments: Vec<String>) {
             }
         }
         "quality" => {
-            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+            let positionals = cli_positionals(
+                &arguments,
+                &["--reason", "--reviewer", "--evidence", "--expires-at"],
+            )
+            .unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
             });
@@ -11710,6 +11913,70 @@ pub fn run_cli(arguments: Vec<String>) {
                     Ok(_) => println!("Opened quality report: {}", positionals[1]),
                     Err(error) => {
                         eprintln!("Pronto could not open the quality report: {error}");
+                        std::process::exit(1);
+                    }
+                }
+                std::process::exit(0);
+            } else if positionals.first().map(String::as_str) == Some("disposition") {
+                if positionals.get(1).map(String::as_str) != Some("set") || positionals.len() != 5 {
+                    eprintln!(
+                        "Usage: pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json]"
+                    );
+                    std::process::exit(2);
+                }
+                let reason = cli_option(&arguments, "--reason")
+                    .unwrap_or_else(|error| {
+                        eprintln!("Pronto CLI error: {error}");
+                        std::process::exit(2);
+                    })
+                    .unwrap_or_else(|| {
+                        eprintln!("Pronto CLI error: --reason is required");
+                        std::process::exit(2);
+                    });
+                let reviewer = cli_option(&arguments, "--reviewer")
+                    .unwrap_or_else(|error| {
+                        eprintln!("Pronto CLI error: {error}");
+                        std::process::exit(2);
+                    })
+                    .unwrap_or_else(|| {
+                        eprintln!("Pronto CLI error: --reviewer is required");
+                        std::process::exit(2);
+                    });
+                let evidence =
+                    cli_repeated_option(&arguments, "--evidence").unwrap_or_else(|error| {
+                        eprintln!("Pronto CLI error: {error}");
+                        std::process::exit(2);
+                    });
+                let expires_at = cli_option(&arguments, "--expires-at").unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                });
+                let query = &positionals[2];
+                let result = load_store(&path)
+                    .map(|state| snapshot_from_store(&path, &state))
+                    .and_then(|snapshot| {
+                        let repository = find_cli_repository(&snapshot, query)?;
+                        quality::set_finding_disposition(
+                            Path::new(&repository.path),
+                            &positionals[3],
+                            &positionals[4],
+                            &reason,
+                            &reviewer,
+                            evidence,
+                            expires_at,
+                        )?;
+                        load_store_with_quality(&path)
+                            .map(|state| snapshot_from_store(&path, &state))
+                            .and_then(|snapshot| agent_quality_report(&snapshot, Some(query)))
+                    });
+                match result {
+                    Ok(report) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(report) => print_human_quality(&report),
+                    Err(error) => {
+                        eprintln!("Pronto could not update the finding disposition: {error}");
                         std::process::exit(1);
                     }
                 }
@@ -11769,7 +12036,7 @@ pub fn run_cli(arguments: Vec<String>) {
                 }
             } else {
                 eprintln!(
-                    "Usage: pronto quality [<repository>] [--json] | pronto quality feed [--json] (Quality Runner owns the canonical feed)"
+                    "Usage: pronto quality [<repository>] [--json] | pronto quality feed [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] (Quality Runner owns detector evidence; Pronto owns the disposition overlay)"
                 );
                 std::process::exit(2);
             }
@@ -12392,6 +12659,70 @@ mod tests {
         assert!(!workspace_requires_sync_attention(&workspace));
         workspace.sync_state = "Ahead by 1".to_string();
         assert!(workspace_requires_sync_attention(&workspace));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn workspace_sync_detail_exposes_expiry_reason_and_scoped_refresh() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        let mut workspace = scan_workspace(&repository, true, Some("main"), None);
+        workspace.sync_state = "Behind by 1".to_string();
+        workspace.upstream = Some("origin/main".to_string());
+        workspace.ahead = 0;
+        workspace.behind = 1;
+
+        let detail = workspace_sync_detail(
+            &workspace,
+            "/tmp/pronto with spaces",
+            "2026-07-30T12:00:00Z",
+        )
+        .expect("unsynced workspace should have detail");
+
+        assert_eq!(
+            detail.evidence_observed_at.as_deref(),
+            Some("2026-07-30T12:00:00Z")
+        );
+        assert_eq!(
+            detail.evidence_expires_at.as_deref(),
+            Some("2026-08-01T12:00:00Z")
+        );
+        assert!(detail.reason.contains("behind by 1 commit"));
+        assert_eq!(
+            detail.scoped_refresh_command,
+            "pronto refresh '/tmp/pronto with spaces' --json"
+        );
+        assert!(detail
+            .authorization
+            .contains("does not pull, push, merge, rebase"));
+
+        workspace.sync_detail = Some(detail.clone());
+        let evidence = agent_workspace_sync_evidence(&workspace);
+        assert!(evidence.iter().any(|item| {
+            item.label == "Evidence expires"
+                && item.value.as_deref() == Some("2026-08-01T12:00:00Z")
+        }));
+        let action = agent_next_action(&AgentAttentionItem {
+            id: "workspace-sync".to_string(),
+            repository_id: "repository:pronto".to_string(),
+            repository_name: "pronto".to_string(),
+            repository_path: "/tmp/pronto with spaces".to_string(),
+            workspace_id: Some(workspace.id.clone()),
+            workspace_path: Some(workspace.path.clone()),
+            category: "synchronization".to_string(),
+            severity: "warning".to_string(),
+            status: workspace.sync_state.clone(),
+            freshness: None,
+            summary: "Workspace is unsynced".to_string(),
+            evidence,
+        });
+        assert!(action
+            .next_safe_step
+            .contains("pronto refresh '/tmp/pronto with spaces' --json"));
+        assert!(action.authorization.contains("read-only local Git scan"));
+
+        workspace.sync_state = "Synced".to_string();
+        assert!(workspace_sync_detail(&workspace, "/tmp/pronto", "2026-07-30T12:00:00Z").is_none());
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 

@@ -1,0 +1,2749 @@
+{
+  "schema_version": "pronto-quality-finding-dispositions/v1",
+  "updated_at": "2026-07-29T20:02:14.270Z",
+  "dispositions": [
+    {
+      "fingerprint": "0565be578c4cb1b5",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2211. Detector evidence: padding: 25px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2211",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0184"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "07968238f01ec6bb",
+      "status": "confirmed",
+      "reason": "Confirmed large source file disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/components/RemediationSurface.tsx:1. Detector evidence: 644 lines. The scan measured 644 lines; that objectively exceeds the large-file threshold and remains actionable for a focused responsibility split. Why it remains actionable: Large files increase review cost and refactor risk.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/components/RemediationSurface.tsx:1",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0005"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "0a6a36cd59f71431",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional side stripe border disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2801. Detector evidence: border-left: 2px solid rgba(119, 168, 255, 0.4);. The left border is a deliberate accent on preparation-note rows that distinguishes evidence notes from surrounding panel content. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2801",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0411"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "0b40f942f8349a3b",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/components/QualityGatesSurface.tsx:42. Detector evidence: if (!knownGateIds.has(gate.id)) ids.add(gate.id);. The bounded repository-to-gate traversal is clearer as two explicit loops, and the inner condition only collects unknown gate identifiers. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T19:59:53.999212+00:00",
+      "evidence": [
+        "src/renderer/src/components/QualityGatesSurface.tsx:42",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0042"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "0d315daceccfbbd2",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:818. Detector evidence: padding: 2px 1px 1px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:818",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0091"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "0dca9a3789d8094a",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 4 occurrences at src/renderer/src/styles.css:2732, src/renderer/src/styles.css:2741, src/renderer/src/styles.css:2795, src/renderer/src/styles.css:2819. Detector evidence: margin: 10px 0;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2732",
+        "src/renderer/src/styles.css:2741",
+        "src/renderer/src/styles.css:2795",
+        "src/renderer/src/styles.css:2819",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0231",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0233",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0236",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0239"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "11d26d585e016783",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional console output disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at scripts/install-app.mjs:163. Detector evidence: globalThis.console.log(\"Quit and reopen Pronto if it was already running.\");. The install/check command intentionally reports its paths, bundle hashes, success state, and failures to the invoking terminal. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T19:53:06.257649+00:00",
+      "evidence": [
+        "scripts/install-app.mjs:163",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0400"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "121a89766eda45ed",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:255. Detector evidence: qr-native found 97.39% similarity across 2 functions: src/renderer/src/api.ts:255-268 previewAiSummary <-> src/renderer/src/api.ts:349-362 setRepositoryLifecycle. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:255",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0021"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "125b309f4f5af82e",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4589. Detector evidence: padding: 11px 20px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4589",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0345"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "127cafe8eb10dbac",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:4663, src/renderer/src/styles.css:4698, src/renderer/src/styles.css:4979. Detector evidence: padding: 14px 20px 20px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4663",
+        "src/renderer/src/styles.css:4698",
+        "src/renderer/src/styles.css:4979",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0348",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0351",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0372"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "137e0894663df30d",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:3856. Detector evidence: padding-right: 13px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:3856",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0309"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "1424e20cc165e8e1",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:302. Detector evidence: qr-native found 98.25% similarity across 2 functions: src/renderer/src/api.ts:302-315 markExpected <-> src/renderer/src/api.ts:349-362 setRepositoryLifecycle. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:302",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0028"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "15abc1cf2b56a420",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:242. Detector evidence: qr-native found 97.35% similarity across 2 functions: src/renderer/src/api.ts:242-253 setAiPermission <-> src/renderer/src/api.ts:302-315 markExpected. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:242",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0016"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "15f2d2e601dd4009",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 2 occurrences at src/renderer/src/styles.css:3774, src/renderer/src/styles.css:4842. Detector evidence: gap: 6px 12px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:3774",
+        "src/renderer/src/styles.css:4842",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0301",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0360"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "165e849ad6ed6b06",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:982. Detector evidence: gap: 7px 12px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:982",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0103"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "1a4f51da5dba5680",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2312. Detector evidence: padding: 25px 25px 29px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2312",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0193"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "1b6c6cee915a85d4",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 2 occurrences at src/renderer/src/styles.css:2049, src/renderer/src/styles.css:2052. Detector evidence: margin-top: 14px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2049",
+        "src/renderer/src/styles.css:2052",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0172",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0173"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "1d6f97d7bbc9be4f",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:302. Detector evidence: qr-native found 100.00% similarity across 2 functions: src/renderer/src/api.ts:302-315 markExpected <-> src/renderer/src/api.ts:317-330 clearExpected. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:302",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0027"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "1d9d9e11a1913586",
+      "status": "confirmed",
+      "reason": "Confirmed large source file disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/components/SkillsComponents.tsx:1. Detector evidence: 548 lines. The scan measured 548 lines; that objectively exceeds the large-file threshold and remains actionable for a focused responsibility split. Why it remains actionable: Large files increase review cost and refactor risk.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/components/SkillsComponents.tsx:1",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0006"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "221358d93903af05",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1465. Detector evidence: padding-bottom: 5px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1465",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0127"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "24b2b0904393c382",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1637. Detector evidence: padding: 15px 20px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1637",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0137"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "2519b9acd5b1ba17",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 2 occurrences at src/renderer/src/styles.css:5047, src/renderer/src/styles.css:5106. Detector evidence: margin-top: 11px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:5047",
+        "src/renderer/src/styles.css:5106",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0378",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0384"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "25b9b6f425e30dda",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2900. Detector evidence: margin-left: 3px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2900",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0244"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "2637d0649297fdbf",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2358. Detector evidence: margin-bottom: 25px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2358",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0194"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "267421585ac86d54",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:2076, src/renderer/src/styles.css:2426, src/renderer/src/styles.css:3157. Detector evidence: margin-top: 7px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2076",
+        "src/renderer/src/styles.css:2426",
+        "src/renderer/src/styles.css:3157",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0177",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0199",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0253"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "2923f9ccea5eb3b5",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional console output disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at scripts/install-app.mjs:107. Detector evidence: globalThis.console.log(`Local bundle:     ${sourceApp}`);. The install/check command intentionally reports its paths, bundle hashes, success state, and failures to the invoking terminal. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T19:54:41.103858+00:00",
+      "evidence": [
+        "scripts/install-app.mjs:107",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0390"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "2a83fc95ad4a07f3",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 16 occurrences at src/renderer/src/styles.css:694, src/renderer/src/styles.css:1300, src/renderer/src/styles.css:1677, src/renderer/src/styles.css:1791, src/renderer/src/styles.css:1796, src/renderer/src/styles.css:1801, src/renderer/src/styles.css:1853, src/renderer/src/styles.css:1860 and 8 more locations. Detector evidence: gap: 14px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:694",
+        "src/renderer/src/styles.css:1300",
+        "src/renderer/src/styles.css:1677",
+        "src/renderer/src/styles.css:1791",
+        "src/renderer/src/styles.css:1796",
+        "src/renderer/src/styles.css:1801",
+        "src/renderer/src/styles.css:1853",
+        "src/renderer/src/styles.css:1860",
+        "src/renderer/src/styles.css:2001",
+        "src/renderer/src/styles.css:3901",
+        "src/renderer/src/styles.css:4218",
+        "src/renderer/src/styles.css:4523",
+        "src/renderer/src/styles.css:4669",
+        "src/renderer/src/styles.css:4704",
+        "src/renderer/src/styles.css:4734",
+        "src/renderer/src/styles.css:5046",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0078",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0118",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0140",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0150",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0151",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0152",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0154",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0155",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0168",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0310",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0324",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0343",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0349",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0352",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0354",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0377"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "2add1a3247c5e025",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4474. Detector evidence: margin-right: 5px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4474",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0342"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "2b4c8afba20e5af6",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1356. Detector evidence: padding: 10px 17px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1356",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0121"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "2c8985052d622c8c",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2801. Detector evidence: border-left: 2px solid rgba(119, 168, 255, 0.4);. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2801",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0238"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "2c9d426ea3e84b3e",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4433. Detector evidence: margin: 7px 0;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4433",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0340"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "2d8254b1ed8ac1d3",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2772. Detector evidence: gap: 3px 10px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2772",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0235"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "2db8eec0a81d8aa1",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 27 occurrences at src/renderer/src/styles.css:399, src/renderer/src/styles.css:731, src/renderer/src/styles.css:837, src/renderer/src/styles.css:1066, src/renderer/src/styles.css:1355, src/renderer/src/styles.css:1473, src/renderer/src/styles.css:2262, src/renderer/src/styles.css:2655 and 19 more locations. Detector evidence: gap: 10px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:399",
+        "src/renderer/src/styles.css:731",
+        "src/renderer/src/styles.css:837",
+        "src/renderer/src/styles.css:1066",
+        "src/renderer/src/styles.css:1355",
+        "src/renderer/src/styles.css:1473",
+        "src/renderer/src/styles.css:2262",
+        "src/renderer/src/styles.css:2655",
+        "src/renderer/src/styles.css:3497",
+        "src/renderer/src/styles.css:3535",
+        "src/renderer/src/styles.css:3628",
+        "src/renderer/src/styles.css:3632",
+        "src/renderer/src/styles.css:3642",
+        "src/renderer/src/styles.css:3910",
+        "src/renderer/src/styles.css:3923",
+        "src/renderer/src/styles.css:4020",
+        "src/renderer/src/styles.css:4110",
+        "src/renderer/src/styles.css:4135",
+        "src/renderer/src/styles.css:4171",
+        "src/renderer/src/styles.css:4236",
+        "src/renderer/src/styles.css:4378",
+        "src/renderer/src/styles.css:4609",
+        "src/renderer/src/styles.css:4746",
+        "src/renderer/src/styles.css:4801",
+        "src/renderer/src/styles.css:4857",
+        "src/renderer/src/styles.css:4922",
+        "src/renderer/src/styles.css:4983",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0066",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0081",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0094",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0106",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0120",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0128",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0188",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0220",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0281",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0284",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0288",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0289",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0290",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0311",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0312",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0315",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0317",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0318",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0321",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0325",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0333",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0346",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0355",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0358",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0362",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0367",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0373"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "2df06d3f21808beb",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4952. Detector evidence: padding: 13px 20px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4952",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0369"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "31259187165227b8",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:3999. Detector evidence: padding-bottom: 11px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:3999",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0314"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "326b057652e8043f",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:255. Detector evidence: qr-native found 99.15% similarity across 2 functions: src/renderer/src/api.ts:255-268 previewAiSummary <-> src/renderer/src/api.ts:317-330 clearExpected. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:255",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0020"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "339bb884fdf9600c",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:978. Detector evidence: gap: 7px 10px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:978",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0101"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "33b2606adf856926",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:3376. Detector evidence: padding: 6px 9px 9px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:3376",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0272"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "3570aa9ce5f083d7",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:3998. Detector evidence: padding-top: 11px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:3998",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0313"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "37264abd8b3c7157",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2696. Detector evidence: padding: 14px 2px 0;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2696",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0226"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "37f05e90fdd0a179",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 19 occurrences at src/renderer/src/styles.css:583, src/renderer/src/styles.css:1150, src/renderer/src/styles.css:1247, src/renderer/src/styles.css:1595, src/renderer/src/styles.css:1992, src/renderer/src/styles.css:2510, src/renderer/src/styles.css:2731, src/renderer/src/styles.css:2740 and 11 more locations. Detector evidence: gap: 5px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:583",
+        "src/renderer/src/styles.css:1150",
+        "src/renderer/src/styles.css:1247",
+        "src/renderer/src/styles.css:1595",
+        "src/renderer/src/styles.css:1992",
+        "src/renderer/src/styles.css:2510",
+        "src/renderer/src/styles.css:2731",
+        "src/renderer/src/styles.css:2740",
+        "src/renderer/src/styles.css:2876",
+        "src/renderer/src/styles.css:2953",
+        "src/renderer/src/styles.css:3212",
+        "src/renderer/src/styles.css:3237",
+        "src/renderer/src/styles.css:3375",
+        "src/renderer/src/styles.css:3436",
+        "src/renderer/src/styles.css:3695",
+        "src/renderer/src/styles.css:4365",
+        "src/renderer/src/styles.css:4420",
+        "src/renderer/src/styles.css:4533",
+        "src/renderer/src/styles.css:5061",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0074",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0111",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0115",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0134",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0167",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0206",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0230",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0232",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0243",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0247",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0256",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0257",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0271",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0278",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0293",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0332",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0338",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0344",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0380"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "39696cfb626ea632",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 2 occurrences at src/renderer/src/styles.css:2984, src/renderer/src/styles.css:4304. Detector evidence: padding: 9px 12px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2984",
+        "src/renderer/src/styles.css:4304",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0249",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0328"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "3cbff1e5e8575e85",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 28 occurrences at src/renderer/src/styles.css:159, src/renderer/src/styles.css:534, src/renderer/src/styles.css:877, src/renderer/src/styles.css:1292, src/renderer/src/styles.css:1368, src/renderer/src/styles.css:1707, src/renderer/src/styles.css:1728, src/renderer/src/styles.css:2057 and 20 more locations. Detector evidence: gap: 7px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:159",
+        "src/renderer/src/styles.css:534",
+        "src/renderer/src/styles.css:877",
+        "src/renderer/src/styles.css:1292",
+        "src/renderer/src/styles.css:1368",
+        "src/renderer/src/styles.css:1707",
+        "src/renderer/src/styles.css:1728",
+        "src/renderer/src/styles.css:2057",
+        "src/renderer/src/styles.css:2064",
+        "src/renderer/src/styles.css:2375",
+        "src/renderer/src/styles.css:2566",
+        "src/renderer/src/styles.css:2608",
+        "src/renderer/src/styles.css:2983",
+        "src/renderer/src/styles.css:3171",
+        "src/renderer/src/styles.css:3339",
+        "src/renderer/src/styles.css:3363",
+        "src/renderer/src/styles.css:3381",
+        "src/renderer/src/styles.css:3391",
+        "src/renderer/src/styles.css:3458",
+        "src/renderer/src/styles.css:3769",
+        "src/renderer/src/styles.css:3800",
+        "src/renderer/src/styles.css:3816",
+        "src/renderer/src/styles.css:4196",
+        "src/renderer/src/styles.css:4780",
+        "src/renderer/src/styles.css:4884",
+        "src/renderer/src/styles.css:4951",
+        "src/renderer/src/styles.css:5052",
+        "src/renderer/src/styles.css:5084",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0055",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0073",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0096",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0117",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0122",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0143",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0145",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0174",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0175",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0195",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0211",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0214",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0248",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0254",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0265",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0268",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0273",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0274",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0279",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0300",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0303",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0305",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0323",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0357",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0365",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0368",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0379",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0383"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "3f01e040fea04d7d",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2540. Detector evidence: margin-top: 10px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2540",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0209"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "40bb0c55f8d74758",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 6 occurrences at src/renderer/src/styles.css:113, src/renderer/src/styles.css:979, src/renderer/src/styles.css:1926, src/renderer/src/styles.css:2609, src/renderer/src/styles.css:2619, src/renderer/src/styles.css:3288. Detector evidence: margin-top: 2px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:113",
+        "src/renderer/src/styles.css:979",
+        "src/renderer/src/styles.css:1926",
+        "src/renderer/src/styles.css:2609",
+        "src/renderer/src/styles.css:2619",
+        "src/renderer/src/styles.css:3288",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0050",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0102",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0163",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0215",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0217",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0259"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "41b6bf2a0a3d6251",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:146. Detector evidence: margin-bottom: 3px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:146",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0054"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "42a9702ffcb412f5",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:712, src/renderer/src/styles.css:785, src/renderer/src/styles.css:892. Detector evidence: margin: 3px 0 4px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:712",
+        "src/renderer/src/styles.css:785",
+        "src/renderer/src/styles.css:892",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0080",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0087",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0098"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "42bf28b7ce3d2479",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2293. Detector evidence: margin-top: 22px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2293",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0192"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "439109e283e6aca9",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:186. Detector evidence: qr-native found 99.15% similarity across 2 functions: src/renderer/src/api.ts:186-199 prepareRepository <-> src/renderer/src/api.ts:302-315 markExpected. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:186",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0010"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "44c5827451afedeb",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2257. Detector evidence: margin-top: 18px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2257",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0187"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "46ed64198098ef57",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2417. Detector evidence: margin: 7px 0 4px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2417",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0198"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "4c7382069a0af3fd",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4159. Detector evidence: margin: 10px 0 3px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4159",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0320"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "4d08a983ffa93410",
+      "status": "false_positive",
+      "reason": "qualityGateChoices is called by ReleaseRuleEditor and directly exercised by the renderer test suite, so it is neither orphaned nor unfinished wiring.",
+      "reviewer": "codex-assisted-review",
+      "reviewed_at": "2026-07-29T19:18:12Z",
+      "evidence": [
+        "src/renderer/src/components/ReleaseRuleEditor.tsx:133",
+        "src/renderer/src/components/QualityComponents.test.tsx:661"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "4d46cf527768619f",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1558. Detector evidence: padding: 30px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1558",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0133"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "4d7da4351b46222e",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:186. Detector evidence: qr-native found 99.15% similarity across 2 functions: src/renderer/src/api.ts:186-199 prepareRepository <-> src/renderer/src/api.ts:317-330 clearExpected. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:186",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0011"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "4d855f5d51c85ae1",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2497. Detector evidence: margin-bottom: 11px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2497",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0205"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "50c19d0d1b4d4cc8",
+      "status": "false_positive",
+      "reason": "False positive deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/App.tsx:399. Detector evidence: if (filter === \"attention\"). The reported branch is a flat filter predicate inside a callback, not deeply nested application control flow. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:01:03.878921+00:00",
+      "evidence": [
+        "src/renderer/src/App.tsx:399",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0037"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "53ace0eb6c56e896",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4386. Detector evidence: margin: 19px 0 9px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4386",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0334"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "54108b6b6f1830a0",
+      "status": "false_positive",
+      "reason": "False positive deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/components/SkillsComponents.tsx:134. Detector evidence: if (event.key === \"<redacted>\" || event.key === \"<redacted>\") {. The reported branch is the keyboard-accessibility handler attached to an interactive row, not deeply nested application control flow. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/components/SkillsComponents.tsx:134",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0044"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "56f3bacbe37fbf9d",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2249. Detector evidence: margin: 18px 0 0;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2249",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0185"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "574e5e4d85feace6",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:1596, src/renderer/src/styles.css:4670, src/renderer/src/styles.css:4705. Detector evidence: padding: 11px 12px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1596",
+        "src/renderer/src/styles.css:4670",
+        "src/renderer/src/styles.css:4705",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0135",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0350",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0353"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "5887061636ffaa6a",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 2 occurrences at src/renderer/src/styles.css:815, src/renderer/src/styles.css:2436. Detector evidence: padding-bottom: 22px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:815",
+        "src/renderer/src/styles.css:2436",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0090",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0200"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "5893a770090d57ef",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2827. Detector evidence: gap: 5px 8px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2827",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0240"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "5a998311e50ef678",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:293. Detector evidence: qr-native found 97.87% similarity across 2 functions: src/renderer/src/api.ts:293-300 registerRoot <-> src/renderer/src/api.ts:424-431 deleteGroup. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:293",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0025"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "5bce44e5d143c0f5",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:242. Detector evidence: qr-native found 99.10% similarity across 2 functions: src/renderer/src/api.ts:242-253 setAiPermission <-> src/renderer/src/api.ts:349-362 setRepositoryLifecycle. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:242",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0015"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "5db75ccb9270bf7e",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:3822. Detector evidence: margin-top: 21px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:3822",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0306"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "5f1a852bae5e205a",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1716. Detector evidence: margin: 5px 0 4px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1716",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0144"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "600a09d1afe51276",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at scripts/install-app.mjs:64. Detector evidence: if (entry.isDirectory()) {. The recursive bundle walk intentionally branches on mutually exclusive directory, file, and symlink entry types. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "scripts/install-app.mjs:64",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0033"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "611b842cee0ccfa5",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:824, src/renderer/src/styles.css:2095, src/renderer/src/styles.css:2119. Detector evidence: padding: 10px 12px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:824",
+        "src/renderer/src/styles.css:2095",
+        "src/renderer/src/styles.css:2119",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0093",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0181",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0183"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "613633d5105c1131",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:120. Detector evidence: margin: 27px 10px 17px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:120",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0051"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "6200c56e94a0b601",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 2 occurrences at src/renderer/src/styles.css:1899, src/renderer/src/styles.css:2455. Detector evidence: margin-bottom: 7px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1899",
+        "src/renderer/src/styles.css:2455",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0158",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0202"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "6210d81107911c22",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2065. Detector evidence: margin: 9px 0 7px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2065",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0176"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "6293bf46b5a8b398",
+      "status": "false_positive",
+      "reason": "False positive risky hidden reveal disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2327. Detector evidence: opacity: 0.3;. The opacity belongs to a disabled control or decorative icon, not content whose visibility depends on a reveal animation. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2327",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0410"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "64da68c32e163d87",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2284. Detector evidence: margin: 15px 0 0;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2284",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0190"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "66d5f4b9021e48a8",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional console output disposition for Quality Runner run pronto-remediation-20260729-v5: 5 occurrences at scripts/install-app.mjs:109, scripts/install-app.mjs:112, scripts/install-app.mjs:115, scripts/install-app.mjs:118, scripts/install-app.mjs:127. Detector evidence: globalThis.console.log(. The install/check command intentionally reports its paths, bundle hashes, success state, and failures to the invoking terminal. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T19:55:16.433596+00:00",
+      "evidence": [
+        "scripts/install-app.mjs:109",
+        "scripts/install-app.mjs:112",
+        "scripts/install-app.mjs:115",
+        "scripts/install-app.mjs:118",
+        "scripts/install-app.mjs:127",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0392",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0393",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0394",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0395",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0396"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "67af23d5359ad4ee",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4414. Detector evidence: margin: 5px 0 0;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4414",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0337"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "68e70e9415cef8a2",
+      "status": "false_positive",
+      "reason": "False positive deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/components/RefreshConfirmationDialog.tsx:30. Detector evidence: if (event.key === \"<redacted>\") onCancel();. The reported branch is a single Escape-key guard inside an effect-owned event handler. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/components/RefreshConfirmationDialog.tsx:30",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0043"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "69ca31ebb856de8a",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 5 occurrences at src/renderer/src/styles.css:185, src/renderer/src/styles.css:428, src/renderer/src/styles.css:2918, src/renderer/src/styles.css:4870, src/renderer/src/styles.css:4966. Detector evidence: gap: 2px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:185",
+        "src/renderer/src/styles.css:428",
+        "src/renderer/src/styles.css:2918",
+        "src/renderer/src/styles.css:4870",
+        "src/renderer/src/styles.css:4966",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0056",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0067",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0245",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0364",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0371"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "6b00cb3b0129e9a9",
+      "status": "false_positive",
+      "reason": "False positive deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/App.tsx:184. Detector evidence: if (root) await loadSnapshot(() => api.registerRoot(root));. The reported branch is one optional-result guard inside a try/catch and does not create hard-to-follow nesting. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/App.tsx:184",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0035"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "6cba494b37a9866c",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1106. Detector evidence: margin-left: 5px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1106",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0109"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "6d283e401ac65aee",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:282. Detector evidence: qr-native found 98.99% similarity across 2 functions: src/renderer/src/api.ts:282-291 openQualityReport <-> src/renderer/src/api.ts:364-375 setRetentionDays. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:282",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0022"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "6daa5c54ebada869",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2656. Detector evidence: padding: 10px 0;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2656",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0221"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "717b21fa6a863ea1",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:186. Detector evidence: qr-native found 96.49% similarity across 2 functions: src/renderer/src/api.ts:186-199 prepareRepository <-> src/renderer/src/api.ts:242-253 setAiPermission. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:186",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0013"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "74269fa0c6d0250f",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:317. Detector evidence: qr-native found 98.25% similarity across 2 functions: src/renderer/src/api.ts:317-330 clearExpected <-> src/renderer/src/api.ts:349-362 setRepositoryLifecycle. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:317",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0029"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "74980ef0a5830694",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:187. Detector evidence: padding-right: 2px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:187",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0057"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "754af3f3382410c1",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:82. Detector evidence: padding: 27px 16px 18px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:82",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0048"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "77f9ebeede9730ca",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:201. Detector evidence: qr-native found 100.00% similarity across 2 functions: src/renderer/src/api.ts:201-212 setReleaseRule <-> src/renderer/src/api.ts:214-225 setReleaseRecipe. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:201",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0014"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "782adfa95c423625",
+      "status": "confirmed",
+      "reason": "Confirmed deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/App.tsx:99. Detector evidence: try {. Snapshot loading contains nested error-handling paths for portfolio and analytics refreshes, creating a real extraction opportunity. Why it remains actionable: Deeply nested flow is hard to review and easy to change incorrectly.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/App.tsx:99",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0034"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "7832d79453eb510b",
+      "status": "false_positive",
+      "reason": "False positive deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/components/PortfolioConfigSurface.tsx:235. Detector evidence: if (window.confirm(\"Delete \" + item.name + \"?\")). The reported branch is a single user-confirmation guard inside a delete-button callback. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/components/PortfolioConfigSurface.tsx:235",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0041"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "7bed49f5250da188",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:282. Detector evidence: qr-native found 96.91% similarity across 2 functions: src/renderer/src/api.ts:282-291 openQualityReport <-> src/renderer/src/api.ts:424-431 deleteGroup. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:282",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0024"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "7e8f4d5d057407e2",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:293. Detector evidence: qr-native found 96.84% similarity across 2 functions: src/renderer/src/api.ts:293-300 registerRoot <-> src/renderer/src/api.ts:396-405 deleteProduct. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:293",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0026"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "7eabff1fbb2eda25",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1095. Detector evidence: padding: 19px 20px 14px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1095",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0108"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "8113d77bdb5fec46",
+      "status": "false_positive",
+      "reason": "False positive risky hidden reveal disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:552. Detector evidence: opacity: 0.52;. The opacity belongs to a disabled control or decorative icon, not content whose visibility depends on a reveal animation. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:552",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0404"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "81496166ab47a20b",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:364. Detector evidence: qr-native found 98.99% similarity across 2 functions: src/renderer/src/api.ts:364-375 setRetentionDays <-> src/renderer/src/api.ts:396-405 deleteProduct. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:364",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0030"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "81ce9b10b782ed75",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1908. Detector evidence: padding-right: 3px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1908",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0160"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "84f5be4cf2c9bd8a",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1459. Detector evidence: padding: 15px 17px 17px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1459",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0126"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "8a3297aefb813be6",
+      "status": "confirmed",
+      "reason": "Confirmed large source file disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/types.ts:1. Detector evidence: 781 lines. The scan measured 781 lines; that objectively exceeds the large-file threshold and remains actionable for a focused responsibility split. Why it remains actionable: Large files increase review cost and refactor risk.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/types.ts:1",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0007"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "8c61c0cf2429cf27",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4959. Detector evidence: padding: 6px 8px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4959",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0370"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "8d80aa2fee7a362a",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1176. Detector evidence: padding: 17px 10px 16px 20px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1176",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0112"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "8f4945d8b93f9604",
+      "status": "false_positive",
+      "reason": "False positive excessive border radius disposition for Quality Runner run pronto-remediation-20260729-v5: 2 occurrences at src/renderer/src/styles.css:587, src/renderer/src/styles.css:4933. Detector evidence: border-radius: 999px;. The fully rounded selectors are a status pill and a progress track, where pill geometry is semantically intentional; they are not over-rounded cards or panels. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:587",
+        "src/renderer/src/styles.css:4933",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0405",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0416"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "8feff5d264446fb6",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:186. Detector evidence: qr-native found 97.39% similarity across 2 functions: src/renderer/src/api.ts:186-199 prepareRepository <-> src/renderer/src/api.ts:349-362 setRepositoryLifecycle. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:186",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0012"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "918ac3f89d3233c5",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:1670, src/renderer/src/styles.css:1761, src/renderer/src/styles.css:1952. Detector evidence: padding: 18px 20px 20px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1670",
+        "src/renderer/src/styles.css:1761",
+        "src/renderer/src/styles.css:1952",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0139",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0148",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0165"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "91d1e18ca856cdea",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 10 occurrences at src/renderer/src/styles.css:822, src/renderer/src/styles.css:2271, src/renderer/src/styles.css:2525, src/renderer/src/styles.css:2618, src/renderer/src/styles.css:3331, src/renderer/src/styles.css:3403, src/renderer/src/styles.css:3587, src/renderer/src/styles.css:3657 and 2 more locations. Detector evidence: gap: 3px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:822",
+        "src/renderer/src/styles.css:2271",
+        "src/renderer/src/styles.css:2525",
+        "src/renderer/src/styles.css:2618",
+        "src/renderer/src/styles.css:3331",
+        "src/renderer/src/styles.css:3403",
+        "src/renderer/src/styles.css:3587",
+        "src/renderer/src/styles.css:3657",
+        "src/renderer/src/styles.css:3832",
+        "src/renderer/src/styles.css:4900",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0092",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0189",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0208",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0216",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0264",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0275",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0286",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0292",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0308",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0366"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "925ebd38cd8f23a0",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:242. Detector evidence: qr-native found 97.35% similarity across 2 functions: src/renderer/src/api.ts:242-253 setAiPermission <-> src/renderer/src/api.ts:317-330 clearExpected. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:242",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0017"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "93d466a101cadcec",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:288. Detector evidence: padding: 2px 5px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:288",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0060"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "94c02388143f4dfa",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 2 occurrences at src/renderer/src/styles.css:3704, src/renderer/src/styles.css:5035. Detector evidence: padding-top: 9px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:3704",
+        "src/renderer/src/styles.css:5035",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0294",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0376"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "951973d7bdc48cc3",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 8 occurrences at src/renderer/src/styles.css:305, src/renderer/src/styles.css:2631, src/renderer/src/styles.css:2710, src/renderer/src/styles.css:3356, src/renderer/src/styles.css:3488, src/renderer/src/styles.css:3643, src/renderer/src/styles.css:3775, src/renderer/src/styles.css:3823. Detector evidence: padding: 10px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:305",
+        "src/renderer/src/styles.css:2631",
+        "src/renderer/src/styles.css:2710",
+        "src/renderer/src/styles.css:3356",
+        "src/renderer/src/styles.css:3488",
+        "src/renderer/src/styles.css:3643",
+        "src/renderer/src/styles.css:3775",
+        "src/renderer/src/styles.css:3823",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0063",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0219",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0228",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0267",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0280",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0291",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0302",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0307"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "9579d617628c2538",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:396. Detector evidence: qr-native found 98.97% similarity across 2 functions: src/renderer/src/api.ts:396-405 deleteProduct <-> src/renderer/src/api.ts:424-431 deleteGroup. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:396",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0032"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "96262303e3acda74",
+      "status": "false_positive",
+      "reason": "False positive risky hidden reveal disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2298. Detector evidence: opacity: 0;. The zero opacity exists only in an animation's from keyframe; the element's base style remains visible if animation does not run. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2298",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0409"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "9660d8d6bff22f4d",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 6 occurrences at src/renderer/src/styles.css:1516, src/renderer/src/styles.css:1783, src/renderer/src/styles.css:1984, src/renderer/src/styles.css:2086, src/renderer/src/styles.css:2722, src/renderer/src/styles.css:4356. Detector evidence: margin-top: 5px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1516",
+        "src/renderer/src/styles.css:1783",
+        "src/renderer/src/styles.css:1984",
+        "src/renderer/src/styles.css:2086",
+        "src/renderer/src/styles.css:2722",
+        "src/renderer/src/styles.css:4356",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0130",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0149",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0166",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0179",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0229",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0331"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "9851ce0831725c81",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional console output disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at scripts/install-app.mjs:161. Detector evidence: globalThis.console.log(`Bundle hash: ${installedBundleDigest.slice(0, 12)}`);. The install/check command intentionally reports its paths, bundle hashes, success state, and failures to the invoking terminal. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T19:55:51.023782+00:00",
+      "evidence": [
+        "scripts/install-app.mjs:161",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0398"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "98e072901554f643",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:632, src/renderer/src/styles.css:695, src/renderer/src/styles.css:766. Detector evidence: margin-bottom: 18px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:632",
+        "src/renderer/src/styles.css:695",
+        "src/renderer/src/styles.css:766",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0076",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0079",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0085"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "9b16071167fbe9dd",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4246. Detector evidence: padding: 11px 15px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4246",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0326"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "9b8c1503301faa8c",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2691. Detector evidence: padding-top: 17px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2691",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0225"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "9cdfe0e41576e65d",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4611. Detector evidence: padding: 14px 16px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4611",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0347"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "9d3f02ed74f57a37",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:242. Detector evidence: qr-native found 96.49% similarity across 2 functions: src/renderer/src/api.ts:242-253 setAiPermission <-> src/renderer/src/api.ts:255-268 previewAiSummary. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:242",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0018"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "9e94970ce5a69289",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:5063. Detector evidence: padding-left: 17px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:5063",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0381"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "9f3ef25df396a4b3",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:3007. Detector evidence: padding: 13px 12px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:3007",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0250"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "9fbc01a2b6a54937",
+      "status": "false_positive",
+      "reason": "False positive deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/App.tsx:447. Detector evidence: if (activeNav === \"remediation\") {. The reported branch is a two-way refresh choice inside the top-bar callback, not deeply nested application flow. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/App.tsx:447",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0040"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "a038a5b476696d61",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:2378, src/renderer/src/styles.css:2871, src/renderer/src/styles.css:3423. Detector evidence: margin-bottom: 14px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2378",
+        "src/renderer/src/styles.css:2871",
+        "src/renderer/src/styles.css:3423",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0196",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0242",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0276"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "a1023eee6c629eed",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1031. Detector evidence: padding: 18px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1031",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0105"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "a3b952eb94e031b4",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4748. Detector evidence: padding: 13px 16px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4748",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0356"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "a4fd35f7e921b099",
+      "status": "false_positive",
+      "reason": "False positive pass through wrapper disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at scripts/install-app.mjs:51. Detector evidence: shrink: function digestFile(path) {. digestFile composes file reading, SHA-256 construction, hashing, and hex encoding behind a named file-digest boundary; it is not a single delegated call. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "scripts/install-app.mjs:51",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0402"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "a727b167e6f6566d",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional console output disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at scripts/install-app.mjs:162. Detector evidence: globalThis.console.log(`Executable: ${installedExecutableDigest.slice(0, 12)}`);. The install/check command intentionally reports its paths, bundle hashes, success state, and failures to the invoking terminal. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T19:56:50.944942+00:00",
+      "evidence": [
+        "scripts/install-app.mjs:162",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0399"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "a8dc6b9f598bee22",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:133. Detector evidence: margin: 18px 0 14px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:133",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0053"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "ac1552bfb55120dd",
+      "status": "false_positive",
+      "reason": "False positive risky hidden reveal disposition for Quality Runner run pronto-remediation-20260729-v5: 2 occurrences at src/renderer/src/styles.css:2914, src/renderer/src/styles.css:4566. Detector evidence: opacity: 0.7;. The opacity belongs to a disabled control or decorative icon, not content whose visibility depends on a reveal animation. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2914",
+        "src/renderer/src/styles.css:4566",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0412",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0415"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "acbe53847d562c6b",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 7 occurrences at src/renderer/src/styles.css:1394, src/renderer/src/styles.css:1914, src/renderer/src/styles.css:3368, src/renderer/src/styles.css:3716, src/renderer/src/styles.css:4405, src/renderer/src/styles.css:4434, src/renderer/src/styles.css:5107. Detector evidence: padding: 9px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1394",
+        "src/renderer/src/styles.css:1914",
+        "src/renderer/src/styles.css:3368",
+        "src/renderer/src/styles.css:3716",
+        "src/renderer/src/styles.css:4405",
+        "src/renderer/src/styles.css:4434",
+        "src/renderer/src/styles.css:5107",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0123",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0162",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0270",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0295",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0336",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0341",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0385"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "ad5eb5b26bb7f879",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2690. Detector evidence: margin-top: 27px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2690",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0224"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "adae608f3b30338c",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:2550, src/renderer/src/styles.css:2703, src/renderer/src/styles.css:3756. Detector evidence: margin-bottom: 10px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2550",
+        "src/renderer/src/styles.css:2703",
+        "src/renderer/src/styles.css:3756",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0210",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0227",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0299"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "af21e3b5876cabc0",
+      "status": "false_positive",
+      "reason": "False positive deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/App.tsx:404. Detector evidence: if (filter === \"sync\"). The reported branch is a flat repository filter predicate, not deeply nested application control flow. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/App.tsx:404",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0039"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "af7a8eb87bddfd24",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:3753. Detector evidence: margin-top: 23px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:3753",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0298"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "afca897cfc8c92bb",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:186. Detector evidence: qr-native found 100.00% similarity across 2 functions: src/renderer/src/api.ts:186-199 prepareRepository <-> src/renderer/src/api.ts:255-268 previewAiSummary. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:186",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0009"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "b1f076fa1968b052",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4431. Detector evidence: gap: 3px 8px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4431",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0339"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "b31fcf31b0142066",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 5 occurrences at src/renderer/src/styles.css:781, src/renderer/src/styles.css:1556, src/renderer/src/styles.css:2452, src/renderer/src/styles.css:3429, src/renderer/src/styles.css:4102. Detector evidence: gap: 18px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:781",
+        "src/renderer/src/styles.css:1556",
+        "src/renderer/src/styles.css:2452",
+        "src/renderer/src/styles.css:3429",
+        "src/renderer/src/styles.css:4102",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0086",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0132",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0201",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0277",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0316"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "b34ae6888faa6dab",
+      "status": "false_positive",
+      "reason": "QualitySnapshot is part of the exported RepositorySnapshot contract and is directly exercised by the renderer test suite.",
+      "reviewer": "codex-assisted-review",
+      "reviewed_at": "2026-07-29T19:18:12Z",
+      "evidence": [
+        "src/renderer/src/types.ts:391",
+        "src/renderer/src/components/QualityComponents.test.tsx:150"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "b4a72bcb99a202db",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4402. Detector evidence: margin: 14px 0;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4402",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0335"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "b7ec8e65a86e8dc8",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:737. Detector evidence: padding-top: 10px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:737",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0082"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "b845c2872c783861",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2386. Detector evidence: margin: 5px 0;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2386",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0197"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "bae7d40411d82d23",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1877. Detector evidence: padding: 7px 9px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1877",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0157"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "bbdd2a9ac966a70e",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional console output disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at scripts/install-app.mjs:108. Detector evidence: globalThis.console.log(`Installed bundle: ${targetApp}`);. The install/check command intentionally reports its paths, bundle hashes, success state, and failures to the invoking terminal. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T19:57:31.981315+00:00",
+      "evidence": [
+        "scripts/install-app.mjs:108",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0391"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "bcde54036e2ec7fb",
+      "status": "confirmed",
+      "reason": "Confirmed large source file disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/components/QualityComponents.tsx:1. Detector evidence: 522 lines. The scan measured 522 lines; that objectively exceeds the large-file threshold and remains actionable for a focused responsibility split. Why it remains actionable: Large files increase review cost and refactor risk.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/components/QualityComponents.tsx:1",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0004"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "bdb811e5fc7bba45",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2742. Detector evidence: padding: 11px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2742",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0234"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "c2d9913a93a3709d",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:364. Detector evidence: qr-native found 97.96% similarity across 2 functions: src/renderer/src/api.ts:364-375 setRetentionDays <-> src/renderer/src/api.ts:424-431 deleteGroup. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:364",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0031"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "c4265c6cadb98025",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 14 occurrences at src/renderer/src/styles.css:988, src/renderer/src/styles.css:1207, src/renderer/src/styles.css:1870, src/renderer/src/styles.css:1905, src/renderer/src/styles.css:2570, src/renderer/src/styles.css:2585, src/renderer/src/styles.css:3120, src/renderer/src/styles.css:3156 and 6 more locations. Detector evidence: gap: 6px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:988",
+        "src/renderer/src/styles.css:1207",
+        "src/renderer/src/styles.css:1870",
+        "src/renderer/src/styles.css:1905",
+        "src/renderer/src/styles.css:2570",
+        "src/renderer/src/styles.css:2585",
+        "src/renderer/src/styles.css:3120",
+        "src/renderer/src/styles.css:3156",
+        "src/renderer/src/styles.css:3206",
+        "src/renderer/src/styles.css:3296",
+        "src/renderer/src/styles.css:3518",
+        "src/renderer/src/styles.css:3523",
+        "src/renderer/src/styles.css:5003",
+        "src/renderer/src/styles.css:5070",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0104",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0113",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0156",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0159",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0212",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0213",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0251",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0252",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0255",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0261",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0282",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0283",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0375",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0382"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "c543cf8d4b01542d",
+      "status": "confirmed",
+      "reason": "Confirmed large source file disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/components/Drawers.tsx:1. Detector evidence: 597 lines. The scan measured 597 lines; that objectively exceeds the large-file threshold and remains actionable for a focused responsibility split. Why it remains actionable: Large files increase review cost and refactor risk.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/components/Drawers.tsx:1",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0003"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "c6d1a2e58d7b4e41",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:256. Detector evidence: padding: 10px 11px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:256",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0059"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "c7d102a1c3125c59",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:429. Detector evidence: padding: 3px 5px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:429",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0068"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "c7eff12a80cd4e1f",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4180. Detector evidence: padding: 9px 11px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4180",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0322"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "c84ce96d3746e48b",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 7 occurrences at src/renderer/src/styles.css:325, src/renderer/src/styles.css:912, src/renderer/src/styles.css:1448, src/renderer/src/styles.css:1754, src/renderer/src/styles.css:1943, src/renderer/src/styles.css:2469, src/renderer/src/styles.css:3327. Detector evidence: margin-top: 3px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:325",
+        "src/renderer/src/styles.css:912",
+        "src/renderer/src/styles.css:1448",
+        "src/renderer/src/styles.css:1754",
+        "src/renderer/src/styles.css:1943",
+        "src/renderer/src/styles.css:2469",
+        "src/renderer/src/styles.css:3327",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0064",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0100",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0124",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0147",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0164",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0203",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0263"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "cc031cd3e3136003",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:3265. Detector evidence: padding: 6px 0 0;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:3265",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0258"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "cd227525f015adfe",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 2 occurrences at src/renderer/src/styles.css:811, src/renderer/src/styles.css:1115. Detector evidence: gap: 15px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:811",
+        "src/renderer/src/styles.css:1115",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0089",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0110"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "cd2e196e5f373007",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4853. Detector evidence: padding-left: 18px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4853",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0361"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "cee158b61935408c",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 17 occurrences at src/renderer/src/styles.css:132, src/renderer/src/styles.css:304, src/renderer/src/styles.css:331, src/renderer/src/styles.css:522, src/renderer/src/styles.css:911, src/renderer/src/styles.css:1266, src/renderer/src/styles.css:1458, src/renderer/src/styles.css:1669 and 9 more locations. Detector evidence: gap: 9px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:132",
+        "src/renderer/src/styles.css:304",
+        "src/renderer/src/styles.css:331",
+        "src/renderer/src/styles.css:522",
+        "src/renderer/src/styles.css:911",
+        "src/renderer/src/styles.css:1266",
+        "src/renderer/src/styles.css:1458",
+        "src/renderer/src/styles.css:1669",
+        "src/renderer/src/styles.css:1913",
+        "src/renderer/src/styles.css:2093",
+        "src/renderer/src/styles.css:2117",
+        "src/renderer/src/styles.css:2256",
+        "src/renderer/src/styles.css:2292",
+        "src/renderer/src/styles.css:2629",
+        "src/renderer/src/styles.css:2689",
+        "src/renderer/src/styles.css:3805",
+        "src/renderer/src/styles.css:4287",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0052",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0062",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0065",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0071",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0099",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0116",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0125",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0138",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0161",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0180",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0182",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0186",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0191",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0218",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0223",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0304",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0327"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "cfb2893095e817ac",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1333. Detector evidence: padding: 17px 17px 13px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1333",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0119"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "d15c0240d6e564cd",
+      "status": "false_positive",
+      "reason": "False positive deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/App.tsx:390. Detector evidence: if (!normalizedQuery) return true;. The reported branch is an early-return search predicate inside a filter callback. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/App.tsx:390",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0036"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "d19beb209ca84d4d",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:3732. Detector evidence: margin: 21px 0 25px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:3732",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0296"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "d313d474e6a2c862",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:523. Detector evidence: padding-bottom: 2px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:523",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0072"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "d3275ac96e02b96c",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 2 occurrences at src/renderer/src/styles.css:1817, src/renderer/src/styles.css:2007. Detector evidence: padding: 18px 20px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1817",
+        "src/renderer/src/styles.css:2007",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0153",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0170"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "d3902c5c6042506e",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:683. Detector evidence: margin: 7px 0 2px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:683",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0077"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "d4e6bc38121f6019",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:490. Detector evidence: margin-bottom: 27px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:490",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0070"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "d797121b8f5322a7",
+      "status": "false_positive",
+      "reason": "False positive deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/hooks/useAppKeyboardShortcuts.ts:9. Detector evidence: if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === \"<redacted>\") {. The reported branch is the Command-or-Control keyboard shortcut guard inside an event handler. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/hooks/useAppKeyboardShortcuts.ts:9",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0045"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "d7db3a38e6578b65",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2077. Detector evidence: padding: 5px 6px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2077",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0178"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "d82b5454d4cacdd5",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 2 occurrences at src/renderer/src/styles.css:807, src/renderer/src/styles.css:3289. Detector evidence: padding-top: 5px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:807",
+        "src/renderer/src/styles.css:3289",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0088",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0260"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "d91a1ea35a728ca7",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 5 occurrences at src/renderer/src/styles.css:1735, src/renderer/src/styles.css:2517, src/renderer/src/styles.css:2800, src/renderer/src/styles.css:3341, src/renderer/src/styles.css:3572. Detector evidence: padding: 9px 10px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1735",
+        "src/renderer/src/styles.css:2517",
+        "src/renderer/src/styles.css:2800",
+        "src/renderer/src/styles.css:3341",
+        "src/renderer/src/styles.css:3572",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0146",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0207",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0237",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0266",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0285"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "dd9482b2b521941a",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:752, src/renderer/src/styles.css:2935, src/renderer/src/styles.css:3309. Detector evidence: margin-left: 2px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:752",
+        "src/renderer/src/styles.css:2935",
+        "src/renderer/src/styles.css:3309",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0083",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0246",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0262"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "e222f5f2bd7e4581",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:1684, src/renderer/src/styles.css:2679, src/renderer/src/styles.css:4338. Detector evidence: padding: 13px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1684",
+        "src/renderer/src/styles.css:2679",
+        "src/renderer/src/styles.css:4338",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0142",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0222",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0330"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "e3ba581c746d45e9",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1071. Detector evidence: gap: 17px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1071",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0107"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "e4ca0a3f9f82194b",
+      "status": "confirmed",
+      "reason": "Confirmed large source file disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/App.tsx:1. Detector evidence: 657 lines. The scan measured 657 lines; that objectively exceeds the large-file threshold and remains actionable for a focused responsibility split. Why it remains actionable: Large files increase review cost and refactor risk.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/App.tsx:1",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0001"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "e529ef2eebe0348f",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:2030, src/renderer/src/styles.css:4802, src/renderer/src/styles.css:4858. Detector evidence: padding: 14px 20px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2030",
+        "src/renderer/src/styles.css:4802",
+        "src/renderer/src/styles.css:4858",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0171",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0359",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0363"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "e5308a219b98d853",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:4328. Detector evidence: padding: 11px 13px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:4328",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0329"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "e5a6cd8bd4207064",
+      "status": "confirmed",
+      "reason": "Confirmed large source file disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/components/AnalyticsComponents.tsx:1. Detector evidence: 560 lines. The scan measured 560 lines; that objectively exceeds the large-file threshold and remains actionable for a focused responsibility split. Why it remains actionable: Large files increase review cost and refactor risk.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/components/AnalyticsComponents.tsx:1",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0002"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "e615f81826af5328",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:158. Detector evidence: qr-native found 96.15% similarity across 2 functions: src/renderer/src/api.ts:158-169 exportRemediation <-> src/renderer/src/api.ts:364-375 setRetentionDays. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:158",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0008"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "e9115dbed0c7109a",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:255. Detector evidence: qr-native found 99.15% similarity across 2 functions: src/renderer/src/api.ts:255-268 previewAiSummary <-> src/renderer/src/api.ts:302-315 markExpected. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:255",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0019"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "eb7e619679cf8f1c",
+      "status": "false_positive",
+      "reason": "False positive risky hidden reveal disposition for Quality Runner run pronto-remediation-20260729-v5: 5 occurrences at src/renderer/src/styles.css:1311, src/renderer/src/styles.css:1363, src/renderer/src/styles.css:1810, src/renderer/src/styles.css:3893, src/renderer/src/styles.css:4242. Detector evidence: display: none;. The declarations hide native details markers or a responsive keyboard hint, not primary content awaiting a reveal. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1311",
+        "src/renderer/src/styles.css:1363",
+        "src/renderer/src/styles.css:1810",
+        "src/renderer/src/styles.css:3893",
+        "src/renderer/src/styles.css:4242",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0406",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0407",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0408",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0413",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0414"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "ed466c0893caa88a",
+      "status": "false_positive",
+      "reason": "False positive risky hidden reveal disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:462. Detector evidence: opacity: 0.58;. The opacity belongs to a disabled control or decorative icon, not content whose visibility depends on a reveal animation. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:462",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0403"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "edc318fadbe17e6d",
+      "status": "false_positive",
+      "reason": "WorkspaceSummary is embedded in exported repository summary contracts and is directly exercised by the renderer test suite.",
+      "reviewer": "codex-assisted-review",
+      "reviewed_at": "2026-07-29T19:18:12Z",
+      "evidence": [
+        "src/renderer/src/types.ts:385",
+        "src/renderer/src/types.ts:386",
+        "src/renderer/src/components/QualityComponents.test.tsx:50"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "ee34f9c40bae1dd0",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional console output disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at scripts/install-app.mjs:160. Detector evidence: globalThis.console.log(`Installed current Pronto at ${targetApp}.`);. The install/check command intentionally reports its paths, bundle hashes, success state, and failures to the invoking terminal. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T19:58:02.299931+00:00",
+      "evidence": [
+        "scripts/install-app.mjs:160",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0397"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "ee632c1a4c2bf483",
+      "status": "confirmed",
+      "reason": "Confirmed deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/hooks/usePreparationActions.ts:80. Detector evidence: if (!nextRepository) {. Release preparation combines async mutation, missing-repository recovery, follow-up preparation, and error handling in one nested path. Why it remains actionable: Deeply nested flow is hard to review and easy to change incorrectly.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/hooks/usePreparationActions.ts:80",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0047"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "ef2c8a01adfe780c",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 2 occurrences at src/renderer/src/styles.css:299, src/renderer/src/styles.css:764. Detector evidence: gap: 13px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:299",
+        "src/renderer/src/styles.css:764",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0061",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0084"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "f1850ad989dd236f",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional console output disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/components/SkillsComponents.tsx:73. Detector evidence: console.error(\"Skills surface render failed\", error, info);. The React error boundary intentionally emits diagnostic context when the Skills surface fails; this is failure telemetry rather than ordinary runtime chatter. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T19:58:32.095576+00:00",
+      "evidence": [
+        "src/renderer/src/components/SkillsComponents.tsx:73",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0401"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "f2c96e8954460fda",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:3364. Detector evidence: margin-top: 9px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:3364",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0269"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "f3d9df14473c8f24",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional semantic similarity pair disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/api.ts:282. Detector evidence: qr-native found 97.96% similarity across 2 functions: src/renderer/src/api.ts:282-291 openQualityReport <-> src/renderer/src/api.ts:396-405 deleteProduct. Both functions are thin, domain-specific Tauri invoke adapters. Their guard and payload structure is intentionally uniform while their command names and typed contracts remain distinct; syntax-only extraction would obscure the API boundary. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/api.ts:282",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0023"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "f3eea03631a8c3ac",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2479. Detector evidence: padding: 17px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:2479",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0204"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "faa7a5bc1ea8574c",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:880, src/renderer/src/styles.css:4146, src/renderer/src/styles.css:4984. Detector evidence: padding: 14px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:880",
+        "src/renderer/src/styles.css:4146",
+        "src/renderer/src/styles.css:4984",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0097",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0319",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0374"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "fb8a917d33edd826",
+      "status": "false_positive",
+      "reason": "False positive deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/App.tsx:403. Detector evidence: if (filter === \"dirty\") return repository.workspace.dirty;. The reported branch is a flat repository filter predicate, not deeply nested application control flow. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/App.tsx:403",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0038"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "fbd3fc6551213dcf",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:483. Detector evidence: padding: 33px 32px 50px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:483",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0069"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "fbe700e72c919a6a",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 11 occurrences at src/renderer/src/styles.css:91, src/renderer/src/styles.css:254, src/renderer/src/styles.css:631, src/renderer/src/styles.css:869, src/renderer/src/styles.css:1228, src/renderer/src/styles.css:1510, src/renderer/src/styles.css:1635, src/renderer/src/styles.css:1682 and 3 more locations. Detector evidence: gap: 11px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:91",
+        "src/renderer/src/styles.css:254",
+        "src/renderer/src/styles.css:631",
+        "src/renderer/src/styles.css:869",
+        "src/renderer/src/styles.css:1228",
+        "src/renderer/src/styles.css:1510",
+        "src/renderer/src/styles.css:1635",
+        "src/renderer/src/styles.css:1682",
+        "src/renderer/src/styles.css:2006",
+        "src/renderer/src/styles.css:2850",
+        "src/renderer/src/styles.css:3609",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0049",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0058",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0075",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0095",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0114",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0129",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0136",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0141",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0169",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0241",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0287"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "fcb27616e65dc52b",
+      "status": "accepted_intentional",
+      "reason": "Accepted as intentional console output disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at scripts/install-app.mjs:31. Detector evidence: globalThis.console.error(. The install/check command intentionally reports its paths, bundle hashes, success state, and failures to the invoking terminal. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T19:59:08.016327+00:00",
+      "evidence": [
+        "scripts/install-app.mjs:31",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0389"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "fe23857afe1b2869",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1541. Detector evidence: margin-bottom: 5px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:1541",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0131"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "feb4f3fea2da7b1b",
+      "status": "confirmed",
+      "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:3733. Detector evidence: padding: 15px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/styles.css:3733",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0297"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "ffbd79c02e3a3d97",
+      "status": "false_positive",
+      "reason": "False positive deep nesting disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/hooks/useAppKeyboardShortcuts.ts:13. Detector evidence: if (event.key === \"<redacted>\") onEscape();. The reported branch is a single Escape-key shortcut guard inside an event handler. The raw detector occurrence remains visible, but this reviewed disposition removes it from active remediation.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "evidence": [
+        "src/renderer/src/hooks/useAppKeyboardShortcuts.ts:13",
+        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0046"
+      ],
+      "expires_at": null
+    }
+  ]
+}

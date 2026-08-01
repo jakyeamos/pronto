@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": 1,
+  "revision": 2,
   "commitments": [
     {
       "id": "fleet-remediation-ui-coverage",
@@ -23,8 +23,19 @@
         "note": "The user approved making this order available to Pronto-guided agents.",
         "observed_at": "2026-07-29T17:43:37Z"
       }
+    },
+    {
+      "id": "quality-finding-adjudication",
+      "kind": "decision",
+      "statement": "Pronto preserves Quality Runner's raw detector total while a repository-owned, evidence-backed fingerprint ledger determines reviewed, actionable, and non-actionable finding counts and remediation membership.",
+      "status": "active",
+      "source": {
+        "ref": "conversation:2026-07-29:quality-false-positive-gap",
+        "note": "The user identified the lack of false-positive accounting as a real product gap and approved the improvement.",
+        "observed_at": "2026-07-29T19:33:09Z"
+      }
     }
   ],
   "reconciliations": [],
-  "updated_at": "2026-07-29T17:43:37Z"
+  "updated_at": "2026-07-29T19:33:09Z"
 }
