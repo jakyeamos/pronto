@@ -1,6 +1,6 @@
 {
   "schema_version": "pronto-quality-finding-dispositions/v1",
-  "updated_at": "2026-08-01T22:48:13.878228+00:00",
+  "updated_at": "2026-08-01T23:27:24.000927+00:00",
   "dispositions": [
     {
       "fingerprint": "0565be578c4cb1b5",
@@ -2544,13 +2544,17 @@
     },
     {
       "fingerprint": "e5a6cd8bd4207064",
-      "status": "confirmed",
-      "reason": "Confirmed large source file disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/components/AnalyticsComponents.tsx:1. Detector evidence: 560 lines. The scan measured 560 lines; that objectively exceeds the large-file threshold and remains actionable for a focused responsibility split. Why it remains actionable: Large files increase review cost and refactor risk.",
-      "reviewer": "codex-assisted-triage",
-      "reviewed_at": "2026-07-29T20:02:14.270Z",
+      "status": "fixed",
+      "reason": "Analytics responsibilities were split into focused chart-model, portfolio-surface, and repository-panel modules. The original file fell from 560 to 252 lines, and a fresh Quality Runner scan no longer reports this fingerprint or any finding in the touched modules.",
+      "reviewer": "codex-assisted-remediation",
+      "reviewed_at": "2026-08-01T23:27:24.000927+00:00",
       "evidence": [
         "src/renderer/src/components/AnalyticsComponents.tsx:1",
-        ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0002"
+        "src/renderer/src/components/analyticsChartModel.ts:1",
+        "src/renderer/src/components/RepositoryAnalyticsPanel.tsx:1",
+        ".quality-runner/runs/pronto-remediation-20260801-analytics-split/code-quality-scan.json",
+        "pnpm test: 101 Rust and 24 renderer tests passed",
+        "pnpm build:web: passed"
       ],
       "expires_at": null
     },
