@@ -581,6 +581,14 @@ interface RemediationCoverage {
   action_ids: string[];
 }
 
+interface RemediationMaturityPolicy {
+  minimum_closure_score: number;
+  ideal_score: number;
+  scoring_owner: string;
+  improvement_rule: string;
+  integrity_rule: string;
+}
+
 interface RemediationGoalProfile {
   schema_version: string;
   target_state: string;
@@ -593,6 +601,7 @@ interface RemediationGoalProfile {
   optional_gate_ids: string[];
   evidence_max_age_days: number;
   closure_criteria: string[];
+  maturity_policy?: RemediationMaturityPolicy | null;
   error?: string | null;
 }
 
@@ -628,6 +637,7 @@ interface RemediationClosure {
   plan_id: string;
   target_state: string;
   goal_source: string;
+  maturity_policy?: RemediationMaturityPolicy | null;
   closed_at: string;
   source_refresh_id?: string | null;
   disposition: string;

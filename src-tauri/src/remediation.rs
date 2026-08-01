@@ -10,7 +10,8 @@ use std::path::{Path, PathBuf};
 pub const REMEDIATION_SCHEMA: &str = "pronto-remediation/v3";
 pub const REMEDIATION_GOAL_SCHEMA: &str = "pronto-remediation-goal/v1";
 pub const REMEDIATION_GOAL_PATH: &str = ".pronto/remediation-goal.json";
-pub const MATURITY_TARGET: f64 = 3.0;
+pub const MATURITY_CLOSURE_TARGET: f64 = 3.0;
+pub const MATURITY_IDEAL_SCORE: f64 = 4.0;
 pub const EXCLUDED_REPOSITORY_NAMES: [&str; 2] = ["soundscape", "tenure"];
 const ALL_GATE_IDS: [&str; 9] = [
     "build",
@@ -117,6 +118,15 @@ pub struct RemediationCoverage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RemediationMaturityPolicy {
+    pub minimum_closure_score: f64,
+    pub ideal_score: f64,
+    pub scoring_owner: String,
+    pub improvement_rule: String,
+    pub integrity_rule: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RemediationGoalProfile {
     pub schema_version: String,
     pub target_state: String,
@@ -129,6 +139,8 @@ pub struct RemediationGoalProfile {
     pub optional_gate_ids: Vec<String>,
     pub evidence_max_age_days: u64,
     pub closure_criteria: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maturity_policy: Option<RemediationMaturityPolicy>,
     pub error: Option<String>,
 }
 
@@ -163,6 +175,8 @@ pub struct RemediationClosure {
     pub target_state: String,
     #[serde(default)]
     pub goal_source: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maturity_policy: Option<RemediationMaturityPolicy>,
     pub closed_at: String,
     pub source_refresh_id: Option<String>,
     pub disposition: String,
@@ -392,8 +406,33 @@ fn goal_definition(target_state: &str) -> Option<RemediationGoalProfile> {
         optional_gate_ids: optional.into_iter().map(str::to_string).collect(),
         evidence_max_age_days,
         closure_criteria: closure_criteria.into_iter().map(str::to_string).collect(),
+        maturity_policy: maturity_policy_for_target(target_state),
         contract_path: REMEDIATION_GOAL_PATH.to_string(),
         ..RemediationGoalProfile::default()
+    })
+}
+
+fn maturity_improvement_rule() -> String {
+    format!(
+        "Reaching {MATURITY_CLOSURE_TARGET:.1}/4 clears blocking maturity remediation; continue material, evidence-backed improvements toward {MATURITY_IDEAL_SCORE:.1}/4 when applicable without keeping the repository in the active queue solely for stretch work."
+    )
+}
+
+fn maturity_integrity_rule() -> String {
+    "Do not add or accept superficial documentation, configuration, tests, or other artifacts solely to raise the score; each claimed improvement must close a real applicable gap and preserve structural evidence versus behavior-proof boundaries.".to_string()
+}
+
+fn maturity_policy_for_target(target_state: &str) -> Option<RemediationMaturityPolicy> {
+    matches!(
+        target_state,
+        "public_release" | "deployed_product" | "active_maintained"
+    )
+    .then(|| RemediationMaturityPolicy {
+        minimum_closure_score: MATURITY_CLOSURE_TARGET,
+        ideal_score: MATURITY_IDEAL_SCORE,
+        scoring_owner: "Quality Runner canonical maturity feed".to_string(),
+        improvement_rule: maturity_improvement_rule(),
+        integrity_rule: maturity_integrity_rule(),
     })
 }
 
@@ -888,6 +927,7 @@ fn closure_from_plan(
         plan_id: plan.id.clone(),
         target_state: plan.goal.target_state.clone(),
         goal_source: plan.goal.source.clone(),
+        maturity_policy: plan.goal.maturity_policy.clone(),
         closed_at: closed_at.to_string(),
         source_refresh_id: source_refresh_id.map(str::to_string),
         disposition: disposition.to_string(),
@@ -2189,10 +2229,12 @@ fn add_maturity_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
             report_path,
             2,
         )),
-        Some(score) if score < MATURITY_TARGET => seeds.push(maturity_seed(
+        Some(score) if score < MATURITY_CLOSURE_TARGET => seeds.push(maturity_seed(
             "maturity:score",
             "Raise the repository maturity score",
-            &format!("The current maturity score is {score:.3}/4; the Pronto target is {MATURITY_TARGET:.1}/4."),
+            &format!(
+                "The current maturity score is {score:.3}/4; the minimum closure target is {MATURITY_CLOSURE_TARGET:.1}/4 and the evidence-backed ideal is {MATURITY_IDEAL_SCORE:.1}/4."
+            ),
             "Below target",
             &freshness,
             observed_at,
@@ -2202,18 +2244,24 @@ fn add_maturity_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
         Some(_) => {}
     }
     for (dimension, score) in &maturity.dimension_scores {
-        if *score < MATURITY_TARGET {
+        if *score < MATURITY_CLOSURE_TARGET {
             seeds.push(ActionSeed {
                 stable_key: format!("maturity:dimension:{dimension}"),
                 domain: "maturity".to_string(),
                 title: format!("Improve the {dimension} maturity dimension"),
-                summary: format!("The dimension score is {score:.3}/4; the Pronto target is {MATURITY_TARGET:.1}/4."),
+                summary: format!(
+                    "The dimension score is {score:.3}/4; the minimum closure target is {MATURITY_CLOSURE_TARGET:.1}/4 and the evidence-backed ideal is {MATURITY_IDEAL_SCORE:.1}/4."
+                ),
                 severity: "maturity".to_string(),
                 priority: "P2".to_string(),
                 weight: 2,
                 acceptance_criteria: vec![
                     format!("Address the evidence-backed gaps for {dimension}."),
-                    format!("Fresh imported maturity evidence reports {dimension} at or above {MATURITY_TARGET:.1}/4."),
+                    format!(
+                        "Fresh imported maturity evidence reports {dimension} at or above {MATURITY_CLOSURE_TARGET:.1}/4."
+                    ),
+                    maturity_improvement_rule(),
+                    maturity_integrity_rule(),
                 ],
                 evidence: vec![evidence(
                     "Quality Runner maturity evidence",
@@ -2251,7 +2299,11 @@ fn maturity_seed(
         weight,
         acceptance_criteria: vec![
             "Quality Runner maturity evidence is refreshed after the relevant work.".to_string(),
-            format!("The resulting maturity evidence is fresh and at or above {MATURITY_TARGET:.1}/4 where applicable."),
+            format!(
+                "The resulting maturity evidence is fresh and at or above {MATURITY_CLOSURE_TARGET:.1}/4 where applicable."
+            ),
+            maturity_improvement_rule(),
+            maturity_integrity_rule(),
         ],
         evidence: vec![evidence(
             "Quality Runner maturity evidence",
@@ -3152,6 +3204,11 @@ coverage entries link to concrete remediation actions. \
 Repositories leave the active table only after their plan reaches a terminal \
 evidence-backed disposition. Git, provider, publication, and pruning actions \
 still require their own authorization.\n\n\
+For maturity-applicable goals, **{MATURITY_CLOSURE_TARGET:.1}/4 is the minimum \
+closure score and {MATURITY_IDEAL_SCORE:.1}/4 is the evidence-backed ideal**. \
+Continue only material improvements after closure, and never add superficial \
+documentation, configuration, tests, or other artifacts solely to raise the \
+score.\n\n\
 Ranking preserves plan status, the earliest unresolved remediation domain, \
 and action priority before fleet leverage. Pronto, AIOS, and Quality Runner \
 receive explicit control-plane or evidence-provider precedence before the \
@@ -3454,6 +3511,12 @@ mod tests {
         assert_eq!(run.closures[0].repository_name, "pronto");
         assert_eq!(run.closures[0].disposition, "verified");
         assert_eq!(run.closures[0].resolved_action_count, 1);
+        let retained_policy = run.closures[0]
+            .maturity_policy
+            .as_ref()
+            .expect("closure should retain maturity policy");
+        assert_eq!(retained_policy.minimum_closure_score, 3.0);
+        assert_eq!(retained_policy.ideal_score, 4.0);
         assert_eq!(
             run.closures[0].last_evidence_at.as_deref(),
             Some("2026-07-29T12:00:00Z")
@@ -3653,6 +3716,43 @@ mod tests {
     }
 
     #[test]
+    fn maturity_goals_expose_the_closure_floor_ideal_and_integrity_rule() {
+        let goal = goal_definition("active_maintained").expect("maturity goal should be supported");
+        let policy = goal
+            .maturity_policy
+            .as_ref()
+            .expect("maturity-applicable goals should expose policy");
+
+        assert_eq!(policy.minimum_closure_score, 3.0);
+        assert_eq!(policy.ideal_score, 4.0);
+        assert_eq!(
+            policy.scoring_owner,
+            "Quality Runner canonical maturity feed"
+        );
+        assert!(policy.improvement_rule.contains("continue material"));
+        assert!(policy.integrity_rule.contains("superficial documentation"));
+
+        let seed = maturity_seed(
+            "maturity:score",
+            "Raise maturity",
+            "Below target",
+            "Below target",
+            "Fresh",
+            Some("2026-07-29T12:00:00Z"),
+            Some("/tmp/maturity.json"),
+            3,
+        );
+        assert!(seed
+            .acceptance_criteria
+            .iter()
+            .any(|criterion| criterion.contains("4.0/4")));
+        assert!(seed
+            .acceptance_criteria
+            .iter()
+            .any(|criterion| criterion.contains("solely to raise the score")));
+    }
+
+    #[test]
     fn clean_only_goal_does_not_inherit_universal_quality_or_maturity_work() {
         let fixture_id = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
         let root = std::env::temp_dir().join(format!("pronto-clean-goal-{fixture_id}"));
@@ -3681,6 +3781,7 @@ mod tests {
         );
 
         assert_eq!(plan.goal.target_state, "clean_only");
+        assert!(plan.goal.maturity_policy.is_none());
         assert!(plan.actions.iter().all(|action| !matches!(
             action.domain.as_str(),
             "evidence_refresh" | "ci_ideal" | "maturity"
