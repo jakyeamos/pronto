@@ -2293,9 +2293,9 @@ impl QrRun {
 
     fn findings(&self, repository: &RepositorySnapshot) -> QualityFindings {
         let report_names = [
+            "code-quality-scan.json",
             "quality-audit.json",
             "completed-report.json",
-            "code-quality-scan.json",
             "repo-scan.json",
             "run-summary.json",
         ];
@@ -3504,6 +3504,14 @@ mod tests {
             ]}"#,
         )
         .expect("QR report should be writable");
+        fs::write(
+            run.join("code-quality-scan.json"),
+            r#"{"findings":[
+                {"fingerprint":"stable-1","severity":"warning"},
+                {"fingerprint":"stable-2","severity":"observation"}
+            ]}"#,
+        )
+        .expect("fingerprinted QR report should be writable");
 
         let repository = fixture_repository(&repository_path);
         let snapshot = ingest_repository_quality(&repository, None, None, None);
@@ -3528,10 +3536,14 @@ mod tests {
             .gates
             .iter()
             .any(|gate| gate.id == "custom:review" && gate.status == QualityGateStatus::Blocked));
-        assert_eq!(snapshot.findings.total, 4);
-        assert_eq!(snapshot.findings.high_severity_total, 2);
+        assert_eq!(snapshot.findings.total, 2);
+        assert_eq!(snapshot.findings.high_severity_total, 0);
         assert_eq!(snapshot.findings.severity_counts.get("medium"), Some(&1));
-        assert!(snapshot.findings.report_path.is_some());
+        assert!(snapshot
+            .findings
+            .report_path
+            .as_deref()
+            .is_some_and(|path| path.ends_with("code-quality-scan.json")));
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 

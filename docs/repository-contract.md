@@ -59,6 +59,11 @@ When comparable commit provenance is unavailable, a matching branch reports
 unknown and a differing branch reports stale; an exact commit match remains
 authoritative even if that commit is checked out through another branch name.
 
+For finding counts and the repository review ledger, prefer QR's fingerprinted
+`code-quality-scan.json` detector report. Aggregate `quality-audit.json`
+findings remain remediation context but must not replace stable detector
+identities; use the aggregate only when the fingerprinted report is absent.
+
 Network refreshes, Git writes, provider mutations, application installation,
 and release publication are separate authority boundaries. Use the narrowest
 repository or provider scope and preserve the exact source commit and evidence
