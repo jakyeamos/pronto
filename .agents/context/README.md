@@ -10,6 +10,9 @@ Read the deeper file only when the task matches it:
 
 - `commands.md` — exact CLI invocation, focused JSON projections, freshness
   semantics, and the read/write boundary for agent use.
+- `quality-prevention.md` — task-scoped QR baseline/completion checkpoints,
+  result handling, and the boundary between candidate and certified native
+  checks for implementation work.
 - `../../docs/implementation-plan.md` — architecture, product boundaries, and
   the source-of-truth relationship between the desktop app and CLI.
 

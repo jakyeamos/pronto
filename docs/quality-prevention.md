@@ -6,6 +6,28 @@ as the baseline and checks the exact pull-request workspace. Existing findings
 remain visible and non-blocking; a new behavior-verified `nested-ternary`
 occurrence is a policy violation.
 
+## Implementation contract
+
+Pronto uses a hybrid feedback loop:
+
+1. Agent guidance requires a task baseline before source edits.
+2. Repository-native checks provide fast feedback where they apply.
+3. `qr task check` is the independent completion and pull-request evidence
+   checkpoint.
+4. Full QR scans remain nightly or rule-pack-change audit boundaries.
+
+The task check is not required on every save. Run it before declaring the
+implementation complete and again after correcting a violation or blocker.
+`task-check.json` is authoritative; its `next_action` states the required
+response, and `task-check.md` is the derived human projection. A QR `pass` does
+not waive Pronto's other required repository checks.
+
+Static agent rules explain this workflow but do not replace QR's baseline,
+coverage, deterministic matching, or policy evidence. Advisory findings are not
+automatically copied into agent prohibitions. A repeatedly trusted
+deterministic rule should graduate through behavior verification and, when
+practical, into a faster native checker with separately certified maturity.
+
 ## Current evidence
 
 The clean pilot worktree was reconciled onto `origin/main` at
@@ -23,6 +45,11 @@ The following commands passed twice on the unchanged local worktree:
 That is repeatability evidence, not certification. None of these checks has a
 checked-in intentional-failure fixture or execution evidence from the pilot CI
 environment yet, so each remains `candidate` and advisory.
+
+Candidate state means QR does not execute these commands during `task check`.
+They remain independently required wherever Pronto's ordinary repository and
+CI contracts require them; QR certification is an additional preventative
+claim, not a replacement for those contracts.
 
 The warmed implementation-loop speed trial measured 14.944 seconds for those
 five native commands and 20.608 seconds for the same commands followed by
