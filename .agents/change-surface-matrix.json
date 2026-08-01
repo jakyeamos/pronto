@@ -138,6 +138,7 @@
       "status": "passed",
       "evidence": [
         "src-tauri/src/core.rs::tests::ordinary_refresh_retains_persisted_scoped_maturity_evidence",
+        "src-tauri/src/core.rs::tests::qr_audit_runtime_arguments_apply_the_requested_timeout",
         "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract"
       ]
     },
