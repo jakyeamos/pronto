@@ -14,6 +14,22 @@ export function formatTime(value?: string): string {
   return `${Math.round(hours / 24)}d ago`;
 }
 
+export function formatExactTime(value?: string): string {
+  if (!value) return "Unavailable";
+  const timestamp = Date.parse(value);
+  if (Number.isNaN(timestamp)) return value;
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  }).format(new Date(timestamp));
+}
+
 export function toneForCondition(condition: Condition): string {
   if (condition.kind === "integration-eligible") return "mint";
   if (condition.kind === "remote-stale" || condition.kind === "behind-remote")

@@ -1,4 +1,5 @@
 use crate::core::RepositorySnapshot;
+use crate::quality;
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -235,6 +236,7 @@ struct QrRunEvidence {
 #[derive(Debug, Clone)]
 struct ParsedFinding {
     id: String,
+    fingerprint: Option<String>,
     group_key: String,
     category: String,
     pack: Option<String>,
@@ -1696,8 +1698,19 @@ fn add_qr_finding_seeds(
     let Some(run) = qr_run else {
         return;
     };
+    let non_actionable = if repository.quality.findings.disposition_status == "Ready" {
+        quality::non_actionable_finding_fingerprints(Path::new(&repository.path))
+            .unwrap_or_default()
+    } else {
+        Default::default()
+    };
     let mut groups = BTreeMap::<String, Vec<&ParsedFinding>>::new();
-    for finding in &run.findings {
+    for finding in run.findings.iter().filter(|finding| {
+        !finding
+            .fingerprint
+            .as_ref()
+            .is_some_and(|fingerprint| non_actionable.contains(fingerprint))
+    }) {
         groups
             .entry(finding.group_key.clone())
             .or_default()
@@ -1779,14 +1792,14 @@ fn add_qr_finding_seeds(
             source_run_id: Some(run.id.clone()),
         });
     }
-    if run.findings.is_empty() && repository.quality.findings.total > 0 {
+    if run.findings.is_empty() && repository.quality.findings.actionable_total > 0 {
         seeds.push(ActionSeed {
             stable_key: "qr_findings:aggregate-report".to_string(),
             domain: "qr_findings".to_string(),
             title: "Resolve the findings in the QR report".to_string(),
             summary: format!(
-                "Pronto imported {} QR findings, but the current artifact does not expose leaf identities for grouping.",
-                repository.quality.findings.total
+                "Pronto imported {} actionable QR findings, but the current artifact does not expose leaf identities for grouping.",
+                repository.quality.findings.actionable_total
             ),
             severity: if repository.quality.findings.high_severity_total > 0 {
                 "high".to_string()
@@ -1802,7 +1815,7 @@ fn add_qr_finding_seeds(
             evidence: vec![evidence(
                 "Quality Runner",
                 "QR aggregate report",
-                &repository.quality.findings.total.to_string(),
+                &repository.quality.findings.actionable_total.to_string(),
                 repository.quality.findings.freshness.as_str(),
                 repository.quality.findings.observed_at.as_deref(),
                 repository.quality.findings.report_path.as_deref(),
@@ -2471,8 +2484,10 @@ fn build_ui_coverage(
             "quality_findings",
             "Quality findings",
             &format!(
-                "{} finding(s), including {} high-severity.",
+                "{} detected finding(s); {} actionable; {} reviewed; {} high-severity.",
                 repository.quality.findings.total,
+                repository.quality.findings.actionable_total,
+                repository.quality.findings.reviewed_total,
                 repository.quality.findings.high_severity_total
             ),
             &["qr_findings:"],
@@ -3026,6 +3041,7 @@ fn parse_fleet_findings(path: &Path, payload: &Value) -> Vec<ParsedFinding> {
             .or_else(|| first_array_string(item, "validation_commands"));
             ParsedFinding {
                 id,
+                fingerprint: first_string(item, &[&["fingerprint"]]),
                 group_key: format!(
                     "{}|{}|{}",
                     category.to_ascii_lowercase(),
@@ -3136,6 +3152,7 @@ fn parse_findings(run_dir: &Path) -> Vec<ParsedFinding> {
             );
             findings.push(ParsedFinding {
                 id,
+                fingerprint: first_string(item, &[&["fingerprint"]]),
                 group_key: format!(
                     "{}|{}|{}",
                     category.to_ascii_lowercase(),
@@ -3417,6 +3434,7 @@ mod tests {
                 role: "Primary".to_string(),
                 role_confidence: "High".to_string(),
                 activity: WorkspaceActivity::default(),
+                sync_detail: None,
             },
             workspaces: Vec::new(),
             branches: Vec::<BranchSummary>::new(),
@@ -3509,6 +3527,73 @@ mod tests {
         assert!(is_excluded_repository(&fixture_repository("soundscape")));
         assert!(is_excluded_repository(&fixture_repository("tenure")));
         assert!(!is_excluded_repository(&fixture_repository("pronto")));
+    }
+
+    #[test]
+    fn reviewed_non_actionable_findings_do_not_seed_remediation_actions() {
+        let fixture_id = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!("pronto-finding-disposition-{fixture_id}"));
+        let contract_dir = root.join(".pronto");
+        fs::create_dir_all(&contract_dir).expect("disposition fixture should be writable");
+        fs::write(
+            contract_dir.join("quality-finding-dispositions.json"),
+            r#"{
+  "schema_version": "pronto-quality-finding-dispositions/v1",
+  "updated_at": "2026-07-29T12:00:00Z",
+  "dispositions": [
+    {
+      "fingerprint": "fp-reviewed",
+      "status": "false_positive",
+      "reason": "The symbol is referenced by the renderer contract.",
+      "reviewer": "fixture-reviewer",
+      "reviewed_at": "2026-07-29T12:00:00Z",
+      "evidence": ["src/renderer/src/types.ts:1"]
+    }
+  ]
+}"#,
+        )
+        .expect("disposition contract should be writable");
+
+        let mut repository = fixture_repository("disposition-filter");
+        repository.path = root.to_string_lossy().to_string();
+        repository.quality.findings.disposition_status = "Ready".to_string();
+        let run = QrRunEvidence {
+            id: "qr-run".to_string(),
+            run_dir: root.join(".quality-runner/runs/qr-run"),
+            observed_at: Some("2026-07-29T12:00:00Z".to_string()),
+            findings: vec![ParsedFinding {
+                id: "finding-reviewed".to_string(),
+                fingerprint: Some("fp-reviewed".to_string()),
+                group_key: "dead-code:reviewed".to_string(),
+                category: "dead-code".to_string(),
+                pack: Some("maintainability".to_string()),
+                severity: "warning".to_string(),
+                title: "Unused export".to_string(),
+                summary: "A detector reported an unused export.".to_string(),
+                file: Some("src/renderer/src/types.ts".to_string()),
+                line: Some(1),
+                verification: None,
+                report_path: root
+                    .join(".quality-runner/runs/qr-run/findings.json")
+                    .to_string_lossy()
+                    .to_string(),
+            }],
+            maturity_score: None,
+            dimension_scores: BTreeMap::new(),
+            maturity_report_path: None,
+        };
+        let goal = goal_definition("active_maintained").expect("fixture goal should be supported");
+        let mut seeds = Vec::new();
+
+        add_qr_finding_seeds(&repository, Some(&run), &goal, &mut seeds);
+
+        assert!(seeds.is_empty());
+
+        repository.quality.findings.disposition_status = "Unreconcilable".to_string();
+        add_qr_finding_seeds(&repository, Some(&run), &goal, &mut seeds);
+        assert_eq!(seeds.len(), 1);
+        assert_eq!(seeds[0].related_finding_ids, vec!["finding-reviewed"]);
+        let _ = fs::remove_dir_all(root);
     }
 
     #[test]

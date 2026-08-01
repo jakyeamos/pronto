@@ -50,7 +50,15 @@ export function QualityFindingsSummary({
       )}
       <div className="quality-findings-meta">
         <span>{findings.freshness}</span>
-        <span>Review ledger: {findings.disposition_status}</span>
+        <span title={findings.disposition_message}>
+          Review ledger: {findings.disposition_status}
+        </span>
+        {findings.stale_disposition_total > 0 && (
+          <span>
+            {findings.stale_disposition_total} inactive review{" "}
+            {findings.stale_disposition_total === 1 ? "decision" : "decisions"}
+          </span>
+        )}
         <span>{formatTime(findings.observed_at)}</span>
         {findings.report_path && onOpenReport && (
           <button

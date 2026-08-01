@@ -137,7 +137,7 @@ describe("analytics charts", () => {
     expect(unavailable).toContain("Evidence unavailable");
     expect(unavailable).toContain("Maturity Unavailable");
     expect(unavailable).toContain("Fresh passing evidence score Unavailable");
-    expect(unavailable).toContain("Unavailable findings");
+    expect(unavailable).toContain("Unavailable detected findings");
   });
 
   it("keeps composition and comparison charts legible with accessible summaries", () => {

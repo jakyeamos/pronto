@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": 4,
+  "revision": 5,
   "project": {
     "name": "Pronto",
     "identity": "A local-first macOS command center for understanding and safely coordinating a portfolio of Git repositories and agent workspaces.",
@@ -169,10 +169,10 @@
           "maturity": 75,
           "confidence": "medium",
           "layers": {
-            "intended": "Missing, stale, failed, blocked, or unavailable evidence never appears as passing.",
-            "planned": "Pronto consumes Quality Runner maturity and gate evidence read-only and preserves provenance and freshness.",
-            "implemented": "Quality projections expose configured, covered, fresh passing, missing, stale, failed, and blocked gates plus findings and maturity.",
-            "verified": "Quality Runner discovered all nine repository-required gate commands, the current dirty checkout passed every local gate, and the installed macOS app shows all nine configured gates separately from the zero fresh passing results. Provider-native CI proof remains unavailable until the workflow is published and runs."
+            "intended": "Missing, stale, failed, blocked, or unavailable evidence never appears as passing, and raw detector findings remain distinguishable from reviewed actionable work.",
+            "planned": "Pronto consumes Quality Runner maturity and gate evidence read-only, preserves provenance and freshness, and reconciles repository-owned finding dispositions by stable fingerprint.",
+            "implemented": "Quality projections expose configured, covered, fresh passing, missing, stale, failed, and blocked gates plus raw findings, reviewed dispositions, actionable totals, and maturity. Remediation excludes only current non-actionable dispositions and fails open when the ledger is missing, invalid, expired, or unreconcilable.",
+            "verified": "Quality Runner discovered all nine repository-required gate commands, the current dirty checkout passed every local gate, and the installed macOS app shows all nine configured gates separately from the zero fresh passing results. The live quality projection reports 416 detected findings, 413 actionable findings, and three reviewed false positives; the live remediation projection contains exactly the 413 actionable finding identities. Provider-native CI proof remains unavailable until the workflow is published and runs."
           },
           "evidence": [
             {
@@ -199,6 +199,21 @@
               "ref": "pnpm app:check",
               "note": "The installed macOS app matches bundle 26903050491a and displays Build through Dependency audit as configured with no imported evidence while preserving 0/9 fresh passing evidence.",
               "observed_at": "2026-07-29T19:04:06Z"
+            },
+            {
+              "ref": ".pronto/quality-finding-dispositions.json",
+              "note": "The repository-owned review ledger records three evidence-backed false-positive decisions with reviewer and timestamp provenance.",
+              "observed_at": "2026-07-29T19:33:09Z"
+            },
+            {
+              "ref": "pnpm --silent run cli quality /Users/jakyeamos/Documents/pronto --json",
+              "note": "The live projection preserves all 416 detector findings while separating 413 actionable and three reviewed false-positive occurrences.",
+              "observed_at": "2026-07-29T19:33:09Z"
+            },
+            {
+              "ref": "pnpm --silent run cli remediation /Users/jakyeamos/Documents/pronto --json",
+              "note": "The live remediation projection groups exactly 413 actionable finding identities and excludes the three reviewed false positives.",
+              "observed_at": "2026-07-29T19:33:09Z"
             }
           ],
           "blockers": [
@@ -457,5 +472,5 @@
       ]
     }
   ],
-  "updated_at": "2026-07-29T19:04:06Z"
+  "updated_at": "2026-07-29T19:33:09Z"
 }
