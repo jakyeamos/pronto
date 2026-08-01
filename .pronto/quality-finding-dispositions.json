@@ -1,6 +1,6 @@
 {
   "schema_version": "pronto-quality-finding-dispositions/v1",
-  "updated_at": "2026-08-01T23:27:24.000927+00:00",
+  "updated_at": "2026-08-01T23:46:19+00:00",
   "dispositions": [
     {
       "fingerprint": "0565be578c4cb1b5",
@@ -1834,13 +1834,18 @@
     },
     {
       "fingerprint": "a70ca97a78b6e94d",
-      "status": "confirmed",
-      "reason": "The current QR scan measures RemediationSurface.tsx at 510 lines, above the large-source threshold. The remediation surface still carries enough presentation responsibility that a focused split remains actionable.",
-      "reviewer": "codex-assisted-triage",
-      "reviewed_at": "2026-08-01T22:45:26.485275+00:00",
+      "status": "fixed",
+      "reason": "The remediation run overview and controls were extracted into a focused component without changing their JSX structure or styling. RemediationSurface.tsx fell from 510 to 408 lines, and a fresh Quality Runner scan no longer reports this fingerprint or any finding in either touched module.",
+      "reviewer": "codex-assisted-remediation",
+      "reviewed_at": "2026-08-01T23:46:19+00:00",
       "evidence": [
         "src/renderer/src/components/RemediationSurface.tsx:1",
-        ".quality-runner/runs/pronto-remediation-20260801-final2/code-quality-scan.json#CQ-0004"
+        "src/renderer/src/components/RemediationRunOverview.tsx:1",
+        ".quality-runner/runs/pronto-remediation-20260801-remediation-surface-split-final/code-quality-scan.json",
+        "pnpm vitest run src/renderer/src/components/RemediationSurface.test.tsx: passed",
+        "pnpm typecheck: passed",
+        "pnpm lint: passed",
+        "pnpm format:check: passed"
       ],
       "expires_at": null
     },

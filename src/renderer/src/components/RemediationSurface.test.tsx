@@ -157,6 +157,9 @@ describe("remediation active queue", () => {
       />,
     );
 
+    expect(markup).toContain("Refresh state");
+    expect(markup).toContain("Actions to work");
+    expect(markup).toContain("Run full refresh");
     expect(markup).toContain("Active repository remediation");
     expect(markup).toContain("#1 · active-repo");
     expect(markup).toContain("Public release");
