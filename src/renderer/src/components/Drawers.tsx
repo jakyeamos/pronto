@@ -1,3 +1,4 @@
+import { Fragment, useState } from "react";
 import type { ReactElement } from "react";
 import {
   AlertTriangle,
@@ -19,9 +20,11 @@ import type {
   ExternalTool,
   QualityGate,
   RepositorySnapshot,
+  WorkspaceSummary,
 } from "../types";
 import {
   ConditionPill,
+  formatExactTime,
   formatTime,
   IconButton,
   StatusPill,
@@ -34,6 +37,77 @@ import {
   qualityGateDisplayLabel,
 } from "./QualityComponents";
 import { RepositoryAnalyticsPanel } from "./AnalyticsComponents";
+
+export function WorkspaceSyncDetailView({
+  workspace,
+  onClose,
+}: {
+  workspace: WorkspaceSummary;
+  onClose: () => void;
+}): ReactElement {
+  const detail = workspace.sync_detail;
+  return (
+    <section
+      className="workspace-sync-detail"
+      aria-label={`Unsynced workspace detail for ${workspace.branch}`}
+    >
+      <div className="workspace-sync-detail-header">
+        <div>
+          <p className="eyebrow">Unsynced workspace</p>
+          <h4>Sync evidence detail</h4>
+          <small>
+            {workspace.branch} · {workspace.path}
+          </small>
+        </div>
+        <StatusPill tone="amber">{workspace.sync_state}</StatusPill>
+      </div>
+      {detail ? (
+        <>
+          <div className="workspace-sync-detail-grid">
+            <div>
+              <span>Evidence observed</span>
+              <strong>{formatExactTime(detail.evidence_observed_at)}</strong>
+            </div>
+            <div>
+              <span>Evidence expires</span>
+              <strong>{formatExactTime(detail.evidence_expires_at)}</strong>
+            </div>
+            <div>
+              <span>Evidence window</span>
+              <strong>
+                {detail.evidence_window_minutes >= 60
+                  ? `${Math.round(detail.evidence_window_minutes / 60)} hours`
+                  : `${detail.evidence_window_minutes} minutes`}
+              </strong>
+            </div>
+          </div>
+          <div className="workspace-sync-detail-copy">
+            <span>Why this workspace is unsynced</span>
+            <p>{detail.reason}</p>
+          </div>
+          <div className="workspace-sync-detail-copy">
+            <span>Next safe scoped refresh</span>
+            <p>{detail.next_safe_action}</p>
+            <code>{detail.scoped_refresh_command}</code>
+            <small>{detail.authorization}</small>
+          </div>
+        </>
+      ) : (
+        <p className="quality-inline-empty">
+          Sync detail is unavailable in this snapshot. Run the scoped local
+          refresh from the CLI, then reopen this repository detail.
+        </p>
+      )}
+      <button
+        className="button button-quiet workspace-sync-detail-close"
+        type="button"
+        onClick={onClose}
+      >
+        Close sync detail
+      </button>
+    </section>
+  );
+}
 
 export function RepositoryDetailSurface({
   repository,
@@ -54,6 +128,9 @@ export function RepositoryDetailSurface({
   onCondition: (condition: Condition) => void;
   onOpenReport?: (reportPath: string) => void;
 }): ReactElement {
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
+    null,
+  );
   const detailQualityGates: QualityGate[] = [
     ...repository.quality.gates,
     ...repository.quality.ci_readiness.applicable_gate_ids
@@ -354,78 +431,105 @@ export function RepositoryDetailSurface({
           <span>{repository.workspaces.length}</span>
         </div>
         <div className="workspace-list">
-          {repository.workspaces.map((workspace) => (
-            <div className="workspace-card" key={workspace.id}>
-              <div className="workspace-card-top">
-                <span className="workspace-name">
-                  <MonitorDot size={13} />
-                  {workspace.is_primary
-                    ? "Primary checkout"
-                    : "Linked worktree"}
-                </span>
-                <StatusPill tone={workspace.dirty ? "coral" : "mint"}>
-                  {workspace.dirty ? "Dirty" : "Clean"}
-                </StatusPill>
-              </div>
-              <strong>{workspace.branch}</strong>
-              <span>{workspace.path}</span>
-              <small>
-                {workspace.sync_state} · {workspace.remote_freshness}
-              </small>
-              <div className="workspace-activity">
-                <StatusPill
-                  tone={
-                    workspace.activity.state === "Active"
-                      ? "blue"
-                      : workspace.activity.state.startsWith("Interrupted")
-                        ? "coral"
-                        : "slate"
-                  }
-                >
-                  {workspace.activity.state}
-                </StatusPill>
-                <span>{workspace.activity.confidence} confidence</span>
-              </div>
-              <small>
-                {workspace.activity.signals
-                  .map((signal) => signal.summary)
-                  .join(" · ")}
-              </small>
-              {workspace.activity.manifest && (
-                <small>
-                  {workspace.activity.manifest.title ||
-                    workspace.activity.manifest.task_id ||
-                    "Structured agent task metadata"}
-                </small>
-              )}
-              <div className="workspace-actions">
-                {(
-                  [
-                    ["file_browser", "Finder"],
-                    ["terminal", "Terminal"],
-                    ["editor", "Editor"],
-                    ["git_client", "Git client"],
-                  ] as Array<[ExternalTool, string]>
-                ).map(([tool, label]) => (
-                  <button
-                    className="button button-quiet"
-                    type="button"
-                    key={tool}
-                    onClick={() => void onOpenWorkspace(workspace.id, tool)}
-                  >
-                    {label}
-                  </button>
-                ))}
-                <button
-                  className="button button-quiet"
-                  type="button"
-                  onClick={() => void onPrepareRepository(workspace.id)}
-                >
-                  Review preparation
-                </button>
-              </div>
-            </div>
-          ))}
+          {repository.workspaces.map((workspace) => {
+            const showingSyncDetail = selectedWorkspaceId === workspace.id;
+            return (
+              <Fragment key={workspace.id}>
+                <div className="workspace-card">
+                  <div className="workspace-card-top">
+                    <span className="workspace-name">
+                      <MonitorDot size={13} />
+                      {workspace.is_primary
+                        ? "Primary checkout"
+                        : "Linked worktree"}
+                    </span>
+                    <StatusPill tone={workspace.dirty ? "coral" : "mint"}>
+                      {workspace.dirty ? "Dirty" : "Clean"}
+                    </StatusPill>
+                  </div>
+                  <strong>{workspace.branch}</strong>
+                  <span>{workspace.path}</span>
+                  <small>
+                    {workspace.sync_state} · {workspace.remote_freshness}
+                  </small>
+                  <div className="workspace-activity">
+                    <StatusPill
+                      tone={
+                        workspace.activity.state === "Active"
+                          ? "blue"
+                          : workspace.activity.state.startsWith("Interrupted")
+                            ? "coral"
+                            : "slate"
+                      }
+                    >
+                      {workspace.activity.state}
+                    </StatusPill>
+                    <span>{workspace.activity.confidence} confidence</span>
+                  </div>
+                  <small>
+                    {workspace.activity.signals
+                      .map((signal) => signal.summary)
+                      .join(" · ")}
+                  </small>
+                  {workspace.activity.manifest && (
+                    <small>
+                      {workspace.activity.manifest.title ||
+                        workspace.activity.manifest.task_id ||
+                        "Structured agent task metadata"}
+                    </small>
+                  )}
+                  <div className="workspace-actions">
+                    {(
+                      [
+                        ["file_browser", "Finder"],
+                        ["terminal", "Terminal"],
+                        ["editor", "Editor"],
+                        ["git_client", "Git client"],
+                      ] as Array<[ExternalTool, string]>
+                    ).map(([tool, label]) => (
+                      <button
+                        className="button button-quiet"
+                        type="button"
+                        key={tool}
+                        onClick={() => void onOpenWorkspace(workspace.id, tool)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                    <button
+                      className="button button-quiet"
+                      type="button"
+                      onClick={() => void onPrepareRepository(workspace.id)}
+                    >
+                      Review preparation
+                    </button>
+                    {workspace.sync_state !== "Synced" && (
+                      <button
+                        className="button button-secondary"
+                        type="button"
+                        aria-expanded={showingSyncDetail}
+                        onClick={() =>
+                          setSelectedWorkspaceId(
+                            showingSyncDetail ? null : workspace.id,
+                          )
+                        }
+                      >
+                        {showingSyncDetail
+                          ? "Hide sync detail"
+                          : "View sync detail"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {showingSyncDetail && (
+                  <WorkspaceSyncDetailView
+                    workspace={workspace}
+                    onClose={() => setSelectedWorkspaceId(null)}
+                  />
+                )}
+              </Fragment>
+            );
+          })}
         </div>
       </div>
       {repository.submodules.length > 0 && (

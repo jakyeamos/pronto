@@ -78,7 +78,8 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm cli remediation \"$(git rev-parse --show-toplevel)\" --json",
-        "pnpm cli repo \"$(git rev-parse --show-toplevel)\" --json"
+        "pnpm cli repo \"$(git rev-parse --show-toplevel)\" --json",
+        "pnpm cli quality \"$(git rev-parse --show-toplevel)\" --json"
       ],
       "status": "applicable"
     },

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": 5,
+  "revision": 6,
   "project": {
     "name": "Pronto",
     "identity": "A local-first macOS command center for understanding and safely coordinating a portfolio of Git repositories and agent workspaces.",
@@ -169,10 +169,10 @@
           "maturity": 75,
           "confidence": "medium",
           "layers": {
-            "intended": "Missing, stale, failed, blocked, or unavailable evidence never appears as passing.",
-            "planned": "Pronto consumes Quality Runner maturity and gate evidence read-only and preserves provenance and freshness.",
-            "implemented": "Quality projections expose configured, covered, fresh passing, missing, stale, failed, and blocked gates plus findings and maturity.",
-            "verified": "Quality Runner discovered all nine repository-required gate commands. GitHub Actions run 30712759637 completed successfully on canonical main commit b3a2d866e53a75169eb08303d06d88b627ebdc74, and the refreshed Pronto provider projection reports every applicable gate as fresh and passing."
+            "intended": "Missing, stale, failed, blocked, or unavailable evidence never appears as passing, and raw detector findings remain distinguishable from reviewed actionable work.",
+            "planned": "Pronto consumes Quality Runner maturity and gate evidence read-only, preserves provenance and freshness, and reconciles repository-owned finding dispositions by stable fingerprint.",
+            "implemented": "Quality projections expose configured, covered, fresh passing, missing, stale, failed, and blocked gates plus raw findings, reviewed dispositions, actionable totals, and maturity. Remediation excludes only current non-actionable dispositions and fails open when the ledger is missing, invalid, expired, or unreconcilable.",
+            "verified": "Quality Runner discovered all nine repository-required gate commands. GitHub Actions run 30713592860 completed successfully on canonical main commit c3102a955e35176f5bfab641af5662cfc746b130, and the refreshed provider projection reports every applicable gate as fresh and passing. The repository-owned review ledger records 191 fingerprint decisions with reviewer and timestamp provenance."
           },
           "evidence": [
             {
@@ -201,14 +201,19 @@
               "observed_at": "2026-07-29T19:04:06Z"
             },
             {
-              "ref": "https://github.com/jakyeamos/pronto/actions/runs/30712759637",
-              "note": "The canonical main workflow completed successfully for commit b3a2d866e53a75169eb08303d06d88b627ebdc74 across build, tests, runtime smoke, lint, formatter, typecheck, dead-code, secrets, dependency audit, and MSRV jobs.",
-              "observed_at": "2026-08-01T18:37:40Z"
+              "ref": "https://github.com/jakyeamos/pronto/actions/runs/30713592860",
+              "note": "The canonical main workflow completed successfully for commit c3102a955e35176f5bfab641af5662cfc746b130 across build, tests, runtime smoke, lint, formatter, typecheck, dead-code, secrets, dependency audit, and MSRV jobs.",
+              "observed_at": "2026-08-01T18:59:41Z"
             },
             {
               "ref": "pnpm --silent run cli refresh-github /Users/jakyeamos/Documents/pronto --json",
               "note": "The scoped provider refresh imported the canonical commit and reports all nine applicable Pronto gates as fresh and passing.",
-              "observed_at": "2026-08-01T18:40:37Z"
+              "observed_at": "2026-08-01T18:59:41Z"
+            },
+            {
+              "ref": ".pronto/quality-finding-dispositions.json",
+              "note": "The repository-owned review ledger contains 191 evidence-backed fingerprint decisions: 132 confirmed, 37 accepted intentional, and 22 false positive.",
+              "observed_at": "2026-08-01T19:08:33Z"
             }
           ],
           "blockers": []
@@ -462,5 +467,5 @@
       ]
     }
   ],
-  "updated_at": "2026-08-01T18:40:37Z"
+  "updated_at": "2026-08-01T19:08:33Z"
 }

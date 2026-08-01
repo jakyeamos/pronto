@@ -125,7 +125,7 @@ function qualitySeries(): TrendSeries[] {
 function findingSeries(): TrendSeries[] {
   return [
     {
-      label: "All findings",
+      label: "All detected findings",
       color: AMBER,
       getValue: (sample) => sample.findings_total,
     },
@@ -237,7 +237,7 @@ function qualityPostureSummary(
   sample: AnalyticsMetricSample | undefined,
 ): string {
   if (!sample) return "No refresh sample is available for quality posture.";
-  return `Maturity ${formatScore(sample.maturity_score)} · Fresh passing evidence score ${formatScore(sample.ci_readiness_score)} · ${formatCount(sample.findings_total)} findings · Quality evidence ${sample.quality_freshness ?? "Unavailable"}`;
+  return `Maturity ${formatScore(sample.maturity_score)} · Fresh passing evidence score ${formatScore(sample.ci_readiness_score)} · ${formatCount(sample.findings_total)} detected findings · Quality evidence ${sample.quality_freshness ?? "Unavailable"}`;
 }
 
 function AnalyticsChartSet({
@@ -410,7 +410,7 @@ export function AnalyticsSurface({
         <AnalyticsChartCard
           eyebrow="Quality and security"
           title="Finding trend"
-          description="Findings remain tied to quality evidence freshness and may be unavailable between audits."
+          description="Raw detector findings remain tied to quality evidence freshness; reviewed dispositions and actionable counts appear in Quality detail."
           source={chartSource(analytics, samples)}
           freshness={chartFreshness(analytics, samples)}
         >
@@ -418,7 +418,7 @@ export function AnalyticsSurface({
             samples={samples}
             series={findingSeries()}
             ariaLabel="Quality finding trend"
-            summary="Total and high-severity quality findings over the last 30 days."
+            summary="Raw detector total and high-severity quality findings over the last 30 days."
           />
         </AnalyticsChartCard>
         <AnalyticsChartCard

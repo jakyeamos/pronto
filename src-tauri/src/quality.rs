@@ -9,6 +9,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 pub const MAX_EVIDENCE_AGE_DAYS: i64 = 7;
+pub const FINDING_DISPOSITIONS_SCHEMA: &str = "pronto-quality-finding-dispositions/v1";
+pub const FINDING_DISPOSITIONS_RELATIVE_PATH: &str = ".pronto/quality-finding-dispositions.json";
 pub const CANONICAL_MATURITY_FEED_RELATIVE_PATH: &str =
     ".quality-runner/fleet-audit/current/maturity.json";
 const MATURITY_FEED_SCHEMA: &str = "quality-runner-maturity-feed/v1";
@@ -66,6 +68,10 @@ const RECOMMENDATION_MATRIX_GATE_COLUMNS: [(&str, usize); 9] = [
     ("secrets_scan", 9),
     ("dependency_audit", 10),
 ];
+
+fn default_disposition_status() -> String {
+    "Unavailable".to_string()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum QualityGateStatus {
@@ -181,6 +187,22 @@ pub struct QualityGate {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QualityFindings {
     pub total: u64,
+    #[serde(default)]
+    pub actionable_total: u64,
+    #[serde(default)]
+    pub reviewed_total: u64,
+    #[serde(default)]
+    pub unreviewed_total: u64,
+    #[serde(default)]
+    pub disposition_counts: BTreeMap<String, u64>,
+    #[serde(default)]
+    pub stale_disposition_total: u64,
+    #[serde(default = "default_disposition_status")]
+    pub disposition_status: String,
+    #[serde(default)]
+    pub disposition_contract_path: Option<String>,
+    #[serde(default)]
+    pub disposition_message: Option<String>,
     pub severity_counts: BTreeMap<String, u64>,
     pub high_severity_total: u64,
     pub source: Option<QualitySource>,
@@ -195,6 +217,14 @@ impl Default for QualityFindings {
     fn default() -> Self {
         Self {
             total: 0,
+            actionable_total: 0,
+            reviewed_total: 0,
+            unreviewed_total: 0,
+            disposition_counts: BTreeMap::new(),
+            stale_disposition_total: 0,
+            disposition_status: default_disposition_status(),
+            disposition_contract_path: None,
+            disposition_message: None,
             severity_counts: BTreeMap::new(),
             high_severity_total: 0,
             source: None,
@@ -205,6 +235,27 @@ impl Default for QualityFindings {
             report_path: None,
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QualityFindingDisposition {
+    pub fingerprint: String,
+    pub status: String,
+    pub reason: String,
+    pub reviewer: String,
+    pub reviewed_at: String,
+    #[serde(default)]
+    pub evidence: Vec<String>,
+    #[serde(default)]
+    pub expires_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QualityFindingDispositionsContract {
+    pub schema_version: String,
+    pub updated_at: String,
+    #[serde(default)]
+    pub dispositions: Vec<QualityFindingDisposition>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -535,6 +586,7 @@ pub fn fleet_audit_import(
                     scanned_branch,
                     freshness: findings_freshness,
                     report_path: Some(path.to_string_lossy().to_string()),
+                    ..QualityFindings::default()
                 },
             },
         );
@@ -999,6 +1051,7 @@ pub fn ingest_repository_quality(
         }
         findings = run.findings(repository);
     }
+    reconcile_finding_dispositions(Path::new(&repository.path), &mut findings);
 
     for evidence in ci_evidence(repository, remote) {
         configured_gate_ids.push(evidence.id.clone());
@@ -1039,6 +1092,305 @@ pub fn ingest_repository_quality(
             Some("No QR artifacts or CI check runs were found for this repository.".to_string())
         },
     }
+}
+
+fn normalize_disposition_status(value: &str) -> Option<&'static str> {
+    match value
+        .trim()
+        .to_ascii_lowercase()
+        .replace(['-', ' '], "_")
+        .as_str()
+    {
+        "confirmed" => Some("confirmed"),
+        "false_positive" => Some("false_positive"),
+        "accepted_intentional" => Some("accepted_intentional"),
+        "accepted_risk" => Some("accepted_risk"),
+        "deferred" => Some("deferred"),
+        "fixed" => Some("fixed"),
+        "superseded" => Some("superseded"),
+        _ => None,
+    }
+}
+
+fn validate_finding_dispositions_contract(
+    contract: &mut QualityFindingDispositionsContract,
+) -> Result<(), String> {
+    if contract.schema_version != FINDING_DISPOSITIONS_SCHEMA {
+        return Err(format!(
+            "Expected schema_version {FINDING_DISPOSITIONS_SCHEMA}, found {}",
+            contract.schema_version
+        ));
+    }
+    DateTime::parse_from_rfc3339(&contract.updated_at)
+        .map_err(|error| format!("updated_at is not RFC 3339: {error}"))?;
+    let mut fingerprints = HashSet::new();
+    for disposition in &mut contract.dispositions {
+        disposition.fingerprint = disposition.fingerprint.trim().to_string();
+        if disposition.fingerprint.is_empty() {
+            return Err("A finding disposition has an empty fingerprint".to_string());
+        }
+        if !fingerprints.insert(disposition.fingerprint.clone()) {
+            return Err(format!(
+                "Finding fingerprint {} is dispositioned more than once",
+                disposition.fingerprint
+            ));
+        }
+        disposition.status = normalize_disposition_status(&disposition.status)
+            .ok_or_else(|| {
+                format!(
+                    "Finding {} has unsupported disposition status '{}'",
+                    disposition.fingerprint, disposition.status
+                )
+            })?
+            .to_string();
+        if disposition.reason.trim().is_empty() {
+            return Err(format!(
+                "Finding {} is missing a disposition reason",
+                disposition.fingerprint
+            ));
+        }
+        if disposition.reviewer.trim().is_empty() {
+            return Err(format!(
+                "Finding {} is missing a reviewer",
+                disposition.fingerprint
+            ));
+        }
+        DateTime::parse_from_rfc3339(&disposition.reviewed_at).map_err(|error| {
+            format!(
+                "Finding {} reviewed_at is not RFC 3339: {error}",
+                disposition.fingerprint
+            )
+        })?;
+        if let Some(expires_at) = disposition.expires_at.as_deref() {
+            DateTime::parse_from_rfc3339(expires_at).map_err(|error| {
+                format!(
+                    "Finding {} expires_at is not RFC 3339: {error}",
+                    disposition.fingerprint
+                )
+            })?;
+        }
+    }
+    contract
+        .dispositions
+        .sort_by(|left, right| left.fingerprint.cmp(&right.fingerprint));
+    Ok(())
+}
+
+fn load_finding_dispositions_contract(
+    repository_path: &Path,
+) -> Result<Option<QualityFindingDispositionsContract>, String> {
+    let path = repository_path.join(FINDING_DISPOSITIONS_RELATIVE_PATH);
+    if !path.is_file() {
+        return Ok(None);
+    }
+    let contents = fs::read_to_string(&path)
+        .map_err(|error| format!("Could not read {}: {error}", path.display()))?;
+    let mut contract = serde_json::from_str::<QualityFindingDispositionsContract>(&contents)
+        .map_err(|error| format!("Could not parse {}: {error}", path.display()))?;
+    validate_finding_dispositions_contract(&mut contract)?;
+    Ok(Some(contract))
+}
+
+fn report_finding_fingerprint_counts(report_path: Option<&str>) -> Option<HashMap<String, u64>> {
+    let payload = report_path.and_then(|path| read_json(Path::new(path)))?;
+    let findings = payload.get("findings")?.as_array()?;
+    let mut counts = HashMap::new();
+    for fingerprint in findings
+        .iter()
+        .filter_map(|finding| finding.get("fingerprint").and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|fingerprint| !fingerprint.is_empty())
+    {
+        *counts.entry(fingerprint.to_string()).or_insert(0) += 1;
+    }
+    Some(counts)
+}
+
+fn disposition_is_expired(disposition: &QualityFindingDisposition, now: DateTime<Utc>) -> bool {
+    disposition
+        .expires_at
+        .as_deref()
+        .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
+        .is_some_and(|expires_at| expires_at.with_timezone(&Utc) <= now)
+}
+
+pub fn non_actionable_finding_fingerprints(
+    repository_path: &Path,
+) -> Result<HashSet<String>, String> {
+    let Some(contract) = load_finding_dispositions_contract(repository_path)? else {
+        return Ok(HashSet::new());
+    };
+    let now = Utc::now();
+    Ok(contract
+        .dispositions
+        .into_iter()
+        .filter(|disposition| !disposition_is_expired(disposition, now))
+        .filter(|disposition| {
+            matches!(
+                disposition.status.as_str(),
+                "false_positive" | "accepted_intentional" | "accepted_risk"
+            )
+        })
+        .map(|disposition| disposition.fingerprint)
+        .collect())
+}
+
+pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut QualityFindings) {
+    findings.actionable_total = findings.total;
+    findings.reviewed_total = 0;
+    findings.unreviewed_total = findings.total;
+    findings.disposition_counts.clear();
+    findings.stale_disposition_total = 0;
+    findings.disposition_contract_path = Some(
+        repository_path
+            .join(FINDING_DISPOSITIONS_RELATIVE_PATH)
+            .to_string_lossy()
+            .to_string(),
+    );
+    findings.disposition_message = None;
+
+    let contract = match load_finding_dispositions_contract(repository_path) {
+        Ok(Some(contract)) => contract,
+        Ok(None) => {
+            findings.disposition_status = "Missing".to_string();
+            findings.disposition_message = Some(
+                "No repository-owned finding disposition contract was found; every detected finding remains unreviewed and actionable."
+                    .to_string(),
+            );
+            return;
+        }
+        Err(error) => {
+            findings.disposition_status = "Invalid".to_string();
+            findings.disposition_message = Some(error);
+            return;
+        }
+    };
+
+    let Some(current_fingerprint_counts) =
+        report_finding_fingerprint_counts(findings.report_path.as_deref())
+    else {
+        findings.disposition_status = "Unreconcilable".to_string();
+        findings.disposition_message = Some(
+            "The current finding report does not expose stable fingerprints; saved dispositions were not applied."
+                .to_string(),
+        );
+        findings.stale_disposition_total = contract.dispositions.len() as u64;
+        return;
+    };
+    let identified_total = current_fingerprint_counts.values().sum::<u64>();
+    if identified_total != findings.total {
+        findings.disposition_status = "Unreconcilable".to_string();
+        findings.disposition_message = Some(format!(
+            "The report declares {} findings but only {} expose stable fingerprints in this scope; saved dispositions were not applied.",
+            findings.total, identified_total
+        ));
+        findings.stale_disposition_total = contract.dispositions.len() as u64;
+        return;
+    }
+
+    let now = Utc::now();
+    let mut actionable_reviewed = 0_u64;
+    for disposition in &contract.dispositions {
+        let current_count = current_fingerprint_counts
+            .get(&disposition.fingerprint)
+            .copied()
+            .unwrap_or(0);
+        let expired = disposition_is_expired(disposition, now);
+        let applies_to_current = current_count > 0
+            && !expired
+            && !matches!(disposition.status.as_str(), "fixed" | "superseded");
+        if !applies_to_current {
+            findings.stale_disposition_total += 1;
+            continue;
+        }
+        *findings
+            .disposition_counts
+            .entry(disposition.status.clone())
+            .or_insert(0) += current_count;
+        findings.reviewed_total += current_count;
+        if matches!(disposition.status.as_str(), "confirmed" | "deferred") {
+            actionable_reviewed += current_count;
+        }
+    }
+    findings.unreviewed_total = findings.total.saturating_sub(findings.reviewed_total);
+    findings.actionable_total = findings.unreviewed_total + actionable_reviewed;
+    findings.disposition_status = "Ready".to_string();
+}
+
+pub fn set_finding_disposition(
+    repository_path: &Path,
+    fingerprint: &str,
+    status: &str,
+    reason: &str,
+    reviewer: &str,
+    evidence: Vec<String>,
+    expires_at: Option<String>,
+) -> Result<QualityFindingDispositionsContract, String> {
+    let fingerprint = fingerprint.trim();
+    let reason = reason.trim();
+    let reviewer = reviewer.trim();
+    if fingerprint.is_empty() {
+        return Err("Finding fingerprint must not be empty".to_string());
+    }
+    let status = normalize_disposition_status(status).ok_or_else(|| {
+        "Disposition status must be confirmed, false_positive, accepted_intentional, accepted_risk, deferred, fixed, or superseded"
+            .to_string()
+    })?;
+    if reason.is_empty() {
+        return Err("A disposition reason is required".to_string());
+    }
+    if reviewer.is_empty() {
+        return Err("A reviewer is required".to_string());
+    }
+    if let Some(value) = expires_at.as_deref() {
+        DateTime::parse_from_rfc3339(value)
+            .map_err(|error| format!("expires_at must be RFC 3339: {error}"))?;
+    }
+    let now = Utc::now().to_rfc3339();
+    let mut contract = load_finding_dispositions_contract(repository_path)?.unwrap_or(
+        QualityFindingDispositionsContract {
+            schema_version: FINDING_DISPOSITIONS_SCHEMA.to_string(),
+            updated_at: now.clone(),
+            dispositions: Vec::new(),
+        },
+    );
+    contract
+        .dispositions
+        .retain(|item| item.fingerprint != fingerprint);
+    contract.dispositions.push(QualityFindingDisposition {
+        fingerprint: fingerprint.to_string(),
+        status: status.to_string(),
+        reason: reason.to_string(),
+        reviewer: reviewer.to_string(),
+        reviewed_at: now.clone(),
+        evidence: evidence
+            .into_iter()
+            .map(|item| item.trim().chars().take(512).collect::<String>())
+            .filter(|item| !item.is_empty())
+            .take(16)
+            .collect(),
+        expires_at,
+    });
+    contract.updated_at = now;
+    validate_finding_dispositions_contract(&mut contract)?;
+    let path = repository_path.join(FINDING_DISPOSITIONS_RELATIVE_PATH);
+    let parent = path
+        .parent()
+        .ok_or_else(|| format!("Could not resolve parent directory for {}", path.display()))?;
+    fs::create_dir_all(parent)
+        .map_err(|error| format!("Could not create {}: {error}", parent.display()))?;
+    let payload = serde_json::to_string_pretty(&contract)
+        .map_err(|error| format!("Could not encode finding dispositions: {error}"))?;
+    let temporary_path = path.with_extension(format!("json.{}.tmp", std::process::id()));
+    fs::write(&temporary_path, format!("{payload}\n")).map_err(|error| {
+        format!(
+            "Could not write temporary finding dispositions {}: {error}",
+            temporary_path.display()
+        )
+    })?;
+    fs::rename(&temporary_path, &path)
+        .map_err(|error| format!("Could not replace {} atomically: {error}", path.display()))?;
+    Ok(contract)
 }
 
 pub fn evaluate_requirement(
@@ -1992,6 +2344,7 @@ impl QrRun {
                 Utc::now(),
             ),
             report_path: Some(report_path.to_string_lossy().to_string()),
+            ..QualityFindings::default()
         }
     }
 }
@@ -2544,6 +2897,134 @@ mod tests {
         feed["provenance_hash"] =
             Value::String(maturity_feed_hash(&feed).expect("fixture feed should hash"));
         feed
+    }
+
+    #[test]
+    fn reconciles_current_finding_dispositions_without_hiding_raw_detector_totals() {
+        let root = fixture_root();
+        let report_path = root.join("code-quality-scan.json");
+        fs::write(
+            &report_path,
+            r#"{"findings":[{"fingerprint":"fp-1"},{"fingerprint":"fp-1"},{"fingerprint":"fp-2"},{"fingerprint":"fp-3"}]}"#,
+        )
+        .expect("finding report should be writable");
+        let contract_path = root.join(FINDING_DISPOSITIONS_RELATIVE_PATH);
+        fs::create_dir_all(
+            contract_path
+                .parent()
+                .expect("contract should have a parent"),
+        )
+        .expect("contract directory should be writable");
+        fs::write(
+            &contract_path,
+            format!(
+                r#"{{
+  "schema_version": "{FINDING_DISPOSITIONS_SCHEMA}",
+  "updated_at": "2026-07-29T18:00:00Z",
+  "dispositions": [
+    {{
+      "fingerprint": "fp-1",
+      "status": "false_positive",
+      "reason": "The symbol has a verified caller.",
+      "reviewer": "test-reviewer",
+      "reviewed_at": "2026-07-29T18:00:00Z",
+      "evidence": ["src/example.ts:10"]
+    }},
+    {{
+      "fingerprint": "fp-2",
+      "status": "confirmed",
+      "reason": "The finding reproduces.",
+      "reviewer": "test-reviewer",
+      "reviewed_at": "2026-07-29T18:00:00Z"
+    }},
+    {{
+      "fingerprint": "no-longer-detected",
+      "status": "fixed",
+      "reason": "The finding disappeared after the fix.",
+      "reviewer": "test-reviewer",
+      "reviewed_at": "2026-07-29T18:00:00Z"
+    }}
+  ]
+}}"#
+            ),
+        )
+        .expect("disposition contract should be writable");
+        let mut findings = QualityFindings {
+            total: 4,
+            report_path: Some(report_path.to_string_lossy().to_string()),
+            ..QualityFindings::default()
+        };
+
+        reconcile_finding_dispositions(&root, &mut findings);
+
+        assert_eq!(findings.total, 4);
+        assert_eq!(findings.reviewed_total, 3);
+        assert_eq!(findings.unreviewed_total, 1);
+        assert_eq!(findings.actionable_total, 2);
+        assert_eq!(findings.disposition_counts.get("false_positive"), Some(&2));
+        assert_eq!(findings.disposition_counts.get("confirmed"), Some(&1));
+        assert_eq!(findings.stale_disposition_total, 1);
+        assert_eq!(findings.disposition_status, "Ready");
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn missing_disposition_contract_keeps_every_finding_actionable() {
+        let root = fixture_root();
+        let report_path = root.join("code-quality-scan.json");
+        fs::write(
+            &report_path,
+            r#"{"findings":[{"fingerprint":"fp-1"},{"fingerprint":"fp-2"}]}"#,
+        )
+        .expect("finding report should be writable");
+        let mut findings = QualityFindings {
+            total: 2,
+            report_path: Some(report_path.to_string_lossy().to_string()),
+            ..QualityFindings::default()
+        };
+
+        reconcile_finding_dispositions(&root, &mut findings);
+
+        assert_eq!(findings.actionable_total, 2);
+        assert_eq!(findings.unreviewed_total, 2);
+        assert_eq!(findings.reviewed_total, 0);
+        assert_eq!(findings.disposition_status, "Missing");
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn writes_auditable_finding_dispositions_and_replaces_prior_review() {
+        let root = fixture_root();
+        let first = set_finding_disposition(
+            &root,
+            "fp-1",
+            "confirmed",
+            "The finding reproduces.",
+            "test-reviewer",
+            vec!["test:quality".to_string()],
+            None,
+        )
+        .expect("first disposition should be written");
+        assert_eq!(first.dispositions.len(), 1);
+        assert_eq!(first.dispositions[0].status, "confirmed");
+
+        let replaced = set_finding_disposition(
+            &root,
+            "fp-1",
+            "false-positive",
+            "A caller was verified.",
+            "second-reviewer",
+            vec!["src/example.ts:10".to_string()],
+            Some("2099-01-01T00:00:00Z".to_string()),
+        )
+        .expect("replacement disposition should be written");
+
+        assert_eq!(replaced.dispositions.len(), 1);
+        assert_eq!(replaced.dispositions[0].status, "false_positive");
+        assert_eq!(replaced.dispositions[0].reviewer, "second-reviewer");
+        assert_eq!(replaced.dispositions[0].evidence, vec!["src/example.ts:10"]);
+        assert!(root.join(FINDING_DISPOSITIONS_RELATIVE_PATH).is_file());
+        fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
     #[test]

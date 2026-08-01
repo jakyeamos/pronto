@@ -11,11 +11,22 @@ export function QualityFindingsSummary({
   onOpenReport?: (reportPath: string) => void;
 }): ReactElement {
   const severity = Object.entries(findings.severity_counts);
+  const dispositions = Object.entries(findings.disposition_counts).sort(
+    ([left], [right]) => left.localeCompare(right),
+  );
   return (
     <div className="quality-findings-summary">
       <div className="quality-findings-total">
         <strong>{findings.total}</strong>
-        <span>QR findings</span>
+        <span>QR findings detected</span>
+      </div>
+      <div className="quality-severity-list">
+        <span>
+          <b>{findings.actionable_total}</b> actionable
+        </span>
+        <span>
+          <b>{findings.unreviewed_total}</b> awaiting review
+        </span>
       </div>
       {severity.length > 0 ? (
         <div className="quality-severity-list">
@@ -28,8 +39,26 @@ export function QualityFindingsSummary({
       ) : (
         <span className="quality-muted">No severity breakdown</span>
       )}
+      {dispositions.length > 0 && (
+        <div className="quality-severity-list">
+          {dispositions.map(([status, count]) => (
+            <span key={status}>
+              <b>{count}</b> {status.replaceAll("_", " ")}
+            </span>
+          ))}
+        </div>
+      )}
       <div className="quality-findings-meta">
         <span>{findings.freshness}</span>
+        <span title={findings.disposition_message}>
+          Review ledger: {findings.disposition_status}
+        </span>
+        {findings.stale_disposition_total > 0 && (
+          <span>
+            {findings.stale_disposition_total} inactive review{" "}
+            {findings.stale_disposition_total === 1 ? "decision" : "decisions"}
+          </span>
+        )}
         <span>{formatTime(findings.observed_at)}</span>
         {findings.report_path && onOpenReport && (
           <button

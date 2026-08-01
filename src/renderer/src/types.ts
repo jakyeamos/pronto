@@ -63,6 +63,14 @@ export interface QualityGate {
 
 export interface QualityFindings {
   total: number;
+  actionable_total: number;
+  reviewed_total: number;
+  unreviewed_total: number;
+  disposition_counts: Record<string, number>;
+  stale_disposition_total: number;
+  disposition_status: string;
+  disposition_contract_path?: string;
+  disposition_message?: string;
   severity_counts: Record<string, number>;
   high_severity_total: number;
   source?: QualitySource;
@@ -320,6 +328,16 @@ interface WorkspaceActivity {
   manifest?: AgentManifest;
 }
 
+interface WorkspaceSyncDetail {
+  reason: string;
+  evidence_observed_at?: string;
+  evidence_expires_at?: string;
+  evidence_window_minutes: number;
+  next_safe_action: string;
+  scoped_refresh_command: string;
+  authorization: string;
+}
+
 export type ExternalTool =
   "file_browser" | "terminal" | "editor" | "git_client";
 
@@ -347,6 +365,7 @@ export interface WorkspaceSummary {
   role: string;
   role_confidence: string;
   activity: WorkspaceActivity;
+  sync_detail?: WorkspaceSyncDetail;
 }
 
 interface BranchSummary {

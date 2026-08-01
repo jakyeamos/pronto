@@ -83,12 +83,21 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
   - `pronto summary --json` for fleet counts and repository summaries;
   - `pronto repo <repository> --json` for one repository plus its product/group memberships;
   - `pronto quality [<repository>] --json` for fleet or repository quality evidence;
+  - `pronto quality disposition set <repository> <fingerprint> <status> ...`
+    for an auditable repository-owned review decision that overlays, but never
+    mutates, Quality Runner detector evidence;
   - `pronto remediation [<repository>] --json` for the ranked active remediation queue and retained terminal closure ledger;
   - `pronto attention --json` for conditions, dirty workspaces, synchronization gaps, and quality gaps;
   - `pronto activity [<repository>] --limit <n> --json` for bounded events and action audits;
   - `pronto prepare <repository> --json` for pull-request, release, and recipe evidence;
   - `pronto release preview <repository> --json` for the release-specific evidence and review boundary.
 - These projections are derived from the same SQLite-backed snapshot consumed by the renderer. They are local/private outputs and are not public-export contracts.
+- Quality findings preserve the raw detector total while separately projecting
+  actionable, reviewed, and unreviewed counts. The versioned
+  `.pronto/quality-finding-dispositions.json` ledger records fingerprint,
+  status, reason, reviewer, review time, evidence, and optional expiry. A
+  missing, invalid, expired, no-longer-detected, or report-scope-mismatched
+  decision remains visible and cannot silently suppress current work.
 - `pronto-remediation/v3` treats active work and history separately and resolves
   a goal profile before generating actions. Repository-owned
   `pronto-remediation-goal/v1` contracts select the target outcome, applicable

@@ -100,6 +100,12 @@ function makeFindings(
 ): QualityFindings {
   return {
     total: 0,
+    actionable_total: 0,
+    reviewed_total: 0,
+    unreviewed_total: 0,
+    disposition_counts: {},
+    stale_disposition_total: 0,
+    disposition_status: "Missing",
     severity_counts: {},
     high_severity_total: 0,
     freshness: "Unknown",
@@ -387,6 +393,11 @@ describe("quality evidence surfaces", () => {
         ],
         findings: makeFindings({
           total: 4,
+          actionable_total: 3,
+          reviewed_total: 2,
+          unreviewed_total: 2,
+          disposition_counts: { confirmed: 1, false_positive: 1 },
+          disposition_status: "Ready",
           severity_counts: { critical: 1, high: 1, medium: 1, low: 1 },
           high_severity_total: 2,
           source: "QR",
@@ -468,6 +479,11 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("Show 1 custom gate");
     expect(markup).not.toContain("Security Scan");
     expect(markup).toContain("4");
+    expect(markup).toContain("QR findings detected");
+    expect(markup).toContain("3</b> actionable");
+    expect(markup).toContain("2</b> awaiting review");
+    expect(markup).toContain("1</b> false positive");
+    expect(markup).toContain("Review ledger: Ready");
     expect(markup).toContain("critical");
     expect(markup).toContain("CI · GitHub check · build");
     expect(markup).toContain("Expand evidence");
