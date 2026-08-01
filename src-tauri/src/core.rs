@@ -26,6 +26,7 @@ const MAX_AI_DIFF_BYTES: usize = 2_000_000;
 const ANALYTICS_SCHEMA: &str = "pronto-analytics/v1";
 const ANALYTICS_RANGE_DAYS: i64 = 30;
 const ANALYTICS_DEDUP_MINUTES: i64 = 15;
+const DEFAULT_QR_AUDIT_TIMEOUT_SECONDS: u64 = 120;
 
 static NEXT_ACTION_AUDIT_ID: AtomicU64 = AtomicU64::new(0);
 static NEXT_EVENT_ID: AtomicU64 = AtomicU64::new(0);
@@ -3612,6 +3613,7 @@ fn refresh_remediation_at(
     dynamic: bool,
     changed_only: bool,
     skip_provider: bool,
+    timeout_seconds: u64,
 ) -> Result<PortfolioSnapshot, String> {
     let initial_state = load_store(path)?;
     let eligible_paths = initial_state
@@ -3713,17 +3715,7 @@ fn refresh_remediation_at(
             fleet_arguments.push(repository_path.clone());
         }
     }
-    if dynamic {
-        fleet_arguments.push("--dynamic".to_string());
-        if !changed_only {
-            fleet_arguments.push("--no-changed-only".to_string());
-        }
-    }
-    fleet_arguments.extend([
-        "--timeout-seconds".to_string(),
-        "120".to_string(),
-        "--json".to_string(),
-    ]);
+    append_qr_audit_runtime_arguments(&mut fleet_arguments, dynamic, changed_only, timeout_seconds);
     set_remediation_refresh_step(
         &mut steps,
         "qr_fleet_run",
@@ -3792,17 +3784,12 @@ fn refresh_remediation_at(
                     "--projects-root".to_string(),
                     canonical_root.to_string_lossy().to_string(),
                 ];
-                if dynamic {
-                    arguments.push("--dynamic".to_string());
-                    if !changed_only {
-                        arguments.push("--no-changed-only".to_string());
-                    }
-                }
-                arguments.extend([
-                    "--timeout-seconds".to_string(),
-                    "120".to_string(),
-                    "--json".to_string(),
-                ]);
+                append_qr_audit_runtime_arguments(
+                    &mut arguments,
+                    dynamic,
+                    changed_only,
+                    timeout_seconds,
+                );
                 arguments
             };
             set_remediation_refresh_step(
@@ -7847,7 +7834,14 @@ pub fn refresh_github() -> Result<PortfolioSnapshot, String> {
 
 #[tauri::command]
 pub fn refresh_remediation() -> Result<PortfolioSnapshot, String> {
-    refresh_remediation_at(&store_path(), None, false, true, false)
+    refresh_remediation_at(
+        &store_path(),
+        None,
+        false,
+        true,
+        false,
+        DEFAULT_QR_AUDIT_TIMEOUT_SECONDS,
+    )
 }
 
 #[tauri::command]
@@ -8155,6 +8149,37 @@ fn cli_bool_option(arguments: &[String], option: &str) -> Result<Option<bool>, S
             _ => Err(format!("{option} must be true or false")),
         })
         .transpose()
+}
+
+fn cli_positive_u64_option(arguments: &[String], option: &str) -> Result<Option<u64>, String> {
+    cli_option(arguments, option)?
+        .map(|value| {
+            value
+                .parse::<u64>()
+                .ok()
+                .filter(|parsed| *parsed > 0)
+                .ok_or_else(|| format!("{option} must be a positive integer"))
+        })
+        .transpose()
+}
+
+fn append_qr_audit_runtime_arguments(
+    arguments: &mut Vec<String>,
+    dynamic: bool,
+    changed_only: bool,
+    timeout_seconds: u64,
+) {
+    if dynamic {
+        arguments.push("--dynamic".to_string());
+        if !changed_only {
+            arguments.push("--no-changed-only".to_string());
+        }
+    }
+    arguments.extend([
+        "--timeout-seconds".to_string(),
+        timeout_seconds.to_string(),
+        "--json".to_string(),
+    ]);
 }
 
 fn cli_positionals(arguments: &[String], value_options: &[&str]) -> Result<Vec<String>, String> {
@@ -11643,7 +11668,7 @@ pub fn run_cli(arguments: Vec<String>) {
         "remediation" => {
             let positionals = cli_positionals_with_flags(
                 &arguments,
-                &["--qr-bin", "--notes"],
+                &["--qr-bin", "--notes", "--timeout-seconds"],
                 &["--dynamic", "--no-changed-only", "--skip-provider"],
             )
             .unwrap_or_else(|error| {
@@ -11653,13 +11678,19 @@ pub fn run_cli(arguments: Vec<String>) {
             match positionals.first().map(String::as_str) {
                 Some("refresh") => {
                     if positionals.len() != 1 {
-                        eprintln!("Usage: pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json]");
+                        eprintln!("Usage: pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--timeout-seconds <positive-integer>] [--skip-provider] [--json]");
                         std::process::exit(2);
                     }
                     let qr_bin = cli_option(&arguments, "--qr-bin").unwrap_or_else(|error| {
                         eprintln!("Pronto CLI error: {error}");
                         std::process::exit(2);
                     });
+                    let timeout_seconds = cli_positive_u64_option(&arguments, "--timeout-seconds")
+                        .unwrap_or_else(|error| {
+                            eprintln!("Pronto CLI error: {error}");
+                            std::process::exit(2);
+                        })
+                        .unwrap_or(DEFAULT_QR_AUDIT_TIMEOUT_SECONDS);
                     let result = refresh_remediation_at(
                         &path,
                         qr_bin.as_deref(),
@@ -11670,6 +11701,7 @@ pub fn run_cli(arguments: Vec<String>) {
                         arguments
                             .iter()
                             .any(|argument| argument == "--skip-provider"),
+                        timeout_seconds,
                     );
                     match result {
                         Ok(snapshot) if json => println!(
@@ -12506,6 +12538,54 @@ mod tests {
         assert_eq!(
             cli_repeated_option(&arguments, "--repo").expect("repeated options should parse"),
             vec!["repository:one", "repository:two"]
+        );
+    }
+
+    #[test]
+    fn remediation_timeout_option_requires_a_positive_integer() {
+        let valid = vec![
+            "remediation".to_string(),
+            "refresh".to_string(),
+            "--timeout-seconds".to_string(),
+            "3600".to_string(),
+        ];
+        assert_eq!(
+            cli_positive_u64_option(&valid, "--timeout-seconds")
+                .expect("positive timeout should parse"),
+            Some(3600)
+        );
+
+        for invalid_value in ["0", "-1", "not-a-number"] {
+            let invalid = vec![
+                "remediation".to_string(),
+                "refresh".to_string(),
+                "--timeout-seconds".to_string(),
+                invalid_value.to_string(),
+            ];
+            assert_eq!(
+                cli_positive_u64_option(&invalid, "--timeout-seconds")
+                    .expect_err("invalid timeout should fail"),
+                "--timeout-seconds must be a positive integer"
+            );
+        }
+    }
+
+    #[test]
+    fn qr_audit_runtime_arguments_apply_the_requested_timeout() {
+        let mut arguments = vec!["fleet".to_string(), "audit".to_string()];
+        append_qr_audit_runtime_arguments(&mut arguments, true, false, 3600);
+
+        assert_eq!(
+            arguments,
+            vec![
+                "fleet",
+                "audit",
+                "--dynamic",
+                "--no-changed-only",
+                "--timeout-seconds",
+                "3600",
+                "--json"
+            ]
         );
     }
 

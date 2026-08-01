@@ -108,6 +108,11 @@ provenance across later local or provider refreshes; the remediation plan,
 repository projection, and UI must all read the same imported maturity
 snapshot. Missing or stale applicable scores leave the refresh `partial` and
 the `quality_import` step `blocked` with the affected repositories named.
+Dynamic audits default to a 120-second per-command timeout. Use
+`remediation refresh --dynamic --timeout-seconds <positive-integer>` when a
+repository's documented quality command legitimately needs a longer bound;
+the same explicit timeout is applied to both the scoped audit and any required
+canonical all-projects fallback.
 
 ## Refresh and state boundaries
 
