@@ -36,7 +36,7 @@ import {
   QualityMaturitySummary,
   qualityGateDisplayLabel,
 } from "./QualityComponents";
-import { RepositoryAnalyticsPanel } from "./AnalyticsComponents";
+import { RepositoryAnalyticsPanel } from "./RepositoryAnalyticsPanel";
 
 export function WorkspaceSyncDetailView({
   workspace,

@@ -1,244 +1,30 @@
 import type { ReactElement } from "react";
 import type {
   AnalyticsMetricSample,
-  AnalyticsRepositorySeries,
   AnalyticsSnapshot,
   RepositorySnapshot,
 } from "../types";
+import {
+  attentionSegments,
+  chartFreshness,
+  chartSource,
+  deliverySeries,
+  findingSeries,
+  formatCount,
+  healthSeries,
+  latestRepositorySeries,
+  latestSample,
+  qualityPostureSummary,
+  qualitySeries,
+  releaseSegments,
+  workspaceSegments,
+} from "./analyticsChartModel";
 import {
   AnalyticsChartCard,
   HorizontalBarChart,
   StackedBarChart,
   TrendChart,
-  type HorizontalBarItem,
-  type StackedBarSegment,
-  type TrendSeries,
 } from "./ChartPrimitives";
-
-const BLUE = "var(--blue)";
-const MINT = "var(--mint)";
-const AMBER = "var(--amber)";
-const CORAL = "var(--coral)";
-const VIOLET = "var(--violet)";
-
-function latestSample(
-  samples: AnalyticsMetricSample[],
-): AnalyticsMetricSample | undefined {
-  return samples[samples.length - 1];
-}
-
-function formatScore(value: number | null | undefined): string {
-  return value == null ? "Unavailable" : `${value.toFixed(1)}/4`;
-}
-
-function formatCount(value: number | null | undefined): string {
-  return value == null ? "Unavailable" : `${value}`;
-}
-
-function formatObservedAt(value: string | undefined): string {
-  if (!value) return "No observation yet";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Observation time unavailable";
-  return `Observed ${new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date)}`;
-}
-
-function chartSource(
-  analytics: AnalyticsSnapshot,
-  samples: AnalyticsMetricSample[],
-): string {
-  if (samples.length === 0) return analytics.source;
-  const suffix = samples.length === 1 ? "" : "s";
-  return `${analytics.source} · ${samples.length} observation${suffix}`;
-}
-
-function chartFreshness(
-  analytics: AnalyticsSnapshot,
-  samples: AnalyticsMetricSample[],
-): string {
-  return samples.length > 0
-    ? formatObservedAt(latestSample(samples)?.observed_at)
-    : analytics.freshness;
-}
-
-function healthSeries(): TrendSeries[] {
-  return [
-    {
-      label: "Active conditions",
-      color: AMBER,
-      getValue: (sample) => sample.active_condition_count,
-    },
-    {
-      label: "Dirty workspaces",
-      color: CORAL,
-      getValue: (sample) => sample.dirty_workspace_count,
-    },
-    {
-      label: "Unsynced workspaces",
-      color: BLUE,
-      getValue: (sample) => sample.unsynced_workspace_count,
-    },
-  ];
-}
-
-function deliverySeries(): TrendSeries[] {
-  return [
-    {
-      label: "Commits · 30 days",
-      color: MINT,
-      getValue: (sample) => sample.commits_last_30_days,
-    },
-    {
-      label: "Ahead commits",
-      color: BLUE,
-      getValue: (sample) => sample.ahead_commit_count,
-    },
-    {
-      label: "Behind commits",
-      color: AMBER,
-      getValue: (sample) => sample.behind_commit_count,
-    },
-  ];
-}
-
-function qualitySeries(): TrendSeries[] {
-  return [
-    {
-      label: "Maturity",
-      color: VIOLET,
-      getValue: (sample) => sample.maturity_score,
-      formatValue: formatScore,
-    },
-    {
-      label: "Fresh passing evidence score",
-      color: BLUE,
-      getValue: (sample) => sample.ci_readiness_score,
-      formatValue: formatScore,
-    },
-  ];
-}
-
-function findingSeries(): TrendSeries[] {
-  return [
-    {
-      label: "All detected findings",
-      color: AMBER,
-      getValue: (sample) => sample.findings_total,
-    },
-    {
-      label: "High severity",
-      color: CORAL,
-      getValue: (sample) => sample.high_severity_findings,
-    },
-  ];
-}
-
-function workspaceSegments(
-  sample: AnalyticsMetricSample | undefined,
-): StackedBarSegment[] {
-  return [
-    {
-      label: "Active",
-      color: MINT,
-      value: sample?.active_workspace_count ?? 0,
-    },
-    {
-      label: "Interrupted",
-      color: CORAL,
-      value: sample?.interrupted_workspace_count ?? 0,
-    },
-    { label: "Idle", color: BLUE, value: sample?.idle_workspace_count ?? 0 },
-    {
-      label: "Unknown",
-      color: AMBER,
-      value: sample?.unknown_workspace_count ?? 0,
-    },
-  ];
-}
-
-function attentionSegments(
-  sample: AnalyticsMetricSample | undefined,
-): StackedBarSegment[] {
-  return [
-    {
-      label: "Active conditions",
-      color: AMBER,
-      value: sample?.active_condition_count ?? 0,
-    },
-    {
-      label: "Dirty workspaces",
-      color: CORAL,
-      value: sample?.dirty_workspace_count ?? 0,
-    },
-    {
-      label: "Unsynced workspaces",
-      color: BLUE,
-      value: sample?.unsynced_workspace_count ?? 0,
-    },
-  ];
-}
-
-function releaseSegments(
-  sample: AnalyticsMetricSample | undefined,
-): StackedBarSegment[] {
-  const configured = sample?.release_rule_repository_count ?? 0;
-  const ready = Math.min(
-    sample?.release_ready_repository_count ?? 0,
-    configured,
-  );
-  return [
-    { label: "Threshold met", color: MINT, value: ready },
-    { label: "Configured, pending", color: AMBER, value: configured - ready },
-    {
-      label: "No local rule",
-      color: "var(--faint)",
-      value: Math.max((sample?.repository_count ?? 0) - configured, 0),
-    },
-  ];
-}
-
-function latestRepositorySeries(
-  analytics: AnalyticsSnapshot,
-  repositories: RepositorySnapshot[],
-): HorizontalBarItem[] {
-  return repositories
-    .map((repository) => {
-      const series = analytics.repositories.find(
-        (candidate) => candidate.repository_id === repository.id,
-      );
-      const sample = latestSample(series?.samples ?? []);
-      if (!sample) {
-        return {
-          label: repository.name,
-          color: "var(--faint)",
-          value: undefined,
-        };
-      }
-      const attention =
-        sample.active_condition_count +
-        sample.dirty_workspace_count +
-        sample.unsynced_workspace_count;
-      return {
-        label: repository.name,
-        color: attention > 0 ? AMBER : MINT,
-        value: attention,
-        detail: `${sample.active_condition_count} conditions · ${sample.dirty_workspace_count} dirty · ${sample.unsynced_workspace_count} unsynced`,
-      };
-    })
-    .sort((left, right) => (right.value ?? -1) - (left.value ?? -1))
-    .slice(0, 8);
-}
-
-function qualityPostureSummary(
-  sample: AnalyticsMetricSample | undefined,
-): string {
-  if (!sample) return "No refresh sample is available for quality posture.";
-  return `Maturity ${formatScore(sample.maturity_score)} · Fresh passing evidence score ${formatScore(sample.ci_readiness_score)} · ${formatCount(sample.findings_total)} detected findings · Quality evidence ${sample.quality_freshness ?? "Unavailable"}`;
-}
 
 function AnalyticsChartSet({
   analytics,
@@ -462,99 +248,5 @@ export function AnalyticsSurface({
         </AnalyticsChartCard>
       </div>
     </section>
-  );
-}
-
-export function RepositoryAnalyticsPanel({
-  repository,
-  analytics,
-}: {
-  repository: RepositorySnapshot;
-  analytics: AnalyticsSnapshot;
-}): ReactElement {
-  const series: AnalyticsRepositorySeries = analytics.repositories.find(
-    (candidate) => candidate.repository_id === repository.id,
-  ) ?? { repository_id: repository.id, name: repository.name, samples: [] };
-  const samples = series.samples;
-  const latest = latestSample(samples);
-  return (
-    <div className="drawer-section repository-analytics-section">
-      <div className="drawer-section-title">
-        <div>
-          <h3>Analytics</h3>
-          <small>Last 30 days · refresh snapshots only · read-only</small>
-        </div>
-        <span>
-          {samples.length} observation{samples.length === 1 ? "" : "s"}
-        </span>
-      </div>
-      <div className="repository-analytics-grid">
-        <AnalyticsChartCard
-          eyebrow="Health"
-          title="Attention trend"
-          description="Conditions, dirty workspaces, and unsynced workspaces."
-          source={chartSource(analytics, samples)}
-          freshness={chartFreshness(analytics, samples)}
-          compact
-        >
-          <TrendChart
-            samples={samples}
-            series={healthSeries()}
-            ariaLabel={`${repository.name} health trend`}
-            summary={`${repository.name} health signals over the last 30 days.`}
-            compact
-          />
-        </AnalyticsChartCard>
-        <AnalyticsChartCard
-          eyebrow="Delivery"
-          title="Change flow"
-          description="Local commits and branch divergence."
-          source={chartSource(analytics, samples)}
-          freshness={chartFreshness(analytics, samples)}
-          compact
-        >
-          <TrendChart
-            samples={samples}
-            series={deliverySeries()}
-            ariaLabel={`${repository.name} delivery trend`}
-            summary={`${repository.name} local delivery signals over the last 30 days.`}
-            compact
-          />
-        </AnalyticsChartCard>
-        <AnalyticsChartCard
-          eyebrow="Quality trajectory"
-          title="Maturity and fresh passing evidence"
-          description="External maturity and fresh passing evidence scores are shown only when quality evidence provides them."
-          source={chartSource(analytics, samples)}
-          freshness={chartFreshness(analytics, samples)}
-          summary={qualityPostureSummary(latest)}
-          compact
-        >
-          <TrendChart
-            samples={samples}
-            series={qualitySeries()}
-            ariaLabel={`${repository.name} quality trajectory`}
-            summary={`${repository.name} maturity and fresh passing evidence scores over the last 30 days.`}
-            yMax={4}
-            compact
-          />
-        </AnalyticsChartCard>
-        <AnalyticsChartCard
-          eyebrow="Release context"
-          title="Threshold readiness"
-          description="Configured local release rules remain an evidence boundary, not an action."
-          source={chartSource(analytics, samples)}
-          freshness={chartFreshness(analytics, samples)}
-          compact
-        >
-          <StackedBarChart
-            segments={releaseSegments(latest)}
-            ariaLabel={`${repository.name} release readiness context`}
-            summary={`${repository.name} release threshold configuration at the latest local refresh.`}
-            compact
-          />
-        </AnalyticsChartCard>
-      </div>
-    </div>
   );
 }

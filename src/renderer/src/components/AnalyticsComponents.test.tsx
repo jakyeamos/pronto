@@ -1,7 +1,11 @@
 // quality-gate: allow static-ui-test: verifies user-visible accessibility, freshness, unavailable evidence, and chart summary contracts.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import type { AnalyticsMetricSample, AnalyticsSnapshot } from "../types";
+import type {
+  AnalyticsMetricSample,
+  AnalyticsSnapshot,
+  RepositorySnapshot,
+} from "../types";
 import {
   AnalyticsSurface,
   AnalyticsDashboardBand,
@@ -12,6 +16,7 @@ import {
   TrendChart,
   type TrendSeries,
 } from "./ChartPrimitives";
+import { RepositoryAnalyticsPanel } from "./RepositoryAnalyticsPanel";
 
 function makeSample(
   overrides: Partial<AnalyticsMetricSample> = {},
@@ -138,6 +143,34 @@ describe("analytics charts", () => {
     expect(unavailable).toContain("Maturity Unavailable");
     expect(unavailable).toContain("Fresh passing evidence score Unavailable");
     expect(unavailable).toContain("Unavailable detected findings");
+  });
+
+  it("renders repository analytics from the matching repository series", () => {
+    const repository = {
+      id: "repository-1",
+      name: "Pronto",
+    } as RepositorySnapshot;
+    const analytics = makeAnalytics();
+    analytics.repositories = [
+      {
+        repository_id: repository.id,
+        name: repository.name,
+        samples: [makeSample()],
+      },
+    ];
+
+    const markup = renderToStaticMarkup(
+      <RepositoryAnalyticsPanel
+        repository={repository}
+        analytics={analytics}
+      />,
+    );
+
+    expect(markup).toContain("Pronto health trend");
+    expect(markup).toContain("Pronto delivery trend");
+    expect(markup).toContain("Pronto quality trajectory");
+    expect(markup).toContain("Pronto release readiness context");
+    expect(markup).toContain("1 observation");
   });
 
   it("keeps composition and comparison charts legible with accessible summaries", () => {
