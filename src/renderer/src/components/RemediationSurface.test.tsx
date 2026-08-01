@@ -57,8 +57,17 @@ function run(): RemediationRun {
         repository_name: "closed-repo",
         repository_path: "/tmp/closed",
         plan_id: "plan-closed",
-        target_state: "clean_only",
+        target_state: "active_maintained",
         goal_source: "repository_contract",
+        maturity_policy: {
+          minimum_closure_score: 3,
+          ideal_score: 4,
+          scoring_owner: "Quality Runner canonical maturity feed",
+          improvement_rule:
+            "Continue material, evidence-backed improvements toward 4.0/4 when applicable.",
+          integrity_rule:
+            "Do not add or accept superficial documentation solely to raise the score.",
+        },
         closed_at: "2026-07-29T12:30:00Z",
         source_refresh_id: "refresh-1",
         disposition: "verified",
@@ -90,6 +99,15 @@ function run(): RemediationRun {
           optional_gate_ids: [],
           evidence_max_age_days: 7,
           closure_criteria: ["Fresh release evidence passes."],
+          maturity_policy: {
+            minimum_closure_score: 3,
+            ideal_score: 4,
+            scoring_owner: "Quality Runner canonical maturity feed",
+            improvement_rule:
+              "Continue material, evidence-backed improvements toward 4.0/4 when applicable.",
+            integrity_rule:
+              "Do not add or accept superficial documentation solely to raise the score.",
+          },
           error: null,
         },
         current_stage: "branch_hygiene",
@@ -144,11 +162,15 @@ describe("remediation active queue", () => {
     expect(markup).toContain("Public release");
     expect(markup).toContain("repository contract");
     expect(markup).toContain("Goal-specific closure contract");
+    expect(markup).toContain("Maturity 3.0/4 minimum");
+    expect(markup).toContain("4.0/4 evidence-backed ideal");
+    expect(markup).toContain("Do not add or accept superficial documentation");
     expect(markup).toContain("UI tracking coverage");
     expect(markup).toContain("Project Compass");
     expect(markup).toContain("attention");
     expect(markup).toContain("Repositories removed from the active queue");
+    expect(markup).toContain("maturity 3.0/4 minimum · 4.0/4 ideal");
     expect(markup).toContain("closed-repo");
-    expect(markup).toContain("clean only");
+    expect(markup).toContain("active maintained");
   });
 });

@@ -81,6 +81,13 @@ repo-level surfaces tracked in the UI: scope, Project Compass, provider, pull
 requests, published releases, quality evidence, CI gates, findings, maturity,
 workspaces, branches, submodules, conditions, release preparation, agent
 permission, and analytics.
+Goals that require maturity also expose a structured `maturity_policy`: 3.0/4
+is the minimum evidence-backed closure score and 4.0/4 is the ideal. Reaching
+the closure score removes blocking maturity work from the active queue, while
+the policy remains in retained closure evidence. Agents may continue material,
+applicable improvements toward the ideal, but must not create superficial
+documentation, configuration, tests, or other artifacts solely to raise the
+score.
 Unresolved coverage must link to action IDs; clear, informational, or
 goal-inapplicable surfaces remain explicit without manufacturing work. Terminal evidence-backed outcomes move to the retained
 `closures` ledger, including their target state, and may re-enter the queue
