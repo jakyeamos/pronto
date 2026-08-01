@@ -152,6 +152,12 @@ The default snapshot freshness window for `route` and `doctor` is 48 hours
 (`2,880` minutes). Use `--max-age` for an explicitly different review window;
 operations that depend on current Git state still require live verification.
 
+Quality gate and finding evidence uses a separate commit-bound rule: an
+in-window observation is `Fresh` only when its scanned commit equals the
+current commit. A matching branch name alone is not freshness proof. Without
+comparable commit provenance, a matching branch is `Unknown` and a differing
+branch is `Stale`; an exact commit match remains authoritative.
+
 - `generated_at` identifies the snapshot time; re-check it after a meaningful
   state change.
 - `doctor` reports storage, registered roots, per-repository scan freshness,
