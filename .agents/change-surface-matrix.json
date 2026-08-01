@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-07-29",
+  "last_reviewed": "2026-08-01",
   "surfaces": [
     {
       "id": "native-core",
@@ -126,5 +126,28 @@
       "status": "applicable"
     }
   ],
+  "operation_evidence": {
+    "add": {
+      "status": "passed",
+      "evidence": [
+        "src-tauri/src/core.rs::tests::registers_root_and_scans_from_cli_path",
+        "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract"
+      ]
+    },
+    "change": {
+      "status": "passed",
+      "evidence": [
+        "src-tauri/src/core.rs::tests::ordinary_refresh_retains_persisted_scoped_maturity_evidence",
+        "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract"
+      ]
+    },
+    "remove": {
+      "status": "passed",
+      "evidence": [
+        "src-tauri/src/core.rs::tests::prunes_deleted_repositories_on_full_refresh",
+        "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract"
+      ]
+    }
+  },
   "unresolved_surfaces": []
 }
