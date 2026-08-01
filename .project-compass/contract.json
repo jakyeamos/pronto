@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": 4,
+  "revision": 5,
   "project": {
     "name": "Pronto",
     "identity": "A local-first macOS command center for understanding and safely coordinating a portfolio of Git repositories and agent workspaces.",
@@ -172,7 +172,7 @@
             "intended": "Missing, stale, failed, blocked, or unavailable evidence never appears as passing.",
             "planned": "Pronto consumes Quality Runner maturity and gate evidence read-only and preserves provenance and freshness.",
             "implemented": "Quality projections expose configured, covered, fresh passing, missing, stale, failed, and blocked gates plus findings and maturity.",
-            "verified": "Quality Runner discovered all nine repository-required gate commands, the current dirty checkout passed every local gate, and the installed macOS app shows all nine configured gates separately from the zero fresh passing results. Provider-native CI proof remains unavailable until the workflow is published and runs."
+            "verified": "Quality Runner discovered all nine repository-required gate commands. GitHub Actions run 30712759637 completed successfully on canonical main commit b3a2d866e53a75169eb08303d06d88b627ebdc74, and the refreshed Pronto provider projection reports every applicable gate as fresh and passing."
           },
           "evidence": [
             {
@@ -199,14 +199,19 @@
               "ref": "pnpm app:check",
               "note": "The installed macOS app matches bundle 26903050491a and displays Build through Dependency audit as configured with no imported evidence while preserving 0/9 fresh passing evidence.",
               "observed_at": "2026-07-29T19:04:06Z"
+            },
+            {
+              "ref": "https://github.com/jakyeamos/pronto/actions/runs/30712759637",
+              "note": "The canonical main workflow completed successfully for commit b3a2d866e53a75169eb08303d06d88b627ebdc74 across build, tests, runtime smoke, lint, formatter, typecheck, dead-code, secrets, dependency audit, and MSRV jobs.",
+              "observed_at": "2026-08-01T18:37:40Z"
+            },
+            {
+              "ref": "pnpm --silent run cli refresh-github /Users/jakyeamos/Documents/pronto --json",
+              "note": "The scoped provider refresh imported the canonical commit and reports all nine applicable Pronto gates as fresh and passing.",
+              "observed_at": "2026-08-01T18:40:37Z"
             }
           ],
-          "blockers": [
-            {
-              "kind": "verification",
-              "summary": "The configured GitHub workflow is unpublished, so Pronto cannot yet ingest provider-native fresh passing check runs."
-            }
-          ]
+          "blockers": []
         },
         {
           "id": "complete-remediation-coverage",
@@ -345,32 +350,32 @@
     "verified": [
       {
         "ref": "src-tauri/src",
-        "note": "Rust unit and projection tests passed in the current dirty checkout.",
-        "observed_at": "2026-07-29T17:43:37Z"
+        "note": "Rust tests and the build completed successfully in canonical GitHub Actions run 30712759637.",
+        "observed_at": "2026-08-01T18:37:40Z"
       },
       {
         "ref": "src/renderer/src",
-        "note": "Renderer tests, typecheck, lint, formatting, dead-code audit, and build passed in the current dirty checkout.",
-        "observed_at": "2026-07-29T17:43:37Z"
+        "note": "Renderer tests, typecheck, lint, formatting, dead-code audit, and build completed successfully in canonical GitHub Actions run 30712759637.",
+        "observed_at": "2026-08-01T18:37:40Z"
       }
     ]
   },
   "drift": [
     {
       "kind": "verification-gap",
-      "summary": "Repository-specific Quality Runner and local passing evidence now exist, but fresh passing GitHub check evidence requires publishing and running the new workflow.",
-      "status": "open",
-      "observed_at": "2026-07-29T18:18:28Z",
+      "summary": "Repository-specific Quality Runner and provider-native passing evidence are published and reconciled for canonical main.",
+      "status": "resolved",
+      "observed_at": "2026-08-01T18:40:37Z",
       "evidence": [
         {
-          "ref": ".quality-runner/runs/pronto-remediation-20260729/capability-matrix.json",
-          "note": "Quality Runner discovered the repository gate commands; execution and provider check evidence remain separate.",
-          "observed_at": "2026-07-29T18:16:24Z"
+          "ref": "https://github.com/jakyeamos/pronto/actions/runs/30712759637",
+          "note": "The canonical main workflow passed all ten jobs on commit b3a2d866e53a75169eb08303d06d88b627ebdc74.",
+          "observed_at": "2026-08-01T18:37:40Z"
         },
         {
-          "ref": ".github/workflows/quality.yml",
-          "note": "The nine-check workflow exists only in the dirty checkout and has not produced provider-native check runs.",
-          "observed_at": "2026-07-29T18:18:28Z"
+          "ref": "pnpm --silent run cli refresh-github /Users/jakyeamos/Documents/pronto --json",
+          "note": "Pronto imported the exact canonical commit and reports no blocked, failed, stale, or missing applicable gate.",
+          "observed_at": "2026-08-01T18:40:37Z"
         }
       ]
     },
@@ -457,5 +462,5 @@
       ]
     }
   ],
-  "updated_at": "2026-07-29T19:04:06Z"
+  "updated_at": "2026-08-01T18:40:37Z"
 }
