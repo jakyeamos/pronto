@@ -6,6 +6,7 @@ import {
   Check,
   ChevronRight,
   Clock3,
+  Compass,
   GitBranch,
   MonitorDot,
   ShieldCheck,
@@ -16,6 +17,7 @@ import type {
   AnalyticsSnapshot,
   Condition,
   ExternalTool,
+  QualityGate,
   RepositorySnapshot,
 } from "../types";
 import {
@@ -29,6 +31,7 @@ import {
   QualityGateCell,
   QualityGateStatusPill,
   QualityMaturitySummary,
+  qualityGateDisplayLabel,
 } from "./QualityComponents";
 import { RepositoryAnalyticsPanel } from "./AnalyticsComponents";
 
@@ -51,6 +54,21 @@ export function RepositoryDetailSurface({
   onCondition: (condition: Condition) => void;
   onOpenReport?: (reportPath: string) => void;
 }): ReactElement {
+  const detailQualityGates: QualityGate[] = [
+    ...repository.quality.gates,
+    ...repository.quality.ci_readiness.applicable_gate_ids
+      .filter(
+        (gateId) =>
+          !repository.quality.gates.some((gate) => gate.id === gateId),
+      )
+      .map((gateId) => ({
+        id: gateId,
+        label: qualityGateDisplayLabel(gateId),
+        status: "Not configured" as const,
+        freshness: "Unknown" as const,
+        evidence: [],
+      })),
+  ];
   return (
     <section
       className="repository-detail-surface"
@@ -118,6 +136,88 @@ export function RepositoryDetailSurface({
           </strong>
         </div>
       </div>
+      <div className="drawer-section compass-detail-section">
+        <div className="drawer-section-title">
+          <div>
+            <h3>
+              <Compass size={15} /> Project Compass
+            </h3>
+            <small>
+              Product-direction progress from{" "}
+              {repository.project_compass.contract_path}.
+            </small>
+          </div>
+          <StatusPill
+            tone={
+              repository.project_compass.status === "Ready"
+                ? "mint"
+                : repository.project_compass.status === "Invalid"
+                  ? "coral"
+                  : "slate"
+            }
+          >
+            {repository.project_compass.status}
+          </StatusPill>
+        </div>
+        {repository.project_compass.status === "Ready" ? (
+          <>
+            <div className="compass-product-truth">
+              <strong>
+                {repository.project_compass.project_name ?? repository.name}
+              </strong>
+              <p>{repository.project_compass.identity}</p>
+              <small>For {repository.project_compass.audience}</small>
+            </div>
+            <div className="compass-progress-grid">
+              <div>
+                <span>MVP</span>
+                <strong>
+                  {repository.project_compass.mvp.progress_percent ?? "Unknown"}
+                  {repository.project_compass.mvp.progress_percent === null
+                    ? ""
+                    : "%"}
+                </strong>
+                <small>
+                  {repository.project_compass.mvp.confidence} confidence
+                </small>
+              </div>
+              <div>
+                <span>Complete product</span>
+                <strong>
+                  {repository.project_compass.complete_product
+                    .progress_percent ?? "Unknown"}
+                  {repository.project_compass.complete_product
+                    .progress_percent === null
+                    ? ""
+                    : "%"}
+                </strong>
+                <small>
+                  {repository.project_compass.complete_product.confidence}{" "}
+                  confidence
+                </small>
+              </div>
+              <div>
+                <span>Open blockers</span>
+                <strong>{repository.project_compass.open_blockers}</strong>
+                <small>Across target outcomes</small>
+              </div>
+              <div>
+                <span>Open drift</span>
+                <strong>{repository.project_compass.open_drift}</strong>
+                <small>
+                  Revision {repository.project_compass.revision ?? "unknown"}
+                </small>
+              </div>
+            </div>
+          </>
+        ) : (
+          <p className="quality-inline-empty">
+            {repository.project_compass.status === "Invalid"
+              ? repository.project_compass.error
+              : "No Compass contract has been created for this repository yet."}
+          </p>
+        )}
+      </div>
       <div className="drawer-section quality-detail-section">
         <div className="drawer-section-title">
           <div>
@@ -149,9 +249,12 @@ export function RepositoryDetailSurface({
           />
         </div>
         <div className="quality-detail-gates">
-          {repository.quality.gates.map((gate) => (
+          {detailQualityGates.map((gate) => (
             <QualityGateCell
               gate={gate}
+              configured={repository.quality.ci_readiness.configured_gate_ids.includes(
+                gate.id,
+              )}
               key={gate.id}
               onOpenReport={onOpenReport}
             />
@@ -201,6 +304,11 @@ export function RepositoryDetailSurface({
                     const gate = repository.quality.gates.find(
                       (candidate) => candidate.id === requirement.gate_id,
                     );
+                    const configuredWithoutEvidence =
+                      gate?.status === "Not configured" &&
+                      repository.quality.ci_readiness.configured_gate_ids.includes(
+                        requirement.gate_id,
+                      );
                     return (
                       <div
                         className="repository-release-rule-row"
@@ -210,7 +318,11 @@ export function RepositoryDetailSurface({
                           <strong>{gate?.label ?? requirement.gate_id}</strong>
                           <small>{requirement.source} evidence</small>
                         </span>
-                        {gate ? (
+                        {configuredWithoutEvidence ? (
+                          <StatusPill tone="slate">
+                            Awaiting evidence
+                          </StatusPill>
+                        ) : gate ? (
                           <QualityGateStatusPill
                             status={gate.status}
                             freshness={gate.freshness}

@@ -1,0 +1,99 @@
+[quality_runner]
+default_profile = "pronto"
+allowed_package_managers = ["pnpm"]
+
+[quality_runner.profiles.pronto]
+extends = "default"
+required_capabilities = [
+  "build",
+  "tests",
+  "runtime_smoke",
+  "lint",
+  "formatter",
+  "typecheck",
+  "dead_code",
+  "security_secrets_scan",
+  "security_dependency_audit",
+]
+allowed_package_managers = ["pnpm"]
+
+[[quality_runner.gates]]
+id = "build"
+command = "pnpm build:bundle"
+ecosystem = "pnpm"
+source = "repository policy"
+owner = "Pronto repository maintainers"
+required = true
+severity = "blocker"
+
+[[quality_runner.gates]]
+id = "tests"
+command = "pnpm test"
+ecosystem = "pnpm"
+source = "repository policy"
+owner = "Pronto repository maintainers"
+required = true
+severity = "blocker"
+
+[[quality_runner.gates]]
+id = "runtime_smoke"
+command = "pnpm smoke"
+ecosystem = "pnpm"
+source = "repository policy"
+owner = "Pronto repository maintainers"
+required = true
+severity = "blocker"
+
+[[quality_runner.gates]]
+id = "lint"
+command = "pnpm lint"
+ecosystem = "pnpm"
+source = "repository policy"
+owner = "Pronto repository maintainers"
+required = true
+severity = "blocker"
+
+[[quality_runner.gates]]
+id = "formatter"
+command = "pnpm format:check"
+ecosystem = "pnpm"
+source = "repository policy"
+owner = "Pronto repository maintainers"
+required = true
+severity = "blocker"
+
+[[quality_runner.gates]]
+id = "typecheck"
+command = "pnpm typecheck"
+ecosystem = "pnpm"
+source = "repository policy"
+owner = "Pronto repository maintainers"
+required = true
+severity = "blocker"
+
+[[quality_runner.gates]]
+id = "dead_code"
+command = "pnpm audit:dead-code"
+ecosystem = "pnpm"
+source = "repository policy"
+owner = "Pronto repository maintainers"
+required = true
+severity = "blocker"
+
+[[quality_runner.gates]]
+id = "security_secrets_scan"
+command = "pnpm audit:secrets"
+ecosystem = "pnpm"
+source = "repository policy"
+owner = "Pronto repository maintainers"
+required = true
+severity = "blocker"
+
+[[quality_runner.gates]]
+id = "security_dependency_audit"
+command = "pnpm audit:dependencies"
+ecosystem = "pnpm"
+source = "repository policy"
+owner = "Pronto repository maintainers"
+required = true
+severity = "blocker"

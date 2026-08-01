@@ -4,7 +4,7 @@ import type { AnalyticsMetricSample } from "../types";
 export interface TrendSeries {
   label: string;
   color: string;
-  getValue: (sample: AnalyticsMetricSample) => number | undefined;
+  getValue: (sample: AnalyticsMetricSample) => number | null | undefined;
   formatValue?: (value: number) => string;
 }
 
@@ -17,7 +17,7 @@ export interface StackedBarSegment {
 export interface HorizontalBarItem {
   label: string;
   color: string;
-  value: number | undefined;
+  value: number | null | undefined;
   detail?: string;
 }
 
@@ -144,7 +144,7 @@ export function TrendChart({
   const values = series.flatMap((item) =>
     samples
       .map(item.getValue)
-      .filter((value): value is number => value !== undefined),
+      .filter((value): value is number => value != null),
   );
   if (values.length === 0) {
     return (
@@ -207,7 +207,7 @@ export function TrendChart({
         {series.map((item) => {
           const points = samples.map((sample, index) => {
             const value = item.getValue(sample);
-            return value === undefined ? undefined : pointFor(index, value);
+            return value == null ? undefined : pointFor(index, value);
           });
           const path = chartPath(points);
           return (
@@ -257,7 +257,7 @@ export function TrendChart({
               />
               <span>{item.label}</span>
               <strong>
-                {latest === undefined
+                {latest == null
                   ? "Unavailable"
                   : (item.formatValue?.(latest) ?? formatDefaultValue(latest))}
               </strong>
@@ -378,7 +378,9 @@ export function HorizontalBarChart({
   ariaLabel: string;
   summary: string;
 }): ReactElement {
-  const visibleItems = items.filter((item) => item.value !== undefined);
+  const visibleItems = items.filter(
+    (item): item is HorizontalBarItem & { value: number } => item.value != null,
+  );
   if (visibleItems.length === 0) {
     return (
       <ChartEmptyState

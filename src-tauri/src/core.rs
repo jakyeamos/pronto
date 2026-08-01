@@ -1,11 +1,14 @@
+use crate::change_matrix;
+use crate::project_compass::{self, ProjectCompassSummary};
 use crate::quality::{
     self, QualityFreshness, QualityGateRequirement, QualityGateStatus, QualityPortfolioSnapshot,
     QualitySnapshot,
 };
 use crate::remediation::{self, RemediationRun};
+use crate::skills::{self, SkillsSnapshot};
 use chrono::{DateTime, SecondsFormat, Utc};
 use rusqlite::{params, Connection as SqliteConnection, OpenFlags, OptionalExtension, Row};
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ffi::OsStr;
@@ -363,6 +366,8 @@ pub struct RepositorySnapshot {
     #[serde(default)]
     pub quality: QualitySnapshot,
     #[serde(default)]
+    pub project_compass: ProjectCompassSummary,
+    #[serde(default)]
     pub release_rule: Option<ReleaseRuleConfig>,
     #[serde(default)]
     pub release_recipe: Option<ReleaseRecipeConfig>,
@@ -669,8 +674,9 @@ const AGENT_FOLD_PREVIEW_SCHEMA: &str = "pronto-agent-fold-preview/v1";
 const DEFAULT_AGENT_FOLD_PREVIEW_LIMIT: usize = 24;
 const MAX_AGENT_FOLD_PREVIEW_LIMIT: usize = 100;
 const AGENT_DOCTOR_SCHEMA: &str = "pronto-agent-doctor/v1";
-const DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES: i64 = 60;
+const DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES: i64 = 2_880;
 const MAX_AGENT_DOCTOR_MAX_AGE_MINUTES: i64 = 10_080;
+const AGENT_ROUTE_SCHEMA: &str = "pronto-agent-route/v1";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConditionSummary {
@@ -730,6 +736,7 @@ pub struct AgentRepositorySummary {
     pub ci_configuration_ideal_gate_count: usize,
     pub findings_total: u64,
     pub high_severity_findings: u64,
+    pub project_compass: ProjectCompassSummary,
     pub last_scan_at: String,
     pub last_activity_at: Option<String>,
 }
@@ -934,6 +941,31 @@ pub struct AgentDoctorReport {
     pub authorization: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentRouteReport {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub scope: String,
+    pub status: String,
+    pub ready: bool,
+    pub doctor: AgentDoctorReport,
+    pub next: Option<AgentNextReport>,
+    pub repository: Option<AgentRepositoryDetail>,
+    pub quality: Option<AgentQualityReport>,
+    pub fold_preview: Option<AgentFoldPreview>,
+    pub change_maturity: Option<AgentChangeMaturitySummary>,
+    pub next_safe_step: String,
+    pub authorization: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentChangeMaturitySummary {
+    pub score: Option<f64>,
+    pub status: String,
+    pub gaps: Vec<String>,
+    pub recommended_inspection: String,
+}
+
 #[derive(Debug)]
 struct GitOutput {
     success: bool,
@@ -1110,6 +1142,10 @@ fn initialize_store(connection: &SqliteConnection) -> Result<(), String> {
              );
              CREATE INDEX IF NOT EXISTS idx_analytics_samples_scope_time
                  ON analytics_samples (repository_id, observed_at);
+             CREATE TABLE IF NOT EXISTS skills_snapshots (
+                 id INTEGER PRIMARY KEY CHECK (id = 1),
+                 payload_json TEXT NOT NULL
+             );
              CREATE TABLE IF NOT EXISTS remediation_runs (
                  id TEXT PRIMARY KEY,
                  generated_at TEXT NOT NULL,
@@ -3083,7 +3119,7 @@ fn remediation_refresh_steps() -> Vec<remediation::RemediationRefreshStep> {
         ("qr_feed", "Quality Runner maturity feed"),
         ("provider", "GitHub provider refresh"),
         ("quality_import", "Pronto quality and maturity import"),
-        ("remediation_plan", "Per-repository remediation plans"),
+        ("remediation_plan", "Ranked active remediation queue"),
     ]
     .into_iter()
     .map(|(id, label)| remediation::RemediationRefreshStep {
@@ -3126,7 +3162,7 @@ fn persist_remediation_refresh(
 ) -> Result<(), String> {
     let mut state = load_store(path)?;
     remediation::sync_scope_metadata(&mut state.remediation, &state.repositories);
-    if state.remediation.plans.is_empty() {
+    if state.remediation.id.is_empty() {
         state.remediation = remediation::rebuild_run(
             &state.repositories,
             &state.remediation,
@@ -3760,7 +3796,7 @@ fn refresh_remediation_at(
         &mut steps,
         "remediation_plan",
         "completed",
-        "Generated one evidence-backed remediation plan per eligible repository.",
+        "Ranked active repository plans and retained terminal closure records.",
         None,
     );
     let has_blockers = steps.iter().any(|step| step.status == "blocked");
@@ -4692,25 +4728,7 @@ fn process_name_is_activity_candidate(name: &str) -> bool {
         .unwrap_or(name)
         .to_ascii_lowercase();
     [
-        "bash",
-        "zsh",
-        "fish",
-        "sh",
-        "pwsh",
-        "powershell",
-        "cmd",
-        "terminal",
-        "iterm",
-        "warp",
-        "alacritty",
-        "kitty",
-        "wezterm",
-        "codex",
-        "claude",
-        "aider",
-        "cursor",
-        "continue",
-        "opencode",
+        "codex", "claude", "aider", "cursor", "continue", "opencode", "copilot",
     ]
     .iter()
     .any(|candidate| normalized == *candidate || normalized.contains(candidate))
@@ -4757,6 +4775,49 @@ fn workspace_contains(parent: &Path, candidate: &Path) -> bool {
     candidate == parent || candidate.starts_with(parent)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ProcessActivityRow {
+    process_id: u32,
+    parent_process_id: u32,
+    process_name: String,
+    started_at: Option<String>,
+}
+
+fn parse_process_activity_rows(output: &str) -> Vec<ProcessActivityRow> {
+    output
+        .lines()
+        .filter_map(|line| {
+            let mut fields = line.split_whitespace();
+            let process_id = fields.next()?.parse::<u32>().ok()?;
+            let parent_process_id = fields.next()?.parse::<u32>().ok()?;
+            let process_name = fields.next()?.to_string();
+            let started_at = fields.collect::<Vec<_>>().join(" ");
+            Some(ProcessActivityRow {
+                process_id,
+                parent_process_id,
+                process_name,
+                started_at: (!started_at.is_empty()).then_some(started_at),
+            })
+        })
+        .collect()
+}
+
+fn process_ancestor_ids(rows: &[ProcessActivityRow], process_id: u32) -> HashSet<u32> {
+    let parents = rows
+        .iter()
+        .map(|row| (row.process_id, row.parent_process_id))
+        .collect::<HashMap<_, _>>();
+    let mut excluded = HashSet::new();
+    let mut candidate = Some(process_id);
+    while let Some(current) = candidate {
+        if current == 0 || !excluded.insert(current) {
+            break;
+        }
+        candidate = parents.get(&current).copied();
+    }
+    excluded
+}
+
 fn process_activity_signals(path: &Path) -> (Vec<ActivitySignal>, bool) {
     #[cfg(target_os = "windows")]
     {
@@ -4778,7 +4839,7 @@ fn process_activity_signals(path: &Path) -> (Vec<ActivitySignal>, bool) {
     #[cfg(not(target_os = "windows"))]
     {
         let output = match Command::new("ps")
-            .args(["-axo", "pid=,comm=,lstart="])
+            .args(["-axo", "pid=,ppid=,comm=,lstart="])
             .output()
         {
             Ok(output) if output.status.success() => output,
@@ -4797,22 +4858,18 @@ fn process_activity_signals(path: &Path) -> (Vec<ActivitySignal>, bool) {
                 );
             }
         };
+        let rows = parse_process_activity_rows(&String::from_utf8_lossy(&output.stdout));
+        let invoking_process_ids = process_ancestor_ids(&rows, std::process::id());
         let mut signals = Vec::new();
         let mut unresolved_candidate = false;
-        for line in String::from_utf8_lossy(&output.stdout).lines() {
-            let mut fields = line.split_whitespace();
-            let Some(process_id) = fields.next().and_then(|value| value.parse::<u32>().ok()) else {
-                continue;
-            };
-            let Some(process_name) = fields.next() else {
-                continue;
-            };
-            if !process_name_is_activity_candidate(process_name) {
+        for row in rows {
+            if invoking_process_ids.contains(&row.process_id) {
                 continue;
             }
-            let started_at = fields.collect::<Vec<_>>().join(" ");
-            let started_at = (!started_at.is_empty()).then_some(started_at);
-            let Some(working_directory) = process_working_directory(process_id) else {
+            if !process_name_is_activity_candidate(&row.process_name) {
+                continue;
+            }
+            let Some(working_directory) = process_working_directory(row.process_id) else {
                 unresolved_candidate = true;
                 continue;
             };
@@ -4821,9 +4878,9 @@ fn process_activity_signals(path: &Path) -> (Vec<ActivitySignal>, bool) {
                     "Process",
                     "Process evidence found",
                     "Medium",
-                    Some(process_name),
-                    Some(process_id),
-                    started_at.as_deref(),
+                    Some(&row.process_name),
+                    Some(row.process_id),
+                    row.started_at.as_deref(),
                     Some(&working_directory),
                 ));
             }
@@ -6489,6 +6546,18 @@ fn build_conditions(
     conditions
 }
 
+fn observed_fetch_at(path: &Path) -> Option<String> {
+    let fetch_head = git_static(path, &["rev-parse", "--git-path", "FETCH_HEAD"])?;
+    let fetch_head = PathBuf::from(fetch_head);
+    let fetch_head = if fetch_head.is_absolute() {
+        fetch_head
+    } else {
+        path.join(fetch_head)
+    };
+    let modified = fs::metadata(fetch_head).ok()?.modified().ok()?;
+    Some(DateTime::<Utc>::from(modified).to_rfc3339_opts(SecondsFormat::Secs, true))
+}
+
 fn scan_repository(
     path: &Path,
     existing: Option<&RepositorySnapshot>,
@@ -6497,26 +6566,41 @@ fn scan_repository(
     let observed_at = iso_now();
     let repository_id = path_id("repository", path);
     let remote_url = git_static(path, &["remote", "get-url", "origin"]);
-    let provider_state = if remote_url
-        .as_ref()
-        .is_some_and(|url| url.contains("github.com"))
-    {
-        "GitHub remote detected · provider not connected".to_string()
-    } else if remote_url.is_some() {
-        "Remote detected · provider not connected".to_string()
-    } else {
-        "No remote configured".to_string()
-    };
-    let locality = if remote_url.is_some() {
-        "Connected"
-    } else {
-        "Local only"
-    };
+    let remote_unchanged = existing.is_some_and(|repository| repository.remote_url == remote_url);
+    let provider_state = existing
+        .filter(|_| remote_unchanged)
+        .map(|repository| repository.provider_state.clone())
+        .unwrap_or_else(|| {
+            if remote_url
+                .as_ref()
+                .is_some_and(|url| url.contains("github.com"))
+            {
+                "GitHub remote detected · provider not connected".to_string()
+            } else if remote_url.is_some() {
+                "Remote detected · provider not connected".to_string()
+            } else {
+                "No remote configured".to_string()
+            }
+        });
+    let locality = existing
+        .filter(|_| remote_unchanged)
+        .map(|repository| repository.locality.clone())
+        .unwrap_or_else(|| {
+            if remote_url.is_some() {
+                "Connected".to_string()
+            } else {
+                "Local only".to_string()
+            }
+        });
     let worktree_records = parse_worktrees(path);
     let provisional_branch = git_static(path, &["branch", "--show-current"])
         .unwrap_or_else(|| "Detached HEAD".to_string());
     let default_branch = detect_default_branch(path, &provisional_branch);
-    let existing_last_fetch = existing.and_then(|repository| repository.last_fetch_at.clone());
+    let recorded_fetch = existing
+        .filter(|_| remote_unchanged)
+        .and_then(|repository| repository.last_fetch_at.clone());
+    let observed_fetch = remote_url.as_ref().and_then(|_| observed_fetch_at(path));
+    let existing_last_fetch = [recorded_fetch, observed_fetch].into_iter().flatten().max();
     let mut workspaces = Vec::new();
     for record in worktree_records {
         let canonical = canonical_path(&record.path).unwrap_or(record.path.clone());
@@ -6657,6 +6741,7 @@ fn scan_repository(
         quality: existing
             .map(|repository| repository.quality.clone())
             .unwrap_or_default(),
+        project_compass: project_compass::inspect(path),
         release_rule: existing.and_then(|repository| repository.release_rule.clone()),
         release_recipe: existing.and_then(|repository| repository.release_recipe.clone()),
         confirmed_release_version: existing
@@ -7527,6 +7612,23 @@ pub fn get_analytics() -> Result<AnalyticsSnapshot, String> {
 }
 
 #[tauri::command]
+pub fn get_skills() -> Result<SkillsSnapshot, String> {
+    skills::load(&store_path())
+}
+
+#[tauri::command]
+pub async fn refresh_skills() -> Result<SkillsSnapshot, String> {
+    tauri::async_runtime::spawn_blocking(|| skills::refresh(&store_path()))
+        .await
+        .map_err(|error| format!("Skills refresh task failed: {error}"))?
+}
+
+#[tauri::command]
+pub fn open_skill_source(path: String) -> Result<(), String> {
+    skills::open_source(&path)
+}
+
+#[tauri::command]
 pub fn register_root(path: String) -> Result<PortfolioSnapshot, String> {
     register_root_and_scan(&store_path(), &path)
 }
@@ -7613,7 +7715,9 @@ pub fn set_remediation_action_status(
     if !found {
         return Err(format!("Remediation action {action_id} was not found."));
     }
-    state.remediation.generated_at = iso_now();
+    let updated_at = iso_now();
+    remediation::normalize_queue(&mut state.remediation, &updated_at);
+    state.remediation.generated_at = updated_at;
     save_store(&path, &state)?;
     Ok(snapshot_from_store(&path, &state))
 }
@@ -7810,6 +7914,53 @@ fn cli_option(arguments: &[String], option: &str) -> Result<Option<String>, Stri
     Ok(value)
 }
 
+fn cli_repeated_option(arguments: &[String], option: &str) -> Result<Vec<String>, String> {
+    let mut values = Vec::new();
+    let mut index = 1;
+    while index < arguments.len() {
+        if arguments[index] == option {
+            let next = arguments
+                .get(index + 1)
+                .ok_or_else(|| format!("{option} requires a value"))?;
+            if next.starts_with("--") {
+                return Err(format!("{option} requires a value"));
+            }
+            values.push(next.clone());
+            index += 1;
+        }
+        index += 1;
+    }
+    Ok(values)
+}
+
+fn cli_json_option<T: DeserializeOwned>(
+    arguments: &[String],
+    option: &str,
+) -> Result<Option<T>, String> {
+    let Some(value) = cli_option(arguments, option)? else {
+        return Ok(None);
+    };
+    let payload = if let Some(path) = value.strip_prefix('@') {
+        fs::read_to_string(path)
+            .map_err(|error| format!("Could not read {option} file: {error}"))?
+    } else {
+        value
+    };
+    serde_json::from_str(&payload)
+        .map(Some)
+        .map_err(|error| format!("{option} must contain valid JSON: {error}"))
+}
+
+fn cli_bool_option(arguments: &[String], option: &str) -> Result<Option<bool>, String> {
+    cli_option(arguments, option)?
+        .map(|value| match value.to_ascii_lowercase().as_str() {
+            "true" | "yes" | "1" | "on" => Ok(true),
+            "false" | "no" | "0" | "off" => Ok(false),
+            _ => Err(format!("{option} must be true or false")),
+        })
+        .transpose()
+}
+
 fn cli_positionals(arguments: &[String], value_options: &[&str]) -> Result<Vec<String>, String> {
     let mut positionals = Vec::new();
     let mut expecting_value = None;
@@ -7891,6 +8042,42 @@ fn find_cli_repository<'a>(
         [] => Err(format!("Repository '{query}' is not registered")),
         _ => Err(format!("Repository query '{query}' is ambiguous")),
     }
+}
+
+fn find_cli_group<'a>(state: &'a StoreState, query: &str) -> Result<&'a GroupConfig, String> {
+    let matches = state
+        .groups
+        .iter()
+        .filter(|group| group.id == query || group.name.eq_ignore_ascii_case(query))
+        .collect::<Vec<_>>();
+    match matches.as_slice() {
+        [group] => Ok(group),
+        [] => Err(format!("Group '{query}' is not registered")),
+        _ => Err(format!("Group query '{query}' is ambiguous")),
+    }
+}
+
+fn find_cli_product<'a>(state: &'a StoreState, query: &str) -> Result<&'a ProductConfig, String> {
+    let matches = state
+        .products
+        .iter()
+        .filter(|product| product.id == query || product.name.eq_ignore_ascii_case(query))
+        .collect::<Vec<_>>();
+    match matches.as_slice() {
+        [product] => Ok(product),
+        [] => Err(format!("Product '{query}' is not registered")),
+        _ => Err(format!("Product query '{query}' is ambiguous")),
+    }
+}
+
+fn merge_repository_ids(existing: &[String], additions: Vec<String>) -> Vec<String> {
+    existing
+        .iter()
+        .cloned()
+        .chain(additions)
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect()
 }
 
 fn find_repository_for_directory<'a>(
@@ -8094,6 +8281,7 @@ fn agent_repository_summary(repository: &RepositorySnapshot) -> AgentRepositoryS
             .len(),
         findings_total: repository.quality.findings.total,
         high_severity_findings: repository.quality.findings.high_severity_total,
+        project_compass: repository.project_compass.clone(),
         last_scan_at: repository.last_scan_at.clone(),
         last_activity_at: repository.last_activity_at.clone(),
     }
@@ -8981,6 +9169,123 @@ fn agent_doctor_error_report(
     }
 }
 
+fn agent_route_from_doctor(
+    doctor: AgentDoctorReport,
+    scope: &str,
+    next: Option<AgentNextReport>,
+    repository: Option<AgentRepositoryDetail>,
+    quality: Option<AgentQualityReport>,
+    fold_preview: Option<AgentFoldPreview>,
+) -> AgentRouteReport {
+    let change_maturity = repository.as_ref().map(|detail| {
+        let maturity = &detail.repository.quality.maturity;
+        let score = maturity
+            .dimension_scores
+            .get("change_surface_coverage")
+            .copied();
+        let gaps = maturity
+            .gaps
+            .iter()
+            .filter(|gap| {
+                matches!(
+                    gap.dimension.as_str(),
+                    "change_surface_coverage" | "skill_contract_quality"
+                )
+            })
+            .take(3)
+            .map(|gap| gap.message.clone())
+            .collect::<Vec<_>>();
+        AgentChangeMaturitySummary {
+            score,
+            status: match score {
+                Some(value) if value >= 4.0 => "proven",
+                Some(value) if value >= 3.0 => "validated",
+                Some(value) if value > 0.0 => "attention",
+                Some(_) => "missing",
+                None => "unknown",
+            }
+            .to_string(),
+            gaps,
+            recommended_inspection: format!(
+                "pronto change-matrix repo '{}' --json",
+                detail.repository.path.replace('\'', "'\\''")
+            ),
+        }
+    });
+    let next_safe_step = if doctor.ready {
+        next.as_ref()
+            .and_then(|report| report.actions.first())
+            .map(|action| action.next_safe_step.clone())
+            .unwrap_or_else(|| {
+                "No active attention action was observed; choose the next bounded inspection for this scope.".to_string()
+            })
+    } else {
+        doctor.next_safe_step.clone()
+    };
+    AgentRouteReport {
+        schema_version: AGENT_ROUTE_SCHEMA.to_string(),
+        generated_at: doctor.generated_at.clone(),
+        scope: scope.to_string(),
+        status: doctor.status.clone(),
+        ready: doctor.ready,
+        doctor,
+        next,
+        repository,
+        quality,
+        fold_preview,
+        change_maturity,
+        next_safe_step,
+        authorization: "Inspection only; this route does not refresh, modify Git, change provider state, update remediation status, or authorize repository or release mutations.".to_string(),
+    }
+}
+
+fn agent_route_report(
+    snapshot: &PortfolioSnapshot,
+    storage_path: &Path,
+    max_age_minutes: i64,
+    scope: &str,
+    query: Option<&str>,
+    limit: usize,
+) -> Result<AgentRouteReport, String> {
+    let doctor = agent_doctor_report(snapshot, storage_path, max_age_minutes, scope);
+    if !doctor.ready {
+        return Ok(agent_route_from_doctor(
+            doctor, scope, None, None, None, None,
+        ));
+    }
+
+    let next = agent_next_report(snapshot, query, scope, limit)?;
+    let repository = query
+        .map(|value| {
+            find_cli_repository(snapshot, value)
+                .map(|repository| agent_repository_detail(snapshot, repository))
+        })
+        .transpose()?;
+    let quality = Some(agent_quality_report_with_scope(snapshot, None, scope)?);
+    let fold_preview = Some(agent_fold_preview_report(
+        snapshot, query, None, scope, limit,
+    )?);
+    Ok(agent_route_from_doctor(
+        doctor,
+        scope,
+        Some(next),
+        repository,
+        quality,
+        fold_preview,
+    ))
+}
+
+fn agent_route_error_report(
+    storage_path: &Path,
+    max_age_minutes: i64,
+    scope: &str,
+    check_id: &str,
+    error: String,
+) -> AgentRouteReport {
+    let doctor = agent_doctor_error_report(storage_path, max_age_minutes, scope, check_id, error);
+    agent_route_from_doctor(doctor, scope, None, None, None, None)
+}
+
 fn agent_summary(snapshot: &PortfolioSnapshot, scope: &str) -> AgentSummary {
     let repositories = snapshot
         .repositories
@@ -9041,6 +9346,17 @@ fn agent_quality_report(
     snapshot: &PortfolioSnapshot,
     query: Option<&str>,
 ) -> Result<AgentQualityReport, String> {
+    let scope = query
+        .map(|value| format!("repository:{value}"))
+        .unwrap_or_else(|| "fleet".to_string());
+    agent_quality_report_with_scope(snapshot, query, &scope)
+}
+
+fn agent_quality_report_with_scope(
+    snapshot: &PortfolioSnapshot,
+    query: Option<&str>,
+    scope: &str,
+) -> Result<AgentQualityReport, String> {
     let repositories = if let Some(query) = query {
         vec![find_cli_repository(snapshot, query)?]
     } else {
@@ -9049,9 +9365,7 @@ fn agent_quality_report(
     Ok(AgentQualityReport {
         schema_version: AGENT_QUALITY_SCHEMA.to_string(),
         generated_at: snapshot.generated_at.clone(),
-        scope: query
-            .map(|value| format!("repository:{value}"))
-            .unwrap_or_else(|| "fleet".to_string()),
+        scope: scope.to_string(),
         portfolio: snapshot.quality.clone(),
         repositories: repositories
             .into_iter()
@@ -9158,6 +9472,39 @@ fn print_human_status(snapshot: &PortfolioSnapshot) {
     }
 }
 
+fn print_human_groups(groups: &[GroupConfig]) {
+    if groups.is_empty() {
+        println!("PRONTO GROUPS · no groups registered");
+        return;
+    }
+    println!("PRONTO GROUPS · {} groups", groups.len());
+    for group in groups {
+        println!(
+            "{} · {} repositories · {}",
+            group.name,
+            group.repository_ids.len(),
+            group.id
+        );
+    }
+}
+
+fn print_human_products(products: &[ProductConfig]) {
+    if products.is_empty() {
+        println!("PRONTO PRODUCTS · no products registered");
+        return;
+    }
+    println!("PRONTO PRODUCTS · {} products", products.len());
+    for product in products {
+        println!(
+            "{} · {} repositories · {} · {}",
+            product.name,
+            product.repository_ids.len(),
+            product.release_mode,
+            product.id
+        );
+    }
+}
+
 fn print_human_summary(summary: &AgentSummary) {
     println!(
         "PRONTO SUMMARY · {} repositories · {} attention items",
@@ -9241,6 +9588,50 @@ fn print_human_doctor(report: &AgentDoctorReport) {
     println!("Next: {}", report.next_safe_step);
 }
 
+fn print_human_route(report: &AgentRouteReport) {
+    println!("PRONTO ROUTE · {} · {}", report.status, report.scope);
+    println!(
+        "Doctor: {} · next projection: {} · repository: {} · quality: {} · fold preview: {}",
+        report.doctor.status,
+        if report.next.is_some() {
+            "available"
+        } else {
+            "blocked"
+        },
+        if report.repository.is_some() {
+            "available"
+        } else {
+            "not selected"
+        },
+        if report.quality.is_some() {
+            "available"
+        } else {
+            "blocked"
+        },
+        if report.fold_preview.is_some() {
+            "available"
+        } else {
+            "blocked"
+        },
+    );
+    if let Some(change) = &report.change_maturity {
+        println!(
+            "Change maturity: {} · {}",
+            change
+                .score
+                .map(|score| format!("{score:.0}/4"))
+                .unwrap_or_else(|| "unknown".into()),
+            change.status
+        );
+        for gap in &change.gaps {
+            println!("  gap: {gap}");
+        }
+        println!("Inspect: {}", change.recommended_inspection);
+    }
+    println!("Next: {}", report.next_safe_step);
+    println!("Authorization: {}", report.authorization);
+}
+
 fn print_human_repository(detail: &AgentRepositoryDetail) {
     let repository = &detail.repository;
     println!(
@@ -9308,9 +9699,10 @@ fn print_human_quality(report: &AgentQualityReport) {
 
 fn print_human_remediation(run: &RemediationRun) {
     println!(
-        "PRONTO REMEDIATION · {} · {} eligible · {} excluded",
+        "PRONTO REMEDIATION · {} · {} active · {} closed · {} excluded",
         run.status,
         run.plans.len(),
+        run.closures.len(),
         run.excluded_repositories.len()
     );
     if let Some(refresh_id) = run.source_refresh_id.as_deref() {
@@ -9331,14 +9723,28 @@ fn print_human_remediation(run: &RemediationRun) {
             exclusion.repository_name, exclusion.reason
         );
     }
-    for plan in &run.plans {
+    for (index, plan) in run.plans.iter().enumerate() {
         println!(
-            "  {} · {} · {}% · {} · {} actions",
+            "  #{} · {} · goal {} ({}) · {} · {}% · {} · {} actions",
+            index + 1,
             plan.repository_name,
+            plan.goal.target_state,
+            plan.goal.source,
             plan.status,
             plan.progress.percentage.round(),
             plan.current_stage,
             plan.actions.len()
+        );
+    }
+    for closure in &run.closures {
+        println!(
+            "  closed · {} · goal {} ({}) · {} · {} · {}",
+            closure.repository_name,
+            closure.target_state,
+            closure.goal_source,
+            closure.disposition,
+            closure.closed_at,
+            closure.summary
         );
     }
 }
@@ -9401,7 +9807,7 @@ fn print_human_release(report: &AgentReleaseReport) {
 
 fn print_cli_usage() {
     println!(
-        "Usage: pronto . | pronto root add <folder> [--json] | pronto root exclude <folder> <name>... [--json] | pronto status [--product <name> | --group <name>] [--json] | pronto summary [--product <name> | --group <name>] [--json] | pronto doctor [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] [--json] | pronto next [<repository>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto fold preview [<repository>] [--target <branch>] [--product <name> | --group <name>] [--limit <n>] [--json] | pronto repo <repository> [--json] | pronto quality [<repository>] [--json] | pronto remediation [<repository>] [--json] | pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--skip-provider] [--json] | pronto remediation export [output-dir] [--json] | pronto remediation set-status <action-id> <status> [--notes <text>] [--json] | pronto attention [--json] | pronto activity [<repository>] [--limit <n>] [--json] | pronto prepare <repository> [--workspace <id>] [--json] | pronto release preview <repository> [--workspace <id>] [--json] | pronto open <repository> | pronto refresh [repository|group|product] [--json] | pronto refresh-github [--json] | pronto quality feed [--json] | pronto clone <owner/repository> [--json]"
+        "Usage: pronto . | pronto skills [<skill-id>] [--json] | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--json] | pronto status [--json] | pronto help"
     );
 }
 
@@ -9412,6 +9818,715 @@ pub fn run_cli(arguments: Vec<String>) {
     match command {
         "help" | "-h" | "--help" => {
             print_cli_usage();
+        }
+        "skills" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if positionals.first().map(String::as_str) == Some("open") && positionals.len() == 2 {
+                match skills::open_source(&positionals[1]) {
+                    Ok(()) => println!("Opened skill source: {}", positionals[1]),
+                    Err(error) => {
+                        eprintln!("Pronto could not open skill source: {error}");
+                        std::process::exit(1);
+                    }
+                }
+            } else if positionals.len() > 1 {
+                eprintln!("Usage: pronto skills [<skill-id>] [--json]");
+                std::process::exit(2);
+            }
+            match skills::load(&path) {
+                Ok(mut snapshot) if json => {
+                    if let Some(query) = positionals.first() {
+                        snapshot.skills.retain(|skill| {
+                            skill.id == *query || skill.name.eq_ignore_ascii_case(query)
+                        });
+                        if snapshot.skills.is_empty() {
+                            eprintln!("Pronto could not find skill: {query}");
+                            std::process::exit(1);
+                        }
+                    }
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot).unwrap_or_else(|_| "{}".into())
+                    )
+                }
+                Ok(snapshot) => println!(
+                    "PRONTO SKILLS · {} skills · {}",
+                    snapshot.skills.len(),
+                    snapshot.freshness
+                ),
+                Err(error) => {
+                    eprintln!("Pronto could not read skills: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "change-matrix" => {
+            let operation = cli_option(&arguments, "--operation").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if operation
+                .as_deref()
+                .is_some_and(|value| !matches!(value, "add" | "change" | "remove"))
+            {
+                eprintln!("Pronto CLI error: --operation must be add, change, or remove");
+                std::process::exit(2);
+            }
+            let positionals =
+                cli_positionals(&arguments, &["--operation"]).unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                });
+            if positionals.len() != 2 || !matches!(positionals[0].as_str(), "repo" | "skill") {
+                eprintln!("Usage: pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json]");
+                std::process::exit(2);
+            }
+            let report = if positionals[0] == "repo" {
+                let state = load_store_read_only(&path).unwrap_or_else(|error| {
+                    eprintln!("Pronto could not read repository state: {error}");
+                    std::process::exit(1);
+                });
+                let snapshot = snapshot_from_store(&path, &state);
+                let repository =
+                    find_cli_repository(&snapshot, &positionals[1]).unwrap_or_else(|error| {
+                        eprintln!("Pronto CLI error: {error}");
+                        std::process::exit(1);
+                    });
+                change_matrix::inspect_repository(
+                    Path::new(&repository.path),
+                    &repository.id,
+                    repository.remote_url.as_deref(),
+                    operation.as_deref(),
+                )
+            } else {
+                let snapshot = skills::load(&path).unwrap_or_else(|error| {
+                    eprintln!("Pronto could not read skills: {error}");
+                    std::process::exit(1);
+                });
+                let matches = snapshot
+                    .skills
+                    .iter()
+                    .filter(|skill| {
+                        skill.id == positionals[1]
+                            || skill.name.eq_ignore_ascii_case(&positionals[1])
+                    })
+                    .collect::<Vec<_>>();
+                let skill = match matches.as_slice() {
+                    [skill] => *skill,
+                    [] => {
+                        eprintln!("Pronto could not find skill: {}", positionals[1]);
+                        std::process::exit(1);
+                    }
+                    _ => {
+                        eprintln!("Pronto skill query is ambiguous: {}", positionals[1]);
+                        std::process::exit(1);
+                    }
+                };
+                change_matrix::inspect_skill(skill, operation.as_deref())
+            };
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".into())
+                );
+            } else {
+                println!(
+                    "CHANGE MATRIX · {} · {} · {}",
+                    report.subject_kind, report.subject_id, report.status
+                );
+                println!("{}", report.maturity_impact);
+                println!("Expected: {}", report.expected_contract_location);
+            }
+        }
+        "refresh-skills" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if !positionals.is_empty() {
+                eprintln!("Usage: pronto refresh-skills [--json]");
+                std::process::exit(2);
+            }
+            match skills::refresh(&path) {
+                Ok(snapshot) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&snapshot).unwrap_or_else(|_| "{}".into())
+                ),
+                Ok(snapshot) => {
+                    println!("PRONTO SKILLS · refreshed {} skills", snapshot.skills.len())
+                }
+                Err(error) => {
+                    eprintln!("Pronto could not refresh skills: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "route" => {
+            let product_name = cli_option(&arguments, "--product").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let group_name = cli_option(&arguments, "--group").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            let max_age_minutes = cli_option(&arguments, "--max-age")
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                })
+                .map(|value| {
+                    let parsed = value.parse::<i64>().unwrap_or_else(|_| {
+                        eprintln!("Pronto CLI error: --max-age must be a non-negative integer");
+                        std::process::exit(2);
+                    });
+                    if parsed < 0 || parsed > MAX_AGENT_DOCTOR_MAX_AGE_MINUTES {
+                        eprintln!(
+                            "Pronto CLI error: --max-age must be between 0 and {MAX_AGENT_DOCTOR_MAX_AGE_MINUTES}"
+                        );
+                        std::process::exit(2);
+                    }
+                    parsed
+                })
+                .unwrap_or(DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES);
+            let limit = cli_option(&arguments, "--limit")
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                })
+                .map(|value| {
+                    let parsed = value.parse::<usize>().unwrap_or_else(|_| {
+                        eprintln!("Pronto CLI error: --limit must be a non-negative integer");
+                        std::process::exit(2);
+                    });
+                    if parsed > MAX_AGENT_NEXT_LIMIT {
+                        eprintln!(
+                            "Pronto CLI error: --limit must be {MAX_AGENT_NEXT_LIMIT} or less"
+                        );
+                        std::process::exit(2);
+                    }
+                    parsed
+                })
+                .unwrap_or(DEFAULT_AGENT_NEXT_LIMIT);
+            let positionals = cli_positionals(
+                &arguments,
+                &["--product", "--group", "--max-age", "--limit"],
+            )
+            .unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if positionals.len() > 1 {
+                eprintln!(
+                    "Usage: pronto route [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] [--limit <n>] [--json]"
+                );
+                std::process::exit(2);
+            }
+            let query = positionals.first().map(String::as_str);
+            let base_scope = product_name
+                .as_deref()
+                .map(|value| format!("product:{value}"))
+                .or_else(|| group_name.as_deref().map(|value| format!("group:{value}")))
+                .unwrap_or_else(|| "fleet".to_string());
+            let scope = query
+                .map(|value| format!("{base_scope}; current_repository:{value}"))
+                .unwrap_or(base_scope);
+            let report = match load_store_read_only(&path) {
+                Ok(state) => {
+                    let snapshot = snapshot_from_store(&path, &state);
+                    let scoped_snapshot = filter_snapshot_by_collection(
+                        snapshot,
+                        product_name.as_deref(),
+                        group_name.as_deref(),
+                    )
+                    .and_then(|snapshot| {
+                        if let Some(query) = query {
+                            let repository_id = find_cli_repository(&snapshot, query)?.id.clone();
+                            let repository_ids = [repository_id].into_iter().collect();
+                            Ok(filter_snapshot_to_repository_ids(snapshot, &repository_ids))
+                        } else {
+                            Ok(snapshot)
+                        }
+                    });
+                    match scoped_snapshot {
+                        Ok(snapshot) => agent_route_report(
+                            &snapshot,
+                            &path,
+                            max_age_minutes,
+                            &scope,
+                            query,
+                            limit,
+                        )
+                        .unwrap_or_else(|error| {
+                            agent_route_error_report(
+                                &path,
+                                max_age_minutes,
+                                &scope,
+                                "projection",
+                                error,
+                            )
+                        }),
+                        Err(error) => {
+                            agent_route_error_report(&path, max_age_minutes, &scope, "scope", error)
+                        }
+                    }
+                }
+                Err(error) => {
+                    agent_route_error_report(&path, max_age_minutes, &scope, "storage", error)
+                }
+            };
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                );
+            } else {
+                print_human_route(&report);
+            }
+            if !report.ready {
+                std::process::exit(1);
+            }
+        }
+        "group" => {
+            let positionals = cli_positionals(&arguments, &["--repo"]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            match positionals.first().map(String::as_str) {
+                Some("list") if positionals.len() == 1 => match load_store(&path) {
+                    Ok(state) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&state.groups)
+                            .unwrap_or_else(|_| "[]".to_string())
+                    ),
+                    Ok(state) => print_human_groups(&state.groups),
+                    Err(error) => {
+                        eprintln!("Pronto could not read groups: {error}");
+                        std::process::exit(1);
+                    }
+                },
+                Some("create") if positionals.len() == 2 => {
+                    let repository_ids =
+                        cli_repeated_option(&arguments, "--repo").unwrap_or_else(|error| {
+                            eprintln!("Pronto CLI error: {error}");
+                            std::process::exit(2);
+                        });
+                    match upsert_group_at(&path, None, &positionals[1], repository_ids)
+                        .map(|snapshot| snapshot.groups)
+                    {
+                        Ok(groups) if json => println!(
+                            "{}",
+                            serde_json::to_string_pretty(&groups)
+                                .unwrap_or_else(|_| "[]".to_string())
+                        ),
+                        Ok(groups) => print_human_groups(&groups),
+                        Err(error) => {
+                            eprintln!("Pronto could not create group: {error}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                Some("append") if positionals.len() == 2 => {
+                    let repository_ids =
+                        cli_repeated_option(&arguments, "--repo").unwrap_or_else(|error| {
+                            eprintln!("Pronto CLI error: {error}");
+                            std::process::exit(2);
+                        });
+                    if repository_ids.is_empty() {
+                        eprintln!("Usage: pronto group append <group> --repo <id>... [--json]");
+                        std::process::exit(2);
+                    }
+                    let result = load_store(&path).and_then(|state| {
+                        let group = find_cli_group(&state, &positionals[1])?;
+                        let repository_ids =
+                            merge_repository_ids(&group.repository_ids, repository_ids);
+                        upsert_group_at(&path, Some(&group.id), &group.name, repository_ids)
+                    });
+                    match result.map(|snapshot| snapshot.groups) {
+                        Ok(groups) if json => println!(
+                            "{}",
+                            serde_json::to_string_pretty(&groups)
+                                .unwrap_or_else(|_| "[]".to_string())
+                        ),
+                        Ok(groups) => print_human_groups(&groups),
+                        Err(error) => {
+                            eprintln!("Pronto could not append to group: {error}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                Some("update") if positionals.len() == 3 => {
+                    let repository_ids =
+                        cli_repeated_option(&arguments, "--repo").unwrap_or_else(|error| {
+                            eprintln!("Pronto CLI error: {error}");
+                            std::process::exit(2);
+                        });
+                    let result = load_store(&path).and_then(|state| {
+                        let group = find_cli_group(&state, &positionals[1])?;
+                        upsert_group_at(&path, Some(&group.id), &positionals[2], repository_ids)
+                    });
+                    match result.map(|snapshot| snapshot.groups) {
+                        Ok(groups) if json => println!(
+                            "{}",
+                            serde_json::to_string_pretty(&groups)
+                                .unwrap_or_else(|_| "[]".to_string())
+                        ),
+                        Ok(groups) => print_human_groups(&groups),
+                        Err(error) => {
+                            eprintln!("Pronto could not update group: {error}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                Some("delete") if positionals.len() == 2 => {
+                    let result = load_store(&path)
+                        .and_then(|state| {
+                            find_cli_group(&state, &positionals[1]).map(|group| group.id.clone())
+                        })
+                        .and_then(|group_id| delete_group_at(&path, &group_id))
+                        .map(|snapshot| snapshot.groups);
+                    match result {
+                        Ok(groups) if json => println!(
+                            "{}",
+                            serde_json::to_string_pretty(&groups)
+                                .unwrap_or_else(|_| "[]".to_string())
+                        ),
+                        Ok(groups) => print_human_groups(&groups),
+                        Err(error) => {
+                            eprintln!("Pronto could not delete group: {error}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                _ => {
+                    eprintln!("Usage: pronto group list [--json] | pronto group create <name> [--repo <id>]... [--json] | pronto group append <group> --repo <id>... [--json] | pronto group update <group> <name> [--repo <id>]... [--json] | pronto group delete <group> [--json]");
+                    std::process::exit(2);
+                }
+            }
+        }
+        "analytics" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if !positionals.is_empty() {
+                eprintln!("Usage: pronto analytics [--json]");
+                std::process::exit(2);
+            }
+            match load_analytics_at(&path) {
+                Ok(analytics) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&analytics).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(analytics) => println!(
+                    "PRONTO ANALYTICS · {} portfolio samples · {} repository series · {}",
+                    analytics.portfolio_samples.len(),
+                    analytics.repositories.len(),
+                    analytics.freshness
+                ),
+                Err(error) => {
+                    eprintln!("Pronto could not read analytics: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "product" => {
+            let positionals = cli_positionals(&arguments, &["--repo", "--release-mode"])
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                });
+            match positionals.first().map(String::as_str) {
+                Some("list") if positionals.len() == 1 => match load_store(&path) {
+                    Ok(state) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&state.products)
+                            .unwrap_or_else(|_| "[]".to_string())
+                    ),
+                    Ok(state) => print_human_products(&state.products),
+                    Err(error) => {
+                        eprintln!("Pronto could not read products: {error}");
+                        std::process::exit(1);
+                    }
+                },
+                Some("create") if positionals.len() == 2 => {
+                    let release_mode = cli_option(&arguments, "--release-mode")
+                        .unwrap_or_else(|error| {
+                            eprintln!("Pronto CLI error: {error}");
+                            std::process::exit(2);
+                        })
+                        .unwrap_or_else(|| {
+                            eprintln!("Usage: pronto product create <name> --release-mode <mode> [--repo <id>]... [--json]");
+                            std::process::exit(2);
+                        });
+                    let repository_ids =
+                        cli_repeated_option(&arguments, "--repo").unwrap_or_else(|error| {
+                            eprintln!("Pronto CLI error: {error}");
+                            std::process::exit(2);
+                        });
+                    match upsert_product_at(
+                        &path,
+                        None,
+                        &positionals[1],
+                        repository_ids,
+                        &release_mode,
+                    )
+                    .map(|snapshot| snapshot.products)
+                    {
+                        Ok(products) if json => println!(
+                            "{}",
+                            serde_json::to_string_pretty(&products)
+                                .unwrap_or_else(|_| "[]".to_string())
+                        ),
+                        Ok(products) => print_human_products(&products),
+                        Err(error) => {
+                            eprintln!("Pronto could not create product: {error}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                Some("append") if positionals.len() == 2 => {
+                    let repository_ids =
+                        cli_repeated_option(&arguments, "--repo").unwrap_or_else(|error| {
+                            eprintln!("Pronto CLI error: {error}");
+                            std::process::exit(2);
+                        });
+                    if repository_ids.is_empty() {
+                        eprintln!("Usage: pronto product append <product> --repo <id>... [--json]");
+                        std::process::exit(2);
+                    }
+                    let result = load_store(&path).and_then(|state| {
+                        let product = find_cli_product(&state, &positionals[1])?;
+                        let repository_ids =
+                            merge_repository_ids(&product.repository_ids, repository_ids);
+                        upsert_product_at(
+                            &path,
+                            Some(&product.id),
+                            &product.name,
+                            repository_ids,
+                            &product.release_mode,
+                        )
+                    });
+                    match result.map(|snapshot| snapshot.products) {
+                        Ok(products) if json => println!(
+                            "{}",
+                            serde_json::to_string_pretty(&products)
+                                .unwrap_or_else(|_| "[]".to_string())
+                        ),
+                        Ok(products) => print_human_products(&products),
+                        Err(error) => {
+                            eprintln!("Pronto could not append to product: {error}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                Some("update") if positionals.len() == 3 => {
+                    let release_mode = cli_option(&arguments, "--release-mode")
+                        .unwrap_or_else(|error| {
+                            eprintln!("Pronto CLI error: {error}");
+                            std::process::exit(2);
+                        })
+                        .unwrap_or_else(|| {
+                            eprintln!("Usage: pronto product update <product> <name> --release-mode <mode> [--repo <id>]... [--json]");
+                            std::process::exit(2);
+                        });
+                    let repository_ids =
+                        cli_repeated_option(&arguments, "--repo").unwrap_or_else(|error| {
+                            eprintln!("Pronto CLI error: {error}");
+                            std::process::exit(2);
+                        });
+                    let result = load_store(&path).and_then(|state| {
+                        let product = find_cli_product(&state, &positionals[1])?;
+                        upsert_product_at(
+                            &path,
+                            Some(&product.id),
+                            &positionals[2],
+                            repository_ids,
+                            &release_mode,
+                        )
+                    });
+                    match result.map(|snapshot| snapshot.products) {
+                        Ok(products) if json => println!(
+                            "{}",
+                            serde_json::to_string_pretty(&products)
+                                .unwrap_or_else(|_| "[]".to_string())
+                        ),
+                        Ok(products) => print_human_products(&products),
+                        Err(error) => {
+                            eprintln!("Pronto could not update product: {error}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                Some("delete") if positionals.len() == 2 => {
+                    let result = load_store(&path)
+                        .and_then(|state| {
+                            find_cli_product(&state, &positionals[1])
+                                .map(|product| product.id.clone())
+                        })
+                        .and_then(|product_id| delete_product_at(&path, &product_id))
+                        .map(|snapshot| snapshot.products);
+                    match result {
+                        Ok(products) if json => println!(
+                            "{}",
+                            serde_json::to_string_pretty(&products)
+                                .unwrap_or_else(|_| "[]".to_string())
+                        ),
+                        Ok(products) => print_human_products(&products),
+                        Err(error) => {
+                            eprintln!("Pronto could not delete product: {error}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                _ => {
+                    eprintln!("Usage: pronto product list [--json] | pronto product create <name> --release-mode <mode> [--repo <id>]... [--json] | pronto product append <product> --repo <id>... [--json] | pronto product update <product> <name> --release-mode <mode> [--repo <id>]... [--json] | pronto product delete <product> [--json]");
+                    std::process::exit(2);
+                }
+            }
+        }
+        "workspace" => {
+            let tool = cli_option(&arguments, "--tool")
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                })
+                .unwrap_or_else(|| {
+                    eprintln!("Usage: pronto workspace open <repository> <workspace> --tool <tool> [--json]");
+                    std::process::exit(2);
+                });
+            let positionals = cli_positionals(&arguments, &["--tool"]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if positionals.len() != 3 || positionals[0] != "open" {
+                eprintln!(
+                    "Usage: pronto workspace open <repository> <workspace> --tool <tool> [--json]"
+                );
+                std::process::exit(2);
+            }
+            let result = load_store(&path).and_then(|state| {
+                let snapshot = snapshot_from_store(&path, &state);
+                let repository = find_cli_repository(&snapshot, &positionals[1])?;
+                let repository_id = repository.id.clone();
+                open_workspace_at(&path, &repository_id, &positionals[2], &tool)
+            });
+            match result {
+                Ok(snapshot) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&snapshot).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(_) => println!("Opened workspace {}.", positionals[2]),
+                Err(error) => {
+                    eprintln!("Pronto could not open the workspace: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "preflight" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if !(1..=2).contains(&positionals.len()) {
+                eprintln!("Usage: pronto preflight <action> [<repository>] [--json]");
+                std::process::exit(2);
+            }
+            let result = load_store(&path).and_then(|state| {
+                let repository_id = positionals
+                    .get(1)
+                    .map(|query| {
+                        let snapshot = snapshot_from_store(&path, &state);
+                        find_cli_repository(&snapshot, query)
+                            .map(|repository| repository.id.clone())
+                    })
+                    .transpose()?;
+                preflight_action_at(&path, &positionals[0], repository_id.as_deref())
+            });
+            match result {
+                Ok(preflight) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&preflight).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(preflight) => println!(
+                    "PRONTO PREFLIGHT · {} · {}",
+                    preflight.target_label,
+                    if preflight.allowed {
+                        "allowed"
+                    } else {
+                        "blocked"
+                    }
+                ),
+                Err(error) => {
+                    eprintln!("Pronto could not preflight the action: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "condition" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if positionals.len() != 3 || !matches!(positionals[0].as_str(), "expect" | "clear") {
+                eprintln!("Usage: pronto condition expect|clear <repository> <condition> [--json]");
+                std::process::exit(2);
+            }
+            let result = load_store(&path).and_then(|state| {
+                let snapshot = snapshot_from_store(&path, &state);
+                let repository = find_cli_repository(&snapshot, &positionals[1])?;
+                if positionals[0] == "expect" {
+                    mutate_expected(&path, &repository.id, &positionals[2], true)
+                } else {
+                    mutate_expected(&path, &repository.id, &positionals[2], false)
+                }
+            });
+            match result {
+                Ok(snapshot) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&snapshot).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(_) => println!(
+                    "Condition {}.",
+                    if positionals[0] == "expect" {
+                        "marked expected"
+                    } else {
+                        "cleared"
+                    }
+                ),
+                Err(error) => {
+                    eprintln!("Pronto could not update the condition: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "settings" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if positionals.len() != 2 || positionals[0] != "retention" {
+                eprintln!("Usage: pronto settings retention <days> [--json]");
+                std::process::exit(2);
+            }
+            let retention_days = positionals[1].parse::<i64>().unwrap_or_else(|_| {
+                eprintln!("Pronto CLI error: retention days must be an integer");
+                std::process::exit(2);
+            });
+            match set_retention_days_at(&path, retention_days) {
+                Ok(snapshot) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&snapshot).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(snapshot) => println!("Retention: {} days", snapshot.retention_days),
+                Err(error) => {
+                    eprintln!("Pronto could not update settings: {error}");
+                    std::process::exit(1);
+                }
+            }
         }
         "status" => {
             let product_name = cli_option(&arguments, "--product").unwrap_or_else(|error| {
@@ -9763,10 +10878,193 @@ pub fn run_cli(arguments: Vec<String>) {
             }
         }
         "repo" => {
-            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+            let positionals = cli_positionals_with_flags(
+                &arguments,
+                &["--rule-json", "--recipe-json", "--workspace"],
+                &["--clear"],
+            )
+            .unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
             });
+            if positionals.first().map(String::as_str) == Some("set-lifecycle")
+                && positionals.len() == 3
+            {
+                let result = load_store(&path).and_then(|state| {
+                    let snapshot = snapshot_from_store(&path, &state);
+                    let repository = find_cli_repository(&snapshot, &positionals[1])?;
+                    set_repository_lifecycle_at(&path, &repository.id, &positionals[2])
+                });
+                match result {
+                    Ok(snapshot) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(_) => println!("Repository lifecycle updated."),
+                    Err(error) => {
+                        eprintln!("Pronto could not update repository lifecycle: {error}");
+                        std::process::exit(1);
+                    }
+                }
+                std::process::exit(0);
+            }
+            if positionals.first().map(String::as_str) == Some("set-release-rule")
+                && positionals.len() == 2
+            {
+                let release_rule = if arguments.iter().any(|argument| argument == "--clear") {
+                    None
+                } else {
+                    cli_json_option::<ReleaseRuleConfig>(&arguments, "--rule-json").unwrap_or_else(
+                        |error| {
+                            eprintln!("Pronto CLI error: {error}");
+                            std::process::exit(2);
+                        },
+                    )
+                };
+                if release_rule.is_none() && !arguments.iter().any(|argument| argument == "--clear")
+                {
+                    eprintln!("Usage: pronto repo set-release-rule <repository> --rule-json <json|@file> [--json]");
+                    std::process::exit(2);
+                }
+                let result = load_store(&path).and_then(|state| {
+                    let snapshot = snapshot_from_store(&path, &state);
+                    let repository = find_cli_repository(&snapshot, &positionals[1])?;
+                    set_release_rule_at(&path, &repository.id, release_rule)
+                });
+                match result {
+                    Ok(snapshot) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(_) => println!("Release rule updated."),
+                    Err(error) => {
+                        eprintln!("Pronto could not update the release rule: {error}");
+                        std::process::exit(1);
+                    }
+                }
+                std::process::exit(0);
+            }
+            if positionals.first().map(String::as_str) == Some("set-release-recipe")
+                && positionals.len() == 2
+            {
+                let release_recipe = if arguments.iter().any(|argument| argument == "--clear") {
+                    None
+                } else {
+                    cli_json_option::<ReleaseRecipeConfig>(&arguments, "--recipe-json")
+                        .unwrap_or_else(|error| {
+                            eprintln!("Pronto CLI error: {error}");
+                            std::process::exit(2);
+                        })
+                };
+                if release_recipe.is_none()
+                    && !arguments.iter().any(|argument| argument == "--clear")
+                {
+                    eprintln!("Usage: pronto repo set-release-recipe <repository> --recipe-json <json|@file> [--json]");
+                    std::process::exit(2);
+                }
+                let result = load_store(&path).and_then(|state| {
+                    let snapshot = snapshot_from_store(&path, &state);
+                    let repository = find_cli_repository(&snapshot, &positionals[1])?;
+                    set_release_recipe_at(&path, &repository.id, release_recipe)
+                });
+                match result {
+                    Ok(snapshot) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(_) => println!("Release recipe updated."),
+                    Err(error) => {
+                        eprintln!("Pronto could not update the release recipe: {error}");
+                        std::process::exit(1);
+                    }
+                }
+                std::process::exit(0);
+            }
+            if positionals.first().map(String::as_str) == Some("set-release-version")
+                && (positionals.len() == 2 || positionals.len() == 3)
+            {
+                let release_version = if arguments.iter().any(|argument| argument == "--clear") {
+                    None
+                } else {
+                    positionals.get(2).cloned()
+                };
+                if release_version.is_none()
+                    && !arguments.iter().any(|argument| argument == "--clear")
+                {
+                    eprintln!("Usage: pronto repo set-release-version <repository> <version> [--json] | ... <repository> --clear [--json]");
+                    std::process::exit(2);
+                }
+                let result = load_store(&path).and_then(|state| {
+                    let snapshot = snapshot_from_store(&path, &state);
+                    let repository = find_cli_repository(&snapshot, &positionals[1])?;
+                    set_release_version_at(&path, &repository.id, release_version)
+                });
+                match result {
+                    Ok(snapshot) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(_) => println!("Release version updated."),
+                    Err(error) => {
+                        eprintln!("Pronto could not update the release version: {error}");
+                        std::process::exit(1);
+                    }
+                }
+                std::process::exit(0);
+            }
+            if positionals.first().map(String::as_str) == Some("set-ai-permission")
+                && positionals.len() == 3
+            {
+                let result = load_store(&path).and_then(|state| {
+                    let snapshot = snapshot_from_store(&path, &state);
+                    let repository = find_cli_repository(&snapshot, &positionals[1])?;
+                    set_ai_permission_at(&path, &repository.id, &positionals[2])
+                });
+                match result {
+                    Ok(snapshot) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(_) => println!("AI permission updated."),
+                    Err(error) => {
+                        eprintln!("Pronto could not update AI permission: {error}");
+                        std::process::exit(1);
+                    }
+                }
+                std::process::exit(0);
+            }
+            if positionals.first().map(String::as_str) == Some("preview-ai-summary")
+                && positionals.len() == 2
+            {
+                let workspace_id = cli_option(&arguments, "--workspace").unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                });
+                let result = load_store(&path).and_then(|state| {
+                    let snapshot = snapshot_from_store(&path, &state);
+                    let repository = find_cli_repository(&snapshot, &positionals[1])?;
+                    preview_ai_summary_at(&path, &repository.id, workspace_id.as_deref())
+                });
+                match result {
+                    Ok(preview) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&preview).unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(preview) => {
+                        println!("AI summary: {} · {}", preview.status, preview.payload_bytes)
+                    }
+                    Err(error) => {
+                        eprintln!("Pronto could not preview the AI summary: {error}");
+                        std::process::exit(1);
+                    }
+                }
+                std::process::exit(0);
+            }
             let Some(query) = positionals.first() else {
                 eprintln!("Usage: pronto repo <repository> [--json]");
                 std::process::exit(2);
@@ -10045,12 +11343,26 @@ pub fn run_cli(arguments: Vec<String>) {
                                         || plan.repository_name.eq_ignore_ascii_case(query)
                                         || plan.repository_path == *query
                                 })
+                                .cloned();
+                            let closures = snapshot
+                                .remediation
+                                .closures
+                                .iter()
+                                .filter(|closure| {
+                                    closure.repository_id == *query
+                                        || closure.repository_name.eq_ignore_ascii_case(query)
+                                        || closure.repository_path == *query
+                                })
                                 .cloned()
-                                .ok_or_else(|| {
-                                    format!("No remediation plan found for repository '{query}'.")
-                                })?;
+                                .collect::<Vec<_>>();
+                            if plan.is_none() && closures.is_empty() {
+                                return Err(format!(
+                                    "No active remediation plan or retained closure found for repository '{query}'."
+                                ));
+                            }
                             let mut run = snapshot.remediation;
-                            run.plans = vec![plan];
+                            run.plans = plan.into_iter().collect();
+                            run.closures = closures;
                             Ok(run)
                         } else {
                             Ok(snapshot.remediation)
@@ -10111,11 +11423,22 @@ pub fn run_cli(arguments: Vec<String>) {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
             });
-            if !positionals.is_empty() {
-                eprintln!("Usage: pronto refresh-github [--json]");
+            if positionals.len() > 1 {
+                eprintln!("Usage: pronto refresh-github [repository|group|product] [--json]");
                 std::process::exit(2);
             }
-            match refresh_github_at(&path) {
+            let result = if let Some(target) = positionals.first() {
+                load_store(&path).and_then(|state| {
+                    let current = snapshot_from_store(&path, &state);
+                    let (repository_ids, _) = resolve_refresh_target(&current, target)?;
+                    refresh_github_scoped_at(&path, &repository_ids).map(|snapshot| {
+                        filter_snapshot_to_repository_ids(snapshot, &repository_ids)
+                    })
+                })
+            } else {
+                refresh_github_at(&path)
+            };
+            match result {
                 Ok(snapshot) if json => {
                     println!(
                         "{}",
@@ -10151,6 +11474,39 @@ pub fn run_cli(arguments: Vec<String>) {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
             });
+            if positionals.first().map(String::as_str) == Some("set-audit-root")
+                && positionals.len() == 2
+            {
+                match set_maturity_audit_root_at(&path, Some(&positionals[1])) {
+                    Ok(snapshot) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(snapshot) => print_human_status(&snapshot),
+                    Err(error) => {
+                        eprintln!("Pronto could not set the maturity audit root: {error}");
+                        std::process::exit(1);
+                    }
+                }
+                std::process::exit(0);
+            } else if positionals.first().map(String::as_str) == Some("open-report")
+                && positionals.len() == 2
+            {
+                match open_quality_report_at(&path, &positionals[1]) {
+                    Ok(snapshot) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(_) => println!("Opened quality report: {}", positionals[1]),
+                    Err(error) => {
+                        eprintln!("Pronto could not open the quality report: {error}");
+                        std::process::exit(1);
+                    }
+                }
+                std::process::exit(0);
+            }
             let is_feed_command =
                 positionals.len() == 1 && matches!(positionals[0].as_str(), "feed" | "audit-root");
             if is_feed_command {
@@ -10211,11 +11567,57 @@ pub fn run_cli(arguments: Vec<String>) {
             }
         }
         "root" => {
-            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+            let positionals = cli_positionals(
+                &arguments,
+                &["--ignore", "--refresh-policy", "--background-monitoring"],
+            )
+            .unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
             });
-            if positionals.len() == 2 && positionals[0] == "add" {
+            if positionals.len() == 2 && positionals[0] == "settings" {
+                let refresh_policy = cli_option(&arguments, "--refresh-policy")
+                    .unwrap_or_else(|error| {
+                        eprintln!("Pronto CLI error: {error}");
+                        std::process::exit(2);
+                    })
+                    .unwrap_or_else(|| {
+                        eprintln!("Usage: pronto root settings <root-id> [--ignore <pattern>]... --refresh-policy <policy> --background-monitoring <bool> [--json]");
+                        std::process::exit(2);
+                    });
+                let background_monitoring = cli_bool_option(&arguments, "--background-monitoring")
+                    .unwrap_or_else(|error| {
+                        eprintln!("Pronto CLI error: {error}");
+                        std::process::exit(2);
+                    })
+                    .unwrap_or_else(|| {
+                        eprintln!("Usage: pronto root settings <root-id> [--ignore <pattern>]... --refresh-policy <policy> --background-monitoring <bool> [--json]");
+                        std::process::exit(2);
+                    });
+                let ignore_patterns =
+                    cli_repeated_option(&arguments, "--ignore").unwrap_or_else(|error| {
+                        eprintln!("Pronto CLI error: {error}");
+                        std::process::exit(2);
+                    });
+                match update_root_settings_at(
+                    &path,
+                    &positionals[1],
+                    ignore_patterns,
+                    &refresh_policy,
+                    background_monitoring,
+                ) {
+                    Ok(snapshot) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(snapshot) => print_human_status(&snapshot),
+                    Err(error) => {
+                        eprintln!("Pronto could not update root settings: {error}");
+                        std::process::exit(1);
+                    }
+                }
+            } else if positionals.len() == 2 && positionals[0] == "add" {
                 let root_path = &positionals[1];
                 match register_root_and_scan(&path, root_path) {
                     Ok(snapshot) if json => println!(
@@ -10428,6 +11830,90 @@ mod tests {
         );
 
         fs::remove_dir_all(root).expect("cli root fixture should be removable");
+    }
+
+    #[test]
+    fn cli_repeated_options_are_agent_friendly() {
+        let arguments = vec![
+            "group".to_string(),
+            "create".to_string(),
+            "Experiments".to_string(),
+            "--repo".to_string(),
+            "repository:one".to_string(),
+            "--repo".to_string(),
+            "repository:two".to_string(),
+            "--json".to_string(),
+        ];
+        assert_eq!(
+            cli_positionals(&arguments, &["--repo"]).expect("positionals should parse"),
+            vec!["create", "Experiments"]
+        );
+        assert_eq!(
+            cli_repeated_option(&arguments, "--repo").expect("repeated options should parse"),
+            vec!["repository:one", "repository:two"]
+        );
+    }
+
+    #[test]
+    fn excludes_the_scanner_process_and_its_ancestors_from_activity_candidates() {
+        let rows = parse_process_activity_rows(
+            "10 9 pronto_cli Tue Jul 29 13:43:00 2026\n\
+             9 8 cargo Tue Jul 29 13:42:59 2026\n\
+             8 7 node Tue Jul 29 13:42:58 2026\n\
+             7 1 zsh Tue Jul 29 13:42:57 2026\n\
+             22 1 codex Tue Jul 29 12:00:00 2026\n",
+        );
+
+        let excluded = process_ancestor_ids(&rows, 10);
+
+        assert_eq!(
+            excluded,
+            [10, 9, 8, 7, 1].into_iter().collect::<HashSet<_>>()
+        );
+        assert!(!excluded.contains(&22));
+        assert_eq!(rows[0].process_name, "pronto_cli");
+        assert_eq!(
+            rows[0].started_at.as_deref(),
+            Some("Tue Jul 29 13:43:00 2026")
+        );
+    }
+
+    #[test]
+    fn ignores_idle_shells_as_agent_activity_candidates() {
+        assert!(!process_name_is_activity_candidate("/bin/zsh"));
+        assert!(!process_name_is_activity_candidate("bash"));
+        assert!(process_name_is_activity_candidate("codex"));
+        assert!(process_name_is_activity_candidate("claude-code"));
+    }
+
+    #[test]
+    fn observes_git_fetch_head_freshness() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        fs::write(repository.join(".git").join("FETCH_HEAD"), "fixture\n")
+            .expect("fetch marker should be writable");
+
+        assert!(observed_fetch_at(&repository).is_some());
+
+        fs::remove_dir_all(root).expect("fetch fixture should be removable");
+    }
+
+    #[test]
+    fn appending_repository_ids_preserves_and_deduplicates_members() {
+        let merged = merge_repository_ids(
+            &["repository:one".to_string(), "repository:two".to_string()],
+            vec!["repository:two".to_string(), "repository:three".to_string()],
+        );
+        let mut sorted = merged;
+        sorted.sort();
+        assert_eq!(
+            sorted,
+            vec![
+                "repository:one".to_string(),
+                "repository:three".to_string(),
+                "repository:two".to_string()
+            ]
+        );
     }
 
     #[test]
@@ -10676,6 +12162,48 @@ mod tests {
     }
 
     #[test]
+    fn doctor_default_freshness_window_is_two_days() {
+        let root = fixture_root();
+        fixture_repository(&root);
+        let store = root.join("registry.db");
+        let mut snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+
+        snapshot.repositories[0].last_scan_at =
+            (Utc::now() - chrono::Duration::hours(47)).to_rfc3339();
+        let fresh = agent_doctor_report(
+            &snapshot,
+            &store,
+            DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES,
+            "repository:fixture",
+        );
+
+        assert_eq!(fresh.max_age_minutes, 2_880);
+        assert!(fresh.stale_repository_ids.is_empty());
+        assert!(fresh
+            .checks
+            .iter()
+            .any(|check| check.id == "snapshot" && check.status == "Passed"));
+
+        snapshot.repositories[0].last_scan_at =
+            (Utc::now() - chrono::Duration::hours(49)).to_rfc3339();
+        let stale = agent_doctor_report(
+            &snapshot,
+            &store,
+            DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES,
+            "repository:fixture",
+        );
+
+        assert_eq!(stale.stale_repository_ids.len(), 1);
+        assert!(stale
+            .checks
+            .iter()
+            .any(|check| check.id == "snapshot" && check.status == "Blocked"));
+
+        fs::remove_dir_all(root).expect("doctor fixture should be removable");
+    }
+
+    #[test]
     fn scoped_doctor_ignores_unrelated_stale_repositories() {
         let root = fixture_root();
         let first_repository = fixture_repository(&root);
@@ -10740,6 +12268,73 @@ mod tests {
         assert!(!store.exists());
 
         fs::remove_dir_all(root).expect("doctor read-only fixture should be removable");
+    }
+
+    #[test]
+    fn route_exposes_bounded_projections_after_a_ready_doctor_gate() {
+        let root = fixture_root();
+        fixture_repository(&root);
+        let store = root.join("registry.db");
+        let snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        let repository_path = snapshot.repositories[0].path.clone();
+        let scope = format!("repository:{repository_path}");
+
+        let report = agent_route_report(&snapshot, &store, 60, &scope, Some(&repository_path), 3)
+            .expect("route report should build");
+
+        assert_eq!(report.schema_version, AGENT_ROUTE_SCHEMA);
+        assert!(report.ready);
+        assert!(report.next.is_some());
+        assert!(report.repository.is_some());
+        assert!(report.fold_preview.is_some());
+        assert!(report
+            .fold_preview
+            .as_ref()
+            .is_some_and(|preview| preview.live_verification_required));
+        assert_eq!(
+            report
+                .quality
+                .as_ref()
+                .map(|quality| quality.scope.as_str()),
+            Some(scope.as_str())
+        );
+        assert_eq!(report.doctor.scope, scope);
+        assert!(report.authorization.contains("Inspection only"));
+
+        fs::remove_dir_all(root).expect("route fixture should be removable");
+    }
+
+    #[test]
+    fn route_withholds_follow_up_projections_when_doctor_is_blocked() {
+        let root = fixture_root();
+        fixture_repository(&root);
+        let store = root.join("registry.db");
+        let mut snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        snapshot.repositories[0].last_scan_at =
+            (Utc::now() - chrono::Duration::hours(2)).to_rfc3339();
+
+        let report = agent_route_report(
+            &snapshot,
+            &store,
+            60,
+            "repository:fixture",
+            Some(&snapshot.repositories[0].path.clone()),
+            3,
+        )
+        .expect("blocked route report should still build");
+
+        assert_eq!(report.schema_version, AGENT_ROUTE_SCHEMA);
+        assert!(!report.ready);
+        assert_eq!(report.status, "Blocked");
+        assert!(report.next.is_none());
+        assert!(report.repository.is_none());
+        assert!(report.quality.is_none());
+        assert!(report.fold_preview.is_none());
+        assert!(report.next_safe_step.contains("refresh"));
+
+        fs::remove_dir_all(root).expect("blocked route fixture should be removable");
     }
 
     #[test]
@@ -11443,9 +13038,16 @@ mod tests {
             "GitHub connected as github:jakyeamos"
         );
 
-        let persisted = load_store(&database).expect("provider snapshot should reload");
+        let mut persisted = load_store(&database).expect("provider snapshot should reload");
         assert_eq!(persisted.provider_status.state, "Ready");
         assert_eq!(persisted.remote_repositories.len(), 1);
+        let rescanned = scan_and_persist_scoped(&database, &mut persisted, None)
+            .expect("local rescan should preserve provider evidence");
+        assert_eq!(rescanned.repositories[0].locality, "Local and remote");
+        assert_eq!(
+            rescanned.repositories[0].provider_state,
+            "GitHub connected as github:jakyeamos"
+        );
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 

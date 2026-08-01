@@ -3,6 +3,7 @@ out
 dist
 src-tauri/target
 .pre-cr
+.quality-runner/
 .DS_Store
 *.log
 .env*

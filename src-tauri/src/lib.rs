@@ -1,6 +1,9 @@
+pub mod change_matrix;
 pub mod core;
+pub mod project_compass;
 pub mod quality;
 pub mod remediation;
+pub mod skills;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,6 +22,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             core::get_snapshot,
             core::get_analytics,
+            core::get_skills,
+            core::refresh_skills,
+            core::open_skill_source,
             core::register_root,
             core::refresh,
             core::refresh_github,

@@ -14,159 +14,17 @@ import {
   SkipForward,
 } from "lucide-react";
 import type {
-  RemediationAction,
   RemediationActionStatus,
   RemediationRun,
   RepositorySnapshot,
 } from "../types";
-import { formatTime, StatusPill } from "./ConsolePrimitives";
-
-const actionStatuses: RemediationActionStatus[] = [
-  "open",
-  "in_progress",
-  "blocked",
-  "deferred",
-  "verified",
-];
-
-function toneForStatus(status: string): string {
-  const normalized = status.toLowerCase();
-  if (normalized === "completed" || normalized === "verified") return "mint";
-  if (normalized === "in_progress" || normalized === "in progress")
-    return "blue";
-  if (normalized === "blocked" || normalized === "failed") return "red";
-  if (normalized === "deferred" || normalized === "partial") return "amber";
-  if (normalized === "open" || normalized === "pending") return "coral";
-  return "slate";
-}
-
-function labelForDomain(domain: string): string {
-  return domain
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function actionStatusLabel(status: string): string {
-  return status.replace("_", " ");
-}
-
-function formatNullableTime(value?: string | null): string {
-  return value ? formatTime(value) : "Not recorded";
-}
-
-function actionEvidenceIsFresh(action: RemediationAction): boolean {
-  return action.evidence.some(
-    (item) => item.freshness.toLowerCase() === "fresh",
-  );
-}
-
-function ActionRow({
-  action,
-  onUpdateStatus,
-}: {
-  action: RemediationAction;
-  onUpdateStatus: (
-    actionId: string,
-    status: RemediationActionStatus,
-  ) => Promise<void>;
-}): ReactElement {
-  return (
-    <article className="remediation-action-card">
-      <div className="remediation-action-heading">
-        <div>
-          <div className="remediation-action-kicker">
-            <StatusPill tone="slate">
-              {labelForDomain(action.domain)}
-            </StatusPill>
-            <span>{action.priority}</span>
-            <span>{action.weight} pts</span>
-          </div>
-          <h3>{action.title}</h3>
-        </div>
-        <select
-          className="remediation-status-select"
-          aria-label={`Status for ${action.title}`}
-          value={action.status}
-          onChange={(event) =>
-            void onUpdateStatus(
-              action.id,
-              event.target.value as RemediationActionStatus,
-            )
-          }
-        >
-          {actionStatuses.map((status) => (
-            <option value={status} key={status}>
-              {actionStatusLabel(status)}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="remediation-action-status-line">
-        <StatusPill tone={toneForStatus(action.status)}>
-          {actionStatusLabel(action.status)}
-        </StatusPill>
-        <StatusPill tone={actionEvidenceIsFresh(action) ? "mint" : "amber"}>
-          {actionEvidenceIsFresh(action)
-            ? "Fresh evidence"
-            : "Evidence needs refresh"}
-        </StatusPill>
-        <span>Updated {formatNullableTime(action.updated_at)}</span>
-      </div>
-      <p>{action.summary}</p>
-      <details className="remediation-action-details">
-        <summary>Acceptance criteria and evidence</summary>
-        <div className="remediation-action-detail-grid">
-          <div>
-            <strong>Acceptance criteria</strong>
-            <ul>
-              {action.acceptance_criteria.map((criterion) => (
-                <li key={criterion}>{criterion}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <strong>Evidence</strong>
-            {action.evidence.length === 0 ? (
-              <span className="remediation-muted">
-                No source evidence recorded.
-              </span>
-            ) : (
-              <div className="remediation-evidence-list">
-                {action.evidence.map((item, index) => (
-                  <div
-                    className="remediation-evidence-item"
-                    key={`${item.source}-${item.label}-${index}`}
-                  >
-                    <div>
-                      <strong>
-                        {item.source} · {item.label}
-                      </strong>
-                      <StatusPill tone={toneForStatus(item.status)}>
-                        {item.status}
-                      </StatusPill>
-                    </div>
-                    <span>{item.detail}</span>
-                    <small>
-                      {item.freshness} · {formatNullableTime(item.observed_at)}
-                    </small>
-                    {item.report_path && <code>{item.report_path}</code>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        {action.notes && (
-          <div className="remediation-notes">
-            <strong>Notes</strong>
-            <span>{action.notes}</span>
-          </div>
-        )}
-      </details>
-    </article>
-  );
-}
+import { StatusPill } from "./ConsolePrimitives";
+import {
+  formatRemediationTime,
+  RemediationActionRow,
+  remediationStatusLabel,
+  remediationStatusTone,
+} from "./RemediationActionRow";
 
 export function RemediationSurface({
   run,
@@ -191,6 +49,7 @@ export function RemediationSurface({
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(
     run.plans[0]?.id ?? null,
   );
+  const closures = run.closures ?? [];
   const selectedPlan = useMemo(
     () => run.plans.find((plan) => plan.id === selectedPlanId) ?? run.plans[0],
     [run.plans, selectedPlanId],
@@ -243,9 +102,11 @@ export function RemediationSurface({
           <FileCheck2 size={18} />
         </div>
         <div className="remediation-overview-card">
-          <span>Eligible repositories</span>
+          <span>Active repositories</span>
           <strong>{run.plans.length}</strong>
-          <small>{run.eligible_repository_paths.length} bounded paths</small>
+          <small>
+            Ranked queue · {run.eligible_repository_paths.length} bounded paths
+          </small>
           <GitBranch size={18} />
         </div>
         <div className="remediation-overview-card">
@@ -255,6 +116,12 @@ export function RemediationSurface({
             {verifiedActionCount} verified · {blockedActionCount} blocked
           </small>
           <CircleAlert size={18} />
+        </div>
+        <div className="remediation-overview-card">
+          <span>Retained closures</span>
+          <strong>{closures.length}</strong>
+          <small>Verified or explicitly deferred queue exits</small>
+          <CheckCircle2 size={18} />
         </div>
         <div className="remediation-overview-card">
           <span>Excluded in-progress work</span>
@@ -291,16 +158,19 @@ export function RemediationSurface({
             <button
               className="button button-secondary"
               type="button"
-              disabled={isRefreshing || run.plans.length === 0}
+              disabled={
+                isRefreshing ||
+                (run.plans.length === 0 && closures.length === 0)
+              }
               onClick={() => void onExport()}
             >
               <Download size={15} />
-              Export plans
+              Export queue
             </button>
           </div>
         </div>
         <div className="remediation-run-meta">
-          <span>Generated {formatNullableTime(run.generated_at)}</span>
+          <span>Generated {formatRemediationTime(run.generated_at)}</span>
           <span>{run.eligible_repository_ids.length} eligible IDs</span>
           {run.message && (
             <span className="remediation-run-message">{run.message}</span>
@@ -315,7 +185,7 @@ export function RemediationSurface({
               <p className="eyebrow">Run ledger</p>
               <h2>What was refreshed</h2>
             </div>
-            <StatusPill tone={toneForStatus(run.status)}>
+            <StatusPill tone={remediationStatusTone(run.status)}>
               {run.status}
             </StatusPill>
           </div>
@@ -323,7 +193,7 @@ export function RemediationSurface({
             {run.refresh_steps.map((step) => (
               <div className="remediation-refresh-step" key={step.id}>
                 <div
-                  className={`remediation-step-icon remediation-step-icon-${toneForStatus(step.status)}`}
+                  className={`remediation-step-icon remediation-step-icon-${remediationStatusTone(step.status)}`}
                 >
                   {step.status === "completed" ? (
                     <CheckCircle2 size={15} />
@@ -340,7 +210,9 @@ export function RemediationSurface({
                   <span>{step.detail}</span>
                   <small>
                     {step.status} ·{" "}
-                    {formatNullableTime(step.completed_at ?? step.started_at)}
+                    {formatRemediationTime(
+                      step.completed_at ?? step.started_at,
+                    )}
                   </small>
                 </div>
               </div>
@@ -375,23 +247,54 @@ export function RemediationSurface({
         </section>
       )}
 
+      {closures.length > 0 && (
+        <section className="surface-panel remediation-closure-panel">
+          <div className="surface-heading compact-heading">
+            <div>
+              <p className="eyebrow">Closure ledger</p>
+              <h2>Repositories removed from the active queue</h2>
+            </div>
+            <StatusPill tone="mint">{closures.length} retained</StatusPill>
+          </div>
+          <div className="remediation-closure-list">
+            {closures.map((closure) => (
+              <div className="remediation-closure" key={closure.id}>
+                <div>
+                  <strong>{closure.repository_name}</strong>
+                  <span>{closure.summary}</span>
+                </div>
+                <small>
+                  {remediationStatusLabel(closure.target_state)} ·{" "}
+                  {remediationStatusLabel(closure.goal_source)} ·{" "}
+                  {closure.disposition} ·{" "}
+                  {formatRemediationTime(closure.closed_at)}
+                </small>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="remediation-plan-layout">
         <section className="surface-panel remediation-plan-list-panel">
           <div className="surface-heading compact-heading">
             <div>
-              <p className="eyebrow">Fleet plans</p>
-              <h2>One plan per eligible repository</h2>
+              <p className="eyebrow">Ranked fleet queue</p>
+              <h2>Active repository remediation</h2>
             </div>
-            <span>{run.plans.length} plans</span>
+            <span>{run.plans.length} active</span>
           </div>
           {run.plans.length === 0 ? (
             <div className="surface-empty">
-              <FileCheck2 size={18} />
-              <span>Run the full refresh to generate repository plans.</span>
+              <CheckCircle2 size={18} />
+              <span>
+                No active remediation remains. Refresh scoped evidence before
+                treating this as current.
+              </span>
             </div>
           ) : (
             <div className="remediation-plan-list">
-              {run.plans.map((plan) => (
+              {run.plans.map((plan, index) => (
                 <button
                   className={`remediation-plan-row${
                     selectedPlan?.id === plan.id
@@ -403,13 +306,16 @@ export function RemediationSurface({
                   onClick={() => setSelectedPlanId(plan.id)}
                 >
                   <div>
-                    <strong>{plan.repository_name}</strong>
+                    <strong>
+                      #{index + 1} · {plan.repository_name}
+                    </strong>
                     <span>
-                      {plan.current_stage} · {plan.actions.length} actions
+                      {plan.goal.label} · {plan.current_stage} ·{" "}
+                      {plan.actions.length} actions
                     </span>
                   </div>
                   <div className="remediation-plan-row-meta">
-                    <StatusPill tone={toneForStatus(plan.status)}>
+                    <StatusPill tone={remediationStatusTone(plan.status)}>
                       {plan.status}
                     </StatusPill>
                     <strong>{Math.round(plan.progress.percentage)}%</strong>
@@ -431,7 +337,7 @@ export function RemediationSurface({
                   <p>{selectedPlan.repository_path}</p>
                 </div>
                 <div className="remediation-detail-actions">
-                  <StatusPill tone={toneForStatus(selectedPlan.status)}>
+                  <StatusPill tone={remediationStatusTone(selectedPlan.status)}>
                     {selectedPlan.status}
                   </StatusPill>
                   {selectedRepository && (
@@ -444,6 +350,89 @@ export function RemediationSurface({
                       Open repository
                     </button>
                   )}
+                </div>
+              </div>
+              <div
+                className={`remediation-goal-block${
+                  selectedPlan.goal.source === "repository_contract"
+                    ? ""
+                    : " remediation-goal-block-inferred"
+                }`}
+              >
+                <div className="remediation-goal-heading">
+                  <div>
+                    <span>Target outcome</span>
+                    <strong>{selectedPlan.goal.label}</strong>
+                  </div>
+                  <StatusPill
+                    tone={
+                      selectedPlan.goal.source === "repository_contract"
+                        ? "mint"
+                        : "amber"
+                    }
+                  >
+                    {remediationStatusLabel(selectedPlan.goal.source)}
+                  </StatusPill>
+                </div>
+                <p>{selectedPlan.goal.reason}</p>
+                {selectedPlan.goal.error && (
+                  <p className="remediation-goal-error">
+                    {selectedPlan.goal.error}
+                  </p>
+                )}
+                <div className="remediation-goal-meta">
+                  <span>
+                    Evidence fresh for {selectedPlan.goal.evidence_max_age_days}{" "}
+                    days
+                  </span>
+                  <span>
+                    {selectedPlan.goal.required_gate_ids.length} required gates
+                  </span>
+                  <code>{selectedPlan.goal.contract_path}</code>
+                </div>
+                <details>
+                  <summary>Goal-specific closure contract</summary>
+                  <ul>
+                    {selectedPlan.goal.closure_criteria.map((criterion) => (
+                      <li key={criterion}>{criterion}</li>
+                    ))}
+                  </ul>
+                </details>
+              </div>
+              <div className="remediation-coverage-block">
+                <div className="remediation-coverage-heading">
+                  <div>
+                    <span>UI tracking coverage</span>
+                    <strong>
+                      {(selectedPlan.coverage ?? []).length} repository surfaces
+                    </strong>
+                  </div>
+                  <small>
+                    Every repo-level surface visible in Pronto is classified
+                    here.
+                  </small>
+                </div>
+                <div className="remediation-coverage-grid">
+                  {(selectedPlan.coverage ?? []).map((entry) => (
+                    <div
+                      className="remediation-coverage-item"
+                      key={entry.surface}
+                    >
+                      <div>
+                        <strong>{entry.label}</strong>
+                        <span>{entry.detail}</span>
+                        {entry.action_ids.length > 0 && (
+                          <small>
+                            {entry.action_ids.length} linked action
+                            {entry.action_ids.length === 1 ? "" : "s"}
+                          </small>
+                        )}
+                      </div>
+                      <StatusPill tone={remediationStatusTone(entry.status)}>
+                        {remediationStatusLabel(entry.status)}
+                      </StatusPill>
+                    </div>
+                  ))}
                 </div>
               </div>
               <div className="remediation-progress-block">
@@ -476,7 +465,7 @@ export function RemediationSurface({
                       <strong>{track.label}</strong>
                       <span>{track.action_ids.length} actions</span>
                     </div>
-                    <StatusPill tone={toneForStatus(track.status)}>
+                    <StatusPill tone={remediationStatusTone(track.status)}>
                       {track.status}
                     </StatusPill>
                   </div>
@@ -484,7 +473,7 @@ export function RemediationSurface({
               </div>
               <div className="remediation-actions-list">
                 {selectedPlan.actions.map((action) => (
-                  <ActionRow
+                  <RemediationActionRow
                     action={action}
                     key={action.id}
                     onUpdateStatus={onUpdateStatus}

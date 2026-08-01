@@ -50,8 +50,10 @@ function matrixGateColumns(
   includeCustomGates: boolean,
 ): string[] {
   const conditional = CONDITIONAL_GATE_IDS.filter((id) =>
-    repositories.some((repository) =>
-      repository.quality.gates.some((gate) => gate.id === id),
+    repositories.some(
+      (repository) =>
+        repository.quality.gates.some((gate) => gate.id === id) ||
+        repository.quality.ci_readiness.applicable_gate_ids.includes(id),
     ),
   );
   return [
@@ -116,9 +118,7 @@ export function QualityGatesSurface({
   ).length;
   const configuredGateCount = repositories.reduce(
     (total, repository) =>
-      total +
-      repository.quality.gates.filter((gate) => gate.evidence.length > 0)
-        .length,
+      total + repository.quality.ci_readiness.configured_gate_ids.length,
     0,
   );
   const highFindings = totalHighFindings(repositories);
@@ -345,16 +345,23 @@ export function QualityGatesSurface({
                       const optionalColumn = !CANONICAL_GATE_IDS.includes(
                         column as (typeof CANONICAL_GATE_IDS)[number],
                       );
+                      const applicableColumn =
+                        repository.quality.ci_readiness.applicable_gate_ids.includes(
+                          column,
+                        );
                       return (
                         <td key={column} className="quality-matrix-gate-column">
                           {gate ? (
                             <QualityGateCell
                               gate={gate}
+                              configured={repository.quality.ci_readiness.configured_gate_ids.includes(
+                                gate.id,
+                              )}
                               compact
                               showLabel={false}
                               onOpenReport={onOpenReport}
                             />
-                          ) : optionalColumn ? (
+                          ) : optionalColumn && !applicableColumn ? (
                             <span
                               className="quality-matrix-empty-cell"
                               aria-label="Not applicable for this repository"
@@ -368,6 +375,9 @@ export function QualityGatesSurface({
                                 freshness: "Unknown",
                                 evidence: [],
                               }}
+                              configured={repository.quality.ci_readiness.configured_gate_ids.includes(
+                                column,
+                              )}
                               compact
                               showLabel={false}
                             />

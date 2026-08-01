@@ -27,12 +27,12 @@ function latestSample(
   return samples[samples.length - 1];
 }
 
-function formatScore(value: number | undefined): string {
-  return value === undefined ? "Unavailable" : `${value.toFixed(1)}/4`;
+function formatScore(value: number | null | undefined): string {
+  return value == null ? "Unavailable" : `${value.toFixed(1)}/4`;
 }
 
-function formatCount(value: number | undefined): string {
-  return value === undefined ? "Unavailable" : `${value}`;
+function formatCount(value: number | null | undefined): string {
+  return value == null ? "Unavailable" : `${value}`;
 }
 
 function formatObservedAt(value: string | undefined): string {
@@ -51,9 +51,9 @@ function chartSource(
   analytics: AnalyticsSnapshot,
   samples: AnalyticsMetricSample[],
 ): string {
-  return samples.length > 0
-    ? `${analytics.source} · ${samples.length} observation${samples.length === 1 ? "" : "s"}`
-    : analytics.source;
+  if (samples.length === 0) return analytics.source;
+  const suffix = samples.length === 1 ? "" : "s";
+  return `${analytics.source} · ${samples.length} observation${suffix}`;
 }
 
 function chartFreshness(

@@ -2,7 +2,6 @@ import type { ReactElement } from "react";
 import { ExternalLink, FileSearch, ShieldAlert } from "lucide-react";
 import type {
   QualityEvidence,
-  QualityFindings,
   QualityFreshness,
   QualityGate,
   QualityGateStatus,
@@ -12,6 +11,8 @@ import type {
   RepositorySnapshot,
 } from "../types";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
+
+export { QualityFindingsSummary } from "./QualityFindingsSummary";
 
 function qualityStatusTone(status: QualityGateStatus): string {
   if (status === "Passed") return "mint";
@@ -158,15 +159,19 @@ export function QualityEvidenceList({
 
 export function QualityGateCell({
   gate,
+  configured = false,
   compact = false,
   showLabel = true,
   onOpenReport,
 }: {
   gate: QualityGate;
+  configured?: boolean;
   compact?: boolean;
   showLabel?: boolean;
   onOpenReport?: (reportPath: string) => void;
 }): ReactElement {
+  const configuredWithoutEvidence =
+    configured && gate.status === "Not configured";
   return (
     <div
       className={`quality-gate-cell${compact ? " quality-gate-cell-compact" : ""}`}
@@ -174,7 +179,14 @@ export function QualityGateCell({
       {showLabel && (
         <strong className="quality-gate-label">{gate.label}</strong>
       )}
-      <QualityGateStatusPill status={gate.status} freshness={gate.freshness} />
+      {configuredWithoutEvidence ? (
+        <StatusPill tone="slate">Configured</StatusPill>
+      ) : (
+        <QualityGateStatusPill
+          status={gate.status}
+          freshness={gate.freshness}
+        />
+      )}
       <span className="quality-gate-evidence-count">
         {gate.evidence.length === 0
           ? "No evidence"
@@ -189,49 +201,6 @@ export function QualityGateCell({
           />
         </details>
       )}
-    </div>
-  );
-}
-
-export function QualityFindingsSummary({
-  findings,
-  onOpenReport,
-}: {
-  findings: QualityFindings;
-  onOpenReport?: (reportPath: string) => void;
-}): ReactElement {
-  const severity = Object.entries(findings.severity_counts);
-  return (
-    <div className="quality-findings-summary">
-      <div className="quality-findings-total">
-        <strong>{findings.total}</strong>
-        <span>QR findings</span>
-      </div>
-      {severity.length > 0 ? (
-        <div className="quality-severity-list">
-          {severity.map(([label, count]) => (
-            <span key={label}>
-              <b>{count}</b> {label}
-            </span>
-          ))}
-        </div>
-      ) : (
-        <span className="quality-muted">No severity breakdown</span>
-      )}
-      <div className="quality-findings-meta">
-        <span>{findings.freshness}</span>
-        <span>{formatTime(findings.observed_at)}</span>
-        {findings.report_path && onOpenReport && (
-          <button
-            className="quality-report-link"
-            type="button"
-            onClick={() => onOpenReport(findings.report_path as string)}
-          >
-            <FileSearch size={12} />
-            Detailed report
-          </button>
-        )}
-      </div>
     </div>
   );
 }
@@ -390,6 +359,19 @@ export function QualityMaturitySummary({
           : ""}
         {maturity.audit_id ?? "No audit run"} · {maturity.freshness}
       </small>
+      {(maturity.gaps ?? []).length > 0 && (
+        <ul className="quality-maturity-gaps" aria-label="Maturity gaps">
+          {(maturity.gaps ?? []).slice(0, compact ? 2 : 4).map((gap) => (
+            <li key={`${gap.dimension}-${gap.status}`}>
+              <strong>{gap.dimension.replaceAll("_", " ")}</strong>
+              <span>
+                {gap.score === undefined ? "unknown" : `${gap.score}/4`} ·{" "}
+                {gap.message}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
       <QualityReadinessSummary readiness={readiness} compact={compact} />
       {maturity.report_path && onOpenReport && (
         <button
@@ -420,9 +402,14 @@ export function qualityAttentionItems(
       (requirement) => requirement.gate_id,
     ),
   );
+  const configuredGateIds = new Set(
+    repository.quality.ci_readiness.configured_gate_ids,
+  );
   const items: QualityAttentionItem[] = [];
   for (const gate of repository.quality.gates) {
     const required = requiredGateIds.has(gate.id);
+    const configuredWithoutEvidence =
+      configuredGateIds.has(gate.id) && gate.status === "Not configured";
     const needsAttention =
       gate.status === "Failed" ||
       gate.status === "Blocked" ||
@@ -433,7 +420,9 @@ export function qualityAttentionItems(
       items.push({
         kind: "gate",
         label: `${gate.label}${required ? " · release required" : ""}`,
-        detail: `${gate.status} · ${gate.freshness}`,
+        detail: configuredWithoutEvidence
+          ? "Configured · no evidence"
+          : `${gate.status} · ${gate.freshness}`,
         gate,
       });
     }

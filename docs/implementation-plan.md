@@ -76,18 +76,37 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 - Typecheck and production build validate renderer/main/preload boundaries.
 - CLI smoke checks validate human-readable and JSON status output against a temporary fixture repository.
 - Agent-facing CLI projections preserve the full `pronto status --json` snapshot while adding focused, versioned read-only envelopes:
+  - `pronto route [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] [--limit <n>] --json` for the composed, fail-closed agent entry point; it runs the doctor gate once and exposes bounded next, repository, quality, and advisory fold-preview evidence only when the selected scope is ready;
   - `pronto doctor [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] --json` for a fail-closed storage, freshness, and local-path gate before agent routing; scoped checks prevent unrelated fleet rows from blocking repository work, while blocked reports exit non-zero and never write the snapshot;
   - `pronto next [<repository>] [--limit <n>] --json` for bounded daily orientation, ranked attention, and safe inspection follow-ups;
   - `pronto fold preview [<repository>] [--target <branch>] --json` for advisory branch/worktree candidates and preservation reasons before the reviewed fold workflow;
   - `pronto summary --json` for fleet counts and repository summaries;
   - `pronto repo <repository> --json` for one repository plus its product/group memberships;
   - `pronto quality [<repository>] --json` for fleet or repository quality evidence;
+  - `pronto remediation [<repository>] --json` for the ranked active remediation queue and retained terminal closure ledger;
   - `pronto attention --json` for conditions, dirty workspaces, synchronization gaps, and quality gaps;
   - `pronto activity [<repository>] --limit <n> --json` for bounded events and action audits;
   - `pronto prepare <repository> --json` for pull-request, release, and recipe evidence;
   - `pronto release preview <repository> --json` for the release-specific evidence and review boundary.
 - These projections are derived from the same SQLite-backed snapshot consumed by the renderer. They are local/private outputs and are not public-export contracts.
+- `pronto-remediation/v3` treats active work and history separately and resolves
+  a goal profile before generating actions. Repository-owned
+  `pronto-remediation-goal/v1` contracts select the target outcome, applicable
+  gates, evidence window, and closure predicates. Missing or invalid contracts
+  remain inferred confirmation work. Each plan includes an explicit coverage
+  ledger for every repo-level UI surface; unresolved entries link to actions,
+  while clear, informational, and goal-inapplicable entries remain visible.
+  Project Compass, workspace ownership/operations, remote freshness,
+  integration-ready branches, submodules, and active conditions therefore
+  cannot appear in the UI without a remediation disposition. Only actionable plans remain in the
+  ranked queue, evidence-backed terminal outcomes move to a retained
+  goal-stamped closure ledger, and the remediation export produces the current
+  queue as Markdown alongside JSON. Its deterministic ordering preserves
+  status, earliest unresolved domain, and action priority, then applies
+  explicit control-plane and evidence-provider leverage before using repository
+  goal and raw action weight as tie-breakers.
 - `doctor` opens the persisted SQLite database read-only and does not migrate, refresh, or repair local state; `refresh` remains the explicit state-changing path for fresh Git evidence.
+- `route` is also read-only and preserves a clean machine-readable stdout contract when invoked through the documented silent pnpm wrapper; the JSON payload is the only stdout content.
 - The agent operating route is provider-neutral: the global home contract routes portfolio, workspace, branch, quality, and release triage to the `$pronto` skill; this repository's `.agents/context/` packet supplies the live CLI contract.
 - `$pronto` is an evidence and preflight surface, not an autonomous Git operator. `fold preview` supplies persisted branch/worktree candidates, while the reviewed `fold-feature-branches` workflow owns live ref classification, integration, and pruning authorization.
 - The behavior inventory in `docs/pronto-behavior-spec.xlsx` tracks each implemented feature, source function, test method, evidence, and remaining open question.

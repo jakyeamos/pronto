@@ -1,0 +1,129 @@
+{
+  "schema_version": "change-surface-matrix/v1",
+  "subject": {
+    "kind": "repository",
+    "id": "pronto"
+  },
+  "owner": "Pronto repository maintainers",
+  "last_reviewed": "2026-07-29",
+  "surfaces": [
+    {
+      "id": "native-core",
+      "scope": "local",
+      "path": "src-tauri/src/",
+      "owner": "Pronto repository maintainers",
+      "condition": "Repository evidence, persistence, routing, provider, quality, remediation, or command contracts change.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml",
+        "pnpm typecheck"
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "renderer",
+      "scope": "local",
+      "path": "src/renderer/src/",
+      "owner": "Pronto repository maintainers",
+      "condition": "A projected field, state label, navigation surface, or user-visible remediation behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": ["pnpm vitest run", "pnpm typecheck", "pnpm build:web"],
+      "status": "applicable"
+    },
+    {
+      "id": "cli-adapter",
+      "scope": "local",
+      "path": "bin/pronto.mjs",
+      "owner": "Pronto repository maintainers",
+      "condition": "The native CLI binary, command syntax, JSON schema, or prerequisite resolution changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "pnpm cli help",
+        "pnpm cli route \"$(git rev-parse --show-toplevel)\" --json"
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "agent-context",
+      "scope": "local",
+      "path": ".agents/context/",
+      "owner": "Pronto repository maintainers",
+      "condition": "Agent-visible commands, freshness semantics, authorization boundaries, or routing behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "Validate every documented command against pnpm cli help.",
+        "Verify relative context links resolve inside the repository."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "product-and-development-docs",
+      "scope": "local",
+      "path": "docs/",
+      "owner": "Pronto repository maintainers",
+      "condition": "Product boundaries, architecture, remediation order, quality gates, release behavior, or operator workflow changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "pnpm format:check",
+        "Review docs against .agents/context/commands.md and package.json scripts."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "repository-contracts",
+      "scope": "local",
+      "path": ".pronto/ and .project-compass/",
+      "owner": "Pronto repository maintainers",
+      "condition": "The desired remediation state, product truth, progress, blocker, drift, or continuity evidence changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "pnpm cli remediation \"$(git rev-parse --show-toplevel)\" --json",
+        "pnpm cli repo \"$(git rev-parse --show-toplevel)\" --json"
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "quality-runner-feed",
+      "scope": "external",
+      "path": "~/.quality-runner/fleet-audit/current/maturity.json",
+      "owner": "Quality Runner",
+      "condition": "Quality Runner changes its maturity feed, repository identity, gate, finding, freshness, or provenance contract.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "quality-runner doctor --json",
+        "quality-runner fleet audit run --repo-path \"$(git rev-parse --show-toplevel)\" --json",
+        "pnpm cli quality \"$(git rev-parse --show-toplevel)\" --json"
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "github-provider",
+      "scope": "external",
+      "path": "github.com/jakyeamos/pronto",
+      "owner": "GitHub provider adapter and repository maintainers",
+      "condition": "Remote identity, branch, pull request, release, or check-run evidence changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "gh auth status --hostname github.com",
+        "pnpm cli refresh-github \"$(git rev-parse --show-toplevel)\" --json",
+        "pnpm cli repo \"$(git rev-parse --show-toplevel)\" --json"
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "desktop-installation",
+      "scope": "external",
+      "path": "/Applications/Pronto.app",
+      "owner": "Pronto repository maintainers",
+      "condition": "Tauri configuration, bundled assets, native entry points, or production installation behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "pnpm build:bundle",
+        "pnpm app:check",
+        "Perform installed-app interaction smoke verification."
+      ],
+      "status": "applicable"
+    }
+  ],
+  "unresolved_surfaces": []
+}

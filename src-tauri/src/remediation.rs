@@ -7,20 +7,54 @@ use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub const REMEDIATION_SCHEMA: &str = "pronto-remediation/v1";
+pub const REMEDIATION_SCHEMA: &str = "pronto-remediation/v3";
+pub const REMEDIATION_GOAL_SCHEMA: &str = "pronto-remediation-goal/v1";
+pub const REMEDIATION_GOAL_PATH: &str = ".pronto/remediation-goal.json";
 pub const MATURITY_TARGET: f64 = 3.0;
 pub const EXCLUDED_REPOSITORY_NAMES: [&str; 2] = ["soundscape", "tenure"];
+const ALL_GATE_IDS: [&str; 9] = [
+    "build",
+    "tests",
+    "runtime_smoke",
+    "lint",
+    "formatter",
+    "typecheck",
+    "dead_code",
+    "secrets_scan",
+    "dependency_audit",
+];
 
-const STAGE_ORDER: [&str; 9] = [
+const STAGE_ORDER: [&str; 11] = [
     "scope",
+    "product_truth",
+    "repository_health",
+    "branch_hygiene",
     "provider",
     "evidence_refresh",
     "ci_ideal",
     "qr_findings",
-    "branch_hygiene",
     "maturity",
     "verification",
     "complete",
+];
+
+const UI_TRACKED_SURFACE_IDS: [&str; 16] = [
+    "scope",
+    "project_compass",
+    "provider",
+    "pull_requests",
+    "releases",
+    "quality_evidence",
+    "ci_gates",
+    "quality_findings",
+    "maturity",
+    "workspaces",
+    "branches",
+    "submodules",
+    "conditions",
+    "release_preparation",
+    "agent_permission",
+    "analytics",
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -73,6 +107,31 @@ pub struct RemediationTrack {
     pub total_weight: u64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RemediationCoverage {
+    pub surface: String,
+    pub label: String,
+    pub status: String,
+    pub detail: String,
+    pub action_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RemediationGoalProfile {
+    pub schema_version: String,
+    pub target_state: String,
+    pub label: String,
+    pub source: String,
+    pub confidence: String,
+    pub reason: String,
+    pub contract_path: String,
+    pub required_gate_ids: Vec<String>,
+    pub optional_gate_ids: Vec<String>,
+    pub evidence_max_age_days: u64,
+    pub closure_criteria: Vec<String>,
+    pub error: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RemediationPlan {
     pub schema_version: String,
@@ -82,11 +141,36 @@ pub struct RemediationPlan {
     pub repository_path: String,
     pub generated_at: String,
     pub source_refresh_id: Option<String>,
+    #[serde(default)]
+    pub goal: RemediationGoalProfile,
     pub current_stage: String,
     pub status: String,
     pub progress: RemediationProgress,
+    #[serde(default)]
+    pub coverage: Vec<RemediationCoverage>,
     pub tracks: Vec<RemediationTrack>,
     pub actions: Vec<RemediationAction>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RemediationClosure {
+    pub id: String,
+    pub repository_id: String,
+    pub repository_name: String,
+    pub repository_path: String,
+    pub plan_id: String,
+    #[serde(default)]
+    pub target_state: String,
+    #[serde(default)]
+    pub goal_source: String,
+    pub closed_at: String,
+    pub source_refresh_id: Option<String>,
+    pub disposition: String,
+    pub summary: String,
+    pub resolved_action_count: usize,
+    pub verified_action_count: usize,
+    pub deferred_action_count: usize,
+    pub last_evidence_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -125,6 +209,8 @@ pub struct RemediationRun {
     #[serde(default)]
     pub refresh_steps: Vec<RemediationRefreshStep>,
     pub excluded_repositories: Vec<RemediationExclusion>,
+    #[serde(default)]
+    pub closures: Vec<RemediationClosure>,
     pub plans: Vec<RemediationPlan>,
 }
 
@@ -176,6 +262,18 @@ struct ActionSeed {
     source_run_id: Option<String>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+struct RepositoryGoalContract {
+    schema_version: String,
+    target_state: String,
+    reason: String,
+    #[serde(default)]
+    additional_required_gate_ids: Vec<String>,
+    #[serde(default)]
+    optional_gate_ids: Vec<String>,
+    evidence_max_age_days: Option<u64>,
+}
+
 pub fn is_excluded_repository(repository: &RepositorySnapshot) -> bool {
     let name = repository.name.trim().to_ascii_lowercase();
     let path_name = Path::new(&repository.path)
@@ -198,6 +296,276 @@ pub fn exclusion_reason(repository: &RepositorySnapshot) -> Option<String> {
         Some("Currently in progress; excluded from this refresh and remediation plan.".to_string())
     } else {
         None
+    }
+}
+
+fn goal_definition(target_state: &str) -> Option<RemediationGoalProfile> {
+    let (label, required, optional, evidence_max_age_days, closure_criteria) = match target_state {
+        "public_release" => (
+            "Public release",
+            ALL_GATE_IDS.to_vec(),
+            Vec::new(),
+            7,
+            vec![
+                "The canonical branch and provider state are reconciled.",
+                "All release-quality gates have fresh passing evidence.",
+                "The repository has an explicit release rule and release recipe.",
+                "Packaging, documentation, versioning, and release evidence are verified.",
+            ],
+        ),
+        "deployed_product" => (
+            "Deployed product",
+            vec![
+                "build",
+                "tests",
+                "runtime_smoke",
+                "lint",
+                "typecheck",
+                "secrets_scan",
+                "dependency_audit",
+            ],
+            vec!["formatter", "dead_code"],
+            7,
+            vec![
+                "The canonical branch and provider state are reconciled.",
+                "Build, test, security, and runtime evidence are fresh and passing.",
+                "The deployed operating surface is verified.",
+            ],
+        ),
+        "active_maintained" => (
+            "Active maintained repository",
+            vec![
+                "build",
+                "tests",
+                "lint",
+                "formatter",
+                "typecheck",
+                "dead_code",
+                "secrets_scan",
+                "dependency_audit",
+            ],
+            vec!["runtime_smoke"],
+            14,
+            vec![
+                "The canonical branch and provider state are reconciled.",
+                "The maintained development gates have fresh passing evidence.",
+                "No active quality or maturity blocker remains.",
+            ],
+        ),
+        "clean_only" => (
+            "Clean and preserved",
+            Vec::new(),
+            vec!["tests", "secrets_scan", "dependency_audit"],
+            30,
+            vec![
+                "All work is intentionally committed, published, or explicitly preserved.",
+                "The canonical branch and provider relationship are understood.",
+                "No dirty, divergent, unpublished, or ambiguous workspace remains.",
+            ],
+        ),
+        "prototype" => (
+            "Preserved prototype",
+            Vec::new(),
+            vec!["build", "tests", "secrets_scan", "dependency_audit"],
+            30,
+            vec![
+                "The prototype state and limitations are documented.",
+                "Unique work is intentionally preserved.",
+                "No unresolved safety blocker remains.",
+            ],
+        ),
+        "archived" => (
+            "Archived repository",
+            Vec::new(),
+            Vec::new(),
+            30,
+            vec![
+                "Final work is published or explicitly preserved.",
+                "The repository lifecycle is confirmed as archived.",
+                "No active worktree, branch operation, or ambiguous unpublished work remains.",
+            ],
+        ),
+        _ => return None,
+    };
+    Some(RemediationGoalProfile {
+        schema_version: REMEDIATION_GOAL_SCHEMA.to_string(),
+        target_state: target_state.to_string(),
+        label: label.to_string(),
+        required_gate_ids: required.into_iter().map(str::to_string).collect(),
+        optional_gate_ids: optional.into_iter().map(str::to_string).collect(),
+        evidence_max_age_days,
+        closure_criteria: closure_criteria.into_iter().map(str::to_string).collect(),
+        contract_path: REMEDIATION_GOAL_PATH.to_string(),
+        ..RemediationGoalProfile::default()
+    })
+}
+
+fn inferred_goal(repository: &RepositorySnapshot) -> (&'static str, String) {
+    let lifecycle = repository.lifecycle.to_ascii_lowercase();
+    let candidate = repository.lifecycle_candidate.to_ascii_lowercase();
+    if lifecycle.contains("archiv") || candidate.contains("archiv") {
+        return (
+            "archived",
+            "The repository lifecycle indicates archived or archive-candidate status.".to_string(),
+        );
+    }
+    if ["prototype", "experimental", "incubator"]
+        .iter()
+        .any(|signal| lifecycle.contains(signal) || candidate.contains(signal))
+    {
+        return (
+            "prototype",
+            "The repository lifecycle indicates prototype or experimental work.".to_string(),
+        );
+    }
+    if repository.release_rule.is_some()
+        || repository.release_recipe.is_some()
+        || repository.confirmed_release_version.is_some()
+        || !repository.releases.is_empty()
+    {
+        return (
+            "public_release",
+            "Release configuration or release history is present in the Pronto snapshot."
+                .to_string(),
+        );
+    }
+    if lifecycle.contains("active") || candidate.contains("active") {
+        return (
+            "active_maintained",
+            "The repository lifecycle indicates active maintained work.".to_string(),
+        );
+    }
+    (
+        "clean_only",
+        "No release, deployment, or active-product signal is confirmed; clean preservation is the conservative default.".to_string(),
+    )
+}
+
+fn normalized_gate_ids(values: &[String]) -> Result<Vec<String>, String> {
+    let mut normalized = Vec::new();
+    for value in values {
+        let gate_id = value.trim().to_ascii_lowercase();
+        if !ALL_GATE_IDS.contains(&gate_id.as_str()) {
+            return Err(format!("Unknown remediation gate '{value}'."));
+        }
+        normalized.push(gate_id);
+    }
+    normalized.sort();
+    normalized.dedup();
+    Ok(normalized)
+}
+
+fn inferred_goal_profile(
+    repository: &RepositorySnapshot,
+    error: Option<String>,
+) -> RemediationGoalProfile {
+    let (target_state, reason) = inferred_goal(repository);
+    let mut profile = goal_definition(target_state).expect("inferred goal must be supported");
+    profile.source = "inferred".to_string();
+    profile.confidence = "Medium".to_string();
+    profile.reason = reason;
+    profile.error = error;
+    profile
+}
+
+fn resolve_goal_profile(repository: &RepositorySnapshot) -> RemediationGoalProfile {
+    let contract_path = Path::new(&repository.path).join(REMEDIATION_GOAL_PATH);
+    if !contract_path.is_file() {
+        return inferred_goal_profile(repository, None);
+    }
+    let contract = fs::read_to_string(&contract_path)
+        .map_err(|error| format!("Could not read the remediation goal contract: {error}"))
+        .and_then(|contents| {
+            serde_json::from_str::<RepositoryGoalContract>(&contents)
+                .map_err(|error| format!("Invalid remediation goal JSON: {error}"))
+        });
+    let contract = match contract {
+        Ok(contract) => contract,
+        Err(error) => return inferred_goal_profile(repository, Some(error)),
+    };
+    if contract.schema_version != REMEDIATION_GOAL_SCHEMA {
+        return inferred_goal_profile(
+            repository,
+            Some(format!(
+                "Unsupported remediation goal schema '{}'; expected '{}'.",
+                contract.schema_version, REMEDIATION_GOAL_SCHEMA
+            )),
+        );
+    }
+    if contract.reason.trim().is_empty() {
+        return inferred_goal_profile(
+            repository,
+            Some("The remediation goal contract must include a non-empty reason.".to_string()),
+        );
+    }
+    let Some(mut profile) = goal_definition(contract.target_state.trim()) else {
+        return inferred_goal_profile(
+            repository,
+            Some(format!(
+                "Unknown remediation target state '{}'.",
+                contract.target_state
+            )),
+        );
+    };
+    let additional_required = match normalized_gate_ids(&contract.additional_required_gate_ids) {
+        Ok(gates) => gates,
+        Err(error) => return inferred_goal_profile(repository, Some(error)),
+    };
+    let optional = match normalized_gate_ids(&contract.optional_gate_ids) {
+        Ok(gates) => gates,
+        Err(error) => return inferred_goal_profile(repository, Some(error)),
+    };
+    profile.required_gate_ids.extend(additional_required);
+    profile.required_gate_ids.sort();
+    profile.required_gate_ids.dedup();
+    profile.optional_gate_ids.extend(optional);
+    profile.optional_gate_ids.sort();
+    profile.optional_gate_ids.dedup();
+    profile
+        .optional_gate_ids
+        .retain(|gate| !profile.required_gate_ids.contains(gate));
+    if let Some(days) = contract.evidence_max_age_days {
+        if !(1..=90).contains(&days) {
+            return inferred_goal_profile(
+                repository,
+                Some("evidence_max_age_days must be between 1 and 90.".to_string()),
+            );
+        }
+        profile.evidence_max_age_days = days;
+    }
+    profile.source = "repository_contract".to_string();
+    profile.confidence = "High".to_string();
+    profile.reason = contract.reason.trim().to_string();
+    profile
+}
+
+fn goal_requires_provider(goal: &RemediationGoalProfile) -> bool {
+    goal.target_state != "prototype"
+}
+
+fn goal_requires_quality_evidence(goal: &RemediationGoalProfile) -> bool {
+    matches!(
+        goal.target_state.as_str(),
+        "public_release" | "deployed_product" | "active_maintained"
+    )
+}
+
+fn goal_requires_maturity(goal: &RemediationGoalProfile) -> bool {
+    matches!(
+        goal.target_state.as_str(),
+        "public_release" | "deployed_product" | "active_maintained"
+    )
+}
+
+fn goal_queue_rank(target_state: &str) -> u8 {
+    match target_state {
+        "public_release" => 0,
+        "deployed_product" => 1,
+        "active_maintained" => 2,
+        "clean_only" => 3,
+        "prototype" => 4,
+        "archived" => 5,
+        _ => 6,
     }
 }
 
@@ -229,8 +597,11 @@ pub fn rebuild_run_with_fleet_root(
         .iter()
         .map(|plan| (plan.repository_id.as_str(), plan))
         .collect::<HashMap<_, _>>();
+    let mut closures = previous.closures.clone();
     let mut exclusions = Vec::new();
     let mut plans = Vec::new();
+    let mut eligible_repository_ids = Vec::new();
+    let mut eligible_repository_paths = Vec::new();
     for repository in repositories {
         if let Some(reason) = exclusion_reason(repository) {
             exclusions.push(RemediationExclusion {
@@ -241,17 +612,35 @@ pub fn rebuild_run_with_fleet_root(
             });
             continue;
         }
+        eligible_repository_ids.push(repository.id.clone());
+        eligible_repository_paths.push(repository.path.clone());
         let previous_plan = previous_by_repository.get(repository.id.as_str()).copied();
-        plans.push(build_plan(
+        let plan = build_plan(
             repository,
             previous_plan,
             source_refresh_id,
             &generated_at,
             fleet_audit_root,
-        ));
+        );
+        if plan_is_terminal(&plan) {
+            if let Some(previous_plan) = previous_plan {
+                closures.push(closure_from_transition(
+                    repository,
+                    previous_plan,
+                    &plan,
+                    &generated_at,
+                    source_refresh_id,
+                ));
+            }
+        } else {
+            plans.push(plan);
+        }
     }
-    plans.sort_by(|left, right| left.repository_name.cmp(&right.repository_name));
+    rank_active_plans(&mut plans);
+    deduplicate_closures(&mut closures);
     exclusions.sort_by(|left, right| left.repository_name.cmp(&right.repository_name));
+    eligible_repository_ids.sort();
+    eligible_repository_paths.sort();
     let run_id = stable_id(
         &format!("run:{}:{}", generated_at, plans.len()),
         "remediation-run",
@@ -267,16 +656,11 @@ pub fn rebuild_run_with_fleet_root(
             previous.status.clone()
         },
         message: previous.message.clone(),
-        eligible_repository_ids: plans
-            .iter()
-            .map(|plan| plan.repository_id.clone())
-            .collect(),
-        eligible_repository_paths: plans
-            .iter()
-            .map(|plan| plan.repository_path.clone())
-            .collect(),
+        eligible_repository_ids,
+        eligible_repository_paths,
         refresh_steps: previous.refresh_steps.clone(),
         excluded_repositories: exclusions,
+        closures,
         plans,
     }
 }
@@ -330,6 +714,24 @@ pub fn recompute_plan_derived(plan: &mut RemediationPlan) {
     plan.current_stage = current_stage(&plan.actions);
 }
 
+pub fn normalize_queue(run: &mut RemediationRun, closed_at: &str) {
+    let mut active_plans = Vec::new();
+    for plan in std::mem::take(&mut run.plans) {
+        if plan_is_terminal(&plan) {
+            run.closures.push(closure_from_plan(
+                &plan,
+                closed_at,
+                plan.source_refresh_id.as_deref(),
+            ));
+        } else {
+            active_plans.push(plan);
+        }
+    }
+    rank_active_plans(&mut active_plans);
+    deduplicate_closures(&mut run.closures);
+    run.plans = active_plans;
+}
+
 pub fn action_has_fresh_evidence(action: &RemediationAction) -> bool {
     action.evidence.iter().any(|item| {
         item.freshness.eq_ignore_ascii_case("fresh") && {
@@ -355,6 +757,178 @@ pub fn action_has_fresh_evidence(action: &RemediationAction) -> bool {
     })
 }
 
+fn plan_is_terminal(plan: &RemediationPlan) -> bool {
+    matches!(plan.status.as_str(), "complete" | "deferred")
+}
+
+fn queue_status_rank(status: &str) -> u8 {
+    match status {
+        "blocked" => 0,
+        "in_progress" => 1,
+        _ => 2,
+    }
+}
+
+fn queue_domain_rank(domain: &str) -> u8 {
+    match domain {
+        "scope" => 0,
+        "product_truth" => 1,
+        "branch_hygiene" => 2,
+        "repository_health" => 3,
+        "provider" => 4,
+        "evidence_refresh" => 5,
+        "ci_ideal" => 6,
+        "qr_findings" => 7,
+        "maturity" => 8,
+        "verification" => 9,
+        _ => 10,
+    }
+}
+
+fn queue_priority_rank(priority: &str) -> u8 {
+    match priority {
+        "P0" => 0,
+        "P1" => 1,
+        "P2" => 2,
+        "P3" => 3,
+        _ => 4,
+    }
+}
+
+fn queue_leverage(repository_name: &str) -> (u8, &'static str) {
+    match repository_name.to_ascii_lowercase().as_str() {
+        "pronto" => (0, "Fleet control plane"),
+        "aios" => (1, "Agent coordination control plane"),
+        "quality-runner" => (2, "Fleet evidence provider"),
+        _ => (3, "Repository"),
+    }
+}
+
+fn plan_queue_key(plan: &RemediationPlan) -> (u8, u8, u8, u8, u8, std::cmp::Reverse<u64>, String) {
+    let active_actions = plan
+        .actions
+        .iter()
+        .filter(|action| !matches!(action.status.as_str(), "verified" | "deferred"))
+        .collect::<Vec<_>>();
+    let domain_rank = active_actions
+        .iter()
+        .map(|action| queue_domain_rank(&action.domain))
+        .min()
+        .unwrap_or(u8::MAX);
+    let priority_rank = active_actions
+        .iter()
+        .map(|action| queue_priority_rank(&action.priority))
+        .min()
+        .unwrap_or(u8::MAX);
+    let active_weight = active_actions.iter().map(|action| action.weight).sum();
+    (
+        queue_status_rank(&plan.status),
+        domain_rank,
+        priority_rank,
+        queue_leverage(&plan.repository_name).0,
+        goal_queue_rank(&plan.goal.target_state),
+        std::cmp::Reverse(active_weight),
+        plan.repository_name.to_ascii_lowercase(),
+    )
+}
+
+fn rank_active_plans(plans: &mut [RemediationPlan]) {
+    plans.sort_by_key(plan_queue_key);
+}
+
+fn latest_plan_evidence_at(plan: &RemediationPlan) -> Option<String> {
+    plan.actions
+        .iter()
+        .flat_map(|action| action.evidence.iter())
+        .filter_map(|item| item.observed_at.clone())
+        .max()
+}
+
+fn closure_from_plan(
+    plan: &RemediationPlan,
+    closed_at: &str,
+    source_refresh_id: Option<&str>,
+) -> RemediationClosure {
+    let deferred_action_count = plan
+        .actions
+        .iter()
+        .filter(|action| action.status == "deferred")
+        .count();
+    let verified_action_count = plan
+        .actions
+        .iter()
+        .filter(|action| action.status == "verified")
+        .count();
+    let disposition = if plan.status == "deferred" {
+        "deferred"
+    } else {
+        "verified"
+    };
+    let summary = if plan.actions.is_empty() {
+        "A fresh remediation projection found no active actions.".to_string()
+    } else {
+        format!(
+            "{} action(s) left the active queue with disposition '{}'.",
+            plan.actions.len(),
+            disposition
+        )
+    };
+    RemediationClosure {
+        id: stable_id(
+            &format!(
+                "closure:{}:{}:{}",
+                plan.repository_id, closed_at, disposition
+            ),
+            "remediation-closure",
+        ),
+        repository_id: plan.repository_id.clone(),
+        repository_name: plan.repository_name.clone(),
+        repository_path: plan.repository_path.clone(),
+        plan_id: plan.id.clone(),
+        target_state: plan.goal.target_state.clone(),
+        goal_source: plan.goal.source.clone(),
+        closed_at: closed_at.to_string(),
+        source_refresh_id: source_refresh_id.map(str::to_string),
+        disposition: disposition.to_string(),
+        summary,
+        resolved_action_count: plan.actions.len(),
+        verified_action_count,
+        deferred_action_count,
+        last_evidence_at: latest_plan_evidence_at(plan),
+    }
+}
+
+fn closure_from_transition(
+    repository: &RepositorySnapshot,
+    previous: &RemediationPlan,
+    current: &RemediationPlan,
+    closed_at: &str,
+    source_refresh_id: Option<&str>,
+) -> RemediationClosure {
+    let mut closure = closure_from_plan(current, closed_at, source_refresh_id);
+    closure.resolved_action_count = previous.actions.len();
+    closure.last_evidence_at =
+        latest_plan_evidence_at(current).or_else(|| Some(repository.last_scan_at.clone()));
+    if current.actions.is_empty() {
+        closure.summary = format!(
+            "Fresh evidence removed {} prior action(s) from the active remediation queue.",
+            previous.actions.len()
+        );
+    }
+    closure
+}
+
+fn deduplicate_closures(closures: &mut Vec<RemediationClosure>) {
+    closures.sort_by(|left, right| {
+        right
+            .closed_at
+            .cmp(&left.closed_at)
+            .then_with(|| left.repository_name.cmp(&right.repository_name))
+    });
+    let mut seen = std::collections::HashSet::new();
+    closures.retain(|closure| seen.insert(closure.id.clone()));
+}
+
 fn build_plan(
     repository: &RepositorySnapshot,
     previous: Option<&RemediationPlan>,
@@ -362,15 +936,27 @@ fn build_plan(
     generated_at: &str,
     fleet_audit_root: Option<&Path>,
 ) -> RemediationPlan {
+    let goal = resolve_goal_profile(repository);
     let qr_run = latest_qr_run(Path::new(&repository.path), fleet_audit_root);
     let mut seeds = Vec::new();
     add_scope_seed(repository, &mut seeds);
-    add_provider_seed(repository, &mut seeds);
-    add_evidence_seed(repository, qr_run.as_ref(), &mut seeds);
-    add_ci_ideal_seeds(repository, &mut seeds);
-    add_qr_finding_seeds(repository, qr_run.as_ref(), &mut seeds);
+    add_goal_seeds(repository, &goal, &mut seeds);
+    add_release_evidence_seeds(repository, &goal, &mut seeds);
+    add_project_compass_seeds(repository, &mut seeds);
+    if goal_requires_provider(&goal) {
+        add_provider_seed(repository, &mut seeds);
+        add_pull_request_seeds(repository, &mut seeds);
+    }
+    if goal_requires_quality_evidence(&goal) {
+        add_evidence_seed(repository, qr_run.as_ref(), &goal, &mut seeds);
+    }
+    add_ci_ideal_seeds(repository, &goal, &mut seeds);
+    add_qr_finding_seeds(repository, qr_run.as_ref(), &goal, &mut seeds);
     add_branch_hygiene_seeds(repository, &mut seeds);
-    add_maturity_seeds(repository, qr_run.as_ref(), &mut seeds);
+    add_submodule_seeds(repository, &mut seeds);
+    if goal_requires_maturity(&goal) {
+        add_maturity_seeds(repository, qr_run.as_ref(), &goal, &mut seeds);
+    }
 
     if !seeds.is_empty() {
         seeds.push(ActionSeed {
@@ -383,7 +969,7 @@ fn build_plan(
             weight: 1,
             acceptance_criteria: vec![
                 "A fresh local snapshot is recorded.".to_string(),
-                "QR, CI ideal-state, provider, and maturity evidence are rechecked where applicable.".to_string(),
+                "Project Compass, workspace, branch, submodule, condition, provider, quality, CI, and maturity evidence are rechecked where applicable.".to_string(),
                 "No unresolved blocking action remains.".to_string(),
             ],
             evidence: vec![evidence(
@@ -413,6 +999,7 @@ fn build_plan(
         .map(|seed| materialize_action(repository, seed, &previous_actions, generated_at))
         .collect::<Vec<_>>();
     let progress = calculate_progress(&actions);
+    let coverage = build_ui_coverage(repository, &goal, &actions);
     let tracks = build_tracks(&actions);
     let status = plan_status(&actions);
     let current_stage = current_stage(&actions);
@@ -427,11 +1014,128 @@ fn build_plan(
         source_refresh_id: source_refresh_id
             .map(str::to_string)
             .or_else(|| qr_run.as_ref().map(|run| run.id.clone())),
+        goal,
         current_stage,
         status,
         progress,
+        coverage,
         tracks,
         actions,
+    }
+}
+
+fn add_goal_seeds(
+    repository: &RepositorySnapshot,
+    goal: &RemediationGoalProfile,
+    seeds: &mut Vec<ActionSeed>,
+) {
+    if goal.source != "repository_contract" {
+        let detail = goal.error.as_deref().unwrap_or(
+            "No repository-owned remediation goal contract is present; this profile is inferred.",
+        );
+        seeds.push(ActionSeed {
+            stable_key: "scope:confirm-remediation-goal".to_string(),
+            domain: "scope".to_string(),
+            title: "Confirm the repository remediation goal".to_string(),
+            summary: format!(
+                "Pronto inferred '{}' for this repository. Confirm the intended outcome before using it as the closure contract.",
+                goal.label
+            ),
+            severity: "scope".to_string(),
+            priority: "P1".to_string(),
+            weight: 2,
+            acceptance_criteria: vec![
+                format!(
+                    "Create {} with schema {}.",
+                    REMEDIATION_GOAL_PATH, REMEDIATION_GOAL_SCHEMA
+                ),
+                "Record the intended target_state and a non-empty reason.".to_string(),
+                "Refresh Pronto and confirm the profile source is repository_contract."
+                    .to_string(),
+            ],
+            evidence: vec![evidence(
+                "Pronto",
+                "Remediation goal",
+                "Inferred",
+                "Unknown",
+                Some(&repository.last_scan_at),
+                Some(REMEDIATION_GOAL_PATH),
+                detail,
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: None,
+        });
+    }
+    if goal.target_state == "public_release"
+        && (repository.release_rule.is_none() || repository.release_recipe.is_none())
+    {
+        seeds.push(ActionSeed {
+            stable_key: "scope:release-contract".to_string(),
+            domain: "scope".to_string(),
+            title: "Establish the release contract".to_string(),
+            summary: "A public-release repository needs both an explicit release rule and an executable release recipe before it can leave remediation.".to_string(),
+            severity: "release".to_string(),
+            priority: "P1".to_string(),
+            weight: 3,
+            acceptance_criteria: vec![
+                "A normalized release rule defines when a release is eligible.".to_string(),
+                "A release recipe defines validation, generation, commit, and publication steps."
+                    .to_string(),
+                "Release preview can evaluate the repository without inventing provider evidence."
+                    .to_string(),
+            ],
+            evidence: vec![evidence(
+                "Pronto",
+                "Release contract",
+                "Incomplete",
+                "Fresh",
+                Some(&repository.last_scan_at),
+                None,
+                &format!(
+                    "Release rule: {} · release recipe: {}.",
+                    if repository.release_rule.is_some() {
+                        "configured"
+                    } else {
+                        "missing"
+                    },
+                    if repository.release_recipe.is_some() {
+                        "configured"
+                    } else {
+                        "missing"
+                    }
+                ),
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: None,
+        });
+    }
+    if goal.target_state == "archived"
+        && !repository.lifecycle.to_ascii_lowercase().contains("archiv")
+    {
+        seeds.push(ActionSeed {
+            stable_key: "scope:align-archived-lifecycle".to_string(),
+            domain: "scope".to_string(),
+            title: "Confirm the archived lifecycle".to_string(),
+            summary: "The remediation goal is archived, but the repository lifecycle does not yet record an archived state.".to_string(),
+            severity: "scope".to_string(),
+            priority: "P1".to_string(),
+            weight: 2,
+            acceptance_criteria: vec![
+                "The repository lifecycle is explicitly confirmed as archived.".to_string(),
+                "No active ownership or release obligation remains.".to_string(),
+            ],
+            evidence: vec![evidence(
+                "Pronto",
+                "Lifecycle alignment",
+                &repository.lifecycle,
+                "Fresh",
+                Some(&repository.last_scan_at),
+                Some(REMEDIATION_GOAL_PATH),
+                "The archived goal and repository lifecycle must agree.",
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: None,
+        });
     }
 }
 
@@ -467,6 +1171,220 @@ fn add_scope_seed(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) 
             source_run_id: None,
         });
     }
+    if repository.default_branch.is_none() {
+        seeds.push(ActionSeed {
+            stable_key: "scope:confirm-default-branch".to_string(),
+            domain: "scope".to_string(),
+            title: "Confirm the canonical integration branch".to_string(),
+            summary: "Pronto cannot determine the repository's default branch, so branch comparisons and integration targets are ambiguous.".to_string(),
+            severity: "scope".to_string(),
+            priority: "P1".to_string(),
+            weight: 2,
+            acceptance_criteria: vec![
+                "The canonical integration branch is confirmed from repository or provider evidence.".to_string(),
+                "Pronto records the default branch and can evaluate branch integration against it.".to_string(),
+            ],
+            evidence: vec![evidence(
+                "Pronto",
+                "Default branch",
+                "Missing",
+                "Unknown",
+                Some(&repository.last_scan_at),
+                None,
+                "No default branch was resolved for this repository.",
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: None,
+        });
+    }
+}
+
+fn add_project_compass_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
+    let compass = &repository.project_compass;
+    match compass.status.as_str() {
+        "Missing" => seeds.push(ActionSeed {
+            stable_key: "product_truth:project-compass".to_string(),
+            domain: "product_truth".to_string(),
+            title: "Establish the Project Compass contract".to_string(),
+            summary: "The repository has no Project Compass contract, so Pronto cannot relate remediation work to the intended product outcome.".to_string(),
+            severity: "product_truth".to_string(),
+            priority: "P1".to_string(),
+            weight: 2,
+            acceptance_criteria: vec![
+                "Use the Project Compass workflow to make an explicit product-truth decision; do not infer or silently invent the contract.".to_string(),
+                format!("A valid contract is present at {}.", compass.contract_path),
+                "Refresh Pronto and confirm Project Compass is Ready.".to_string(),
+            ],
+            evidence: vec![evidence(
+                "Project Compass",
+                "Product truth contract",
+                "Missing",
+                "Fresh",
+                Some(&repository.last_scan_at),
+                Some(&compass.contract_path),
+                "The UI tracks Project Compass for this repository, but no contract exists.",
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: None,
+        }),
+        "Invalid" => seeds.push(ActionSeed {
+            stable_key: "product_truth:project-compass".to_string(),
+            domain: "product_truth".to_string(),
+            title: "Repair the Project Compass contract".to_string(),
+            summary: "The repository's Project Compass contract is present but invalid, so its product progress cannot be trusted.".to_string(),
+            severity: "product_truth".to_string(),
+            priority: "P1".to_string(),
+            weight: 2,
+            acceptance_criteria: vec![
+                "Repair the existing contract through the Project Compass workflow without inventing product truth.".to_string(),
+                "The contract validates and Pronto reports Project Compass as Ready.".to_string(),
+            ],
+            evidence: vec![evidence(
+                "Project Compass",
+                "Product truth contract",
+                "Invalid",
+                "Fresh",
+                compass.updated_at.as_deref().or(Some(&repository.last_scan_at)),
+                Some(&compass.contract_path),
+                compass.error.as_deref().unwrap_or("The contract is invalid."),
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: None,
+        }),
+        "Ready" => {
+            if compass.open_blockers > 0 {
+                seeds.push(ActionSeed {
+                    stable_key: "product_truth:project-compass-blockers".to_string(),
+                    domain: "product_truth".to_string(),
+                    title: "Resolve Project Compass blockers".to_string(),
+                    summary: format!(
+                        "Project Compass records {} open product blocker(s).",
+                        compass.open_blockers
+                    ),
+                    severity: "product_truth".to_string(),
+                    priority: "P1".to_string(),
+                    weight: compass.open_blockers.max(1) as u64,
+                    acceptance_criteria: vec![
+                        "Each blocker is resolved or explicitly dispositioned in the canonical Project Compass contract.".to_string(),
+                        "Pronto refreshes the contract and reports no unexplained open blocker.".to_string(),
+                    ],
+                    evidence: vec![evidence(
+                        "Project Compass",
+                        "Open blockers",
+                        &compass.open_blockers.to_string(),
+                        "Fresh",
+                        compass.updated_at.as_deref(),
+                        Some(&compass.contract_path),
+                        "Open product blockers are tracked as remediation work.",
+                    )],
+                    related_finding_ids: Vec::new(),
+                    source_run_id: None,
+                });
+            }
+            if compass.open_drift > 0 {
+                seeds.push(ActionSeed {
+                    stable_key: "product_truth:project-compass-drift".to_string(),
+                    domain: "product_truth".to_string(),
+                    title: "Reconcile Project Compass drift".to_string(),
+                    summary: format!(
+                        "Project Compass records {} open drift item(s) between product truth and implementation.",
+                        compass.open_drift
+                    ),
+                    severity: "product_truth".to_string(),
+                    priority: "P1".to_string(),
+                    weight: compass.open_drift.max(1) as u64,
+                    acceptance_criteria: vec![
+                        "Each drift item is reconciled in implementation or explicitly dispositioned in Project Compass.".to_string(),
+                        "Pronto refreshes the contract and reports no unexplained open drift.".to_string(),
+                    ],
+                    evidence: vec![evidence(
+                        "Project Compass",
+                        "Open drift",
+                        &compass.open_drift.to_string(),
+                        "Fresh",
+                        compass.updated_at.as_deref(),
+                        Some(&compass.contract_path),
+                        "Open product-to-implementation drift is tracked as remediation work.",
+                    )],
+                    related_finding_ids: Vec::new(),
+                    source_run_id: None,
+                });
+            }
+        }
+        _ => seeds.push(ActionSeed {
+            stable_key: "product_truth:project-compass".to_string(),
+            domain: "product_truth".to_string(),
+            title: "Resolve the unknown Project Compass state".to_string(),
+            summary: format!(
+                "Pronto received an unrecognized Project Compass state: '{}'.",
+                compass.status
+            ),
+            severity: "product_truth".to_string(),
+            priority: "P1".to_string(),
+            weight: 2,
+            acceptance_criteria: vec![
+                "Inspect the canonical contract and Project Compass tooling.".to_string(),
+                "Refresh Pronto and confirm the state is Ready, Missing, or Invalid.".to_string(),
+            ],
+            evidence: vec![evidence(
+                "Project Compass",
+                "Product truth contract",
+                &compass.status,
+                "Unknown",
+                compass.updated_at.as_deref(),
+                Some(&compass.contract_path),
+                "The Project Compass state is not recognized by the remediation planner.",
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: None,
+        }),
+    }
+}
+
+fn add_release_evidence_seeds(
+    repository: &RepositorySnapshot,
+    goal: &RemediationGoalProfile,
+    seeds: &mut Vec<ActionSeed>,
+) {
+    if goal.target_state != "public_release"
+        || !repository.releases.is_empty()
+        || repository
+            .release_rule
+            .as_ref()
+            .is_none_or(|rule| rule.allow_first_release)
+    {
+        return;
+    }
+    seeds.push(ActionSeed {
+        stable_key: "release_evidence:published-baseline".to_string(),
+        domain: "provider".to_string(),
+        title: "Resolve the missing published-release baseline".to_string(),
+        summary: "The public-release goal requires release evidence, but no published baseline is available and the release rule does not allow a first release.".to_string(),
+        severity: "release".to_string(),
+        priority: "P1".to_string(),
+        weight: 2,
+        acceptance_criteria: vec![
+            "Confirm whether this is an intentional first release or a missing provider snapshot."
+                .to_string(),
+            "If it is a first release, explicitly authorize that case in the release rule; otherwise refresh the published release evidence.".to_string(),
+            "Release preparation reports an evidence-ready baseline disposition.".to_string(),
+        ],
+        evidence: vec![evidence(
+            "Pronto release preparation",
+            "Published release baseline",
+            "Missing",
+            if repository.last_fetch_at.is_some() {
+                "Fresh"
+            } else {
+                "Unknown"
+            },
+            repository.last_fetch_at.as_deref(),
+            None,
+            "No published release is present and allow_first_release is false.",
+        )],
+        related_finding_ids: Vec::new(),
+        source_run_id: None,
+    });
 }
 
 fn add_provider_seed(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
@@ -514,9 +1432,78 @@ fn add_provider_seed(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed
     });
 }
 
+fn add_pull_request_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
+    for pull_request in repository
+        .pull_requests
+        .iter()
+        .filter(|pull_request| pull_request.state.eq_ignore_ascii_case("open"))
+    {
+        let checks_ready = pull_request.checks_state.eq_ignore_ascii_case("passed");
+        let reviews_ready = pull_request
+            .reviews_state
+            .to_ascii_lowercase()
+            .contains("approved");
+        let mergeability = pull_request.mergeability.to_ascii_lowercase();
+        let merge_ready = matches!(mergeability.as_str(), "clean" | "mergeable");
+        if !pull_request.draft && checks_ready && reviews_ready && merge_ready {
+            continue;
+        }
+        seeds.push(ActionSeed {
+            stable_key: format!("provider:pull-request:{}", pull_request.number),
+            domain: "provider".to_string(),
+            title: format!("Resolve pull request evidence · #{}", pull_request.number),
+            summary: format!(
+                "Open pull request #{} is not fully ready: draft {} · checks {} · reviews {} · mergeability {}.",
+                pull_request.number,
+                pull_request.draft,
+                pull_request.checks_state,
+                pull_request.reviews_state,
+                pull_request.mergeability
+            ),
+            severity: "provider".to_string(),
+            priority: if pull_request.checks_state.eq_ignore_ascii_case("failed") {
+                "P1"
+            } else {
+                "P2"
+            }
+            .to_string(),
+            weight: 2,
+            acceptance_criteria: vec![
+                "Refresh provider-native pull request evidence for the exact head and base."
+                    .to_string(),
+                "Required checks, reviews, draft state, and mergeability are explicitly resolved or dispositioned.".to_string(),
+                "Pronto records the resulting pull request snapshot without inferring provider success."
+                    .to_string(),
+            ],
+            evidence: vec![evidence(
+                "GitHub",
+                &format!("Pull request #{}", pull_request.number),
+                if pull_request.draft {
+                    "Draft"
+                } else {
+                    &pull_request.checks_state
+                },
+                "Fresh",
+                Some(&pull_request.last_refreshed_at),
+                Some(&pull_request.html_url),
+                &format!(
+                    "{} → {} · reviews {} · mergeability {}.",
+                    pull_request.head_branch,
+                    pull_request.base_branch,
+                    pull_request.reviews_state,
+                    pull_request.mergeability
+                ),
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: None,
+        });
+    }
+}
+
 fn add_evidence_seed(
     repository: &RepositorySnapshot,
     qr_run: Option<&QrRunEvidence>,
+    goal: &RemediationGoalProfile,
     seeds: &mut Vec<ActionSeed>,
 ) {
     let Some(run) = qr_run else {
@@ -547,7 +1534,7 @@ fn add_evidence_seed(
         });
         return;
     };
-    let freshness = freshness_for(run.observed_at.as_deref());
+    let freshness = freshness_for(run.observed_at.as_deref(), goal.evidence_max_age_days);
     if freshness != "Fresh" {
         seeds.push(ActionSeed {
             stable_key: "evidence_refresh:qr-run".to_string(),
@@ -609,7 +1596,11 @@ fn add_evidence_seed(
     }
 }
 
-fn add_ci_ideal_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
+fn add_ci_ideal_seeds(
+    repository: &RepositorySnapshot,
+    goal: &RemediationGoalProfile,
+    seeds: &mut Vec<ActionSeed>,
+) {
     let readiness = &repository.quality.ci_readiness;
     let mut gate_ids = readiness.unconfigured_gate_ids.clone();
     gate_ids.extend(readiness.missing_gate_ids.iter().cloned());
@@ -618,6 +1609,7 @@ fn add_ci_ideal_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
     gate_ids.extend(readiness.blocked_gate_ids.iter().cloned());
     gate_ids.sort();
     gate_ids.dedup();
+    gate_ids.retain(|gate_id| goal.required_gate_ids.contains(gate_id));
     for gate_id in gate_ids {
         let status = if readiness.failed_gate_ids.contains(&gate_id) {
             "Failed"
@@ -654,7 +1646,10 @@ fn add_ci_ideal_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
             stable_key: format!("ci_ideal:gate:{gate_id}"),
             domain: "ci_ideal".to_string(),
             title: format!("Bring the {label} gate to the ideal state"),
-            summary: format!("The ideal CI profile for this repository is {status} for {label}."),
+            summary: format!(
+                "The '{}' remediation goal requires {label}; its current state is {status}.",
+                goal.label
+            ),
             severity: if matches!(status, "Failed" | "Blocked") {
                 "high".to_string()
             } else {
@@ -681,7 +1676,10 @@ fn add_ci_ideal_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
                 freshness,
                 gate_evidence.and_then(|item| item.observed_at.as_deref()),
                 gate_evidence.and_then(|item| item.report_path.as_deref()),
-                "Derived from the repository-specific ideal gate profile.",
+                &format!(
+                    "Required by the repository's '{}' remediation goal.",
+                    goal.target_state
+                ),
             )],
             related_finding_ids: Vec::new(),
             source_run_id: None,
@@ -692,6 +1690,7 @@ fn add_ci_ideal_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
 fn add_qr_finding_seeds(
     repository: &RepositorySnapshot,
     qr_run: Option<&QrRunEvidence>,
+    goal: &RemediationGoalProfile,
     seeds: &mut Vec<ActionSeed>,
 ) {
     let Some(run) = qr_run else {
@@ -771,7 +1770,7 @@ fn add_qr_finding_seeds(
                 "Quality Runner",
                 &source_label,
                 &format!("{count} finding(s)"),
-                &freshness_for(run.observed_at.as_deref()),
+                &freshness_for(run.observed_at.as_deref(), goal.evidence_max_age_days),
                 run.observed_at.as_deref(),
                 Some(&source_path),
                 &detail,
@@ -816,7 +1815,79 @@ fn add_qr_finding_seeds(
 }
 
 fn add_branch_hygiene_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
-    for workspace in &repository.workspaces {
+    let workspaces = if repository.workspaces.is_empty() {
+        vec![&repository.workspace]
+    } else {
+        repository.workspaces.iter().collect::<Vec<_>>()
+    };
+    for workspace in workspaces {
+        if workspace_activity_requires_coordination(&workspace.activity) {
+            seeds.push(ActionSeed {
+                stable_key: format!("branch_hygiene:activity:{}", workspace.id),
+                domain: "branch_hygiene".to_string(),
+                title: format!("Coordinate workspace ownership · {}", workspace.branch),
+                summary: format!(
+                    "{} reports {} activity; preserve ownership before changing its branch or worktree.",
+                    workspace.path, workspace.activity.state
+                ),
+                severity: "ownership".to_string(),
+                priority: "P0".to_string(),
+                weight: 3,
+                acceptance_criteria: vec![
+                    "The active or interrupted owner is identified and coordinated with."
+                        .to_string(),
+                    "No worktree, branch, or unpublished work is changed while ownership is ambiguous."
+                        .to_string(),
+                    "A refreshed snapshot no longer reports unresolved active ownership.".to_string(),
+                ],
+                evidence: vec![evidence(
+                    "Pronto",
+                    &format!("Workspace activity · {}", workspace.branch),
+                    &workspace.activity.state,
+                    "Fresh",
+                    workspace.last_activity_at.as_deref(),
+                    None,
+                    &format!(
+                        "{} activity signal(s); confidence {}.",
+                        workspace.activity.signals.len(),
+                        workspace.activity.confidence
+                    ),
+                )],
+                related_finding_ids: Vec::new(),
+                source_run_id: None,
+            });
+        }
+        if let Some(operation) = workspace.operation.as_deref() {
+            seeds.push(ActionSeed {
+                stable_key: format!("branch_hygiene:operation:{}", workspace.id),
+                domain: "branch_hygiene".to_string(),
+                title: format!("Resolve interrupted Git operation · {}", workspace.branch),
+                summary: format!(
+                    "{} has an interrupted {operation} operation that must be resolved before reconciliation.",
+                    workspace.path
+                ),
+                severity: "operation".to_string(),
+                priority: "P0".to_string(),
+                weight: 3,
+                acceptance_criteria: vec![
+                    "Inspect and intentionally complete or abort the interrupted Git operation."
+                        .to_string(),
+                    "Preserve all unrelated and unpublished work.".to_string(),
+                    "A refreshed snapshot reports no interrupted operation.".to_string(),
+                ],
+                evidence: vec![evidence(
+                    "Pronto",
+                    &format!("Git operation · {}", workspace.branch),
+                    operation,
+                    "Fresh",
+                    workspace.last_activity_at.as_deref(),
+                    None,
+                    "An interrupted Git operation is a hard stop for branch mutation.",
+                )],
+                related_finding_ids: Vec::new(),
+                source_run_id: None,
+            });
+        }
         if workspace.dirty {
             seeds.push(ActionSeed {
                 stable_key: format!("branch_hygiene:dirty:{}", workspace.id),
@@ -872,12 +1943,229 @@ fn add_branch_hygiene_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<Act
                 source_run_id: None,
             });
         }
+        let remote_freshness = workspace.remote_freshness.to_ascii_lowercase();
+        if remote_freshness.contains("not fetched")
+            || remote_freshness.contains("stale")
+            || remote_freshness.contains("unknown")
+            || remote_freshness.contains("unavailable")
+        {
+            seeds.push(ActionSeed {
+                stable_key: format!("branch_hygiene:remote-freshness:{}", workspace.id),
+                domain: "branch_hygiene".to_string(),
+                title: format!("Refresh remote branch evidence · {}", workspace.branch),
+                summary: "The workspace's remote comparison is not fresh enough to support reconciliation or pruning decisions.".to_string(),
+                severity: "freshness".to_string(),
+                priority: "P1".to_string(),
+                weight: 2,
+                acceptance_criteria: vec![
+                    "Fetch remote evidence through the authorized Pronto workflow.".to_string(),
+                    "Recompute ahead, behind, upstream, and integration state from fresh evidence."
+                        .to_string(),
+                ],
+                evidence: vec![evidence(
+                    "Pronto",
+                    &format!("Remote freshness · {}", workspace.branch),
+                    &workspace.remote_freshness,
+                    &workspace.remote_freshness,
+                    workspace.last_commit_at.as_deref(),
+                    None,
+                    "Stale or unavailable remote evidence cannot prove branch closure.",
+                )],
+                related_finding_ids: Vec::new(),
+                source_run_id: None,
+            });
+        }
+        if workspace.integration_state == "Integration eligible" {
+            seeds.push(ActionSeed {
+                stable_key: format!("branch_hygiene:integrate:{}", workspace.branch),
+                domain: "branch_hygiene".to_string(),
+                title: format!("Classify integration-ready branch · {}", workspace.branch),
+                summary: format!(
+                    "{} has unique commits eligible for integration into {}.",
+                    workspace.branch,
+                    workspace.target_branch.as_deref().unwrap_or("the canonical branch")
+                ),
+                severity: "integration".to_string(),
+                priority: "P1".to_string(),
+                weight: 2,
+                acceptance_criteria: vec![
+                    "Review the complete diff and confirm whether the work is wanted, superseded, or intentionally preserved.".to_string(),
+                    "Fold wanted work through the documented integration lane and verify the canonical branch.".to_string(),
+                    "Treat pruning as a separate, later authorization after integration equivalence is proven.".to_string(),
+                ],
+                evidence: vec![evidence(
+                    "Pronto",
+                    &format!("Branch integration · {}", workspace.branch),
+                    &workspace.integration_state,
+                    "Fresh",
+                    workspace.last_commit_at.as_deref(),
+                    None,
+                    &format!(
+                        "Target: {} · confidence: {}.",
+                        workspace.target_branch.as_deref().unwrap_or("Unknown"),
+                        workspace.target_confidence
+                    ),
+                )],
+                related_finding_ids: Vec::new(),
+                source_run_id: None,
+            });
+        }
+    }
+    for branch in &repository.branches {
+        if branch.integration_state == "Integration eligible"
+            && !seeds
+                .iter()
+                .any(|seed| seed.stable_key == format!("branch_hygiene:integrate:{}", branch.name))
+        {
+            seeds.push(ActionSeed {
+                stable_key: format!("branch_hygiene:integrate:{}", branch.name),
+                domain: "branch_hygiene".to_string(),
+                title: format!("Classify integration-ready branch · {}", branch.name),
+                summary: format!(
+                    "{} has unique commits eligible for integration into {}.",
+                    branch.name,
+                    branch.target_branch.as_deref().unwrap_or("the canonical branch")
+                ),
+                severity: "integration".to_string(),
+                priority: "P1".to_string(),
+                weight: 2,
+                acceptance_criteria: vec![
+                    "Review the complete diff and confirm whether the work is wanted, superseded, or intentionally preserved.".to_string(),
+                    "Fold wanted work through the documented integration lane and verify the canonical branch.".to_string(),
+                    "Treat pruning as a separate, later authorization after integration equivalence is proven.".to_string(),
+                ],
+                evidence: vec![evidence(
+                    "Pronto",
+                    &format!("Branch integration · {}", branch.name),
+                    &branch.integration_state,
+                    "Fresh",
+                    branch.last_commit_at.as_deref(),
+                    None,
+                    &format!(
+                        "Ahead {} · behind {} · target {}.",
+                        branch.ahead,
+                        branch.behind,
+                        branch.target_branch.as_deref().unwrap_or("Unknown")
+                    ),
+                )],
+                related_finding_ids: Vec::new(),
+                source_run_id: None,
+            });
+        }
+    }
+    const REPRESENTED_CONDITIONS: [&str; 9] = [
+        "active-agent-workspace",
+        "interrupted-operation",
+        "dirty-workspace",
+        "diverged-branch",
+        "unpushed-commits",
+        "behind-remote",
+        "remote-stale",
+        "no-upstream",
+        "integration-eligible",
+    ];
+    for condition in repository
+        .conditions
+        .iter()
+        .filter(|condition| condition.status == "Active")
+        .filter(|condition| !REPRESENTED_CONDITIONS.contains(&condition.kind.as_str()))
+    {
+        seeds.push(ActionSeed {
+            stable_key: format!("repository_health:condition:{}", condition.id),
+            domain: "repository_health".to_string(),
+            title: format!("Resolve repository condition · {}", condition.title),
+            summary: condition.summary.clone(),
+            severity: "condition".to_string(),
+            priority: if condition.priority <= 1 { "P1" } else { "P2" }.to_string(),
+            weight: 2,
+            acceptance_criteria: vec![
+                "Inspect the condition's rule, evidence, and missing prerequisites.".to_string(),
+                "Resolve or explicitly disposition the condition and refresh Pronto.".to_string(),
+            ],
+            evidence: vec![evidence(
+                "Pronto condition",
+                &condition.title,
+                &condition.status,
+                condition.freshness.as_deref().unwrap_or("Unknown"),
+                Some(&repository.last_scan_at),
+                None,
+                &condition.summary,
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: None,
+        });
+    }
+}
+
+fn workspace_activity_requires_coordination(activity: &crate::core::WorkspaceActivity) -> bool {
+    if activity.state.eq_ignore_ascii_case("active")
+        || activity
+            .signals
+            .iter()
+            .any(|signal| signal.summary == "Activity state uncertain")
+    {
+        return true;
+    }
+    activity
+        .manifest
+        .as_ref()
+        .and_then(|manifest| manifest.status.as_deref())
+        .is_some_and(|status| {
+            matches!(
+                status.to_ascii_lowercase().as_str(),
+                "active" | "running" | "started" | "paused" | "interrupted"
+            )
+        })
+}
+
+fn add_submodule_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
+    for submodule in &repository.submodules {
+        if submodule.status == "Checked out" {
+            continue;
+        }
+        seeds.push(ActionSeed {
+            stable_key: format!("repository_health:submodule:{}", submodule.path),
+            domain: "repository_health".to_string(),
+            title: format!("Resolve submodule state · {}", submodule.path),
+            summary: format!(
+                "The submodule is '{}', so the repository snapshot is not in its expected checked-out state.",
+                submodule.status
+            ),
+            severity: "repository_health".to_string(),
+            priority: if submodule.status == "Merge conflict" {
+                "P0"
+            } else {
+                "P1"
+            }
+            .to_string(),
+            weight: 2,
+            acceptance_criteria: vec![
+                "Confirm the intended submodule commit from repository-owned evidence.".to_string(),
+                "Resolve the submodule without discarding unrelated local work.".to_string(),
+                "A refreshed Pronto snapshot reports the submodule as Checked out.".to_string(),
+            ],
+            evidence: vec![evidence(
+                "Pronto",
+                &format!("Submodule · {}", submodule.path),
+                &submodule.status,
+                "Fresh",
+                Some(&repository.last_scan_at),
+                Some(&submodule.path),
+                submodule
+                    .commit
+                    .as_deref()
+                    .unwrap_or("No checked-out submodule commit was recorded."),
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: None,
+        });
     }
 }
 
 fn add_maturity_seeds(
     repository: &RepositorySnapshot,
     qr_run: Option<&QrRunEvidence>,
+    goal: &RemediationGoalProfile,
     seeds: &mut Vec<ActionSeed>,
 ) {
     let maturity = &repository.quality.maturity;
@@ -896,7 +2184,7 @@ fn add_maturity_seeds(
         maturity.freshness.as_str().to_string()
     } else {
         qr_run
-            .map(|run| freshness_for(run.observed_at.as_deref()))
+            .map(|run| freshness_for(run.observed_at.as_deref(), goal.evidence_max_age_days))
             .unwrap_or_else(|| "Unknown".to_string())
     };
     let empty_dimensions = BTreeMap::new();
@@ -1055,6 +2343,304 @@ fn materialize_action(
     }
 }
 
+fn build_ui_coverage(
+    repository: &RepositorySnapshot,
+    goal: &RemediationGoalProfile,
+    actions: &[RemediationAction],
+) -> Vec<RemediationCoverage> {
+    let compass = &repository.project_compass;
+    let active_conditions = repository
+        .conditions
+        .iter()
+        .filter(|condition| condition.status == "Active")
+        .count();
+    let unhealthy_submodules = repository
+        .submodules
+        .iter()
+        .filter(|submodule| submodule.status != "Checked out")
+        .count();
+    let eligible_branches = repository
+        .branches
+        .iter()
+        .filter(|branch| branch.integration_state == "Integration eligible")
+        .count();
+    let workspace_count = repository.workspaces.len().max(1);
+    let coverage = vec![
+        coverage_for_prefixes(
+            "scope",
+            "Repository scope",
+            &format!(
+                "Lifecycle: {} · candidate: {} · default branch: {}.",
+                repository.lifecycle,
+                repository.lifecycle_candidate,
+                repository.default_branch.as_deref().unwrap_or("Unknown")
+            ),
+            &["scope:"],
+            false,
+            actions,
+        ),
+        coverage_for_prefixes(
+            "project_compass",
+            "Project Compass",
+            &format!(
+                "Status: {} · blockers: {} · drift: {} · MVP progress: {}.",
+                compass.status,
+                compass.open_blockers,
+                compass.open_drift,
+                compass
+                    .mvp
+                    .progress_percent
+                    .map(|value| format!("{value}%"))
+                    .unwrap_or_else(|| "Unknown".to_string())
+            ),
+            &["product_truth:"],
+            false,
+            actions,
+        ),
+        coverage_for_prefixes(
+            "provider",
+            "Provider and remote evidence",
+            &format!(
+                "Provider: {} · remote: {} · last fetch: {}.",
+                repository.provider_state,
+                repository.remote_url.as_deref().unwrap_or("Missing"),
+                repository.last_fetch_at.as_deref().unwrap_or("Unknown")
+            ),
+            &["provider:remote-freshness"],
+            !goal_requires_provider(goal),
+            actions,
+        ),
+        coverage_for_prefixes(
+            "pull_requests",
+            "Pull request evidence",
+            &format!(
+                "{} pull request snapshot(s); {} open.",
+                repository.pull_requests.len(),
+                repository
+                    .pull_requests
+                    .iter()
+                    .filter(|pull_request| pull_request.state.eq_ignore_ascii_case("open"))
+                    .count()
+            ),
+            &["provider:pull-request:"],
+            !goal_requires_provider(goal),
+            actions,
+        ),
+        coverage_for_prefixes(
+            "releases",
+            "Published release evidence",
+            &format!(
+                "{} release snapshot(s); latest fetch {}.",
+                repository.releases.len(),
+                repository.last_fetch_at.as_deref().unwrap_or("Unknown")
+            ),
+            &["release_evidence:"],
+            goal.target_state != "public_release",
+            actions,
+        ),
+        coverage_for_prefixes(
+            "quality_evidence",
+            "Quality evidence",
+            &format!(
+                "Findings freshness: {} · observed: {}.",
+                repository.quality.findings.freshness.as_str(),
+                repository
+                    .quality
+                    .findings
+                    .observed_at
+                    .as_deref()
+                    .unwrap_or("Unknown")
+            ),
+            &["evidence_refresh:"],
+            !goal_requires_quality_evidence(goal),
+            actions,
+        ),
+        coverage_for_prefixes(
+            "ci_gates",
+            "CI gates",
+            &format!(
+                "{} required gate(s) for the '{}' goal.",
+                goal.required_gate_ids.len(),
+                goal.label
+            ),
+            &["ci_ideal:"],
+            goal.required_gate_ids.is_empty(),
+            actions,
+        ),
+        coverage_for_prefixes(
+            "quality_findings",
+            "Quality findings",
+            &format!(
+                "{} finding(s), including {} high-severity.",
+                repository.quality.findings.total,
+                repository.quality.findings.high_severity_total
+            ),
+            &["qr_findings:"],
+            !goal_requires_quality_evidence(goal),
+            actions,
+        ),
+        coverage_for_prefixes(
+            "maturity",
+            "Repository maturity",
+            &format!(
+                "Score: {} · freshness: {}.",
+                repository
+                    .quality
+                    .maturity
+                    .score
+                    .map(|score| format!("{score:.3}/4"))
+                    .unwrap_or_else(|| "Unknown".to_string()),
+                repository.quality.maturity.freshness.as_str()
+            ),
+            &["maturity:"],
+            !goal_requires_maturity(goal),
+            actions,
+        ),
+        coverage_for_prefixes(
+            "workspaces",
+            "Workspaces",
+            &format!("{workspace_count} workspace(s) inspected for ownership, operations, dirt, sync, and remote freshness."),
+            &[
+                "branch_hygiene:activity:",
+                "branch_hygiene:operation:",
+                "branch_hygiene:dirty:",
+                "branch_hygiene:sync:",
+                "branch_hygiene:remote-freshness:",
+            ],
+            false,
+            actions,
+        ),
+        coverage_for_prefixes(
+            "branches",
+            "Branches and integration",
+            &format!(
+                "{} branch record(s); {} integration-eligible.",
+                repository.branches.len(),
+                eligible_branches
+            ),
+            &["branch_hygiene:integrate:"],
+            false,
+            actions,
+        ),
+        coverage_for_prefixes(
+            "submodules",
+            "Submodules",
+            &format!(
+                "{} submodule(s); {} require attention.",
+                repository.submodules.len(),
+                unhealthy_submodules
+            ),
+            &["repository_health:submodule:"],
+            repository.submodules.is_empty(),
+            actions,
+        ),
+        coverage_for_prefixes(
+            "conditions",
+            "Repository conditions",
+            &format!(
+                "{} condition(s); {} active.",
+                repository.conditions.len(),
+                active_conditions
+            ),
+            &["branch_hygiene:", "repository_health:condition:"],
+            false,
+            actions,
+        ),
+        coverage_for_prefixes(
+            "release_preparation",
+            "Release preparation",
+            &format!(
+                "Rule: {} · recipe: {} · confirmed version: {}.",
+                if repository.release_rule.is_some() {
+                    "configured"
+                } else {
+                    "missing"
+                },
+                if repository.release_recipe.is_some() {
+                    "configured"
+                } else {
+                    "missing"
+                },
+                repository
+                    .confirmed_release_version
+                    .as_deref()
+                    .unwrap_or("Unknown")
+            ),
+            &["scope:release-contract", "release_evidence:"],
+            goal.target_state != "public_release",
+            actions,
+        ),
+        coverage_for_prefixes(
+            "agent_permission",
+            "Agent permission",
+            &format!(
+                "Current repository permission: {}. This remains a safety boundary, not inferred remediation work.",
+                repository.ai_permission
+            ),
+            &[],
+            false,
+            actions,
+        ),
+        coverage_for_prefixes(
+            "analytics",
+            "Repository analytics",
+            "Historical activity and trend analytics are represented as informational evidence; they do not create remediation work by themselves.",
+            &[],
+            false,
+            actions,
+        ),
+    ];
+    debug_assert_eq!(
+        coverage
+            .iter()
+            .map(|entry| entry.surface.as_str())
+            .collect::<Vec<_>>(),
+        UI_TRACKED_SURFACE_IDS
+    );
+    coverage
+}
+
+fn coverage_for_prefixes(
+    surface: &str,
+    label: &str,
+    detail: &str,
+    prefixes: &[&str],
+    not_applicable: bool,
+    actions: &[RemediationAction],
+) -> RemediationCoverage {
+    let matching = actions
+        .iter()
+        .filter(|action| {
+            prefixes
+                .iter()
+                .any(|prefix| action.stable_key.starts_with(prefix))
+        })
+        .collect::<Vec<_>>();
+    let status = if not_applicable {
+        "not_applicable"
+    } else if matching.is_empty() {
+        "clear"
+    } else if matching.iter().any(|action| action.status == "blocked") {
+        "blocked"
+    } else if matching
+        .iter()
+        .any(|action| matches!(action.status.as_str(), "open" | "in_progress"))
+    {
+        "attention"
+    } else if matching.iter().any(|action| action.status == "deferred") {
+        "deferred"
+    } else {
+        "verified"
+    };
+    RemediationCoverage {
+        surface: surface.to_string(),
+        label: label.to_string(),
+        status: status.to_string(),
+        detail: detail.to_string(),
+        action_ids: matching.iter().map(|action| action.id.clone()).collect(),
+    }
+}
+
 fn evidence(
     source: &str,
     label: &str,
@@ -1150,10 +2736,18 @@ fn plan_status(actions: &[RemediationAction]) -> String {
             "open".to_string()
         };
     }
-    if actions.iter().all(|action| action.status == "deferred") && !actions.is_empty() {
-        return "deferred".to_string();
+    if !actions.is_empty()
+        && actions
+            .iter()
+            .all(|action| matches!(action.status.as_str(), "verified" | "deferred"))
+    {
+        return if actions.iter().any(|action| action.status == "deferred") {
+            "deferred".to_string()
+        } else {
+            "complete".to_string()
+        };
     }
-    if actions.is_empty() || actions.iter().all(|action| action.status == "verified") {
+    if actions.is_empty() {
         "complete".to_string()
     } else {
         "open".to_string()
@@ -1236,7 +2830,7 @@ fn severity_weight(severity: &str) -> u64 {
     }
 }
 
-fn freshness_for(observed_at: Option<&str>) -> String {
+fn freshness_for(observed_at: Option<&str>, max_age_days: u64) -> String {
     let Some(observed_at) = observed_at else {
         return "Unknown".to_string();
     };
@@ -1244,7 +2838,7 @@ fn freshness_for(observed_at: Option<&str>) -> String {
         return "Unknown".to_string();
     };
     let age = Utc::now() - timestamp.with_timezone(&Utc);
-    if age >= Duration::zero() && age <= Duration::days(7) {
+    if age >= Duration::zero() && age <= Duration::days(max_age_days as i64) {
         "Fresh".to_string()
     } else if age < Duration::zero() {
         "Unknown".to_string()
@@ -1603,6 +3197,122 @@ fn first_f64(value: &Value, paths: &[&[&str]]) -> Option<f64> {
     })
 }
 
+fn markdown_cell(value: &str) -> String {
+    value
+        .replace('|', "\\|")
+        .replace(['\r', '\n'], " ")
+        .trim()
+        .to_string()
+}
+
+fn first_active_action(plan: &RemediationPlan) -> Option<&RemediationAction> {
+    plan.actions
+        .iter()
+        .filter(|action| !matches!(action.status.as_str(), "verified" | "deferred"))
+        .min_by_key(|action| {
+            (
+                queue_domain_rank(&action.domain),
+                queue_priority_rank(&action.priority),
+                std::cmp::Reverse(action.weight),
+                action.title.to_ascii_lowercase(),
+            )
+        })
+}
+
+pub fn render_active_queue_markdown(run: &RemediationRun) -> String {
+    let mut output = format!(
+        "# Repository remediation order\n\n\
+Generated from `{}` at `{}`.\n\n\
+This is the active remediation queue, ranked from current Pronto evidence and \
+each repository's intended remediation outcome. Inferred goals remain active \
+until a repository-owned goal contract confirms them. \
+Each plan also classifies every repo-level surface tracked by the UI; unresolved \
+coverage entries link to concrete remediation actions. \
+Repositories leave the active table only after their plan reaches a terminal \
+evidence-backed disposition. Git, provider, publication, and pruning actions \
+still require their own authorization.\n\n\
+Ranking preserves plan status, the earliest unresolved remediation domain, \
+and action priority before fleet leverage. Pronto, AIOS, and Quality Runner \
+receive explicit control-plane or evidence-provider precedence before the \
+intended repository goal and raw action weight are used as tie-breakers.\n\n\
+## Active queue\n\n\
+Active repositories: **{}**. Retained closures: **{}**.\n\n\
+<!-- prettier-ignore -->\n\
+| Rank | Repository | Goal | Goal source | Status | Current stage | Leverage | Tracked gaps | Active actions | First safe action |\n\
+| ---: | --- | --- | --- | --- | --- | --- | ---: | ---: | --- |\n",
+        run.schema_version,
+        run.generated_at,
+        run.plans.len(),
+        run.closures.len()
+    );
+    if run.plans.is_empty() {
+        output.push_str("| — | _No active remediation remains_ | — | — | complete | complete | — | 0 | 0 | Refresh scoped evidence before treating this as current. |\n");
+    } else {
+        for (index, plan) in run.plans.iter().enumerate() {
+            let active_action_count = plan
+                .actions
+                .iter()
+                .filter(|action| !matches!(action.status.as_str(), "verified" | "deferred"))
+                .count();
+            let tracked_gap_count = plan
+                .coverage
+                .iter()
+                .filter(|entry| matches!(entry.status.as_str(), "attention" | "blocked"))
+                .count();
+            let first_action = first_active_action(plan)
+                .map(|action| action.title.as_str())
+                .unwrap_or("Refresh scoped evidence and recheck the plan.");
+            let leverage = queue_leverage(&plan.repository_name).1;
+            output.push_str(&format!(
+                "| {} | `{}` | {} | {} | {} | {} | {} | {} | {} | {} |\n",
+                index + 1,
+                markdown_cell(&plan.repository_name),
+                markdown_cell(&plan.goal.label),
+                markdown_cell(&plan.goal.source),
+                markdown_cell(&plan.status),
+                markdown_cell(&plan.current_stage),
+                markdown_cell(leverage),
+                tracked_gap_count,
+                active_action_count,
+                markdown_cell(first_action),
+            ));
+        }
+    }
+    output.push_str("\n## Closure ledger\n\n");
+    if run.closures.is_empty() {
+        output
+            .push_str("No repositories have left the active queue in this retained run history.\n");
+    } else {
+        output.push_str(
+            "<!-- prettier-ignore -->\n\
+| Repository | Goal | Goal source | Disposition | Closed at | Resolved actions | Evidence observed at | Summary |\n\
+| --- | --- | --- | --- | --- | ---: | --- | --- |\n",
+        );
+        for closure in &run.closures {
+            output.push_str(&format!(
+                "| `{}` | {} | {} | {} | `{}` | {} | {} | {} |\n",
+                markdown_cell(&closure.repository_name),
+                markdown_cell(&closure.target_state),
+                markdown_cell(&closure.goal_source),
+                markdown_cell(&closure.disposition),
+                markdown_cell(&closure.closed_at),
+                closure.resolved_action_count,
+                closure
+                    .last_evidence_at
+                    .as_deref()
+                    .map(markdown_cell)
+                    .unwrap_or_else(|| "Not recorded".to_string()),
+                markdown_cell(&closure.summary),
+            ));
+        }
+    }
+    output.push_str(
+        "\nA later refresh may return a repository to the active queue when new or \
+regressed evidence creates actionable work.\n",
+    );
+    output
+}
+
 pub fn export_run(run: &RemediationRun, output_dir: &Path) -> Result<RemediationExport, String> {
     fs::create_dir_all(output_dir)
         .map_err(|error| format!("Could not create remediation export directory: {error}"))?;
@@ -1610,11 +3320,24 @@ pub fn export_run(run: &RemediationRun, output_dir: &Path) -> Result<Remediation
     let manifest_path = output_dir.join("remediation-run.json");
     write_json(&manifest_path, run)?;
     files.push(manifest_path.to_string_lossy().to_string());
+    let markdown_path = output_dir.join("repository-remediation-order.md");
+    fs::write(&markdown_path, render_active_queue_markdown(run)).map_err(|error| {
+        format!(
+            "Could not write remediation queue {}: {error}",
+            markdown_path.display()
+        )
+    })?;
+    files.push(markdown_path.to_string_lossy().to_string());
     for plan in &run.plans {
         let file_name = format!("repo-{}.json", safe_file_component(&plan.repository_id));
         let plan_path = output_dir.join(file_name);
         write_json(&plan_path, plan)?;
         files.push(plan_path.to_string_lossy().to_string());
+    }
+    if !run.closures.is_empty() {
+        let closures_path = output_dir.join("remediation-closures.json");
+        write_json(&closures_path, &run.closures)?;
+        files.push(closures_path.to_string_lossy().to_string());
     }
     Ok(RemediationExport {
         run_id: run.id.clone(),
@@ -1650,7 +3373,10 @@ fn safe_file_component(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{BranchSummary, WorkspaceActivity, WorkspaceSummary};
+    use crate::core::{
+        ActivitySignal, BranchSummary, Condition, SubmoduleSummary, WorkspaceActivity,
+        WorkspaceSummary,
+    };
     use std::sync::atomic::{AtomicU64, Ordering};
 
     static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
@@ -1698,6 +3424,7 @@ mod tests {
             pull_requests: Vec::new(),
             releases: Vec::new(),
             quality: Default::default(),
+            project_compass: Default::default(),
             release_rule: None,
             release_recipe: None,
             confirmed_release_version: None,
@@ -1709,11 +3436,571 @@ mod tests {
         }
     }
 
+    fn fixture_action(
+        id: &str,
+        domain: &str,
+        priority: &str,
+        weight: u64,
+        status: &str,
+    ) -> RemediationAction {
+        RemediationAction {
+            id: id.to_string(),
+            stable_key: id.to_string(),
+            repository_id: "repo".to_string(),
+            domain: domain.to_string(),
+            title: format!("Action {id}"),
+            summary: String::new(),
+            severity: "test".to_string(),
+            priority: priority.to_string(),
+            weight,
+            status: status.to_string(),
+            acceptance_criteria: Vec::new(),
+            evidence: vec![evidence(
+                "Pronto",
+                "Fixture evidence",
+                "Passed",
+                "Fresh",
+                Some("2026-07-29T12:00:00Z"),
+                None,
+                "Fixture evidence is current.",
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: Some("refresh-1".to_string()),
+            updated_at: "2026-07-29T12:00:00Z".to_string(),
+            completed_at: (status == "verified").then(|| "2026-07-29T12:00:00Z".to_string()),
+            notes: None,
+        }
+    }
+
+    fn fixture_plan(
+        repository_name: &str,
+        status: &str,
+        actions: Vec<RemediationAction>,
+    ) -> RemediationPlan {
+        let repository_id = format!("repo-{repository_name}");
+        let mut goal =
+            goal_definition("active_maintained").expect("fixture goal should be supported");
+        goal.source = "repository_contract".to_string();
+        goal.confidence = "High".to_string();
+        goal.reason = "Fixture repository is actively maintained.".to_string();
+        RemediationPlan {
+            schema_version: REMEDIATION_SCHEMA.to_string(),
+            id: format!("plan-{repository_name}"),
+            repository_id,
+            repository_name: repository_name.to_string(),
+            repository_path: format!("/tmp/{repository_name}"),
+            generated_at: "2026-07-29T12:00:00Z".to_string(),
+            source_refresh_id: Some("refresh-1".to_string()),
+            goal,
+            current_stage: actions
+                .first()
+                .map(|action| action.domain.clone())
+                .unwrap_or_else(|| "complete".to_string()),
+            status: status.to_string(),
+            progress: calculate_progress(&actions),
+            coverage: Vec::new(),
+            tracks: build_tracks(&actions),
+            actions,
+        }
+    }
+
     #[test]
     fn excludes_in_progress_repositories_by_name() {
         assert!(is_excluded_repository(&fixture_repository("soundscape")));
         assert!(is_excluded_repository(&fixture_repository("tenure")));
         assert!(!is_excluded_repository(&fixture_repository("pronto")));
+    }
+
+    #[test]
+    fn terminal_plans_leave_the_active_queue_and_retain_a_closure() {
+        let mut run = empty_run();
+        run.plans = vec![fixture_plan(
+            "pronto",
+            "complete",
+            vec![fixture_action(
+                "verified",
+                "verification",
+                "P2",
+                1,
+                "verified",
+            )],
+        )];
+
+        normalize_queue(&mut run, "2026-07-29T13:00:00Z");
+
+        assert!(run.plans.is_empty());
+        assert_eq!(run.closures.len(), 1);
+        assert_eq!(run.closures[0].repository_name, "pronto");
+        assert_eq!(run.closures[0].disposition, "verified");
+        assert_eq!(run.closures[0].resolved_action_count, 1);
+        assert_eq!(
+            run.closures[0].last_evidence_at.as_deref(),
+            Some("2026-07-29T12:00:00Z")
+        );
+    }
+
+    #[test]
+    fn active_queue_ranks_preservation_before_later_quality_work() {
+        let mut run = empty_run();
+        run.plans = vec![
+            fixture_plan(
+                "quality",
+                "open",
+                vec![fixture_action("quality", "qr_findings", "P1", 8, "open")],
+            ),
+            fixture_plan(
+                "preserve",
+                "open",
+                vec![fixture_action(
+                    "preserve",
+                    "branch_hygiene",
+                    "P2",
+                    2,
+                    "open",
+                )],
+            ),
+        ];
+
+        normalize_queue(&mut run, "2026-07-29T13:00:00Z");
+
+        assert_eq!(run.plans[0].repository_name, "preserve");
+        assert_eq!(run.plans[1].repository_name, "quality");
+    }
+
+    #[test]
+    fn active_queue_uses_fleet_leverage_before_raw_action_weight() {
+        let mut run = empty_run();
+        run.plans = vec![
+            fixture_plan(
+                "ordinary-heavy-repo",
+                "open",
+                vec![fixture_action(
+                    "many-findings",
+                    "scope",
+                    "P1",
+                    10_000,
+                    "open",
+                )],
+            ),
+            fixture_plan(
+                "quality-runner",
+                "open",
+                vec![fixture_action(
+                    "evidence-provider",
+                    "scope",
+                    "P1",
+                    3,
+                    "open",
+                )],
+            ),
+            fixture_plan(
+                "AIOS",
+                "open",
+                vec![fixture_action("coordination", "scope", "P1", 2, "open")],
+            ),
+            fixture_plan(
+                "pronto",
+                "open",
+                vec![fixture_action("control-plane", "scope", "P1", 1, "open")],
+            ),
+        ];
+
+        normalize_queue(&mut run, "2026-07-29T13:00:00Z");
+
+        assert_eq!(
+            run.plans
+                .iter()
+                .map(|plan| plan.repository_name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["pronto", "AIOS", "quality-runner", "ordinary-heavy-repo"]
+        );
+    }
+
+    #[test]
+    fn active_queue_keeps_blocked_work_ahead_of_fleet_leverage() {
+        let mut run = empty_run();
+        run.plans = vec![
+            fixture_plan(
+                "pronto",
+                "open",
+                vec![fixture_action("control-plane", "scope", "P1", 100, "open")],
+            ),
+            fixture_plan(
+                "ordinary-blocker",
+                "blocked",
+                vec![fixture_action("blocker", "scope", "P1", 1, "open")],
+            ),
+        ];
+
+        normalize_queue(&mut run, "2026-07-29T13:00:00Z");
+
+        assert_eq!(run.plans[0].repository_name, "ordinary-blocker");
+        assert_eq!(run.plans[1].repository_name, "pronto");
+    }
+
+    #[test]
+    fn active_queue_uses_fleet_leverage_before_repository_goal() {
+        let mut release = fixture_plan(
+            "ordinary-public-release",
+            "open",
+            vec![fixture_action("release", "scope", "P1", 100, "open")],
+        );
+        release.goal =
+            goal_definition("public_release").expect("public release goal should be supported");
+        let mut run = empty_run();
+        run.plans = vec![
+            release,
+            fixture_plan(
+                "pronto",
+                "open",
+                vec![fixture_action("control-plane", "scope", "P1", 1, "open")],
+            ),
+        ];
+
+        normalize_queue(&mut run, "2026-07-29T13:00:00Z");
+
+        assert_eq!(run.plans[0].repository_name, "pronto");
+        assert_eq!(run.plans[1].repository_name, "ordinary-public-release");
+    }
+
+    #[test]
+    fn active_queue_uses_goal_priority_within_the_same_safety_stage() {
+        let mut release = fixture_plan(
+            "release",
+            "open",
+            vec![fixture_action(
+                "release-provider",
+                "provider",
+                "P1",
+                2,
+                "open",
+            )],
+        );
+        release.goal = goal_definition("public_release").expect("release goal should be supported");
+        let mut clean = fixture_plan(
+            "clean",
+            "open",
+            vec![fixture_action(
+                "clean-provider",
+                "provider",
+                "P1",
+                2,
+                "open",
+            )],
+        );
+        clean.goal = goal_definition("clean_only").expect("clean goal should be supported");
+        let mut run = empty_run();
+        run.plans = vec![clean, release];
+
+        normalize_queue(&mut run, "2026-07-29T13:00:00Z");
+
+        assert_eq!(run.plans[0].repository_name, "release");
+        assert_eq!(run.plans[1].repository_name, "clean");
+    }
+
+    #[test]
+    fn repository_goal_contract_controls_required_gates_and_freshness() {
+        let fixture_id = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!("pronto-goal-contract-{fixture_id}"));
+        let contract_dir = root.join(".pronto");
+        fs::create_dir_all(&contract_dir).expect("goal fixture should be writable");
+        fs::write(
+            contract_dir.join("remediation-goal.json"),
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema_version": REMEDIATION_GOAL_SCHEMA,
+                "target_state": "clean_only",
+                "reason": "This utility only needs a clean, preserved canonical branch.",
+                "additional_required_gate_ids": ["tests"],
+                "optional_gate_ids": ["secrets_scan"],
+                "evidence_max_age_days": 21
+            }))
+            .expect("goal fixture should encode"),
+        )
+        .expect("goal contract should be writable");
+        let mut repository = fixture_repository("goal-contract");
+        repository.path = root.to_string_lossy().to_string();
+        repository.workspace.path = repository.path.clone();
+
+        let goal = resolve_goal_profile(&repository);
+
+        assert_eq!(goal.target_state, "clean_only");
+        assert_eq!(goal.source, "repository_contract");
+        assert_eq!(goal.evidence_max_age_days, 21);
+        assert_eq!(goal.required_gate_ids, vec!["tests"]);
+        assert!(goal.optional_gate_ids.contains(&"secrets_scan".to_string()));
+        fs::remove_dir_all(root).expect("goal fixture should be removable");
+    }
+
+    #[test]
+    fn clean_only_goal_does_not_inherit_universal_quality_or_maturity_work() {
+        let fixture_id = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!("pronto-clean-goal-{fixture_id}"));
+        let contract_dir = root.join(".pronto");
+        fs::create_dir_all(&contract_dir).expect("goal fixture should be writable");
+        fs::write(
+            contract_dir.join("remediation-goal.json"),
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema_version": REMEDIATION_GOAL_SCHEMA,
+                "target_state": "clean_only",
+                "reason": "This repository only needs clean preservation."
+            }))
+            .expect("goal fixture should encode"),
+        )
+        .expect("goal contract should be writable");
+        let mut repository = fixture_repository("clean-only");
+        repository.path = root.to_string_lossy().to_string();
+        repository.workspace.path = repository.path.clone();
+
+        let plan = build_plan(
+            &repository,
+            None,
+            Some("refresh-clean"),
+            "2026-07-29T12:00:00Z",
+            None,
+        );
+
+        assert_eq!(plan.goal.target_state, "clean_only");
+        assert!(plan.actions.iter().all(|action| !matches!(
+            action.domain.as_str(),
+            "evidence_refresh" | "ci_ideal" | "maturity"
+        )));
+        fs::remove_dir_all(root).expect("goal fixture should be removable");
+    }
+
+    #[test]
+    fn missing_goal_contract_stays_visible_as_confirmation_work() {
+        let repository = fixture_repository("inferred-goal");
+
+        let run = rebuild_run(&[repository], &empty_run(), Some("refresh-goal"));
+        let plan = &run.plans[0];
+
+        assert_eq!(plan.goal.source, "inferred");
+        assert!(plan
+            .actions
+            .iter()
+            .any(|action| action.stable_key == "scope:confirm-remediation-goal"));
+    }
+
+    #[test]
+    fn plan_covers_every_repo_level_ui_surface_with_linked_gap_actions() {
+        let mut repository = fixture_repository("ui-coverage");
+        repository.workspace.dirty = true;
+        repository.workspace.sync_state = "Ahead by 1".to_string();
+        repository.workspace.remote_freshness = "Not fetched by Pronto".to_string();
+        repository.workspace.operation = Some("rebase".to_string());
+        repository.workspace.integration_state = "Integration eligible".to_string();
+        repository.workspace.activity.state = "Active".to_string();
+        repository.branches.push(BranchSummary {
+            name: "feature/coverage".to_string(),
+            role: "Feature".to_string(),
+            role_confidence: "High".to_string(),
+            target_branch: Some("dev".to_string()),
+            target_confidence: "High".to_string(),
+            ahead: 1,
+            behind: 0,
+            integration_state: "Integration eligible".to_string(),
+            workspace_id: None,
+            last_commit: Some("def".to_string()),
+            last_commit_at: Some(Utc::now().to_rfc3339()),
+        });
+        repository.submodules.push(SubmoduleSummary {
+            path: "vendor/example".to_string(),
+            commit: Some("123".to_string()),
+            status: "Modified commit".to_string(),
+        });
+        repository.conditions.push(Condition {
+            id: "condition-custom".to_string(),
+            kind: "new-ui-condition".to_string(),
+            title: "New UI condition".to_string(),
+            summary: "A newly tracked condition needs a remediation disposition.".to_string(),
+            priority: 1,
+            status: "Active".to_string(),
+            fingerprint: "condition-custom".to_string(),
+            rule: "fixture".to_string(),
+            evidence: Vec::new(),
+            missing: Vec::new(),
+            confidence: Some("High".to_string()),
+            freshness: Some("Fresh".to_string()),
+        });
+
+        let plan = build_plan(
+            &repository,
+            None,
+            Some("refresh-coverage"),
+            "2026-07-29T12:00:00Z",
+            None,
+        );
+
+        assert_eq!(
+            plan.coverage
+                .iter()
+                .map(|entry| entry.surface.as_str())
+                .collect::<Vec<_>>(),
+            UI_TRACKED_SURFACE_IDS
+        );
+        assert!(plan
+            .coverage
+            .iter()
+            .filter(|entry| matches!(entry.status.as_str(), "attention" | "blocked"))
+            .all(|entry| !entry.action_ids.is_empty()));
+        for stable_key in [
+            "product_truth:project-compass",
+            "branch_hygiene:activity:workspace-ui-coverage",
+            "branch_hygiene:operation:workspace-ui-coverage",
+            "branch_hygiene:remote-freshness:workspace-ui-coverage",
+            "branch_hygiene:integrate:feature/coverage",
+            "repository_health:submodule:vendor/example",
+            "repository_health:condition:condition-custom",
+        ] {
+            assert!(
+                plan.actions
+                    .iter()
+                    .any(|action| action.stable_key == stable_key),
+                "missing action {stable_key}"
+            );
+        }
+    }
+
+    #[test]
+    fn dirty_workspace_without_an_owner_does_not_create_an_ownership_blocker() {
+        let mut repository = fixture_repository("dirty-without-owner");
+        repository.workspace.dirty = true;
+        repository.workspace.activity = WorkspaceActivity {
+            state: "Interrupted with dirty work".to_string(),
+            confidence: "Medium".to_string(),
+            signals: vec![ActivitySignal {
+                source: "Process".to_string(),
+                summary: "No associated process detected".to_string(),
+                confidence: "Medium".to_string(),
+                observed_at: Utc::now().to_rfc3339(),
+                process_name: None,
+                process_id: None,
+                started_at: None,
+                working_directory: None,
+            }],
+            manifest: None,
+        };
+
+        let plan = build_plan(
+            &repository,
+            None,
+            Some("refresh-dirty"),
+            "2026-07-29T18:00:00Z",
+            None,
+        );
+
+        assert!(plan.actions.iter().any(|action| {
+            action.stable_key == "branch_hygiene:dirty:workspace-dirty-without-owner"
+        }));
+        assert!(!plan.actions.iter().any(|action| {
+            action.stable_key == "branch_hygiene:activity:workspace-dirty-without-owner"
+        }));
+    }
+
+    #[test]
+    fn verified_and_deferred_actions_form_a_terminal_deferred_plan() {
+        let actions = vec![
+            fixture_action("verified", "qr_findings", "P1", 3, "verified"),
+            fixture_action("deferred", "maturity", "P2", 2, "deferred"),
+        ];
+
+        assert_eq!(plan_status(&actions), "deferred");
+        assert_eq!(current_stage(&actions), "complete");
+    }
+
+    #[test]
+    fn markdown_export_separates_active_queue_from_closure_history() {
+        let mut run = empty_run();
+        run.generated_at = "2026-07-29T13:00:00Z".to_string();
+        run.plans = vec![fixture_plan(
+            "active-repo",
+            "open",
+            vec![fixture_action(
+                "preserve",
+                "branch_hygiene",
+                "P1",
+                2,
+                "open",
+            )],
+        )];
+        run.closures = vec![closure_from_plan(
+            &fixture_plan(
+                "closed-repo",
+                "complete",
+                vec![fixture_action(
+                    "verified",
+                    "verification",
+                    "P2",
+                    1,
+                    "verified",
+                )],
+            ),
+            "2026-07-29T13:00:00Z",
+            Some("refresh-1"),
+        )];
+
+        let markdown = render_active_queue_markdown(&run);
+
+        assert!(markdown.contains(
+            "| 1 | `active-repo` | Active maintained repository | repository_contract | open |"
+        ));
+        assert!(markdown
+            .contains("| `closed-repo` | active_maintained | repository_contract | verified |"));
+        assert!(!markdown.contains("| 2 | `closed-repo` |"));
+    }
+
+    #[test]
+    fn remediation_export_writes_markdown_and_retained_closure_data() {
+        let fixture_id = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let output_dir =
+            std::env::temp_dir().join(format!("pronto-remediation-export-{fixture_id}"));
+        let mut run = empty_run();
+        run.id = "run-export".to_string();
+        run.generated_at = "2026-07-29T13:00:00Z".to_string();
+        run.plans = vec![fixture_plan(
+            "active-repo",
+            "open",
+            vec![fixture_action(
+                "preserve",
+                "branch_hygiene",
+                "P1",
+                2,
+                "open",
+            )],
+        )];
+        run.closures = vec![closure_from_plan(
+            &fixture_plan(
+                "closed-repo",
+                "complete",
+                vec![fixture_action(
+                    "verified",
+                    "verification",
+                    "P2",
+                    1,
+                    "verified",
+                )],
+            ),
+            "2026-07-29T13:00:00Z",
+            Some("refresh-1"),
+        )];
+
+        let exported = export_run(&run, &output_dir).expect("queue export should succeed");
+
+        assert!(exported
+            .files
+            .iter()
+            .any(|path| path.ends_with("repository-remediation-order.md")));
+        assert!(exported
+            .files
+            .iter()
+            .any(|path| path.ends_with("remediation-closures.json")));
+        let markdown = fs::read_to_string(output_dir.join("repository-remediation-order.md"))
+            .expect("markdown queue should be readable");
+        assert!(markdown.contains("| 1 | `active-repo` | Active maintained repository |"));
+        assert!(markdown
+            .contains("| `closed-repo` | active_maintained | repository_contract | verified |"));
+
+        fs::remove_dir_all(output_dir).expect("export fixture should be removable");
     }
 
     #[test]

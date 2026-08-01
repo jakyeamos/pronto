@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
   Clock3,
+  Compass,
   GitBranch,
   ShieldCheck,
 } from "lucide-react";
@@ -72,6 +73,16 @@ export function RepositoryRow({
               className={workspace.sync_state !== "Synced" ? "fact-warn" : ""}
             >
               {workspace.sync_state}
+            </span>
+            <span
+              className={
+                repository.project_compass.status === "Ready" ? "" : "fact-warn"
+              }
+            >
+              <Compass size={13} />
+              {repository.project_compass.status === "Ready"
+                ? `MVP ${repository.project_compass.mvp.progress_percent ?? "unknown"}%`
+                : `Compass ${repository.project_compass.status.toLowerCase()}`}
             </span>
           </div>
         </div>

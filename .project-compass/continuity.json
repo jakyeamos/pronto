@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "revision": 1,
+  "commitments": [
+    {
+      "id": "fleet-remediation-ui-coverage",
+      "kind": "decision",
+      "statement": "Every active repository remediation plan must explicitly disposition every repository-level surface tracked in the Pronto UI; evidence-backed completion leaves the active queue and remains visible in retained closures.",
+      "status": "active",
+      "source": {
+        "ref": "conversation:2026-07-29:fleet-remediation-coverage",
+        "note": "The user clarified that UI-plan parity is a fleet-wide invariant rather than a Pronto-only improvement.",
+        "observed_at": "2026-07-29T17:43:37Z"
+      }
+    },
+    {
+      "id": "safe-remediation-order",
+      "kind": "decision",
+      "statement": "Repository remediation proceeds by preserving ownership and unpublished work, reconciling and stabilizing the canonical target, folding wanted work, verifying, publishing, then pruning proven redundancy and refreshing evidence.",
+      "status": "active",
+      "source": {
+        "ref": "conversation:2026-07-29:remediation-order",
+        "note": "The user approved making this order available to Pronto-guided agents.",
+        "observed_at": "2026-07-29T17:43:37Z"
+      }
+    }
+  ],
+  "reconciliations": [],
+  "updated_at": "2026-07-29T17:43:37Z"
+}

@@ -208,12 +208,22 @@ impl Default for QualityFindings {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QualityMaturityGap {
+    pub dimension: String,
+    pub status: String,
+    pub score: Option<f64>,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QualityMaturity {
     pub score: Option<f64>,
     pub score_display: Option<String>,
     pub scored_dimension_count: Option<u64>,
     #[serde(default)]
     pub dimension_scores: BTreeMap<String, f64>,
+    #[serde(default)]
+    pub gaps: Vec<QualityMaturityGap>,
     pub audit_id: Option<String>,
     pub observed_at: Option<String>,
     pub freshness: QualityFreshness,
@@ -227,6 +237,7 @@ impl Default for QualityMaturity {
             score_display: None,
             scored_dimension_count: None,
             dimension_scores: BTreeMap::new(),
+            gaps: Vec::new(),
             audit_id: None,
             observed_at: None,
             freshness: QualityFreshness::Unknown,
@@ -490,6 +501,7 @@ pub fn fleet_audit_import(
             score_display: score.map(|value| format!("{value:.3}")),
             scored_dimension_count: Some(dimension_scores.len() as u64),
             dimension_scores,
+            gaps: fleet_maturity_gaps(&findings),
             audit_id: Some(run_id.clone()),
             observed_at: run_observed_at.clone(),
             freshness: evaluate_audit_freshness_at(run_observed_at.as_deref(), Utc::now()),
@@ -1198,6 +1210,7 @@ pub fn audit_import(root: Option<&Path>, repositories: &[RepositorySnapshot]) ->
                 score_display: finding.mean_maturity_display.clone(),
                 scored_dimension_count: finding.scored_dimension_count,
                 dimension_scores: finding.dimension_scores.clone(),
+                gaps: Vec::new(),
                 audit_id: run.audit_id.clone(),
                 observed_at: run.as_of.clone(),
                 freshness: evaluate_audit_freshness_at(run.as_of.as_deref(), Utc::now()),
@@ -1330,6 +1343,34 @@ pub fn maturity_feed_import(
                         .filter_map(|(dimension, score)| {
                             score.as_f64().map(|value| (dimension.clone(), value))
                         })
+                        .collect()
+                })
+                .unwrap_or_default(),
+            gaps: projection
+                .get("dimension_gaps")
+                .and_then(Value::as_array)
+                .map(|gaps| {
+                    gaps.iter()
+                        .filter_map(|gap| {
+                            let gap = gap.as_object()?;
+                            Some(QualityMaturityGap {
+                                dimension: gap.get("dimension")?.as_str()?.to_string(),
+                                status: gap
+                                    .get("status")
+                                    .and_then(Value::as_str)
+                                    .unwrap_or("unknown")
+                                    .to_string(),
+                                score: gap.get("score").and_then(Value::as_f64),
+                                message: gap
+                                    .get("message")
+                                    .and_then(Value::as_str)
+                                    .unwrap_or("Evidence is incomplete.")
+                                    .chars()
+                                    .take(240)
+                                    .collect(),
+                            })
+                        })
+                        .take(16)
                         .collect()
                 })
                 .unwrap_or_default(),
@@ -2235,6 +2276,38 @@ fn fleet_dimension_scores(findings: &[Value]) -> (BTreeMap<String, f64>, Option<
     (scores, mean)
 }
 
+fn fleet_maturity_gaps(findings: &[Value]) -> Vec<QualityMaturityGap> {
+    findings
+        .iter()
+        .filter(|finding| {
+            finding.get("status").and_then(Value::as_str) != Some("not_applicable")
+                && finding
+                    .get("score")
+                    .and_then(Value::as_f64)
+                    .is_none_or(|score| score < 4.0)
+        })
+        .filter_map(|finding| {
+            Some(QualityMaturityGap {
+                dimension: finding.get("dimension")?.as_str()?.to_string(),
+                status: finding
+                    .get("status")
+                    .and_then(Value::as_str)
+                    .unwrap_or("unknown")
+                    .to_string(),
+                score: finding.get("score").and_then(Value::as_f64),
+                message: finding
+                    .get("message")
+                    .and_then(Value::as_str)
+                    .unwrap_or("Evidence is incomplete.")
+                    .chars()
+                    .take(240)
+                    .collect(),
+            })
+        })
+        .take(16)
+        .collect()
+}
+
 fn fleet_severity_counts(findings: &[Value]) -> BTreeMap<String, u64> {
     let mut counts = BTreeMap::new();
     for finding in findings {
@@ -2446,6 +2519,12 @@ mod tests {
                 "maturity_score": 3.5,
                 "maturity_status": "not_certified",
                 "dimension_scores": {"architecture_boundaries": 3.5},
+                "dimension_gaps": [{
+                    "dimension": "change_surface_coverage",
+                    "status": "missing",
+                    "score": 0,
+                    "message": "No repository-owned change-surface matrix was found."
+                }],
                 "quality_status": "healthy",
                 "finding_count": 0,
                 "blocker_count": 0,
@@ -2497,6 +2576,11 @@ mod tests {
         );
         assert_eq!(imported.portfolio.matched_repository_count, 1);
         assert_eq!(imported.maturities[&repository.id].score, Some(3.5));
+        assert_eq!(imported.maturities[&repository.id].gaps.len(), 1);
+        assert_eq!(
+            imported.maturities[&repository.id].gaps[0].dimension,
+            "change_surface_coverage"
+        );
         assert_eq!(
             imported.maturities[&repository.id].freshness,
             QualityFreshness::Fresh
