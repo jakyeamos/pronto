@@ -91,6 +91,16 @@ AIOS, and Quality Runner; repository goal and raw action weight are later
 tie-breakers. `remediation export` writes the JSON contracts plus
 `repository-remediation-order.md`.
 
+`remediation refresh` closes its quality-import checkpoint only when the
+canonical QR feed is published and every eligible repository whose goal
+requires maturity has a fresh repository-level score. A replay-validated
+scoped audit may supply that repository evidence when the repository lives
+outside the canonical projects root. Pronto retains that scoped audit
+provenance across later local or provider refreshes; the remediation plan,
+repository projection, and UI must all read the same imported maturity
+snapshot. Missing or stale applicable scores leave the refresh `partial` and
+the `quality_import` step `blocked` with the affected repositories named.
+
 ## Refresh and state boundaries
 
 Use `refresh <repository> --json` when the persisted snapshot is stale or after

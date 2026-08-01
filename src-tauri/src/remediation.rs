@@ -227,9 +227,6 @@ struct QrRunEvidence {
     run_dir: PathBuf,
     observed_at: Option<String>,
     findings: Vec<ParsedFinding>,
-    maturity_score: Option<f64>,
-    dimension_scores: BTreeMap<String, f64>,
-    maturity_report_path: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -555,6 +552,10 @@ fn goal_requires_maturity(goal: &RemediationGoalProfile) -> bool {
         goal.target_state.as_str(),
         "public_release" | "deployed_product" | "active_maintained"
     )
+}
+
+pub(crate) fn repository_requires_maturity(repository: &RepositorySnapshot) -> bool {
+    goal_requires_maturity(&resolve_goal_profile(repository))
 }
 
 fn goal_queue_rank(target_state: &str) -> u8 {
@@ -955,7 +956,7 @@ fn build_plan(
     add_branch_hygiene_seeds(repository, &mut seeds);
     add_submodule_seeds(repository, &mut seeds);
     if goal_requires_maturity(&goal) {
-        add_maturity_seeds(repository, qr_run.as_ref(), &goal, &mut seeds);
+        add_maturity_seeds(repository, &mut seeds);
     }
 
     if !seeds.is_empty() {
@@ -2162,44 +2163,12 @@ fn add_submodule_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSe
     }
 }
 
-fn add_maturity_seeds(
-    repository: &RepositorySnapshot,
-    qr_run: Option<&QrRunEvidence>,
-    goal: &RemediationGoalProfile,
-    seeds: &mut Vec<ActionSeed>,
-) {
+fn add_maturity_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
     let maturity = &repository.quality.maturity;
-    let score = maturity
-        .score
-        .or_else(|| qr_run.and_then(|run| run.maturity_score));
-    let observed_at = maturity
-        .observed_at
-        .as_deref()
-        .or_else(|| qr_run.and_then(|run| run.observed_at.as_deref()));
-    let report_path = maturity
-        .report_path
-        .as_deref()
-        .or_else(|| qr_run.and_then(|run| run.maturity_report_path.as_deref()));
-    let freshness = if maturity.score.is_some() {
-        maturity.freshness.as_str().to_string()
-    } else {
-        qr_run
-            .map(|run| freshness_for(run.observed_at.as_deref(), goal.evidence_max_age_days))
-            .unwrap_or_else(|| "Unknown".to_string())
-    };
-    let empty_dimensions = BTreeMap::new();
-    let dimension_scores = if maturity.dimension_scores.is_empty() {
-        qr_run
-            .map(|run| &run.dimension_scores)
-            .unwrap_or(&empty_dimensions)
-    } else {
-        &maturity.dimension_scores
-    };
-    let audit_id = maturity
-        .audit_id
-        .clone()
-        .or_else(|| qr_run.map(|run| run.id.clone()));
-    match score {
+    let freshness = maturity.freshness.as_str().to_string();
+    let observed_at = maturity.observed_at.as_deref();
+    let report_path = maturity.report_path.as_deref();
+    match maturity.score {
         None => seeds.push(maturity_seed(
             "maturity:score",
             "Get a current maturity score",
@@ -2232,7 +2201,7 @@ fn add_maturity_seeds(
         )),
         Some(_) => {}
     }
-    for (dimension, score) in dimension_scores {
+    for (dimension, score) in &maturity.dimension_scores {
         if *score < MATURITY_TARGET {
             seeds.push(ActionSeed {
                 stable_key: format!("maturity:dimension:{dimension}"),
@@ -2244,10 +2213,10 @@ fn add_maturity_seeds(
                 weight: 2,
                 acceptance_criteria: vec![
                     format!("Address the evidence-backed gaps for {dimension}."),
-                    format!("A fresh maturity feed reports {dimension} at or above {MATURITY_TARGET:.1}/4."),
+                    format!("Fresh imported maturity evidence reports {dimension} at or above {MATURITY_TARGET:.1}/4."),
                 ],
                 evidence: vec![evidence(
-                    "Quality Runner maturity feed",
+                    "Quality Runner maturity evidence",
                     &format!("Maturity dimension · {dimension}"),
                     &format!("{score:.3}/4"),
                     &freshness,
@@ -2256,7 +2225,7 @@ fn add_maturity_seeds(
                     "Dimension-level score imported from the latest QR maturity evidence.",
                 )],
                 related_finding_ids: Vec::new(),
-                source_run_id: audit_id.clone(),
+                source_run_id: maturity.audit_id.clone(),
             });
         }
     }
@@ -2281,11 +2250,11 @@ fn maturity_seed(
         priority: if weight >= 3 { "P1" } else { "P2" }.to_string(),
         weight,
         acceptance_criteria: vec![
-            "The canonical maturity feed is refreshed after the relevant work.".to_string(),
+            "Quality Runner maturity evidence is refreshed after the relevant work.".to_string(),
             format!("The resulting maturity evidence is fresh and at or above {MATURITY_TARGET:.1}/4 where applicable."),
         ],
         evidence: vec![evidence(
-            "Quality Runner maturity feed",
+            "Quality Runner maturity evidence",
             "Repository maturity",
             status,
             freshness,
@@ -2894,9 +2863,6 @@ fn latest_local_qr_run(repository_path: &Path) -> Option<QrRunEvidence> {
                 run_dir: run_dir.clone(),
                 observed_at,
                 findings: parse_findings(&run_dir),
-                maturity_score: None,
-                dimension_scores: BTreeMap::new(),
-                maturity_report_path: None,
             })
         })
         .collect::<Vec<_>>();
@@ -2938,7 +2904,6 @@ fn fleet_qr_run(repository_path: &Path, fleet_audit_root: Option<&Path>) -> Opti
                 return None;
             }
             let findings = parse_fleet_findings(&path, &payload);
-            let (dimension_scores, derived_score) = fleet_dimension_scores(&payload);
             let observed_at = first_string(&payload, &[&["as_of"]]).or(summary_observed_at.clone());
             let id = first_string(&payload, &[&["audit_id"], &["id"]])
                 .or(summary_id.clone())
@@ -2948,10 +2913,6 @@ fn fleet_qr_run(repository_path: &Path, fleet_audit_root: Option<&Path>) -> Opti
                 run_dir: root.to_path_buf(),
                 observed_at,
                 findings,
-                maturity_score: first_f64(&payload, &[&["mean_maturity"], &["maturity_score"]])
-                    .or(derived_score),
-                dimension_scores,
-                maturity_report_path: Some(path.to_string_lossy().to_string()),
             })
         })
         .collect::<Vec<_>>();
@@ -3063,36 +3024,6 @@ fn first_array_string(value: &Value, key: &str) -> Option<String> {
         .map(str::to_string)
 }
 
-fn fleet_dimension_scores(payload: &Value) -> (BTreeMap<String, f64>, Option<f64>) {
-    if let Some(scores) = payload.get("dimension_scores").and_then(Value::as_object) {
-        let scores = scores
-            .iter()
-            .filter_map(|(dimension, score)| score.as_f64().map(|value| (dimension.clone(), value)))
-            .collect::<BTreeMap<_, _>>();
-        let mean = (!scores.is_empty()).then(|| scores.values().sum::<f64>() / scores.len() as f64);
-        return (scores, mean);
-    }
-    let scores = payload
-        .get("findings")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter(|finding| {
-            !finding
-                .get("applicable")
-                .and_then(Value::as_bool)
-                .is_some_and(|applicable| !applicable)
-        })
-        .filter_map(|finding| {
-            let dimension = finding.get("dimension").and_then(Value::as_str)?;
-            let score = finding.get("score").and_then(Value::as_f64)?;
-            Some((dimension.to_string(), score))
-        })
-        .collect::<BTreeMap<_, _>>();
-    let mean = (!scores.is_empty()).then(|| scores.values().sum::<f64>() / scores.len() as f64);
-    (scores, mean)
-}
-
 fn parse_findings(run_dir: &Path) -> Vec<ParsedFinding> {
     let mut findings = Vec::new();
     for file_name in ["code-quality-scan.json", "quality-audit.json"] {
@@ -3184,16 +3115,6 @@ fn first_u64(value: &Value, paths: &[&[&str]]) -> Option<u64> {
             current = current.get(*segment)?;
         }
         current.as_u64()
-    })
-}
-
-fn first_f64(value: &Value, paths: &[&[&str]]) -> Option<f64> {
-    paths.iter().find_map(|path| {
-        let mut current = value;
-        for segment in *path {
-            current = current.get(*segment)?;
-        }
-        current.as_f64()
     })
 }
 
@@ -4060,7 +3981,7 @@ mod tests {
     }
 
     #[test]
-    fn fleet_qr_artifact_supplies_findings_and_maturity_to_plan() {
+    fn fleet_qr_artifact_supplies_findings_but_not_private_maturity_to_plan() {
         let fixture_id = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
         let root = std::env::temp_dir().join(format!("pronto-remediation-fleet-{fixture_id}"));
         let repository_path = root.join("repo");
@@ -4121,13 +4042,16 @@ mod tests {
             .actions
             .iter()
             .any(|action| action.stable_key.starts_with("qr_findings:group:")));
-        assert!(plan.actions.iter().any(
-            |action| action.stable_key == "maturity:score" && action.summary.contains("2.000")
-        ));
-        assert!(plan
+        assert!(plan.actions.iter().any(|action| {
+            action.stable_key == "maturity:score"
+                && action
+                    .summary
+                    .contains("No repository maturity score is available")
+        }));
+        assert!(!plan
             .actions
             .iter()
-            .any(|action| action.stable_key == "maturity:dimension:quality_commands"));
+            .any(|action| action.stable_key.starts_with("maturity:dimension:")));
         assert!(!plan
             .actions
             .iter()
