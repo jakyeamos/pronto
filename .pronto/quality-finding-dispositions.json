@@ -1,6 +1,6 @@
 {
   "schema_version": "pronto-quality-finding-dispositions/v1",
-  "updated_at": "2026-07-29T20:02:14.270Z",
+  "updated_at": "2026-08-01T22:48:13.878228+00:00",
   "dispositions": [
     {
       "fingerprint": "0565be578c4cb1b5",
@@ -647,6 +647,18 @@
       "expires_at": null
     },
     {
+      "fingerprint": "3bb2252948b10301",
+      "status": "confirmed",
+      "reason": "The workspace sync heading uses raw 2px and 4px margins outside the detected spacing scale. The styling is current and remains actionable for token or scale alignment.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-08-01T22:46:21.255445+00:00",
+      "evidence": [
+        "src/renderer/src/styles.css:2641",
+        ".quality-runner/runs/pronto-remediation-20260801-final2/code-quality-scan.json#CQ-0217"
+      ],
+      "expires_at": null
+    },
+    {
       "fingerprint": "3cbff1e5e8575e85",
       "status": "confirmed",
       "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 28 occurrences at src/renderer/src/styles.css:159, src/renderer/src/styles.css:534, src/renderer/src/styles.css:877, src/renderer/src/styles.css:1292, src/renderer/src/styles.css:1368, src/renderer/src/styles.css:1707, src/renderer/src/styles.css:1728, src/renderer/src/styles.css:2057 and 20 more locations. Detector evidence: gap: 7px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
@@ -783,6 +795,18 @@
       "evidence": [
         "src/renderer/src/styles.css:2293",
         ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0192"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "42f15a4c90efde9b",
+      "status": "false_positive",
+      "reason": "WorkspaceSyncDetailView is invoked in Drawers.tsx and imported by the dedicated renderer test. The no-reference detector missed those scanned source consumers.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-08-01T22:47:17.759030+00:00",
+      "evidence": [
+        "src/renderer/src/components/Drawers.tsx:525",
+        "src/renderer/src/components/WorkspaceSyncDetail.test.tsx:5"
       ],
       "expires_at": null
     },
@@ -1415,6 +1439,18 @@
       "expires_at": null
     },
     {
+      "fingerprint": "8d330faee97273da",
+      "status": "accepted_intentional",
+      "reason": "These Project Compass references preserve the exact repository-scoped command executed as historical verification evidence. The contract is local product truth, not a contributor setup instruction.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-08-01T22:48:13.878228+00:00",
+      "evidence": [
+        ".project-compass/contract.json:209",
+        ".project-compass/contract.json:381"
+      ],
+      "expires_at": null
+    },
+    {
       "fingerprint": "8d80aa2fee7a362a",
       "status": "confirmed",
       "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:1176. Detector evidence: padding: 17px 10px 16px 20px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
@@ -1649,6 +1685,18 @@
       "expires_at": null
     },
     {
+      "fingerprint": "9b32e7daf7b283c4",
+      "status": "confirmed",
+      "reason": "The workspace sync command block uses raw 7px padding outside the detected spacing scale. The styling is current and remains actionable for token or scale alignment.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-08-01T22:46:49.236372+00:00",
+      "evidence": [
+        "src/renderer/src/styles.css:2684",
+        ".quality-runner/runs/pronto-remediation-20260801-final2/code-quality-scan.json#CQ-0219"
+      ],
+      "expires_at": null
+    },
+    {
       "fingerprint": "9b8c1503301faa8c",
       "status": "confirmed",
       "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: one occurrence at src/renderer/src/styles.css:2691. Detector evidence: padding-top: 17px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
@@ -1693,6 +1741,18 @@
       "evidence": [
         "src/renderer/src/styles.css:5063",
         ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0381"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "9eb6966b8769554e",
+      "status": "accepted_intentional",
+      "reason": "The React error boundary intentionally emits diagnostic context only when the Skills surface fails. This is bounded failure telemetry and the recovery UI remains explicit.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-08-01T22:47:47.086287+00:00",
+      "evidence": [
+        "src/renderer/src/components/SkillsErrorBoundary.tsx:20",
+        "src/renderer/src/components/SkillsComponents.tsx:494"
       ],
       "expires_at": null
     },
@@ -1769,6 +1829,18 @@
       "evidence": [
         "scripts/install-app.mjs:51",
         ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0402"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "a70ca97a78b6e94d",
+      "status": "confirmed",
+      "reason": "The current QR scan measures RemediationSurface.tsx at 510 lines, above the large-source threshold. The remediation surface still carries enough presentation responsibility that a focused split remains actionable.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-08-01T22:45:26.485275+00:00",
+      "evidence": [
+        "src/renderer/src/components/RemediationSurface.tsx:1",
+        ".quality-runner/runs/pronto-remediation-20260801-final2/code-quality-scan.json#CQ-0004"
       ],
       "expires_at": null
     },
@@ -2431,6 +2503,18 @@
       "expires_at": null
     },
     {
+      "fingerprint": "e51aaa706d2a6c3a",
+      "status": "confirmed",
+      "reason": "The current QR scan measures types.ts at 810 lines, above the large-source threshold. The shared renderer contract remains a valid candidate for domain-focused type modules.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-08-01T22:45:54.040817+00:00",
+      "evidence": [
+        "src/renderer/src/types.ts:1",
+        ".quality-runner/runs/pronto-remediation-20260801-final2/code-quality-scan.json#CQ-0005"
+      ],
+      "expires_at": null
+    },
+    {
       "fingerprint": "e529ef2eebe0348f",
       "status": "confirmed",
       "reason": "Confirmed off scale spacing disposition for Quality Runner run pronto-remediation-20260729-v5: 3 occurrences at src/renderer/src/styles.css:2030, src/renderer/src/styles.css:4802, src/renderer/src/styles.css:4858. Detector evidence: padding: 14px 20px;. The declaration uses a raw spacing value outside the scan's spacing scale, and the stylesheet defines no shared spacing tokens that explain it. Why it remains actionable: Off-scale spacing values make UI rhythm harder to maintain.",
@@ -2479,6 +2563,18 @@
       "evidence": [
         "src/renderer/src/api.ts:158",
         ".quality-runner/runs/pronto-remediation-20260729-v5/code-quality-scan.json#CQ-0008"
+      ],
+      "expires_at": null
+    },
+    {
+      "fingerprint": "e65e857b23c58da5",
+      "status": "confirmed",
+      "reason": "The current QR scan measures Drawers.tsx at 730 lines, above the large-source threshold. The module still combines multiple drawer responsibilities, so a focused split remains actionable.",
+      "reviewer": "codex-assisted-triage",
+      "reviewed_at": "2026-08-01T22:44:58.029153+00:00",
+      "evidence": [
+        "src/renderer/src/components/Drawers.tsx:1",
+        ".quality-runner/runs/pronto-remediation-20260801-final2/code-quality-scan.json#CQ-0003"
       ],
       "expires_at": null
     },
