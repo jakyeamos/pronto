@@ -947,18 +947,19 @@ pub fn evaluate_freshness_at(
     if age > Duration::days(MAX_EVIDENCE_AGE_DAYS) {
         return QualityFreshness::Stale;
     }
-    let commit_matches = scanned_commit
-        .zip(current_commit)
-        .is_some_and(|(scanned, current)| scanned == current);
-    let branch_matches = scanned_branch
-        .zip(current_branch)
-        .is_some_and(|(scanned, current)| scanned == current);
-    if commit_matches || branch_matches {
-        QualityFreshness::Fresh
-    } else if scanned_commit.is_some() || scanned_branch.is_some() {
-        QualityFreshness::Stale
-    } else {
-        QualityFreshness::Unknown
+    match (scanned_commit, current_commit) {
+        (Some(scanned), Some(current)) => {
+            if scanned == current {
+                QualityFreshness::Fresh
+            } else {
+                QualityFreshness::Stale
+            }
+        }
+        (Some(_), None) | (None, Some(_)) => QualityFreshness::Unknown,
+        (None, None) => match (scanned_branch, current_branch) {
+            (Some(scanned), Some(current)) if scanned != current => QualityFreshness::Stale,
+            _ => QualityFreshness::Unknown,
+        },
     }
 }
 
@@ -3400,7 +3401,7 @@ mod tests {
     }
 
     #[test]
-    fn freshness_requires_current_ref_and_seven_day_window() {
+    fn freshness_requires_current_commit_and_seven_day_window() {
         let now = DateTime::parse_from_rfc3339("2026-07-26T12:00:00Z")
             .expect("now should parse")
             .with_timezone(&Utc);
@@ -3430,8 +3431,41 @@ mod tests {
             evaluate_freshness_at(
                 Some("2026-07-25T12:00:00Z"),
                 Some("old"),
+                Some("main"),
+                Some("new"),
+                Some("main"),
+                now,
+            ),
+            QualityFreshness::Stale
+        );
+        assert_eq!(
+            evaluate_freshness_at(
+                Some("2026-07-25T12:00:00Z"),
+                Some("old"),
                 Some("feature"),
                 Some("new"),
+                Some("main"),
+                now,
+            ),
+            QualityFreshness::Stale
+        );
+        assert_eq!(
+            evaluate_freshness_at(
+                Some("2026-07-25T12:00:00Z"),
+                None,
+                Some("main"),
+                None,
+                Some("main"),
+                now,
+            ),
+            QualityFreshness::Unknown
+        );
+        assert_eq!(
+            evaluate_freshness_at(
+                Some("2026-07-25T12:00:00Z"),
+                None,
+                Some("feature"),
+                None,
                 Some("main"),
                 now,
             ),

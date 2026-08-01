@@ -52,6 +52,13 @@ tokens, raw keychain values, local SQLite databases, or provider response
 caches. Do not log secrets or include them in fixtures. `gh` authentication is
 provider access evidence, not permission to mutate GitHub.
 
+Quality evidence is fresh only when its observation is inside the configured
+freshness window and its scanned commit equals the current repository commit.
+A matching branch name is routing context, not proof that the code is unchanged.
+When comparable commit provenance is unavailable, a matching branch reports
+unknown and a differing branch reports stale; an exact commit match remains
+authoritative even if that commit is checked out through another branch name.
+
 Network refreshes, Git writes, provider mutations, application installation,
 and release publication are separate authority boundaries. Use the narrowest
 repository or provider scope and preserve the exact source commit and evidence
