@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { EvidenceDrawer } from "./Drawers";
+import { EvidenceDrawer } from "./EvidenceDrawer";
 import { PreparationDrawer } from "./PreparationDrawer";
 import type {
   AiPayloadPreview,

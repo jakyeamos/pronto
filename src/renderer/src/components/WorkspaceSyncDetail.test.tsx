@@ -2,7 +2,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { WorkspaceSummary } from "../types";
-import { WorkspaceSyncDetailView } from "./Drawers";
+import { WorkspaceSyncDetailView } from "./WorkspaceSyncDetailView";
 
 const unsyncedWorkspace: WorkspaceSummary = {
   id: "workspace-1",
