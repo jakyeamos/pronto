@@ -99,7 +99,8 @@ export function usePortfolioController() {
   const handleAddRoot = useCallback(async (): Promise<void> => {
     try {
       const root = await api.pickRoot();
-      if (root) await loadSnapshot(() => api.registerRoot(root));
+      if (!root) return;
+      await loadSnapshot(() => api.registerRoot(root));
     } catch (caught) {
       setError(
         caught instanceof Error
