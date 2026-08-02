@@ -8,6 +8,10 @@ import type {
   SkillsSnapshot,
 } from "../types";
 
+type LoadSnapshot = (
+  operation: () => Promise<PortfolioSnapshot>,
+) => Promise<void>;
+
 async function loadAnalytics(
   setAnalytics: Dispatch<SetStateAction<AnalyticsSnapshot>>,
   setError: Dispatch<SetStateAction<string | null>>,
@@ -22,6 +26,12 @@ async function loadAnalytics(
         : "Pronto could not load local analytics history.",
     );
   }
+}
+
+async function registerPickedRoot(loadSnapshot: LoadSnapshot): Promise<void> {
+  const root = await api.pickRoot();
+  if (!root) return;
+  await loadSnapshot(() => api.registerRoot(root));
 }
 
 export function usePortfolioController() {
@@ -98,9 +108,7 @@ export function usePortfolioController() {
 
   const handleAddRoot = useCallback(async (): Promise<void> => {
     try {
-      const root = await api.pickRoot();
-      if (!root) return;
-      await loadSnapshot(() => api.registerRoot(root));
+      await registerPickedRoot(loadSnapshot);
     } catch (caught) {
       setError(
         caught instanceof Error
