@@ -2868,7 +2868,10 @@
       "reason": "This is the explicit leaf check inside bounded repository-contract assertion traversal; it keeps the failure tied to its schema context.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["scripts/validate-repository-contract.mjs:305", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0043"],
+      "evidence": [
+        "scripts/validate-repository-contract.mjs:305",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0043"
+      ],
       "expires_at": null
     },
     {
@@ -2877,7 +2880,10 @@
       "reason": "This bounded leaf traversal mirrors the contract shape and preserves assertion-specific diagnostics.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["scripts/validate-repository-contract.mjs:304", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0042"],
+      "evidence": [
+        "scripts/validate-repository-contract.mjs:304",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0042"
+      ],
       "expires_at": null
     },
     {
@@ -2886,7 +2892,10 @@
       "reason": "digestFile owns SHA-256 selection, file-byte loading, and hexadecimal encoding; it is not a pass-through wrapper.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["scripts/install-app-lib.mjs:14", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0084"],
+      "evidence": [
+        "scripts/install-app-lib.mjs:14",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0084"
+      ],
       "expires_at": null
     },
     {
@@ -2895,7 +2904,11 @@
       "reason": "The negative assertion is required behavior: cancelled and invalid add-root flows must not start downstream analytics loading, and the surrounding test asserts visible state.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/App.addRoot.test.tsx:93", "src/renderer/src/App.addRoot.test.tsx:116", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0028"],
+      "evidence": [
+        "src/renderer/src/App.addRoot.test.tsx:93",
+        "src/renderer/src/App.addRoot.test.tsx:116",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0028"
+      ],
       "expires_at": null
     },
     {
@@ -2904,7 +2917,10 @@
       "reason": "These are thin typed Tauri adapters with uniform transport structure but distinct commands and domain payloads.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/api.ts:302", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0019"],
+      "evidence": [
+        "src/renderer/src/api.ts:302",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0019"
+      ],
       "expires_at": null
     },
     {
@@ -2913,7 +2929,10 @@
       "reason": "The 2px top padding is a bounded optical alignment adjustment in a dense remediation control, not general layout spacing.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/styles.css:5071", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0073"],
+      "evidence": [
+        "src/renderer/src/styles.css:5071",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0073"
+      ],
       "expires_at": null
     },
     {
@@ -2922,7 +2941,11 @@
       "reason": "The branch is the recursive side of a small bundle-tree digest walker; its shape is covered by the obsolete-file replacement regression test.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["scripts/install-app-lib.mjs:27", "scripts/install-app.test.mjs", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0036"],
+      "evidence": [
+        "scripts/install-app-lib.mjs:27",
+        "scripts/install-app.test.mjs",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0036"
+      ],
       "expires_at": null
     },
     {
@@ -2931,7 +2954,11 @@
       "reason": "This proves cancelled and invalid add-root flows do not trigger an external provider refresh; absence of that side effect is the contract.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/App.addRoot.test.tsx:95", "src/renderer/src/App.addRoot.test.tsx:118", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0030"],
+      "evidence": [
+        "src/renderer/src/App.addRoot.test.tsx:95",
+        "src/renderer/src/App.addRoot.test.tsx:118",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0030"
+      ],
       "expires_at": null
     },
     {
@@ -2940,7 +2967,11 @@
       "reason": "This proves cancelled and invalid add-root flows stop before local refresh; absence of the downstream mutation is the behavior under test.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/App.addRoot.test.tsx:94", "src/renderer/src/App.addRoot.test.tsx:117", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0029"],
+      "evidence": [
+        "src/renderer/src/App.addRoot.test.tsx:94",
+        "src/renderer/src/App.addRoot.test.tsx:117",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0029"
+      ],
       "expires_at": null
     },
     {
@@ -2949,7 +2980,10 @@
       "reason": "The guard validates the contract array where its owning entry and key are available, producing a precise contract diagnostic.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["scripts/validate-repository-contract.mjs:260", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0037"],
+      "evidence": [
+        "scripts/validate-repository-contract.mjs:260",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0037"
+      ],
       "expires_at": null
     },
     {
@@ -2958,7 +2992,10 @@
       "reason": "The border is the semantic error accent for one compact warning row, paired with its error tint rather than used as a generic card trope.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/styles.css:2401", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0093"],
+      "evidence": [
+        "src/renderer/src/styles.css:2401",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0093"
+      ],
       "expires_at": null
     },
     {
@@ -2967,7 +3004,10 @@
       "reason": "The mixed gap separates compact metadata vertically while preserving the shared 12px horizontal rhythm.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/styles.css:5012", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0065"],
+      "evidence": [
+        "src/renderer/src/styles.css:5012",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0065"
+      ],
       "expires_at": null
     },
     {
@@ -2976,7 +3016,11 @@
       "reason": "This proves cancelled and invalid add-root flows stop before remediation generation; absence of that downstream call is required behavior.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/App.addRoot.test.tsx:96", "src/renderer/src/App.addRoot.test.tsx:119", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0031"],
+      "evidence": [
+        "src/renderer/src/App.addRoot.test.tsx:96",
+        "src/renderer/src/App.addRoot.test.tsx:119",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0031"
+      ],
       "expires_at": null
     },
     {
@@ -2985,7 +3029,10 @@
       "reason": "This is a one-condition React ref callback that records only mounted rows, not deeply nested control flow.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/components/RemediationSurface.tsx:253", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0053"],
+      "evidence": [
+        "src/renderer/src/components/RemediationSurface.tsx:253",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0053"
+      ],
       "expires_at": null
     },
     {
@@ -2994,7 +3041,10 @@
       "reason": "These are thin typed Tauri adapters with uniform transport structure but distinct commands and payload contracts.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/api.ts:317", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0021"],
+      "evidence": [
+        "src/renderer/src/api.ts:317",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0021"
+      ],
       "expires_at": null
     },
     {
@@ -3003,7 +3053,11 @@
       "reason": "QualityComponents is the cohesive projection layer for quality gates, attention derivation, and quality presentation; splitting at the numeric threshold would fragment that boundary.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/components/QualityComponents.tsx:1", "src/renderer/src/components/QualityComponents.test.tsx", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0001"],
+      "evidence": [
+        "src/renderer/src/components/QualityComponents.tsx:1",
+        "src/renderer/src/components/QualityComponents.test.tsx",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0001"
+      ],
       "expires_at": null
     },
     {
@@ -3012,7 +3066,10 @@
       "reason": "The allowed-value guard is the policy leaf inside bounded contract traversal and keeps the failure adjacent to the rejected value.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["scripts/validate-repository-contract.mjs:285", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0040"],
+      "evidence": [
+        "scripts/validate-repository-contract.mjs:285",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0040"
+      ],
       "expires_at": null
     },
     {
@@ -3021,7 +3078,10 @@
       "reason": "The line is an early keyboard-event return that flattens the handler before activation logic; it prevents nesting.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/components/RemediationSurface.tsx:91", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0052"],
+      "evidence": [
+        "src/renderer/src/components/RemediationSurface.tsx:91",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0052"
+      ],
       "expires_at": null
     },
     {
@@ -3030,7 +3090,10 @@
       "reason": "The 3px top padding is a local optical alignment adjustment for dense remediation metadata, not general layout spacing.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/styles.css:5039", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0069"],
+      "evidence": [
+        "src/renderer/src/styles.css:5039",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0069"
+      ],
       "expires_at": null
     },
     {
@@ -3039,7 +3102,10 @@
       "reason": "The 7px/8px inset preserves the compact chip height and horizontal rhythm as component-specific optical geometry.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/styles.css:5090", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0076"],
+      "evidence": [
+        "src/renderer/src/styles.css:5090",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0076"
+      ],
       "expires_at": null
     },
     {
@@ -3048,7 +3114,10 @@
       "reason": "These are thin typed Tauri adapters with consistent transport code but different provider semantics and return contracts.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/api.ts:255", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0013"],
+      "evidence": [
+        "src/renderer/src/api.ts:255",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0013"
+      ],
       "expires_at": null
     },
     {
@@ -3057,7 +3126,11 @@
       "reason": "These are leaf checks inside bounded contract traversal, preserving exact per-assertion diagnostics without an unbounded path.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["scripts/validate-repository-contract.mjs:271", "scripts/validate-repository-contract.mjs:295", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0039"],
+      "evidence": [
+        "scripts/validate-repository-contract.mjs:271",
+        "scripts/validate-repository-contract.mjs:295",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0039"
+      ],
       "expires_at": null
     },
     {
@@ -3066,7 +3139,10 @@
       "reason": "These are separate domain commands exposed through uniform typed Tauri adapters; combining them would weaken command-specific typing.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/api.ts:349", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0023"],
+      "evidence": [
+        "src/renderer/src/api.ts:349",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0023"
+      ],
       "expires_at": null
     },
     {
@@ -3075,7 +3151,10 @@
       "reason": "These are distinct repository commands behind thin typed Tauri adapters; their shared transport shape is intentional.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/api.ts:186", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0005"],
+      "evidence": [
+        "src/renderer/src/api.ts:186",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0005"
+      ],
       "expires_at": null
     },
     {
@@ -3084,7 +3163,10 @@
       "reason": "The 7px margin is an optical separation in the compact remediation detail stack rather than a general spacing primitive.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/styles.css:5053", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0070"],
+      "evidence": [
+        "src/renderer/src/styles.css:5053",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0070"
+      ],
       "expires_at": null
     },
     {
@@ -3093,7 +3175,10 @@
       "reason": "The 2px margin is a local optical offset between a remediation label and metadata, not a layout spacing primitive.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/styles.css:2382", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0058"],
+      "evidence": [
+        "src/renderer/src/styles.css:2382",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0058"
+      ],
       "expires_at": null
     },
     {
@@ -3102,7 +3187,10 @@
       "reason": "The 2px/4px padding defines compact count-badge geometry and is a component-specific optical inset.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/styles.css:5456", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0080"],
+      "evidence": [
+        "src/renderer/src/styles.css:5456",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0080"
+      ],
       "expires_at": null
     },
     {
@@ -3111,7 +3199,10 @@
       "reason": "The 2px top inset positions a status badge against its container edge and is an anchoring coordinate, not inter-element spacing.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/styles.css:5453", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0078"],
+      "evidence": [
+        "src/renderer/src/styles.css:5453",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0078"
+      ],
       "expires_at": null
     },
     {
@@ -3120,7 +3211,10 @@
       "reason": "The bounded assertion loop follows the repository-contract array and keeps file, key, and assertion diagnostics together.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["scripts/validate-repository-contract.mjs:270", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0038"],
+      "evidence": [
+        "scripts/validate-repository-contract.mjs:270",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0038"
+      ],
       "expires_at": null
     },
     {
@@ -3129,7 +3223,10 @@
       "reason": "The 2px error accent is a component-specific border width and semantic severity marker, not a general spacing value.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/styles.css:2401", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0059"],
+      "evidence": [
+        "src/renderer/src/styles.css:2401",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0059"
+      ],
       "expires_at": null
     },
     {
@@ -3138,7 +3235,10 @@
       "reason": "The 2px right inset anchors the compact status badge to its container and is a positioning coordinate rather than layout spacing.",
       "reviewer": "codex-assisted-triage",
       "reviewed_at": "2026-08-03T23:13:02+00:00",
-      "evidence": ["src/renderer/src/styles.css:5454", ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0079"],
+      "evidence": [
+        "src/renderer/src/styles.css:5454",
+        ".quality-runner/runs/pronto-installed-app-replacement-20260803-compatible-final/code-quality-scan.json#CQ-0079"
+      ],
       "expires_at": null
     }
   ]
