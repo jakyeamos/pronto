@@ -35,6 +35,7 @@ import { QualityGatesSurface } from "./QualityGatesSurface";
 import { RepositoryDetailSurface } from "./Drawers";
 import { PortfolioCollectionsSurface } from "./PortfolioCollectionsSurface";
 import { navItems } from "../navigation";
+import { ProjectCompassDetail } from "./ProjectCompassDetail";
 
 const canonicalGateDefinitions = [
   ["build", "Build"],
@@ -200,6 +201,8 @@ function makeRepository(
       },
       open_blockers: 0,
       open_drift: 0,
+      open_blocker_items: [],
+      open_drift_items: [],
       error: null,
     },
     ai_permission: "Disabled",
@@ -368,6 +371,28 @@ describe("quality evidence surfaces", () => {
         },
         open_blockers: 2,
         open_drift: 1,
+        open_blocker_items: [
+          {
+            outcome_id: "release-preparation",
+            outcome_name: "A release candidate can be inspected",
+            kind: "verification",
+            summary: "Provider-native release proof is missing.",
+          },
+          {
+            outcome_id: "release-safety",
+            outcome_name: "Release mutation remains governed",
+            kind: "evidence",
+            summary: "The release boundary still needs fresh evidence.",
+          },
+        ],
+        open_drift_items: [
+          {
+            kind: "verification-gap",
+            summary:
+              "Release evidence trails the intended product finish line.",
+            observed_at: "2026-07-28T00:00:00Z",
+          },
+        ],
         error: null,
       },
       quality: makeQuality({
@@ -781,8 +806,8 @@ describe("quality evidence surfaces", () => {
       <AppSidebar
         activeNav="portfolio"
         activeConditionCount={0}
-        rootCount={1}
         repositories={[repository]}
+        remediation={makePortfolio([repository]).remediation}
         selectedRepositoryId={null}
         onNavigate={() => undefined}
         onOpenRepository={noopRepository}
@@ -794,6 +819,167 @@ describe("quality evidence surfaces", () => {
     expect(markup).not.toContain("/tmp/pronto");
     expect(markup).not.toContain("main");
     expect(markup).not.toContain("Quality gates");
+    expect(markup).not.toContain('class="brand"');
+    expect(markup).not.toContain("Portfolio command center");
+    expect(markup).not.toContain("sidebar-rule");
+    expect(markup).not.toContain("Local evidence only");
+    expect(markup).not.toContain("Private by default");
+  });
+
+  it("shows stale-only repositories in blue and preserves red precedence", () => {
+    const staleQuality = makeQuality({
+      gates: [makeGate("build", "Build", "Passed", "Stale")],
+    });
+    const staleCondition: Condition = {
+      id: "condition-stale",
+      kind: "remote-stale",
+      title: "Remote state stale",
+      summary: "Pronto has not recorded a successful fetch.",
+      priority: 8,
+      status: "Active",
+      fingerprint: "remote-stale",
+      rule: "Remote comparisons require a recorded fetch.",
+      evidence: [],
+      missing: [],
+    };
+    const repositories = [
+      makeRepository({
+        id: "quality-stale",
+        name: "Quality stale only",
+        quality: staleQuality,
+      }),
+      makeRepository({
+        id: "remote-stale",
+        name: "Remote stale only",
+        conditions: [staleCondition],
+      }),
+      makeRepository({
+        id: "stale-and-failed",
+        name: "Stale and failed",
+        quality: makeQuality({
+          gates: [makeGate("build", "Build", "Failed", "Stale")],
+        }),
+      }),
+      makeRepository({
+        id: "stale-and-dirty",
+        name: "Stale and dirty",
+        quality: staleQuality,
+        workspace: { ...workspace, dirty: true },
+      }),
+    ];
+    const markup = renderToStaticMarkup(
+      <AppSidebar
+        activeNav="portfolio"
+        activeConditionCount={0}
+        repositories={repositories}
+        remediation={makePortfolio(repositories).remediation}
+        selectedRepositoryId={null}
+        onNavigate={() => undefined}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup.match(/sidebar-repository-status-stale/g)).toHaveLength(2);
+    expect(markup.match(/title="Stale evidence only"/g)).toHaveLength(2);
+    expect(markup.match(/sidebar-repository-status-attention/g)).toHaveLength(
+      2,
+    );
+    expect(markup.match(/title="Needs attention"/g)).toHaveLength(2);
+  });
+
+  it("shows integration eligibility in violet only when it is the sole signal", () => {
+    const integrationCondition: Condition = {
+      id: "condition-integration",
+      kind: "integration-eligible",
+      title: "Branch is ready to integrate",
+      summary: "The branch is ahead of its target and the workspace is clean.",
+      priority: 5,
+      status: "Active",
+      fingerprint: "integration-eligible",
+      rule: "Clean branches ahead of their target are integration eligible.",
+      evidence: [],
+      missing: [],
+    };
+    const staleCondition: Condition = {
+      id: "condition-stale",
+      kind: "remote-stale",
+      title: "Remote state stale",
+      summary: "Pronto has not recorded a successful fetch.",
+      priority: 8,
+      status: "Active",
+      fingerprint: "remote-stale",
+      rule: "Remote comparisons require a recorded fetch.",
+      evidence: [],
+      missing: [],
+    };
+    const repositories = [
+      makeRepository({
+        id: "integration-only",
+        name: "Integration only",
+        conditions: [integrationCondition],
+      }),
+      makeRepository({
+        id: "integration-and-stale",
+        name: "Integration and stale",
+        conditions: [integrationCondition, staleCondition],
+      }),
+      makeRepository({
+        id: "integration-and-dirty",
+        name: "Integration and dirty",
+        conditions: [integrationCondition],
+        workspace: { ...workspace, dirty: true },
+      }),
+      makeRepository({
+        id: "integration-and-blocked",
+        name: "Integration condition with broader blockers",
+        conditions: [integrationCondition],
+      }),
+    ];
+    const remediation = makePortfolio(repositories).remediation;
+    remediation.plans = [
+      {
+        repository_id: "integration-only",
+        status: "open",
+        integration_only_remaining: true,
+      } as RemediationRun["plans"][number],
+      {
+        repository_id: "integration-and-stale",
+        status: "open",
+        integration_only_remaining: true,
+      } as RemediationRun["plans"][number],
+      {
+        repository_id: "integration-and-dirty",
+        status: "open",
+        integration_only_remaining: true,
+      } as RemediationRun["plans"][number],
+      {
+        repository_id: "integration-and-blocked",
+        status: "blocked",
+        integration_only_remaining: false,
+      } as RemediationRun["plans"][number],
+    ];
+    const markup = renderToStaticMarkup(
+      <AppSidebar
+        activeNav="portfolio"
+        activeConditionCount={0}
+        repositories={repositories}
+        remediation={remediation}
+        selectedRepositoryId={null}
+        onNavigate={() => undefined}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup.match(/sidebar-repository-status-opportunity/g)).toHaveLength(
+      1,
+    );
+    expect(
+      markup.match(/title="Integration is the only remaining remediation"/g),
+    ).toHaveLength(1);
+    expect(markup.match(/sidebar-repository-status-attention/g)).toHaveLength(
+      3,
+    );
+    expect(markup.match(/title="Needs attention"/g)).toHaveLength(3);
   });
 
   it("renders repository detail as a full page with quality, maturity, QR, and release context", () => {
@@ -818,6 +1004,28 @@ describe("quality evidence surfaces", () => {
         },
         open_blockers: 2,
         open_drift: 1,
+        open_blocker_items: [
+          {
+            outcome_id: "release-preparation",
+            outcome_name: "A release candidate can be inspected",
+            kind: "verification",
+            summary: "Provider-native release proof is missing.",
+          },
+          {
+            outcome_id: "release-safety",
+            outcome_name: "Release mutation remains governed",
+            kind: "evidence",
+            summary: "The release boundary still needs fresh evidence.",
+          },
+        ],
+        open_drift_items: [
+          {
+            kind: "verification-gap",
+            summary:
+              "Release evidence trails the intended product finish line.",
+            observed_at: "2026-07-28T00:00:00Z",
+          },
+        ],
         error: null,
       },
       quality: makeQuality({
@@ -850,6 +1058,12 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("/tmp/pronto");
     expect(markup).toContain("Quality gates");
     expect(markup).toContain("Project Compass");
+    expect(markup).toContain("Contract valid");
+    expect(markup).toContain("Provider-native release proof is missing.");
+    expect(markup).toContain(
+      "Release evidence trails the intended product finish line.",
+    );
+    expect(markup).toContain("Verification Gap");
     expect(markup).toContain("MVP");
     expect(markup).toContain("75%");
     expect(markup).toContain("Complete product");
@@ -863,5 +1077,49 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("Awaiting evidence");
     expect(markup).not.toContain("drawer-layer");
     expect(markup).not.toContain("drawer-scrim");
+  });
+
+  it("makes missing Compass item details explicit for legacy snapshots", () => {
+    const repository = makeRepository({
+      project_compass: {
+        status: "Ready",
+        contract_path: ".project-compass/contract.json",
+        revision: 6,
+        updated_at: "2026-07-28T00:00:00Z",
+        project_name: "Pronto",
+        identity: "A local-first portfolio command center",
+        audience: "Developers with many active repositories",
+        mvp: {
+          progress_percent: 79,
+          confidence: "high",
+          confidence_percent: 100,
+        },
+        complete_product: {
+          progress_percent: 75,
+          confidence: "high",
+          confidence_percent: 100,
+        },
+        open_blockers: 2,
+        open_drift: 1,
+        open_blocker_items: [],
+        open_drift_items: [],
+        error: null,
+      },
+    });
+
+    const markup = renderToStaticMarkup(
+      <ProjectCompassDetail repository={repository} />,
+    );
+
+    expect(markup).toContain("Contract valid");
+    expect(markup).not.toContain(">Ready<");
+    expect(markup).toContain(
+      "2 blocker descriptions are unavailable in this snapshot",
+    );
+    expect(markup).toContain(
+      "1 drift description is unavailable in this snapshot",
+    );
+    expect(markup).toContain("Refresh the repository to load the details");
+    expect(markup).toContain("Refresh the repository to load the detail");
   });
 });

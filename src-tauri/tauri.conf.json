@@ -16,6 +16,8 @@
         "title": "Pronto",
         "width": 800,
         "height": 600,
+        "minWidth": 700,
+        "minHeight": 540,
         "resizable": true,
         "fullscreen": false
       }

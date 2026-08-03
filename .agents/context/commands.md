@@ -61,9 +61,12 @@ different verified Rust toolchain is required.
 Repository and summary projections include a read-only `project_compass`
 summary derived from `.project-compass/contract.json`. `Ready` reports the
 current product identity, MVP and complete-product progress, confidence,
-blockers, and open drift. `Missing` means the repository has not established a
-Compass contract; `Invalid` preserves the parse or contract error. Pronto never
-creates or repairs Compass artifacts during a refresh.
+blockers, and open drift. Open blockers preserve their outcome, kind, and
+summary; open drift preserves its kind, summary, and observation time so the UI
+and JSON explain the count rather than projecting only a number. `Missing`
+means the repository has not established a Compass contract; `Invalid`
+preserves the parse or contract error. Pronto never creates or repairs Compass
+artifacts during a refresh.
 
 `change-matrix` explains an existing repository- or skill-owned contract. A
 missing contract returns `status: "missing"`, its maturity impact, observed

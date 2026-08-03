@@ -256,6 +256,19 @@ interface ProjectCompassTargetSummary {
   confidence_percent: number;
 }
 
+interface ProjectCompassBlockerSummary {
+  outcome_id: string;
+  outcome_name: string;
+  kind: string;
+  summary: string;
+}
+
+interface ProjectCompassDriftSummary {
+  kind: string;
+  summary: string;
+  observed_at: string;
+}
+
 interface ProjectCompassSummary {
   status: "Ready" | "Missing" | "Invalid";
   contract_path: string;
@@ -268,6 +281,8 @@ interface ProjectCompassSummary {
   complete_product: ProjectCompassTargetSummary;
   open_blockers: number;
   open_drift: number;
+  open_blocker_items: ProjectCompassBlockerSummary[];
+  open_drift_items: ProjectCompassDriftSummary[];
   error: string | null;
 }
 

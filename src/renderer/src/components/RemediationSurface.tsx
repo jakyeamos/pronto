@@ -1,4 +1,4 @@
-import { type ReactElement, useEffect, useMemo, useState } from "react";
+import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
   ChevronRight,
@@ -7,6 +7,7 @@ import {
   ExternalLink,
   FileCheck2,
   SkipForward,
+  X,
 } from "lucide-react";
 import type {
   RemediationActionStatus,
@@ -26,6 +27,20 @@ import {
   RemediationMaturityPolicyMeta,
 } from "./RemediationMaturityPolicy";
 import { RemediationRunOverview } from "./RemediationRunOverview";
+
+function remediationActionSummary(
+  actions: RemediationRun["plans"][number]["actions"],
+): string {
+  const active = actions.filter((action) =>
+    ["open", "in_progress", "blocked"].includes(action.status),
+  ).length;
+  const verified = actions.filter(
+    (action) => action.status === "verified",
+  ).length;
+  const parts = [`${active} active`];
+  if (verified > 0) parts.push(`${verified} verified`);
+  return parts.join(" · ");
+}
 
 export function RemediationSurface({
   run,
@@ -50,6 +65,9 @@ export function RemediationSurface({
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(
     run.plans[0]?.id ?? null,
   );
+  const [detailRevealed, setDetailRevealed] = useState(false);
+  const detailPanelRef = useRef<HTMLElement>(null);
+  const planRowRefs = useRef(new Map<string, HTMLButtonElement>());
   const closures = run.closures ?? [];
   const selectedPlan = useMemo(
     () => run.plans.find((plan) => plan.id === selectedPlanId) ?? run.plans[0],
@@ -62,8 +80,31 @@ export function RemediationSurface({
       !run.plans.some((plan) => plan.id === selectedPlanId)
     ) {
       setSelectedPlanId(run.plans[0]?.id ?? null);
+      setDetailRevealed(false);
     }
   }, [run.plans, selectedPlanId]);
+
+  useEffect(() => {
+    if (!detailRevealed) return undefined;
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== "Escape") return;
+      setDetailRevealed(false);
+      planRowRefs.current.get(selectedPlanId ?? "")?.focus();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [detailRevealed, selectedPlanId]);
+
+  const revealPlan = (planId: string): void => {
+    setSelectedPlanId(planId);
+    setDetailRevealed(true);
+    window.requestAnimationFrame(() => detailPanelRef.current?.focus());
+  };
+
+  const closeDetail = (): void => {
+    setDetailRevealed(false);
+    planRowRefs.current.get(selectedPlanId ?? "")?.focus();
+  };
 
   const selectedRepository = selectedPlan
     ? repositories.find(
@@ -207,7 +248,13 @@ export function RemediationSurface({
                   }`}
                   type="button"
                   key={plan.id}
-                  onClick={() => setSelectedPlanId(plan.id)}
+                  ref={(element) => {
+                    if (element) planRowRefs.current.set(plan.id, element);
+                    else planRowRefs.current.delete(plan.id);
+                  }}
+                  aria-controls="remediation-plan-detail"
+                  aria-current={selectedPlan?.id === plan.id}
+                  onClick={() => revealPlan(plan.id)}
                 >
                   <div>
                     <strong>
@@ -215,7 +262,7 @@ export function RemediationSurface({
                     </strong>
                     <span>
                       {plan.goal.label} · {plan.current_stage} ·{" "}
-                      {plan.actions.length} actions
+                      {remediationActionSummary(plan.actions)}
                     </span>
                   </div>
                   <div className="remediation-plan-row-meta">
@@ -223,7 +270,7 @@ export function RemediationSurface({
                       {plan.status}
                     </StatusPill>
                     <strong>{Math.round(plan.progress.percentage)}%</strong>
-                    <ChevronRight size={16} />
+                    <ChevronRight size={16} aria-hidden="true" />
                   </div>
                 </button>
               ))}
@@ -231,16 +278,42 @@ export function RemediationSurface({
           )}
         </section>
 
-        <section className="surface-panel remediation-plan-detail-panel">
+        {detailRevealed && (
+          <button
+            className="remediation-plan-detail-scrim"
+            type="button"
+            aria-label="Close remediation detail"
+            onClick={closeDetail}
+          />
+        )}
+        <section
+          className={`surface-panel remediation-plan-detail-panel${
+            detailRevealed ? " remediation-plan-detail-panel-open" : ""
+          }`}
+          id="remediation-plan-detail"
+          ref={detailPanelRef}
+          tabIndex={-1}
+          aria-labelledby={selectedPlan ? "remediation-plan-title" : undefined}
+        >
           {selectedPlan ? (
             <>
               <div className="surface-heading remediation-detail-heading">
                 <div>
                   <p className="eyebrow">Repository remediation plan</p>
-                  <h2>{selectedPlan.repository_name}</h2>
+                  <h2 id="remediation-plan-title">
+                    {selectedPlan.repository_name}
+                  </h2>
                   <p>{selectedPlan.repository_path}</p>
                 </div>
                 <div className="remediation-detail-actions">
+                  <button
+                    className="icon-button remediation-detail-close"
+                    type="button"
+                    aria-label="Close remediation detail"
+                    onClick={closeDetail}
+                  >
+                    <X size={15} />
+                  </button>
                   <StatusPill tone={remediationStatusTone(selectedPlan.status)}>
                     {selectedPlan.status}
                   </StatusPill>

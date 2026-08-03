@@ -1290,6 +1290,7 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
     if !path.exists() {
         if let Some(mut legacy_state) = load_legacy_store(path)? {
             legacy_state.version = legacy_state.version.max(STORE_VERSION);
+            sort_repositories_by_name(&mut legacy_state.repositories);
             legacy_state.remote_repositories = filter_linked_remote_repositories(
                 &legacy_state.repositories,
                 legacy_state.remote_repositories,
@@ -1490,13 +1491,14 @@ fn load_store_from_connection(connection: &SqliteConnection) -> Result<StoreStat
         .map_err(|error| format!("Could not read Pronto repositories: {error}"))?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("Could not decode Pronto repositories: {error}"))?;
-    let repositories = repository_payloads
+    let mut repositories = repository_payloads
         .into_iter()
         .map(|payload| {
             serde_json::from_str(&payload)
                 .map_err(|error| format!("Could not decode repository snapshot: {error}"))
         })
         .collect::<Result<Vec<_>, String>>()?;
+    sort_repositories_by_name(&mut repositories);
     let remote_repositories = filter_linked_remote_repositories(&repositories, remote_repositories);
     provider_status.repository_count = remote_repositories.len();
 
@@ -2373,6 +2375,7 @@ fn load_analytics_at(path: &Path) -> Result<AnalyticsSnapshot, String> {
 
 fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
     let mut repositories = state.repositories.clone();
+    sort_repositories_by_name(&mut repositories);
     for repository in &mut repositories {
         hydrate_workspace_sync_details(repository);
     }
@@ -4030,6 +4033,16 @@ fn git_owned(path: &Path, arguments: Vec<String>) -> Option<String> {
 
 fn path_id(prefix: &str, path: &Path) -> String {
     format!("{prefix}:{}", path.to_string_lossy())
+}
+
+fn sort_repositories_by_name(repositories: &mut [RepositorySnapshot]) {
+    repositories.sort_by(|left, right| {
+        left.name
+            .to_lowercase()
+            .cmp(&right.name.to_lowercase())
+            .then_with(|| left.name.cmp(&right.name))
+            .then_with(|| left.id.cmp(&right.id))
+    });
 }
 
 fn generated_config_id(kind: &str, name: &str) -> String {
@@ -7306,7 +7319,7 @@ fn scan_and_persist_scoped(
             repositories.push(old);
         }
     }
-    repositories.sort_by(|left, right| left.name.to_lowercase().cmp(&right.name.to_lowercase()));
+    sort_repositories_by_name(&mut repositories);
     state.repositories = repositories;
     apply_quality_evidence_scoped(state, target_repository_ids, None);
     apply_release_threshold_conditions(state);
@@ -12298,7 +12311,11 @@ mod tests {
     }
 
     fn fixture_repository(root: &Path) -> PathBuf {
-        let repository = root.join("portfolio-repository");
+        fixture_repository_named(root, "portfolio-repository")
+    }
+
+    fn fixture_repository_named(root: &Path, name: &str) -> PathBuf {
+        let repository = root.join(name);
         fs::create_dir_all(&repository).expect("fixture repository should be creatable");
         git(&repository, &["init", "-b", "main"]);
         git(
@@ -14187,6 +14204,41 @@ mod tests {
         assert_eq!(analytics_table_count, 1);
 
         fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn reloads_repositories_in_case_insensitive_name_order() {
+        let root = fixture_root();
+        let database = root.join("registry.db");
+        let repositories = ["alpha", "Beta", "charlie", "Delta"]
+            .into_iter()
+            .rev()
+            .map(|name| fixture_repository_named(&root, name))
+            .map(|path| scan_repository(&path, None, &[]))
+            .collect();
+        let state = StoreState {
+            repositories,
+            ..StoreState::default()
+        };
+
+        save_store(&database, &state).expect("mixed-case repository state should persist");
+        let reloaded = load_store(&database).expect("mixed-case repository state should reload");
+        let reloaded_names = reloaded
+            .repositories
+            .iter()
+            .map(|repository| repository.name.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(reloaded_names, vec!["alpha", "Beta", "charlie", "Delta"]);
+
+        let snapshot = snapshot_from_store(&database, &state);
+        let snapshot_names = snapshot
+            .repositories
+            .iter()
+            .map(|repository| repository.name.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(snapshot_names, vec!["alpha", "Beta", "charlie", "Delta"]);
+
+        fs::remove_dir_all(root).expect("mixed-case fixture should be removable");
     }
 
     #[test]

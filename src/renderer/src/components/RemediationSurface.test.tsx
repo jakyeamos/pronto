@@ -1,10 +1,20 @@
+// @vitest-environment happy-dom
 // quality-gate: allow static-ui-test: verifies verified closures leave the ranked active queue while retained evidence and coverage remain visible.
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type { RemediationAction, RemediationRun } from "../types";
 import { RemediationSurface } from "./RemediationSurface";
 
 const noop = async (): Promise<void> => undefined;
+
+afterEach(cleanup);
 
 function action(): RemediationAction {
   return {
@@ -112,6 +122,7 @@ function run(): RemediationRun {
         },
         current_stage: "branch_hygiene",
         status: "open",
+        integration_only_remaining: false,
         progress: {
           verified_weight: 0,
           total_weight: 2,
@@ -175,5 +186,92 @@ describe("remediation active queue", () => {
     expect(markup).toContain("maturity 3.0/4 minimum · 4.0/4 ideal");
     expect(markup).toContain("closed-repo");
     expect(markup).toContain("active maintained");
+  });
+
+  it("renders the backend weighted percentage without replacing it with zero", () => {
+    const weightedRun = run();
+    weightedRun.plans[0].progress = {
+      verified_weight: 4,
+      total_weight: 47,
+      deferred_weight: 6,
+      percentage: 9,
+    };
+
+    const markup = renderToStaticMarkup(
+      <RemediationSurface
+        run={weightedRun}
+        repositories={[]}
+        isRefreshing={false}
+        onRefresh={noop}
+        onExport={noop}
+        onUpdateStatus={noop}
+        onOpenRepository={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain("9%");
+    expect(markup).toContain("4/47 points");
+  });
+
+  it("separates active actions from retained verified history in the queue row", () => {
+    const mixedRun = run();
+    const verifiedAction = {
+      ...action(),
+      id: "action-verified",
+      stable_key: "product_truth:resolved",
+      domain: "product_truth",
+      status: "verified" as const,
+      completed_at: "2026-07-29T12:30:00Z",
+    };
+    mixedRun.plans[0].actions.push(verifiedAction);
+
+    const markup = renderToStaticMarkup(
+      <RemediationSurface
+        run={mixedRun}
+        repositories={[]}
+        isRefreshing={false}
+        onRefresh={noop}
+        onExport={noop}
+        onUpdateStatus={noop}
+        onOpenRepository={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain("1 active · 1 verified");
+    expect(markup).not.toContain("2 actions");
+  });
+
+  it("reveals and focuses plan detail, then restores row focus when closed", async () => {
+    render(
+      <RemediationSurface
+        run={run()}
+        repositories={[]}
+        isRefreshing={false}
+        onRefresh={noop}
+        onExport={noop}
+        onUpdateStatus={noop}
+        onOpenRepository={() => undefined}
+      />,
+    );
+
+    const planRow = screen.getByRole("button", { name: /#1 · active-repo/ });
+    fireEvent.click(planRow);
+
+    const detail = document.getElementById("remediation-plan-detail");
+    expect(
+      detail?.classList.contains("remediation-plan-detail-panel-open"),
+    ).toBe(true);
+    await waitFor(() => expect(document.activeElement).toBe(detail));
+
+    fireEvent.click(
+      screen.getAllByRole("button", {
+        name: "Close remediation detail",
+      })[1],
+    );
+
+    expect(
+      detail?.classList.contains("remediation-plan-detail-panel-open"),
+    ).toBe(false);
+    expect(document.activeElement).toBe(planRow);
   });
 });

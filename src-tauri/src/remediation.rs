@@ -4,7 +4,7 @@ use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -14,6 +14,14 @@ pub const REMEDIATION_GOAL_PATH: &str = ".pronto/remediation-goal.json";
 pub const MATURITY_CLOSURE_TARGET: f64 = 3.0;
 pub const MATURITY_IDEAL_SCORE: f64 = 4.0;
 pub const EXCLUDED_REPOSITORY_NAMES: [&str; 2] = ["soundscape", "tenure"];
+const VERIFICATION_ACTION_KEY: &str = "verification:recheck-after-remediation";
+const RESOLVED_BY_REFRESH_LABEL: &str = "Resolved by remediation refresh";
+const PROJECT_COMPASS_OPEN_ITEMS_KEY: &str = "product_truth:project-compass-open-items";
+const FLEET_MATURITY_FINDING_PACK_PREFIX: &str = "quality-runner-environment-legibility-finding-";
+const LEGACY_PROJECT_COMPASS_OPEN_ITEM_KEYS: [&str; 2] = [
+    "product_truth:project-compass-blockers",
+    "product_truth:project-compass-drift",
+];
 const ALL_GATE_IDS: [&str; 9] = [
     "build",
     "tests",
@@ -158,6 +166,8 @@ pub struct RemediationPlan {
     pub goal: RemediationGoalProfile,
     pub current_stage: String,
     pub status: String,
+    #[serde(default)]
+    pub integration_only_remaining: bool,
     pub progress: RemediationProgress,
     #[serde(default)]
     pub coverage: Vec<RemediationCoverage>,
@@ -754,6 +764,7 @@ pub fn recompute_plan_derived(plan: &mut RemediationPlan) {
     plan.tracks = build_tracks(&plan.actions);
     plan.status = plan_status(&plan.actions);
     plan.current_stage = current_stage(&plan.actions);
+    plan.integration_only_remaining = integration_only_remaining(&plan.actions);
 }
 
 pub fn normalize_queue(run: &mut RemediationRun, closed_at: &str) {
@@ -1003,7 +1014,7 @@ fn build_plan(
 
     if !seeds.is_empty() {
         seeds.push(ActionSeed {
-            stable_key: "verification:recheck-after-remediation".to_string(),
+            stable_key: VERIFICATION_ACTION_KEY.to_string(),
             domain: "verification".to_string(),
             title: "Verify the repository after remediation".to_string(),
             summary: "Re-run the eligible evidence sources and confirm the plan is clear before closing it.".to_string(),
@@ -1037,15 +1048,17 @@ fn build_plan(
                 .collect::<HashMap<_, _>>()
         })
         .unwrap_or_default();
-    let actions = seeds
+    let mut actions = seeds
         .into_iter()
         .map(|seed| materialize_action(repository, seed, &previous_actions, generated_at))
         .collect::<Vec<_>>();
+    retain_resolved_action_history(&mut actions, previous, generated_at);
     let progress = calculate_progress(&actions);
     let coverage = build_ui_coverage(repository, &goal, &actions);
     let tracks = build_tracks(&actions);
     let status = plan_status(&actions);
     let current_stage = current_stage(&actions);
+    let integration_only_remaining = integration_only_remaining(&actions);
     let plan_id = stable_id(&format!("plan:{}", repository.id), "remediation-plan");
     RemediationPlan {
         schema_version: REMEDIATION_SCHEMA.to_string(),
@@ -1060,6 +1073,7 @@ fn build_plan(
         goal,
         current_stage,
         status,
+        integration_only_remaining,
         progress,
         coverage,
         tracks,
@@ -1295,60 +1309,47 @@ fn add_project_compass_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<Ac
             source_run_id: None,
         }),
         "Ready" => {
-            if compass.open_blockers > 0 {
-                seeds.push(ActionSeed {
-                    stable_key: "product_truth:project-compass-blockers".to_string(),
-                    domain: "product_truth".to_string(),
-                    title: "Resolve Project Compass blockers".to_string(),
-                    summary: format!(
-                        "Project Compass records {} open product blocker(s).",
-                        compass.open_blockers
-                    ),
-                    severity: "product_truth".to_string(),
-                    priority: "P1".to_string(),
-                    weight: compass.open_blockers.max(1) as u64,
-                    acceptance_criteria: vec![
-                        "Each blocker is resolved or explicitly dispositioned in the canonical Project Compass contract.".to_string(),
-                        "Pronto refreshes the contract and reports no unexplained open blocker.".to_string(),
-                    ],
-                    evidence: vec![evidence(
+            if compass.open_blockers > 0 || compass.open_drift > 0 {
+                let mut compass_evidence = Vec::new();
+                if compass.open_blockers > 0 {
+                    compass_evidence.push(evidence(
                         "Project Compass",
                         "Open blockers",
                         &compass.open_blockers.to_string(),
                         "Fresh",
                         compass.updated_at.as_deref(),
                         Some(&compass.contract_path),
-                        "Open product blockers are tracked as remediation work.",
-                    )],
-                    related_finding_ids: Vec::new(),
-                    source_run_id: None,
-                });
-            }
-            if compass.open_drift > 0 {
-                seeds.push(ActionSeed {
-                    stable_key: "product_truth:project-compass-drift".to_string(),
-                    domain: "product_truth".to_string(),
-                    title: "Reconcile Project Compass drift".to_string(),
-                    summary: format!(
-                        "Project Compass records {} open drift item(s) between product truth and implementation.",
-                        compass.open_drift
-                    ),
-                    severity: "product_truth".to_string(),
-                    priority: "P1".to_string(),
-                    weight: compass.open_drift.max(1) as u64,
-                    acceptance_criteria: vec![
-                        "Each drift item is reconciled in implementation or explicitly dispositioned in Project Compass.".to_string(),
-                        "Pronto refreshes the contract and reports no unexplained open drift.".to_string(),
-                    ],
-                    evidence: vec![evidence(
+                        "Open product blockers require reconciliation in the canonical contract.",
+                    ));
+                }
+                if compass.open_drift > 0 {
+                    compass_evidence.push(evidence(
                         "Project Compass",
                         "Open drift",
                         &compass.open_drift.to_string(),
                         "Fresh",
                         compass.updated_at.as_deref(),
                         Some(&compass.contract_path),
-                        "Open product-to-implementation drift is tracked as remediation work.",
-                    )],
+                        "Open product-to-implementation drift requires reconciliation in the canonical contract.",
+                    ));
+                }
+                seeds.push(ActionSeed {
+                    stable_key: PROJECT_COMPASS_OPEN_ITEMS_KEY.to_string(),
+                    domain: "product_truth".to_string(),
+                    title: "Reconcile open Project Compass items".to_string(),
+                    summary: format!(
+                        "Project Compass records {} open blocker(s) and {} open drift item(s). They are one product-truth reconciliation action, not independent evidence of additional remediation work.",
+                        compass.open_blockers, compass.open_drift
+                    ),
+                    severity: "product_truth".to_string(),
+                    priority: "P1".to_string(),
+                    weight: severity_weight("warning"),
+                    acceptance_criteria: vec![
+                        "Each blocker is resolved or explicitly dispositioned in the canonical Project Compass contract.".to_string(),
+                        "Each drift item is reconciled in implementation or explicitly dispositioned in Project Compass.".to_string(),
+                        "Pronto refreshes the contract and reports no unexplained open blocker or drift.".to_string(),
+                    ],
+                    evidence: compass_evidence,
                     related_finding_ids: Vec::new(),
                     source_run_id: None,
                 });
@@ -1747,10 +1748,18 @@ fn add_qr_finding_seeds(
     };
     let mut groups = BTreeMap::<String, Vec<&ParsedFinding>>::new();
     for finding in run.findings.iter().filter(|finding| {
-        !finding
-            .fingerprint
-            .as_ref()
-            .is_some_and(|fingerprint| non_actionable.contains(fingerprint))
+        let maturity_projection_owns_action = is_fleet_maturity_finding(finding)
+            && (!goal_requires_maturity(goal)
+                || repository
+                    .quality
+                    .maturity
+                    .dimension_scores
+                    .contains_key(&finding.category));
+        !maturity_projection_owns_action
+            && !finding
+                .fingerprint
+                .as_ref()
+                .is_some_and(|fingerprint| non_actionable.contains(fingerprint))
     }) {
         groups
             .entry(finding.group_key.clone())
@@ -1806,7 +1815,9 @@ fn add_qr_finding_seeds(
             summary: format!("{} {}", first.summary, detail),
             severity: severity.clone(),
             priority: priority_for_weight(max_weight),
-            weight: max_weight.saturating_mul(count).max(1),
+            // Repeated instances describe the scope of one remediation action; they must
+            // not make that action dominate the entire plan's completion percentage.
+            weight: max_weight.max(1),
             acceptance_criteria: findings
                 .iter()
                 .find_map(|finding| finding.verification.clone())
@@ -1848,7 +1859,11 @@ fn add_qr_finding_seeds(
                 "warning".to_string()
             },
             priority: "P1".to_string(),
-            weight: repository.quality.findings.high_severity_total.max(1),
+            weight: if repository.quality.findings.high_severity_total > 0 {
+                severity_weight("high")
+            } else {
+                severity_weight("warning")
+            },
             acceptance_criteria: vec![
                 "The current QR report is reviewed and its findings are addressed.".to_string(),
                 "A fresh QR report is rerun to verify the result.".to_string(),
@@ -1866,6 +1881,13 @@ fn add_qr_finding_seeds(
             source_run_id: Some(run.id.clone()),
         });
     }
+}
+
+fn is_fleet_maturity_finding(finding: &ParsedFinding) -> bool {
+    finding
+        .pack
+        .as_deref()
+        .is_some_and(|pack| pack.starts_with(FLEET_MATURITY_FINDING_PACK_PREFIX))
 }
 
 fn add_branch_hygiene_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
@@ -2345,6 +2367,7 @@ fn materialize_action(
                 action.status.as_str(),
                 "in_progress" | "blocked" | "deferred"
             ) || (action.status == "verified"
+                && !action_was_resolved_by_refresh(action)
                 && seed
                     .evidence
                     .iter()
@@ -2375,6 +2398,74 @@ fn materialize_action(
         completed_at: previous_action.and_then(|action| action.completed_at.clone()),
         notes,
     }
+}
+
+fn action_was_resolved_by_refresh(action: &RemediationAction) -> bool {
+    action
+        .evidence
+        .iter()
+        .any(|item| item.label == RESOLVED_BY_REFRESH_LABEL)
+}
+
+fn normalized_retained_weight(action: &RemediationAction) -> u64 {
+    if action.stable_key.starts_with("qr_findings:group:")
+        || action.stable_key == "qr_findings:aggregate-report"
+    {
+        severity_weight(&action.severity)
+    } else {
+        action.weight
+    }
+}
+
+fn is_fleet_maturity_qr_action_key(stable_key: &str) -> bool {
+    stable_key.starts_with("qr_findings:group:")
+        && stable_key.contains(&format!("|{FLEET_MATURITY_FINDING_PACK_PREFIX}"))
+}
+
+fn retain_resolved_action_history(
+    actions: &mut Vec<RemediationAction>,
+    previous: Option<&RemediationPlan>,
+    generated_at: &str,
+) {
+    let Some(previous) = previous else {
+        return;
+    };
+    let current_keys = actions
+        .iter()
+        .map(|action| action.stable_key.clone())
+        .collect::<HashSet<_>>();
+    let compass_items_are_grouped = current_keys.contains(PROJECT_COMPASS_OPEN_ITEMS_KEY);
+    let mut resolved = previous
+        .actions
+        .iter()
+        .filter(|action| {
+            action.stable_key != VERIFICATION_ACTION_KEY
+                && !current_keys.contains(&action.stable_key)
+                && !is_fleet_maturity_qr_action_key(&action.stable_key)
+                && !(compass_items_are_grouped
+                    && LEGACY_PROJECT_COMPASS_OPEN_ITEM_KEYS.contains(&action.stable_key.as_str()))
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+
+    for action in &mut resolved {
+        action.weight = normalized_retained_weight(action);
+        action.status = "verified".to_string();
+        action.updated_at = generated_at.to_string();
+        action.completed_at = Some(generated_at.to_string());
+        if !action_was_resolved_by_refresh(action) {
+            action.evidence.push(evidence(
+                "Pronto remediation",
+                RESOLVED_BY_REFRESH_LABEL,
+                "Resolved",
+                "Fresh",
+                Some(generated_at),
+                None,
+                "The refreshed projection no longer emits this action. It is retained as verified history while other remediation remains active.",
+            ));
+        }
+    }
+    actions.extend(resolved);
 }
 
 fn build_ui_coverage(
@@ -2745,10 +2836,18 @@ fn calculate_progress(actions: &[RemediationAction]) -> RemediationProgress {
         .filter(|action| action.status == "verified")
         .map(|action| action.weight)
         .sum();
+    let has_active_actions = actions
+        .iter()
+        .any(|action| matches!(action.status.as_str(), "open" | "in_progress" | "blocked"));
     let percentage = if total_weight == 0 {
         100.0
     } else {
-        (verified_weight as f64 / total_weight as f64 * 100.0).round()
+        let rounded = (verified_weight as f64 / total_weight as f64 * 100.0).round();
+        if has_active_actions && rounded >= 100.0 {
+            99.0
+        } else {
+            rounded
+        }
     };
     RemediationProgress {
         verified_weight,
@@ -2788,6 +2887,21 @@ fn plan_status(actions: &[RemediationAction]) -> String {
     } else {
         "open".to_string()
     }
+}
+
+fn integration_only_remaining(actions: &[RemediationAction]) -> bool {
+    if actions.iter().any(|action| action.status == "blocked") {
+        return false;
+    }
+    let active_material_actions = actions
+        .iter()
+        .filter(|action| matches!(action.status.as_str(), "open" | "in_progress"))
+        .filter(|action| action.stable_key != VERIFICATION_ACTION_KEY)
+        .collect::<Vec<_>>();
+    !active_material_actions.is_empty()
+        && active_material_actions
+            .iter()
+            .all(|action| action.stable_key.starts_with("branch_hygiene:integrate:"))
 }
 
 fn current_stage(actions: &[RemediationAction]) -> String {
@@ -3013,12 +3127,7 @@ fn parse_fleet_findings(path: &Path, payload: &Value) -> Vec<ParsedFinding> {
     items
         .iter()
         .enumerate()
-        .filter(|(_, item)| {
-            !item
-                .get("applicable")
-                .and_then(Value::as_bool)
-                .is_some_and(|applicable| !applicable)
-        })
+        .filter(|(_, item)| fleet_finding_requires_remediation(item))
         .map(|(index, item)| {
             let category =
                 first_string(item, &[&["dimension"], &["category"], &["kind"], &["type"]])
@@ -3073,6 +3182,28 @@ fn parse_fleet_findings(path: &Path, payload: &Value) -> Vec<ParsedFinding> {
             }
         })
         .collect()
+}
+
+fn fleet_finding_requires_remediation(item: &Value) -> bool {
+    if item.get("applicable").and_then(Value::as_bool) == Some(false) {
+        return false;
+    }
+    let pack = first_string(item, &[&["schema"], &["pack"], &["pack_id"]]);
+    let is_maturity_record = pack
+        .as_deref()
+        .is_some_and(|pack| pack.starts_with(FLEET_MATURITY_FINDING_PACK_PREFIX));
+    if !is_maturity_record {
+        return true;
+    }
+    if let Some(score) = item.get("score").and_then(Value::as_f64) {
+        return score < MATURITY_CLOSURE_TARGET;
+    }
+    !first_string(item, &[&["status"], &["bucket"]]).is_some_and(|status| {
+        matches!(
+            status.to_ascii_lowercase().as_str(),
+            "validated" | "maintained" | "not_applicable"
+        )
+    })
 }
 
 fn first_evidence_path(value: &Value) -> Option<String> {
@@ -3493,11 +3624,34 @@ mod tests {
                 .map(|action| action.domain.clone())
                 .unwrap_or_else(|| "complete".to_string()),
             status: status.to_string(),
+            integration_only_remaining: integration_only_remaining(&actions),
             progress: calculate_progress(&actions),
             coverage: Vec::new(),
             tracks: build_tracks(&actions),
             actions,
         }
+    }
+
+    #[test]
+    fn project_compass_blockers_and_drift_share_one_remediation_action() {
+        let mut repository = fixture_repository("compass-grouping");
+        repository.project_compass.status = "Ready".to_string();
+        repository.project_compass.contract_path =
+            "/tmp/compass-grouping/.project-compass/contract.json".to_string();
+        repository.project_compass.updated_at = Some("2026-08-03T18:04:36Z".to_string());
+        repository.project_compass.open_blockers = 1;
+        repository.project_compass.open_drift = 1;
+        let mut seeds = Vec::new();
+
+        add_project_compass_seeds(&repository, &mut seeds);
+
+        assert_eq!(seeds.len(), 1);
+        let seed = &seeds[0];
+        assert_eq!(seed.stable_key, PROJECT_COMPASS_OPEN_ITEMS_KEY);
+        assert_eq!(seed.weight, severity_weight("warning"));
+        assert_eq!(seed.evidence.len(), 2);
+        assert!(seed.summary.contains("1 open blocker(s)"));
+        assert!(seed.summary.contains("1 open drift item(s)"));
     }
 
     #[test]
@@ -3569,6 +3723,44 @@ mod tests {
         assert_eq!(seeds.len(), 1);
         assert_eq!(seeds[0].related_finding_ids, vec!["finding-reviewed"]);
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn grouped_qr_occurrences_do_not_multiply_plan_weight() {
+        let mut repository = fixture_repository("grouped-findings");
+        repository.quality.findings.disposition_status = "Missing".to_string();
+        let finding = ParsedFinding {
+            id: "finding-one".to_string(),
+            fingerprint: None,
+            group_key: "developer-experience:setup-path".to_string(),
+            category: "developer-experience".to_string(),
+            pack: Some("maintainability".to_string()),
+            severity: "high".to_string(),
+            title: "Remove machine-specific setup paths".to_string(),
+            summary: "A setup path is machine-specific.".to_string(),
+            file: Some("README.md".to_string()),
+            line: Some(10),
+            verification: None,
+            report_path: "/tmp/findings.json".to_string(),
+        };
+        let mut second = finding.clone();
+        second.id = "finding-two".to_string();
+        second.line = Some(20);
+        let run = QrRunEvidence {
+            id: "qr-run".to_string(),
+            run_dir: PathBuf::from("/tmp/qr-run"),
+            observed_at: Some("2026-07-29T12:00:00Z".to_string()),
+            findings: vec![finding, second],
+        };
+        let goal = goal_definition("active_maintained").expect("fixture goal should be supported");
+        let mut seeds = Vec::new();
+
+        add_qr_finding_seeds(&repository, Some(&run), &goal, &mut seeds);
+
+        assert_eq!(seeds.len(), 1);
+        assert_eq!(seeds[0].weight, severity_weight("high"));
+        assert_eq!(seeds[0].related_finding_ids.len(), 2);
+        assert!(seeds[0].summary.contains("2 finding(s)"));
     }
 
     #[test]
@@ -4156,6 +4348,245 @@ mod tests {
     }
 
     #[test]
+    fn progress_reserves_one_hundred_percent_for_terminal_plans() {
+        let actions = vec![
+            fixture_action("verified", "qr_findings", "P1", 199, "verified"),
+            fixture_action("remaining", "verification", "P2", 1, "open"),
+        ];
+
+        let progress = calculate_progress(&actions);
+
+        assert_eq!(progress.verified_weight, 199);
+        assert_eq!(progress.total_weight, 200);
+        assert_eq!(progress.percentage, 99.0);
+        assert_eq!(
+            calculate_progress(&[fixture_action(
+                "verified-only",
+                "verification",
+                "P2",
+                1,
+                "verified",
+            )])
+            .percentage,
+            100.0
+        );
+    }
+
+    #[test]
+    fn refresh_retains_disappeared_actions_as_verified_progress() {
+        let previous = fixture_plan(
+            "retained-progress",
+            "open",
+            vec![
+                fixture_action("resolved", "product_truth", "P1", 3, "open"),
+                fixture_action("remaining", "maturity", "P2", 2, "open"),
+                fixture_action(VERIFICATION_ACTION_KEY, "verification", "P2", 1, "open"),
+            ],
+        );
+        let mut actions = vec![
+            fixture_action("remaining", "maturity", "P2", 2, "open"),
+            fixture_action(VERIFICATION_ACTION_KEY, "verification", "P2", 1, "open"),
+        ];
+
+        retain_resolved_action_history(&mut actions, Some(&previous), "2026-07-30T12:00:00Z");
+
+        let resolved = actions
+            .iter()
+            .find(|action| action.stable_key == "resolved")
+            .expect("the disappeared action should remain in the plan");
+        assert_eq!(resolved.status, "verified");
+        assert_eq!(
+            resolved.completed_at.as_deref(),
+            Some("2026-07-30T12:00:00Z")
+        );
+        assert!(action_was_resolved_by_refresh(resolved));
+        assert_eq!(
+            actions
+                .iter()
+                .filter(|action| action.stable_key == VERIFICATION_ACTION_KEY)
+                .count(),
+            1
+        );
+        let progress = calculate_progress(&actions);
+        assert_eq!(progress.verified_weight, 3);
+        assert_eq!(progress.total_weight, 6);
+        assert_eq!(progress.percentage, 50.0);
+    }
+
+    #[test]
+    fn grouped_project_compass_action_replaces_legacy_duplicate_actions() {
+        let previous = fixture_plan(
+            "compass-migration",
+            "blocked",
+            vec![
+                fixture_action(
+                    LEGACY_PROJECT_COMPASS_OPEN_ITEM_KEYS[0],
+                    "product_truth",
+                    "P1",
+                    2,
+                    "open",
+                ),
+                fixture_action(
+                    LEGACY_PROJECT_COMPASS_OPEN_ITEM_KEYS[1],
+                    "product_truth",
+                    "P1",
+                    2,
+                    "open",
+                ),
+            ],
+        );
+        let mut actions = vec![fixture_action(
+            PROJECT_COMPASS_OPEN_ITEMS_KEY,
+            "product_truth",
+            "P1",
+            severity_weight("warning"),
+            "open",
+        )];
+
+        retain_resolved_action_history(&mut actions, Some(&previous), "2026-08-03T18:04:36Z");
+
+        assert_eq!(actions.len(), 1);
+        assert_eq!(actions[0].stable_key, PROJECT_COMPASS_OPEN_ITEMS_KEY);
+        assert!(!actions.iter().any(|action| {
+            LEGACY_PROJECT_COMPASS_OPEN_ITEM_KEYS.contains(&action.stable_key.as_str())
+        }));
+    }
+
+    #[test]
+    fn maturity_actions_replace_legacy_fleet_maturity_qr_history() {
+        let legacy_key = format!(
+            "qr_findings:group:quality_commands|quality_commands|{FLEET_MATURITY_FINDING_PACK_PREFIX}v0.1"
+        );
+        let previous = fixture_plan(
+            "fleet-maturity-migration",
+            "blocked",
+            vec![fixture_action(&legacy_key, "qr_findings", "P2", 2, "open")],
+        );
+        let mut actions = vec![fixture_action(
+            "maturity:dimension:quality_commands",
+            "maturity",
+            "P2",
+            2,
+            "open",
+        )];
+
+        retain_resolved_action_history(&mut actions, Some(&previous), "2026-08-03T18:04:36Z");
+
+        assert_eq!(actions.len(), 1);
+        assert_eq!(actions[0].stable_key, "maturity:dimension:quality_commands");
+        assert!(!actions.iter().any(|action| action.stable_key == legacy_key));
+    }
+
+    #[test]
+    fn refresh_normalizes_legacy_unbounded_qr_history_weight() {
+        let mut legacy = fixture_action(
+            "qr_findings:group:developer-experience:setup-path",
+            "qr_findings",
+            "P3",
+            14_831,
+            "open",
+        );
+        legacy.severity = "observation".to_string();
+        let previous = fixture_plan("legacy-qr-history", "open", vec![legacy]);
+        let mut actions = vec![fixture_action(
+            VERIFICATION_ACTION_KEY,
+            "verification",
+            "P2",
+            1,
+            "open",
+        )];
+
+        retain_resolved_action_history(&mut actions, Some(&previous), "2026-07-30T12:00:00Z");
+
+        let retained = actions
+            .iter()
+            .find(|action| action.stable_key.starts_with("qr_findings:group:"))
+            .expect("the grouped finding should remain as history");
+        assert_eq!(retained.status, "verified");
+        assert_eq!(retained.weight, severity_weight("observation"));
+        assert_eq!(calculate_progress(&actions).percentage, 50.0);
+    }
+
+    #[test]
+    fn action_reopens_when_a_refresh_resolved_key_reappears() {
+        let repository = fixture_repository("recurrence");
+        let mut previous_action = fixture_action(
+            "project_compass:blockers",
+            "product_truth",
+            "P1",
+            3,
+            "verified",
+        );
+        previous_action.evidence.push(evidence(
+            "Pronto remediation",
+            RESOLVED_BY_REFRESH_LABEL,
+            "Resolved",
+            "Fresh",
+            Some("2026-07-30T12:00:00Z"),
+            None,
+            "Previously absent from the refreshed projection.",
+        ));
+        let previous_actions =
+            HashMap::from([(previous_action.stable_key.as_str(), &previous_action)]);
+        let seed = ActionSeed {
+            stable_key: previous_action.stable_key.clone(),
+            domain: previous_action.domain.clone(),
+            title: previous_action.title.clone(),
+            summary: previous_action.summary.clone(),
+            severity: previous_action.severity.clone(),
+            priority: previous_action.priority.clone(),
+            weight: previous_action.weight,
+            acceptance_criteria: previous_action.acceptance_criteria.clone(),
+            evidence: vec![evidence(
+                "Project Compass",
+                "Open blockers",
+                "Blocked",
+                "Fresh",
+                Some("2026-07-31T12:00:00Z"),
+                None,
+                "The blocker is present again.",
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: None,
+        };
+
+        let action =
+            materialize_action(&repository, seed, &previous_actions, "2026-07-31T12:00:00Z");
+
+        assert_eq!(action.status, "open");
+    }
+
+    #[test]
+    fn integration_only_requires_no_other_active_or_blocked_remediation() {
+        let integration = fixture_action(
+            "branch_hygiene:integrate:feature",
+            "branch_hygiene",
+            "P2",
+            2,
+            "open",
+        );
+        let verification = fixture_action(VERIFICATION_ACTION_KEY, "verification", "P2", 1, "open");
+        assert!(integration_only_remaining(&[
+            integration.clone(),
+            verification.clone(),
+        ]));
+
+        let maturity = fixture_action("maturity:minimum", "maturity", "P2", 2, "open");
+        assert!(!integration_only_remaining(&[
+            integration.clone(),
+            verification.clone(),
+            maturity,
+        ]));
+
+        let mut blocked_integration = integration;
+        blocked_integration.status = "blocked".to_string();
+        assert!(!integration_only_remaining(&[
+            blocked_integration,
+            verification,
+        ]));
+    }
+
+    #[test]
     fn severity_weights_are_deterministic() {
         assert_eq!(severity_weight("critical"), 4);
         assert_eq!(severity_weight("error"), 3);
@@ -4207,6 +4638,24 @@ mod tests {
                         "finding_id": "finding-deployment",
                         "score": null,
                         "severity": "observation"
+                    },
+                    {
+                        "applicable": true,
+                        "dimension": "context_routing",
+                        "finding_id": "finding-context-routing",
+                        "score": 3,
+                        "schema": "quality-runner-environment-legibility-finding-v0.1",
+                        "severity": "observation",
+                        "status": "validated"
+                    },
+                    {
+                        "applicable": true,
+                        "dimension": "change_surface_coverage",
+                        "finding_id": "finding-change-surface-coverage",
+                        "score": 4,
+                        "schema": "quality-runner-environment-legibility-finding-v0.1",
+                        "severity": "observation",
+                        "status": "maintained"
                     }
                 ]
             }))
@@ -4243,6 +4692,79 @@ mod tests {
             plan.actions
                 .iter()
                 .filter(|action| action.domain == "qr_findings")
+                .count(),
+            1
+        );
+        fs::remove_dir_all(root).expect("fleet fixture should be removable");
+    }
+
+    #[test]
+    fn canonical_maturity_projection_owns_below_target_fleet_dimension_action() {
+        let fixture_id = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!(
+            "pronto-remediation-fleet-maturity-owner-{fixture_id}"
+        ));
+        let repository_path = root.join("repo");
+        let findings_dir = root.join("findings");
+        fs::create_dir_all(&repository_path).expect("repository fixture should be writable");
+        fs::create_dir_all(&findings_dir).expect("findings fixture should be writable");
+        let observed_at = Utc::now().to_rfc3339();
+        let mut repository = fixture_repository("fleet-maturity-owner");
+        repository.path = repository_path.to_string_lossy().to_string();
+        repository.workspace.path = repository.path.clone();
+        repository.workspace.last_commit = Some("abc".to_string());
+        repository.quality.maturity.score = Some(2.5);
+        repository.quality.maturity.score_display = Some("2.5/4".to_string());
+        repository.quality.maturity.freshness = crate::quality::QualityFreshness::Fresh;
+        repository.quality.maturity.observed_at = Some(observed_at.clone());
+        repository
+            .quality
+            .maturity
+            .dimension_scores
+            .insert("quality_commands".to_string(), 2.0);
+        fs::write(
+            findings_dir.join("repo.json"),
+            serde_json::to_string(&serde_json::json!({
+                "audit_id": "audit-fleet-maturity-owner",
+                "as_of": observed_at,
+                "repository": {
+                    "primary_path": repository.path.clone(),
+                    "checkouts": [{"path": repository.workspace.path.clone(), "head": "abc", "branch": "dev"}]
+                },
+                "findings": [{
+                    "applicable": true,
+                    "dimension": "quality_commands",
+                    "finding_id": "finding-quality-commands",
+                    "label": "quality commands",
+                    "message": "Quality commands are not fully legible.",
+                    "score": 2,
+                    "schema": "quality-runner-environment-legibility-finding-v0.1",
+                    "severity": "observation"
+                }]
+            }))
+            .expect("fleet finding should encode"),
+        )
+        .expect("fleet finding should be writable");
+
+        let run = rebuild_run_with_fleet_root(
+            &[repository],
+            &empty_run(),
+            Some("refresh-fleet-maturity-owner"),
+            Some(&root),
+        );
+        let plan = &run.plans[0];
+
+        assert_eq!(
+            plan.actions
+                .iter()
+                .filter(|action| action.domain == "qr_findings")
+                .count(),
+            0
+        );
+        assert_eq!(
+            plan.actions
+                .iter()
+                .filter(|action| action.stable_key == "maturity:dimension:quality_commands")
                 .count(),
             1
         );

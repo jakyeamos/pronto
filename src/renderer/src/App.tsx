@@ -249,8 +249,8 @@ export function App(): ReactElement {
       <AppSidebar
         activeNav={activeNav}
         activeConditionCount={activeConditionCount}
-        rootCount={snapshot.roots.length}
         repositories={snapshot.repositories}
+        remediation={snapshot.remediation}
         selectedRepositoryId={selectedRepositoryId}
         onNavigate={(nav) => {
           setActiveNav(nav);

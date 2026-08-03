@@ -90,6 +90,7 @@ interface RemediationPlan {
   goal: RemediationGoalProfile;
   current_stage: string;
   status: string;
+  integration_only_remaining: boolean;
   progress: RemediationProgress;
   coverage: RemediationCoverage[];
   tracks: RemediationTrack[];

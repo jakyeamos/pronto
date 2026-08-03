@@ -13,6 +13,21 @@ pub struct ProjectCompassTargetSummary {
     pub confidence_percent: u8,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ProjectCompassBlockerSummary {
+    pub outcome_id: String,
+    pub outcome_name: String,
+    pub kind: String,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ProjectCompassDriftSummary {
+    pub kind: String,
+    pub summary: String,
+    pub observed_at: String,
+}
+
 impl Default for ProjectCompassTargetSummary {
     fn default() -> Self {
         Self {
@@ -36,6 +51,10 @@ pub struct ProjectCompassSummary {
     pub complete_product: ProjectCompassTargetSummary,
     pub open_blockers: usize,
     pub open_drift: usize,
+    #[serde(default)]
+    pub open_blocker_items: Vec<ProjectCompassBlockerSummary>,
+    #[serde(default)]
+    pub open_drift_items: Vec<ProjectCompassDriftSummary>,
     pub error: Option<String>,
 }
 
@@ -53,6 +72,8 @@ impl Default for ProjectCompassSummary {
             complete_product: ProjectCompassTargetSummary::default(),
             open_blockers: 0,
             open_drift: 0,
+            open_blocker_items: Vec::new(),
+            open_drift_items: Vec::new(),
             error: None,
         }
     }
@@ -87,6 +108,69 @@ fn required_string(value: &Value, key: &str) -> Result<String, String> {
 
 fn rounded_percent(value: f64) -> u8 {
     (value + 0.5).floor().clamp(0.0, 100.0) as u8
+}
+
+fn open_blocker_items(contract: &Value) -> Result<Vec<ProjectCompassBlockerSummary>, String> {
+    let mut summaries = Vec::new();
+    for (pillar_index, pillar) in contract
+        .get("pillars")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .enumerate()
+    {
+        for (outcome_index, outcome) in pillar
+            .get("outcomes")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .enumerate()
+        {
+            let path = format!("pillars[{pillar_index}].outcomes[{outcome_index}]");
+            let outcome_id =
+                required_string(outcome, "id").map_err(|error| format!("{path}.{error}"))?;
+            let outcome_name =
+                required_string(outcome, "name").map_err(|error| format!("{path}.{error}"))?;
+            let blockers = outcome
+                .get("blockers")
+                .and_then(Value::as_array)
+                .ok_or_else(|| format!("{path}.blockers must be an array"))?;
+            for (blocker_index, blocker) in blockers.iter().enumerate() {
+                let blocker_path = format!("{path}.blockers[{blocker_index}]");
+                summaries.push(ProjectCompassBlockerSummary {
+                    outcome_id: outcome_id.clone(),
+                    outcome_name: outcome_name.clone(),
+                    kind: required_string(blocker, "kind")
+                        .map_err(|error| format!("{blocker_path}.{error}"))?,
+                    summary: required_string(blocker, "summary")
+                        .map_err(|error| format!("{blocker_path}.{error}"))?,
+                });
+            }
+        }
+    }
+    Ok(summaries)
+}
+
+fn open_drift_items(drift: &[Value]) -> Result<Vec<ProjectCompassDriftSummary>, String> {
+    drift
+        .iter()
+        .enumerate()
+        .filter(|(_, item)| item.get("status").and_then(Value::as_str) == Some("open"))
+        .map(|(index, item)| {
+            let path = format!("drift[{index}]");
+            let observed_at =
+                required_string(item, "observed_at").map_err(|error| format!("{path}.{error}"))?;
+            if chrono::DateTime::parse_from_rfc3339(&observed_at).is_err() {
+                return Err(format!("{path}.observed_at must be an RFC 3339 timestamp"));
+            }
+            Ok(ProjectCompassDriftSummary {
+                kind: required_string(item, "kind").map_err(|error| format!("{path}.{error}"))?,
+                summary: required_string(item, "summary")
+                    .map_err(|error| format!("{path}.{error}"))?,
+                observed_at,
+            })
+        })
+        .collect()
 }
 
 fn target_summary(contract: &Value, target: &str) -> Result<ProjectCompassTargetSummary, String> {
@@ -283,35 +367,16 @@ pub fn inspect(repository: &Path) -> ProjectCompassSummary {
         Ok(summary) => summary,
         Err(error) => return invalid(error),
     };
-    let open_blockers = contract
-        .get("pillars")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .flat_map(|pillar| {
-            pillar
-                .get("outcomes")
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-        })
-        .map(|outcome| {
-            outcome
-                .get("blockers")
-                .and_then(Value::as_array)
-                .map_or(0, Vec::len)
-        })
-        .sum();
-    let open_drift = contract
-        .get("drift")
-        .and_then(Value::as_array)
-        .map(|items| {
-            items
-                .iter()
-                .filter(|item| item.get("status").and_then(Value::as_str) == Some("open"))
-                .count()
-        })
-        .unwrap_or(0);
+    let open_blocker_items = match open_blocker_items(&contract) {
+        Ok(items) => items,
+        Err(error) => return invalid(error),
+    };
+    let open_drift_items = match open_drift_items(drift) {
+        Ok(items) => items,
+        Err(error) => return invalid(error),
+    };
+    let open_blockers = open_blocker_items.len();
+    let open_drift = open_drift_items.len();
 
     ProjectCompassSummary {
         status: "Ready".to_string(),
@@ -325,6 +390,8 @@ pub fn inspect(repository: &Path) -> ProjectCompassSummary {
         complete_product,
         open_blockers,
         open_drift,
+        open_blocker_items,
+        open_drift_items,
         error: None,
     }
 }
@@ -376,19 +443,19 @@ mod tests {
             "pillars": [
                 {
                     "outcomes": [
-                        {"targets": ["mvp", "complete_product"], "maturity": 75, "confidence": "high", "blockers": []},
-                        {"targets": ["mvp"], "maturity": 25, "confidence": "medium", "blockers": [{"kind": "verification", "summary": "Needs proof"}]}
+                        {"id": "social-loop", "name": "The social loop works", "targets": ["mvp", "complete_product"], "maturity": 75, "confidence": "high", "blockers": []},
+                        {"id": "real-use-proof", "name": "The loop is proven in real use", "targets": ["mvp"], "maturity": 25, "confidence": "medium", "blockers": [{"kind": "verification", "summary": "Needs proof"}]}
                     ]
                 },
                 {
                     "outcomes": [
-                        {"targets": ["mvp", "complete_product"], "maturity": 100, "confidence": "high", "blockers": []}
+                        {"id": "shared-home", "name": "Friends share a home", "targets": ["mvp", "complete_product"], "maturity": 100, "confidence": "high", "blockers": []}
                     ]
                 }
             ],
             "drift": [
-                {"status": "open"},
-                {"status": "accepted"}
+                {"kind": "verification-gap", "summary": "The intended loop lacks real-use proof.", "status": "open", "observed_at": "2026-07-28T00:00:00Z", "evidence": []},
+                {"kind": "intent-change", "summary": "A broader audience was accepted.", "status": "accepted", "observed_at": "2026-07-28T00:00:00Z", "evidence": []}
             ],
             "source_layers": {
                 "intended": [],
@@ -411,6 +478,11 @@ mod tests {
         assert_eq!(summary.mvp.confidence_percent, 87);
         assert_eq!(summary.open_blockers, 1);
         assert_eq!(summary.open_drift, 1);
+        assert_eq!(summary.open_blocker_items[0].summary, "Needs proof");
+        assert_eq!(
+            summary.open_drift_items[0].summary,
+            "The intended loop lacks real-use proof."
+        );
         fs::remove_dir_all(root).expect("fixture should be removable");
     }
 
