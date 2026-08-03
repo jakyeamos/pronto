@@ -361,6 +361,21 @@ export async function setRepositoryLifecycle(
   });
 }
 
+export async function setRepositoryTargetBranch(
+  repositoryId: string,
+  targetBranch: string,
+): Promise<PortfolioSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error(
+      "Target branch settings are available in the Pronto desktop app.",
+    );
+  }
+  return invoke<PortfolioSnapshot>("set_repository_target_branch", {
+    repository_id: repositoryId,
+    target_branch: targetBranch,
+  });
+}
+
 export async function setRetentionDays(
   retentionDays: number,
 ): Promise<PortfolioSnapshot> {

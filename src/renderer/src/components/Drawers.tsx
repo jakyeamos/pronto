@@ -33,6 +33,7 @@ export function RepositoryDetailSurface({
   onBack,
   onOpenWorkspace,
   onPrepareRepository,
+  onTargetBranchChange,
   onLifecycleChange,
   onCondition,
   onOpenReport,
@@ -42,12 +43,23 @@ export function RepositoryDetailSurface({
   onBack: () => void;
   onOpenWorkspace: (workspaceId: string, tool: ExternalTool) => Promise<void>;
   onPrepareRepository: (workspaceId?: string) => Promise<void>;
+  onTargetBranchChange: (targetBranch: string) => Promise<void>;
   onLifecycleChange: (lifecycle: string) => Promise<void>;
   onCondition: (condition: Condition) => void;
   onOpenReport?: (reportPath: string) => void;
 }): ReactElement {
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
     null,
+  );
+  const selectedTargetBranch =
+    repository.target_branch ?? repository.default_branch ?? "";
+  const targetBranches = Array.from(
+    new Set(
+      [
+        selectedTargetBranch,
+        ...repository.branches.map((branch) => branch.name),
+      ].filter((branch): branch is string => branch.length > 0),
+    ),
   );
   const detailQualityGates: QualityGate[] = [
     ...repository.quality.gates,
@@ -101,8 +113,29 @@ export function RepositoryDetailSurface({
           <strong>{repository.branch}</strong>
         </div>
         <div>
-          <span>Default branch</span>
-          <strong>{repository.default_branch ?? "Unknown"}</strong>
+          <span>Target branch</span>
+          <select
+            className="drawer-select"
+            aria-label={`Target branch for ${repository.name}`}
+            value={selectedTargetBranch}
+            disabled={targetBranches.length === 0}
+            onChange={(event) => void onTargetBranchChange(event.target.value)}
+          >
+            {targetBranches.length === 0 ? (
+              <option value="">Unknown</option>
+            ) : (
+              targetBranches.map((branch) => (
+                <option value={branch} key={branch}>
+                  {branch}
+                </option>
+              ))
+            )}
+          </select>
+          <small>
+            {repository.target_branch_configured
+              ? `Pronto override · Git default: ${repository.default_branch ?? "Unknown"}`
+              : `Following Git default: ${repository.default_branch ?? "Unknown"}`}
+          </small>
         </div>
         <div>
           <span>Lifecycle</span>

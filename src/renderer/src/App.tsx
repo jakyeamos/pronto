@@ -187,6 +187,16 @@ export function App(): ReactElement {
     [loadSnapshot, selectedRepository],
   );
 
+  const handleTargetBranchChange = useCallback(
+    async (targetBranch: string): Promise<void> => {
+      if (!selectedRepository) return;
+      await loadSnapshot(() =>
+        api.setRepositoryTargetBranch(selectedRepository.id, targetBranch),
+      );
+    },
+    [loadSnapshot, selectedRepository],
+  );
+
   const {
     handleSaveReleaseRule,
     handleSaveReleaseRecipe,
@@ -343,6 +353,7 @@ export function App(): ReactElement {
               onBack={() => setSelectedRepositoryId(null)}
               onOpenWorkspace={handleOpenWorkspace}
               onPrepareRepository={handlePrepareRepository}
+              onTargetBranchChange={handleTargetBranchChange}
               onLifecycleChange={handleLifecycleChange}
               onCondition={(condition) =>
                 handleCondition(selectedRepository, condition)

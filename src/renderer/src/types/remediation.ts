@@ -55,6 +55,39 @@ interface RemediationCoverage {
   action_ids: string[];
 }
 
+interface RemediationExplanationStep {
+  action_id: string;
+  title: string;
+  summary: string;
+  status: string;
+  priority: string;
+  completion_criteria: string[];
+}
+
+interface RemediationExplanationPhase {
+  id: string;
+  title: string;
+  summary: string;
+  status: string;
+  steps: RemediationExplanationStep[];
+  completion_criterion: string;
+}
+
+interface RemediationHealthySurface {
+  surface: string;
+  label: string;
+  status: string;
+  detail: string;
+}
+
+interface RemediationExplanation {
+  authority: string;
+  summary: string;
+  phases: RemediationExplanationPhase[];
+  healthy_surfaces: RemediationHealthySurface[];
+  closure_requirements: string[];
+}
+
 interface RemediationMaturityPolicy {
   minimum_closure_score: number;
   ideal_score: number;
@@ -93,6 +126,7 @@ interface RemediationPlan {
   integration_only_remaining: boolean;
   progress: RemediationProgress;
   coverage: RemediationCoverage[];
+  explanation: RemediationExplanation;
   tracks: RemediationTrack[];
   actions: RemediationAction[];
 }

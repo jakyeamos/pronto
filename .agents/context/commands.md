@@ -23,9 +23,10 @@ performs the same read-only doctor gate for the selected scope and, only when
 that gate is ready, includes bounded `next`, repository, quality,
 `change_maturity`, and `fold_preview` projections from the same snapshot
 boundary. The change summary is advisory and recommends a read-only matrix
-inspection; it does not create a missing matrix. The fold preview
-uses the observed default branch and remains advisory; use direct `fold
-preview` when an explicit target branch is needed. A blocked route
+inspection; it does not create a missing matrix. The fold preview uses the
+repository's persisted target branch when configured, falls back to the
+observed default branch, and remains advisory; use direct `fold preview` when a
+one-off explicit target is needed. A blocked route
 intentionally withholds follow-up projections and exits non-zero; use its
 `next_safe_step` before refreshing or repairing evidence.
 
@@ -85,6 +86,17 @@ repo-level surfaces tracked in the UI: scope, Project Compass, provider, pull
 requests, published releases, quality evidence, CI gates, findings, maturity,
 workspaces, branches, submodules, conditions, release preparation, agent
 permission, and analytics.
+Each plan also contains an `explanation` projection that groups only active
+(`open`, `in_progress`, or `blocked`) actions into four ordered operator phases
+when applicable: preserve and reconcile repository work, reconcile product and
+provider truth, reach quality and maturity closure, and refresh, verify, and
+close. Every phase exposes linked action steps and completion criteria;
+verified history is not presented as remaining work. The explanation names
+`clear` and `verified` coverage surfaces as already healthy and repeats the
+goal-specific closure requirements. It is advisory and never authorizes Git,
+provider, publication, release, or pruning mutations. The Markdown queue export
+includes the ordered remaining phase titles so its human-readable summary stays
+aligned with the JSON plan and app detail surface.
 Goals that require maturity also expose a structured `maturity_policy`: 3.0/4
 is the minimum evidence-backed closure score and 4.0/4 is the ideal. Reaching
 the closure score removes blocking maturity work from the active queue, while
