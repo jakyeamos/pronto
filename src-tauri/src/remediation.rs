@@ -13,7 +13,7 @@ pub const REMEDIATION_GOAL_SCHEMA: &str = "pronto-remediation-goal/v1";
 pub const REMEDIATION_GOAL_PATH: &str = ".pronto/remediation-goal.json";
 pub const MATURITY_CLOSURE_TARGET: f64 = 3.0;
 pub const MATURITY_IDEAL_SCORE: f64 = 4.0;
-pub const EXCLUDED_REPOSITORY_NAMES: [&str; 2] = ["soundscape", "tenure"];
+pub const EXCLUDED_REPOSITORY_NAMES: [&str; 0] = [];
 const VERIFICATION_ACTION_KEY: &str = "verification:recheck-after-remediation";
 const RESOLVED_BY_REFRESH_LABEL: &str = "Resolved by remediation refresh";
 const PROJECT_COMPASS_OPEN_ITEMS_KEY: &str = "product_truth:project-compass-open-items";
@@ -4099,9 +4099,11 @@ mod tests {
     }
 
     #[test]
-    fn excludes_in_progress_repositories_by_name() {
-        assert!(is_excluded_repository(&fixture_repository("soundscape")));
-        assert!(is_excluded_repository(&fixture_repository("tenure")));
+    fn does_not_exclude_repositories_without_policy_entries() {
+        assert!(!is_excluded_repository(&fixture_repository(
+            "soundscape-app"
+        )));
+        assert!(!is_excluded_repository(&fixture_repository("tenure")));
         assert!(!is_excluded_repository(&fixture_repository("pronto")));
     }
 
