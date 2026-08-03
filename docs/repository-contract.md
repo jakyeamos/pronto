@@ -126,7 +126,11 @@ publication authority from authenticated read access.
 
 `pnpm build:bundle` produces the macOS bundle without installing it.
 `pnpm build` builds and installs into `/Applications/Pronto.app`, so it crosses
-the application deployment boundary and requires that exact intent.
+the application deployment boundary and requires that exact intent. The
+installer performs a staged whole-bundle replacement, verifies exact parity,
+and restarts Pronto when it was already running; overlay copies are forbidden
+because they can retain obsolete files. An app-facing change is not complete
+until `pnpm app:check` passes and the installed version has been launched.
 
 Release preparation is not publication. Before a release, require a clean
 canonical commit, a confirmed baseline, fresh required gates, a deterministic

@@ -59,6 +59,13 @@ The Node adapter normally resolves `cargo` from the documented Homebrew paths
 and then `PATH`. Set `PRONTO_CARGO` to an explicit Cargo executable only when a
 different verified Rust toolchain is required.
 
+For every app-facing source change, `pnpm build:bundle` alone is provisional.
+Completion requires `pnpm build`, which stages and fully replaces
+`/Applications/Pronto.app`, followed by `pnpm app:check` and a launch of the
+installed app. If Pronto was already running, the installer must quit it before
+replacement and reopen it afterward. Never use an overlay copy: obsolete files
+must not survive an installation.
+
 Repository and summary projections include a read-only `project_compass`
 summary derived from `.project-compass/contract.json`. `Ready` reports the
 current product identity, MVP and complete-product progress, confidence,

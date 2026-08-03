@@ -1,16 +1,14 @@
 #!/usr/bin/env node
 
-import { createHash } from "node:crypto";
-import {
-  cpSync,
-  existsSync,
-  lstatSync,
-  readFileSync,
-  readdirSync,
-  readlinkSync,
-} from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, lstatSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  digestBundle,
+  digestFile,
+  replaceAppBundle,
+} from "./install-app-lib.mjs";
 
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const sourceApp = join(
@@ -26,6 +24,7 @@ const targetApp = "/Applications/Pronto.app";
 const sourceExecutable = join(sourceApp, "Contents", "MacOS", "pronto");
 const targetExecutable = join(targetApp, "Contents", "MacOS", "pronto");
 const checkOnly = globalThis.process.argv.includes("--check");
+const appBundleIdentifier = "com.pronto.desktop";
 
 function fail(message) {
   globalThis.console.error(
@@ -48,44 +47,34 @@ function assertBundle(path, label) {
   return true;
 }
 
-function digestFile(path) {
-  return createHash("sha256").update(readFileSync(path)).digest("hex");
+function installedAppIsRunning() {
+  const processList = execFileSync("/bin/ps", ["-ax", "-o", "command="], {
+    encoding: "utf8",
+  });
+  return processList
+    .split("\n")
+    .some(
+      (command) =>
+        command === targetExecutable ||
+        command.startsWith(`${targetExecutable} `),
+    );
 }
 
-function digestBundle(bundlePath) {
-  const entries = [];
-
-  function collect(currentPath, relativePath) {
-    for (const entry of readdirSync(currentPath, { withFileTypes: true }).sort(
-      (left, right) => left.name.localeCompare(right.name),
-    )) {
-      const entryPath = join(currentPath, entry.name);
-      const entryRelativePath = join(relativePath, entry.name);
-      if (entry.isDirectory()) {
-        collect(entryPath, entryRelativePath);
-      } else if (entry.isFile()) {
-        entries.push({
-          kind: "file",
-          path: entryRelativePath,
-          value: readFileSync(entryPath),
-        });
-      } else if (entry.isSymbolicLink()) {
-        entries.push({
-          kind: "symlink",
-          path: entryRelativePath,
-          value: readlinkSync(entryPath),
-        });
-      }
+function waitForInstalledAppToQuit(timeoutMilliseconds = 10_000) {
+  const deadline = Date.now() + timeoutMilliseconds;
+  const waitState = new Int32Array(new SharedArrayBuffer(4));
+  while (installedAppIsRunning()) {
+    if (Date.now() >= deadline) {
+      throw new Error(
+        "Pronto did not quit within 10 seconds; the installed bundle was not replaced.",
+      );
     }
+    Atomics.wait(waitState, 0, 0, 100);
   }
+}
 
-  collect(bundlePath, "");
-  const hash = createHash("sha256");
-  for (const entry of entries) {
-    hash.update(`${entry.kind}:${entry.path}\0`);
-    hash.update(entry.value);
-  }
-  return hash.digest("hex");
+function launchInstalledApp() {
+  execFileSync("/usr/bin/open", ["-b", appBundleIdentifier]);
 }
 
 if (!assertBundle(sourceApp, "The local release bundle"))
@@ -137,11 +126,27 @@ if (existsSync(targetApp) && lstatSync(targetApp).isSymbolicLink()) {
   globalThis.process.exit(1);
 }
 
+let installedAppWasRunning = false;
 try {
-  cpSync(sourceApp, targetApp, { recursive: true, force: true });
+  installedAppWasRunning = installedAppIsRunning();
+  if (installedAppWasRunning) {
+    execFileSync("/usr/bin/osascript", [
+      "-e",
+      `tell application id "${appBundleIdentifier}" to quit`,
+    ]);
+    waitForInstalledAppToQuit();
+  }
+  replaceAppBundle(sourceApp, targetApp);
 } catch (error) {
+  if (installedAppWasRunning && existsSync(targetApp)) {
+    try {
+      launchInstalledApp();
+    } catch {
+      // Preserve the original installation failure as the actionable error.
+    }
+  }
   fail(
-    `Could not copy the local release bundle to ${targetApp}: ${
+    `Could not replace the local release bundle at ${targetApp}: ${
       error instanceof Error ? error.message : String(error)
     }`,
   );
@@ -157,7 +162,24 @@ if (installedBundleDigest !== sourceBundleDigest) {
   globalThis.process.exit(1);
 }
 
+if (installedAppWasRunning) {
+  try {
+    launchInstalledApp();
+  } catch (error) {
+    fail(
+      `The app was replaced but could not be reopened: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+    globalThis.process.exit(1);
+  }
+}
+
 globalThis.console.log(`Installed current Pronto at ${targetApp}.`);
 globalThis.console.log(`Bundle hash: ${installedBundleDigest.slice(0, 12)}`);
 globalThis.console.log(`Executable: ${installedExecutableDigest.slice(0, 12)}`);
-globalThis.console.log("Quit and reopen Pronto if it was already running.");
+globalThis.console.log(
+  installedAppWasRunning
+    ? "Reopened Pronto with the installed replacement."
+    : "Pronto was not running; open it when you are ready.",
+);
