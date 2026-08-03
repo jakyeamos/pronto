@@ -208,6 +208,9 @@ describe("remediation active queue", () => {
     );
 
     expect(markup).toContain("Refresh state");
+    expect(markup).toContain("Scope exclusions");
+    expect(markup).toContain("All registered repositories are eligible");
+    expect(markup).not.toContain("Soundscape and Tenure stay out of the plan");
     expect(markup).toContain("Actions to work");
     expect(markup).toContain("Run full refresh");
     expect(markup).toContain("Active repository remediation");
