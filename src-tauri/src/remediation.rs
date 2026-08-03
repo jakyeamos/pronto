@@ -823,6 +823,15 @@ pub fn rebuild_run_with_fleet_root(
             &generated_at,
             fleet_audit_root,
         );
+        let retained_closure_is_current = previous_plan.is_none()
+            && closures
+                .iter()
+                .filter(|closure| closure.repository_id == repository.id)
+                .max_by(|left, right| left.closed_at.cmp(&right.closed_at))
+                .is_some_and(|closure| closure_covers_plan(closure, &plan));
+        if retained_closure_is_current {
+            continue;
+        }
         if plan_is_terminal(&plan) {
             if let Some(previous_plan) = previous_plan {
                 closures.push(closure_from_transition(
@@ -1045,6 +1054,26 @@ fn latest_plan_evidence_at(plan: &RemediationPlan) -> Option<String> {
         .flat_map(|action| action.evidence.iter())
         .filter_map(|item| item.observed_at.clone())
         .max()
+}
+
+fn closure_covers_plan(closure: &RemediationClosure, plan: &RemediationPlan) -> bool {
+    if closure.source_refresh_id != plan.source_refresh_id
+        || closure.target_state != plan.goal.target_state
+        || closure.goal_source != plan.goal.source
+    {
+        return false;
+    }
+    let Some(closed_at) = DateTime::parse_from_rfc3339(&closure.closed_at).ok() else {
+        return false;
+    };
+    plan.actions
+        .iter()
+        .flat_map(|action| action.evidence.iter())
+        .filter_map(|item| item.observed_at.as_deref())
+        .all(|observed_at| {
+            DateTime::parse_from_rfc3339(observed_at)
+                .is_ok_and(|observed_at| observed_at <= closed_at)
+        })
 }
 
 fn closure_from_plan(
@@ -4210,6 +4239,38 @@ mod tests {
             run.closures[0].last_evidence_at.as_deref(),
             Some("2026-07-29T12:00:00Z")
         );
+    }
+
+    #[test]
+    fn retained_closure_stays_out_of_queue_until_new_evidence_arrives() {
+        let mut repository = fixture_repository("closure-retention");
+        repository.last_scan_at = "2026-08-03T12:00:00Z".to_string();
+        repository.last_fetch_at = Some("2026-08-03T12:00:00Z".to_string());
+        repository.workspace.last_commit_at = Some("2026-08-03T12:00:00Z".to_string());
+        let current = build_plan(
+            &repository,
+            None,
+            Some("refresh-1"),
+            "2026-08-03T12:30:00Z",
+            None,
+        );
+        let mut previous = empty_run();
+        previous.closures = vec![closure_from_plan(
+            &current,
+            "2026-08-03T13:00:00Z",
+            Some("refresh-1"),
+        )];
+
+        let retained = rebuild_run(&[repository.clone()], &previous, Some("refresh-1"));
+
+        assert!(retained.plans.is_empty());
+        assert_eq!(retained.closures.len(), 1);
+
+        repository.last_scan_at = "2026-08-03T14:00:00Z".to_string();
+        let reopened = rebuild_run(&[repository], &retained, Some("refresh-1"));
+
+        assert_eq!(reopened.plans.len(), 1);
+        assert_eq!(reopened.plans[0].repository_name, "closure-retention");
     }
 
     #[test]
