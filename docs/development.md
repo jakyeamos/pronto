@@ -16,10 +16,12 @@ Every production build now installs the resulting macOS app into
 pnpm build
 ```
 
-This builds the current checkout, copies the resulting `Pronto.app` to
+This builds the current checkout, stages and atomically replaces
 `/Applications/Pronto.app`, and verifies that the entire installed app bundle
-and native executable match the build. `pnpm app` is retained as an alias.
-Quit and reopen Pronto after installing if it was already running.
+and native executable match the build. Obsolete files from an earlier build
+cannot survive the replacement. If Pronto is running, the installer quits it
+before the swap and reopens the newly installed version afterward. `pnpm app`
+is retained as an alias.
 
 To build only the repository release bundle without installing it, use:
 
@@ -34,6 +36,10 @@ pnpm app:check
 ```
 
 These build/install commands do not modify the local Pronto database.
+
+An app-facing change is not complete while `/Applications/Pronto.app` differs
+from the current build. Finish with `pnpm build`, `pnpm app:check`, and a launch
+of the installed app when it was not already running.
 
 ## Rust toolchain contract
 
