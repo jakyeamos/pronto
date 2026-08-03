@@ -1,0 +1,142 @@
+{
+  "schema_version": "quality-runner-environment-legibility/v1",
+  "owner": "Pronto maintainers",
+  "last_reviewed": "2026-08-01",
+  "dimensions": {
+    "architecture_boundaries": {
+      "evidence": ["docs/repository-contract.md"],
+      "validation": [
+        {
+          "path": "scripts/validate-repository-contract.mjs",
+          "contains": ["## Architecture and ownership boundaries"]
+        }
+      ],
+      "automation": [
+        {
+          "path": ".github/workflows/quality.yml",
+          "contains": ["command: pnpm contract:check"]
+        }
+      ]
+    },
+    "coding_conventions": {
+      "evidence": ["docs/repository-contract.md"],
+      "validation": [
+        {
+          "path": "scripts/validate-repository-contract.mjs",
+          "contains": ["## Coding conventions"]
+        }
+      ],
+      "automation": [
+        {
+          "path": ".github/workflows/quality.yml",
+          "contains": ["command: pnpm contract:check"]
+        }
+      ]
+    },
+    "context_routing": {
+      "evidence": [".agents/context/README.md"],
+      "validation": [
+        {
+          "path": "scripts/validate-repository-contract.mjs",
+          "contains": ["Read the deeper file only when the task matches it:"]
+        }
+      ],
+      "automation": [
+        {
+          "path": ".github/workflows/quality.yml",
+          "contains": ["command: pnpm contract:check"]
+        }
+      ]
+    },
+    "security_constraints": {
+      "evidence": ["docs/repository-contract.md"],
+      "validation": [
+        {
+          "path": "scripts/validate-repository-contract.mjs",
+          "contains": ["## Security and credential constraints"]
+        }
+      ],
+      "automation": [
+        {
+          "path": ".github/workflows/quality.yml",
+          "contains": ["command: pnpm contract:check"]
+        }
+      ]
+    },
+    "failure_modes": {
+      "evidence": ["docs/repository-contract.md"],
+      "validation": [
+        {
+          "path": "scripts/validate-repository-contract.mjs",
+          "contains": ["## Common failure modes and recovery"]
+        }
+      ],
+      "automation": [
+        {
+          "path": ".github/workflows/quality.yml",
+          "contains": ["command: pnpm contract:check"]
+        }
+      ]
+    },
+    "implementation_examples": {
+      "evidence": ["docs/implementation-examples.md"],
+      "validation": [
+        {
+          "path": "scripts/validate-repository-contract.mjs",
+          "contains": ["## Add or change an evidence projection"]
+        }
+      ],
+      "automation": [
+        {
+          "path": ".github/workflows/quality.yml",
+          "contains": ["command: pnpm contract:check"]
+        }
+      ]
+    },
+    "definition_of_done": {
+      "evidence": ["docs/repository-contract.md"],
+      "validation": [
+        {
+          "path": "scripts/validate-repository-contract.mjs",
+          "contains": ["## Definition of done"]
+        }
+      ],
+      "automation": [
+        {
+          "path": ".github/workflows/quality.yml",
+          "contains": ["command: pnpm contract:check"]
+        }
+      ]
+    },
+    "approval_gated_paths": {
+      "evidence": ["docs/repository-contract.md"],
+      "validation": [
+        {
+          "path": "scripts/validate-repository-contract.mjs",
+          "contains": ["## Approval-gated paths and operations"]
+        }
+      ],
+      "automation": [
+        {
+          "path": ".github/workflows/quality.yml",
+          "contains": ["command: pnpm contract:check"]
+        }
+      ]
+    },
+    "deployment_rollback": {
+      "evidence": ["docs/repository-contract.md"],
+      "validation": [
+        {
+          "path": "scripts/validate-repository-contract.mjs",
+          "contains": ["## Installation, release, and rollback"]
+        }
+      ],
+      "automation": [
+        {
+          "path": ".github/workflows/quality.yml",
+          "contains": ["command: pnpm contract:check"]
+        }
+      ]
+    }
+  }
+}
