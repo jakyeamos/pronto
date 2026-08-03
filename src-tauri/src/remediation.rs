@@ -22,6 +22,13 @@ const LEGACY_PROJECT_COMPASS_OPEN_ITEM_KEYS: [&str; 2] = [
     "product_truth:project-compass-blockers",
     "product_truth:project-compass-drift",
 ];
+const DEFAULT_REMEDIATION_PHASE_IDS: [&str; 4] = [
+    "preserve_and_reconcile",
+    "product_and_provider_truth",
+    "quality_and_maturity",
+    "verify_and_close",
+];
+const UNCLASSIFIED_REMEDIATION_PHASE_ID: &str = "unclassified_remediation";
 const ALL_GATE_IDS: [&str; 9] = [
     "build",
     "tests",
@@ -136,6 +143,17 @@ pub struct RemediationMaturityPolicy {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RemediationPhaseDefinition {
+    pub id: String,
+    pub title: String,
+    pub summary: String,
+    pub domains: Vec<String>,
+    pub completion_criterion: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub after_phase_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RemediationGoalProfile {
     pub schema_version: String,
     pub target_state: String,
@@ -148,6 +166,8 @@ pub struct RemediationGoalProfile {
     pub optional_gate_ids: Vec<String>,
     pub evidence_max_age_days: u64,
     pub closure_criteria: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub remediation_phases: Vec<RemediationPhaseDefinition>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub maturity_policy: Option<RemediationMaturityPolicy>,
     pub error: Option<String>,
@@ -334,6 +354,8 @@ struct RepositoryGoalContract {
     #[serde(default)]
     optional_gate_ids: Vec<String>,
     evidence_max_age_days: Option<u64>,
+    #[serde(default)]
+    remediation_phases: Vec<RemediationPhaseDefinition>,
 }
 
 pub fn is_excluded_repository(repository: &RepositorySnapshot) -> bool {
@@ -542,6 +564,89 @@ fn normalized_gate_ids(values: &[String]) -> Result<Vec<String>, String> {
     Ok(normalized)
 }
 
+fn normalized_phase_token(value: &str, label: &str) -> Result<String, String> {
+    let normalized = value.trim().to_ascii_lowercase();
+    if normalized.is_empty()
+        || !normalized
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-'))
+    {
+        return Err(format!(
+            "Remediation phase {label} '{value}' must contain only letters, numbers, underscores, or hyphens."
+        ));
+    }
+    Ok(normalized)
+}
+
+fn normalized_remediation_phases(
+    values: &[RemediationPhaseDefinition],
+) -> Result<Vec<RemediationPhaseDefinition>, String> {
+    let mut known_phase_ids = DEFAULT_REMEDIATION_PHASE_IDS
+        .iter()
+        .map(|value| (*value).to_string())
+        .collect::<HashSet<_>>();
+    known_phase_ids.insert(UNCLASSIFIED_REMEDIATION_PHASE_ID.to_string());
+    let mut claimed_domains = HashSet::new();
+    let mut normalized = Vec::new();
+
+    for value in values {
+        let id = normalized_phase_token(&value.id, "id")?;
+        if !known_phase_ids.insert(id.clone()) {
+            return Err(format!(
+                "Remediation phase id '{}' is duplicated or reserved by the planner.",
+                value.id
+            ));
+        }
+        if value.title.trim().is_empty()
+            || value.summary.trim().is_empty()
+            || value.completion_criterion.trim().is_empty()
+        {
+            return Err(format!(
+                "Remediation phase '{id}' requires a non-empty title, summary, and completion_criterion."
+            ));
+        }
+        let mut domains = Vec::new();
+        for domain in &value.domains {
+            let domain = normalized_phase_token(domain, "domain")?;
+            if !claimed_domains.insert(domain.clone()) {
+                return Err(format!(
+                    "Remediation action domain '{domain}' is claimed by more than one repository phase."
+                ));
+            }
+            domains.push(domain);
+        }
+        domains.sort();
+        domains.dedup();
+        if domains.is_empty() {
+            return Err(format!(
+                "Remediation phase '{id}' must claim at least one action domain."
+            ));
+        }
+        let after_phase_id = value
+            .after_phase_id
+            .as_deref()
+            .map(|after| normalized_phase_token(after, "after_phase_id"))
+            .transpose()?;
+        if let Some(after) = after_phase_id.as_ref() {
+            if after == &id || !known_phase_ids.contains(after) {
+                return Err(format!(
+                    "Remediation phase '{id}' references unknown or later phase '{after}'."
+                ));
+            }
+        }
+        normalized.push(RemediationPhaseDefinition {
+            id,
+            title: value.title.trim().to_string(),
+            summary: value.summary.trim().to_string(),
+            domains,
+            completion_criterion: value.completion_criterion.trim().to_string(),
+            after_phase_id,
+        });
+    }
+
+    Ok(normalized)
+}
+
 fn inferred_goal_profile(
     repository: &RepositorySnapshot,
     error: Option<String>,
@@ -602,6 +707,10 @@ fn resolve_goal_profile(repository: &RepositorySnapshot) -> RemediationGoalProfi
         Ok(gates) => gates,
         Err(error) => return inferred_goal_profile(repository, Some(error)),
     };
+    let remediation_phases = match normalized_remediation_phases(&contract.remediation_phases) {
+        Ok(phases) => phases,
+        Err(error) => return inferred_goal_profile(repository, Some(error)),
+    };
     profile.required_gate_ids.extend(additional_required);
     profile.required_gate_ids.sort();
     profile.required_gate_ids.dedup();
@@ -623,6 +732,7 @@ fn resolve_goal_profile(repository: &RepositorySnapshot) -> RemediationGoalProfi
     profile.source = "repository_contract".to_string();
     profile.confidence = "High".to_string();
     profile.reason = contract.reason.trim().to_string();
+    profile.remediation_phases = remediation_phases;
     profile
 }
 
@@ -2820,82 +2930,197 @@ fn coverage_for_prefixes(
     }
 }
 
+fn default_remediation_phase_definitions() -> Vec<RemediationPhaseDefinition> {
+    vec![
+        RemediationPhaseDefinition {
+            id: "preserve_and_reconcile".to_string(),
+            title: "Preserve and reconcile repository work".to_string(),
+            summary: "Protect active or ambiguous work, then make workspaces, branches, operations, and the canonical target intentional.".to_string(),
+            domains: ["scope", "repository_health", "branch_hygiene"]
+                .into_iter()
+                .map(str::to_string)
+                .collect(),
+            completion_criterion: "Every scoped workspace, branch, operation, and repository-health action is verified or explicitly deferred with evidence.".to_string(),
+            after_phase_id: None,
+        },
+        RemediationPhaseDefinition {
+            id: "product_and_provider_truth".to_string(),
+            title: "Reconcile product and provider truth".to_string(),
+            summary: "Align the intended product outcome with fresh provider-native repository, pull-request, and release evidence.".to_string(),
+            domains: ["product_truth", "provider"]
+                .into_iter()
+                .map(str::to_string)
+                .collect(),
+            completion_criterion: "Product intent and provider-native branch, pull-request, and release evidence satisfy the repository goal.".to_string(),
+            after_phase_id: Some("preserve_and_reconcile".to_string()),
+        },
+        RemediationPhaseDefinition {
+            id: "quality_and_maturity".to_string(),
+            title: "Reach quality and maturity closure".to_string(),
+            summary: "Refresh required evidence, clear actionable findings and gate failures, and reach the applicable maturity floor without manufacturing evidence.".to_string(),
+            domains: ["evidence_refresh", "ci_ideal", "qr_findings", "maturity"]
+                .into_iter()
+                .map(str::to_string)
+                .collect(),
+            completion_criterion: "Required gates and quality evidence are fresh, actionable findings are cleared, and applicable maturity reaches its minimum closure score.".to_string(),
+            after_phase_id: Some("product_and_provider_truth".to_string()),
+        },
+        RemediationPhaseDefinition {
+            id: "verify_and_close".to_string(),
+            title: "Refresh, verify, and close".to_string(),
+            summary: "Re-run the scoped evidence sources after the material work and confirm that the repository can leave the active queue.".to_string(),
+            domains: vec!["verification".to_string()],
+            completion_criterion: "A fresh scoped remediation projection reports no open or blocked actions and records the repository in closure history.".to_string(),
+            after_phase_id: Some("quality_and_maturity".to_string()),
+        },
+    ]
+}
+
+fn ordered_remediation_phase_definitions(
+    goal: &RemediationGoalProfile,
+) -> Vec<RemediationPhaseDefinition> {
+    let repository_domains = goal
+        .remediation_phases
+        .iter()
+        .flat_map(|phase| phase.domains.iter().cloned())
+        .collect::<HashSet<_>>();
+    let mut definitions = default_remediation_phase_definitions();
+    for definition in &mut definitions {
+        definition
+            .domains
+            .retain(|domain| !repository_domains.contains(domain));
+    }
+
+    let mut insertion_tails = HashMap::<String, String>::new();
+    for repository_phase in &goal.remediation_phases {
+        let insertion_index =
+            if let Some(requested_anchor) = repository_phase.after_phase_id.as_ref() {
+                let effective_anchor = insertion_tails
+                    .get(requested_anchor)
+                    .unwrap_or(requested_anchor);
+                definitions
+                    .iter()
+                    .position(|phase| &phase.id == effective_anchor)
+                    .map(|index| index + 1)
+                    .unwrap_or(definitions.len())
+            } else {
+                definitions
+                    .iter()
+                    .position(|phase| phase.id == "verify_and_close")
+                    .unwrap_or(definitions.len())
+            };
+        definitions.insert(insertion_index, repository_phase.clone());
+        if let Some(requested_anchor) = repository_phase.after_phase_id.as_ref() {
+            insertion_tails.insert(requested_anchor.clone(), repository_phase.id.clone());
+        }
+    }
+    definitions
+}
+
+fn explanation_phase(
+    definition: &RemediationPhaseDefinition,
+    matching: &[&RemediationAction],
+) -> RemediationExplanationPhase {
+    let status = if matching.iter().any(|action| action.status == "blocked") {
+        "blocked"
+    } else if matching.iter().any(|action| action.status == "in_progress") {
+        "in_progress"
+    } else {
+        "open"
+    };
+    RemediationExplanationPhase {
+        id: definition.id.clone(),
+        title: definition.title.clone(),
+        summary: definition.summary.clone(),
+        status: status.to_string(),
+        steps: matching
+            .iter()
+            .map(|action| RemediationExplanationStep {
+                action_id: action.id.clone(),
+                title: action.title.clone(),
+                summary: action.summary.clone(),
+                status: action.status.clone(),
+                priority: action.priority.clone(),
+                completion_criteria: action.acceptance_criteria.clone(),
+            })
+            .collect(),
+        completion_criterion: definition.completion_criterion.clone(),
+    }
+}
+
 fn build_remediation_explanation(
     goal: &RemediationGoalProfile,
     actions: &[RemediationAction],
     coverage: &[RemediationCoverage],
 ) -> RemediationExplanation {
-    let phase_definitions = [
-        (
-            "preserve_and_reconcile",
-            "Preserve and reconcile repository work",
-            "Protect active or ambiguous work, then make workspaces, branches, operations, and the canonical target intentional.",
-            &["scope", "repository_health", "branch_hygiene"][..],
-            "Every scoped workspace, branch, operation, and repository-health action is verified or explicitly deferred with evidence.",
-        ),
-        (
-            "product_and_provider_truth",
-            "Reconcile product and provider truth",
-            "Align the intended product outcome with fresh provider-native repository, pull-request, and release evidence.",
-            &["product_truth", "provider"][..],
-            "Product intent and provider-native branch, pull-request, and release evidence satisfy the repository goal.",
-        ),
-        (
-            "quality_and_maturity",
-            "Reach quality and maturity closure",
-            "Refresh required evidence, clear actionable findings and gate failures, and reach the applicable maturity floor without manufacturing evidence.",
-            &["evidence_refresh", "ci_ideal", "qr_findings", "maturity"][..],
-            "Required gates and quality evidence are fresh, actionable findings are cleared, and applicable maturity reaches its minimum closure score.",
-        ),
-        (
-            "verify_and_close",
-            "Refresh, verify, and close",
-            "Re-run the scoped evidence sources after the material work and confirm that the repository can leave the active queue.",
-            &["verification"][..],
-            "A fresh scoped remediation projection reports no open or blocked actions and records the repository in closure history.",
-        ),
-    ];
-    let phases = phase_definitions
+    let active_actions = actions
         .iter()
-        .filter_map(|(id, title, summary, domains, completion_criterion)| {
-            let matching = actions
+        .filter(|action| matches!(action.status.as_str(), "open" | "in_progress" | "blocked"))
+        .collect::<Vec<_>>();
+    let definitions = ordered_remediation_phase_definitions(goal);
+    let verification_phase_id = definitions
+        .iter()
+        .find(|definition| {
+            definition
+                .domains
                 .iter()
-                .filter(|action| {
-                    domains.contains(&action.domain.as_str())
-                        && matches!(action.status.as_str(), "open" | "in_progress" | "blocked")
-                })
-                .collect::<Vec<_>>();
-            if matching.is_empty() {
-                return None;
-            }
-            let status = if matching.iter().any(|action| action.status == "blocked") {
-                "blocked"
-            } else if matching.iter().any(|action| action.status == "in_progress") {
-                "in_progress"
-            } else {
-                "open"
-            };
-            Some(RemediationExplanationPhase {
-                id: (*id).to_string(),
-                title: (*title).to_string(),
-                summary: (*summary).to_string(),
-                status: status.to_string(),
-                steps: matching
-                    .iter()
-                    .map(|action| RemediationExplanationStep {
-                        action_id: action.id.clone(),
-                        title: action.title.clone(),
-                        summary: action.summary.clone(),
-                        status: action.status.clone(),
-                        priority: action.priority.clone(),
-                        completion_criteria: action.acceptance_criteria.clone(),
-                    })
-                    .collect(),
-                completion_criterion: (*completion_criterion).to_string(),
+                .any(|domain| domain == "verification")
+        })
+        .map(|definition| definition.id.clone());
+    let mut assigned_action_indices = HashSet::new();
+    let mut phases = Vec::new();
+    for definition in &definitions {
+        let matching_indices = active_actions
+            .iter()
+            .enumerate()
+            .filter_map(|(index, action)| {
+                (!assigned_action_indices.contains(&index)
+                    && definition.domains.contains(&action.domain))
+                .then_some(index)
             })
+            .collect::<Vec<_>>();
+        if matching_indices.is_empty() {
+            continue;
+        }
+        assigned_action_indices.extend(matching_indices.iter().copied());
+        let matching = matching_indices
+            .iter()
+            .map(|index| active_actions[*index])
+            .collect::<Vec<_>>();
+        phases.push(explanation_phase(definition, &matching));
+    }
+
+    let unmatched = active_actions
+        .iter()
+        .enumerate()
+        .filter_map(|(index, action)| {
+            (!assigned_action_indices.contains(&index)).then_some(*action)
         })
         .collect::<Vec<_>>();
-    let active_action_count = phases.iter().map(|phase| phase.steps.len()).sum::<usize>();
+    if !unmatched.is_empty() {
+        let fallback = explanation_phase(
+            &RemediationPhaseDefinition {
+                id: UNCLASSIFIED_REMEDIATION_PHASE_ID.to_string(),
+                title: "Classify additional remediation work".to_string(),
+                summary: "These active actions use domains that are not yet assigned to a default or repository-defined remediation phase. They remain visible until the work is resolved or the repository goal contract classifies them.".to_string(),
+                domains: Vec::new(),
+                completion_criterion: "Every listed action is resolved or assigned to an explicit repository remediation phase without being hidden from the active plan.".to_string(),
+                after_phase_id: None,
+            },
+            &unmatched,
+        );
+        let insertion_index = verification_phase_id
+            .as_ref()
+            .and_then(|phase_id| phases.iter().position(|phase| &phase.id == phase_id))
+            .unwrap_or(phases.len());
+        phases.insert(insertion_index, fallback);
+    }
+    let active_action_count = active_actions.len();
+    debug_assert_eq!(
+        phases.iter().map(|phase| phase.steps.len()).sum::<usize>(),
+        active_action_count,
+        "every active remediation action must appear in exactly one explanation phase"
+    );
     let summary = if phases.is_empty() {
         "No active remediation phase remains. Refresh scoped evidence before treating the repository as closed."
             .to_string()
@@ -4163,7 +4388,17 @@ mod tests {
                 "reason": "This utility only needs a clean, preserved canonical branch.",
                 "additional_required_gate_ids": ["tests"],
                 "optional_gate_ids": ["secrets_scan"],
-                "evidence_max_age_days": 21
+                "evidence_max_age_days": 21,
+                "remediation_phases": [
+                    {
+                        "id": "deployment_validation",
+                        "title": "Validate the local deployment",
+                        "summary": "Verify repository-specific deployment behavior.",
+                        "domains": ["deployment_validation"],
+                        "completion_criterion": "The local deployment evidence is current.",
+                        "after_phase_id": "quality_and_maturity"
+                    }
+                ]
             }))
             .expect("goal fixture should encode"),
         )
@@ -4179,7 +4414,57 @@ mod tests {
         assert_eq!(goal.evidence_max_age_days, 21);
         assert_eq!(goal.required_gate_ids, vec!["tests"]);
         assert!(goal.optional_gate_ids.contains(&"secrets_scan".to_string()));
+        assert_eq!(goal.remediation_phases.len(), 1);
+        assert_eq!(goal.remediation_phases[0].id, "deployment_validation");
+        assert_eq!(
+            goal.remediation_phases[0].after_phase_id.as_deref(),
+            Some("quality_and_maturity")
+        );
         fs::remove_dir_all(root).expect("goal fixture should be removable");
+    }
+
+    #[test]
+    fn repository_phase_contract_rejects_duplicate_domain_ownership() {
+        let phases = vec![
+            RemediationPhaseDefinition {
+                id: "first".to_string(),
+                title: "First".to_string(),
+                summary: "First phase.".to_string(),
+                domains: vec!["deployment".to_string()],
+                completion_criterion: "First phase is complete.".to_string(),
+                after_phase_id: None,
+            },
+            RemediationPhaseDefinition {
+                id: "second".to_string(),
+                title: "Second".to_string(),
+                summary: "Second phase.".to_string(),
+                domains: vec!["deployment".to_string()],
+                completion_criterion: "Second phase is complete.".to_string(),
+                after_phase_id: Some("first".to_string()),
+            },
+        ];
+
+        let error = normalized_remediation_phases(&phases)
+            .expect_err("one action domain cannot belong to two repository phases");
+
+        assert!(error.contains("claimed by more than one repository phase"));
+    }
+
+    #[test]
+    fn repository_phase_contract_reserves_the_unclassified_fallback_id() {
+        let phases = vec![RemediationPhaseDefinition {
+            id: UNCLASSIFIED_REMEDIATION_PHASE_ID.to_string(),
+            title: "Custom fallback".to_string(),
+            summary: "This would collide with the planner fallback.".to_string(),
+            domains: vec!["future_domain".to_string()],
+            completion_criterion: "The phase is complete.".to_string(),
+            after_phase_id: None,
+        }];
+
+        let error = normalized_remediation_phases(&phases)
+            .expect_err("the planner fallback id cannot be redefined by a repository");
+
+        assert!(error.contains("duplicated or reserved"));
     }
 
     #[test]
@@ -4305,6 +4590,92 @@ mod tests {
             .iter()
             .any(|requirement| requirement.contains("at least 3.0/4")));
         assert!(explanation.authority.contains("does not authorize Git"));
+    }
+
+    #[test]
+    fn remediation_explanation_supports_more_than_four_phases_and_covers_every_action_once() {
+        let actions = vec![
+            fixture_action("preserve", "branch_hygiene", "P1", 2, "open"),
+            fixture_action("provider", "provider", "P2", 2, "open"),
+            fixture_action("quality", "maturity", "P1", 3, "blocked"),
+            fixture_action("deployment", "deployment_validation", "P2", 2, "open"),
+            fixture_action("approval", "approval_rollout", "P2", 2, "in_progress"),
+            fixture_action("unknown", "future_domain", "P2", 1, "open"),
+            fixture_action(VERIFICATION_ACTION_KEY, "verification", "P2", 1, "open"),
+            fixture_action("history", "future_history", "P3", 1, "verified"),
+        ];
+        let mut goal = goal_definition("active_maintained").expect("goal should be supported");
+        goal.remediation_phases = vec![
+            RemediationPhaseDefinition {
+                id: "deployment_validation".to_string(),
+                title: "Validate deployment".to_string(),
+                summary: "Verify repository-specific deployment evidence.".to_string(),
+                domains: vec!["deployment_validation".to_string()],
+                completion_criterion: "Deployment evidence is current.".to_string(),
+                after_phase_id: Some("quality_and_maturity".to_string()),
+            },
+            RemediationPhaseDefinition {
+                id: "approval_rollout".to_string(),
+                title: "Complete rollout approval".to_string(),
+                summary: "Satisfy the repository-specific rollout approval.".to_string(),
+                domains: vec!["approval_rollout".to_string()],
+                completion_criterion: "Rollout approval is recorded.".to_string(),
+                after_phase_id: Some("deployment_validation".to_string()),
+            },
+        ];
+
+        let explanation = build_remediation_explanation(&goal, &actions, &[]);
+
+        assert_eq!(
+            explanation
+                .phases
+                .iter()
+                .map(|phase| phase.id.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "preserve_and_reconcile",
+                "product_and_provider_truth",
+                "quality_and_maturity",
+                "deployment_validation",
+                "approval_rollout",
+                "unclassified_remediation",
+                "verify_and_close",
+            ]
+        );
+        assert!(explanation
+            .summary
+            .starts_with("7 ordered remediation phases remain across 7 active actions."));
+        let projected_action_ids = explanation
+            .phases
+            .iter()
+            .flat_map(|phase| phase.steps.iter().map(|step| step.action_id.as_str()))
+            .collect::<Vec<_>>();
+        let active_action_ids = actions
+            .iter()
+            .filter(|action| matches!(action.status.as_str(), "open" | "in_progress" | "blocked"))
+            .map(|action| action.id.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(projected_action_ids.len(), active_action_ids.len());
+        for action_id in active_action_ids {
+            assert_eq!(
+                projected_action_ids
+                    .iter()
+                    .filter(|projected_id| **projected_id == action_id)
+                    .count(),
+                1,
+                "active action {action_id} should appear exactly once"
+            );
+        }
+        assert_eq!(
+            explanation
+                .phases
+                .iter()
+                .find(|phase| phase.id == "unclassified_remediation")
+                .expect("unknown domains must stay visible")
+                .steps[0]
+                .action_id,
+            "unknown"
+        );
     }
 
     #[test]

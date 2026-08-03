@@ -261,6 +261,41 @@ describe("remediation active queue", () => {
     expect(markup).toContain("4/47 points");
   });
 
+  it("renders every backend-defined remediation phase without a four-phase ceiling", () => {
+    const expandedRun = run();
+    const basePhase = expandedRun.plans[0].explanation.phases[0];
+    expandedRun.plans[0].explanation.summary =
+      "5 ordered remediation phases remain across 5 active actions.";
+    expandedRun.plans[0].explanation.phases = Array.from(
+      { length: 5 },
+      (_, index) => ({
+        ...basePhase,
+        id: `phase-${index + 1}`,
+        title: `Repository phase ${index + 1}`,
+        steps: basePhase.steps.map((step) => ({
+          ...step,
+          action_id: `${step.action_id}-${index + 1}`,
+        })),
+      }),
+    );
+
+    const markup = renderToStaticMarkup(
+      <RemediationSurface
+        run={expandedRun}
+        repositories={[]}
+        isRefreshing={false}
+        onRefresh={noop}
+        onExport={noop}
+        onUpdateStatus={noop}
+        onOpenRepository={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain("5 phases remaining");
+    expect(markup).toContain("Phase 5");
+    expect(markup).toContain("Repository phase 5");
+  });
+
   it("separates active actions from retained verified history in the queue row", () => {
     const mixedRun = run();
     const verifiedAction = {
