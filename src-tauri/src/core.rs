@@ -7954,6 +7954,10 @@ pub fn refresh_remediation() -> Result<PortfolioSnapshot, String> {
     )
 }
 
+fn remediation_dependencies_are_terminal<'a>(mut statuses: impl Iterator<Item = &'a str>) -> bool {
+    statuses.all(|status| matches!(status, "verified" | "deferred"))
+}
+
 #[tauri::command]
 pub fn set_remediation_action_status(
     action_id: String,
@@ -7984,15 +7988,16 @@ pub fn set_remediation_action_status(
         if normalized_status == "verified" {
             let action = &plan.actions[action_index];
             let verification_is_ready = if action.domain == "verification" {
-                plan.actions
-                    .iter()
-                    .filter(|candidate| candidate.id != action.id)
-                    .all(|candidate| candidate.status == "verified")
-                    && plan
-                        .actions
+                remediation_dependencies_are_terminal(
+                    plan.actions
                         .iter()
-                        .flat_map(|candidate| candidate.evidence.iter())
-                        .any(|item| item.freshness.eq_ignore_ascii_case("fresh"))
+                        .filter(|candidate| candidate.id != action.id)
+                        .map(|candidate| candidate.status.as_str()),
+                ) && plan
+                    .actions
+                    .iter()
+                    .flat_map(|candidate| candidate.evidence.iter())
+                    .any(|item| item.freshness.eq_ignore_ascii_case("fresh"))
             } else {
                 remediation::action_has_fresh_evidence(action)
             };
@@ -12446,6 +12451,19 @@ mod tests {
         git(&repository, &["add", "tracked.txt"]);
         git(&repository, &["commit", "-m", "Initial fixture"]);
         repository
+    }
+
+    #[test]
+    fn verification_accepts_intentionally_deferred_terminal_dependencies() {
+        assert!(remediation_dependencies_are_terminal(
+            ["verified", "deferred"].into_iter()
+        ));
+        assert!(!remediation_dependencies_are_terminal(
+            ["verified", "open"].into_iter()
+        ));
+        assert!(!remediation_dependencies_are_terminal(
+            ["verified", "blocked"].into_iter()
+        ));
     }
 
     #[test]
