@@ -58,6 +58,15 @@ and priority before giving the Pronto and AIOS control planes and the Quality
 Runner evidence provider explicit fleet leverage. Repository goal and raw
 action weight are used only after those safety and leverage decisions.
 
+Active plans retain actions that disappear from a refreshed projection as
+verified history, so completed work continues to contribute to weighted
+progress while other actions remain. If the same stable action key appears
+again, it reopens instead of inheriting that historical verification. The
+derived `integration_only_remaining` flag is true only when every active,
+non-verification action is an unblocked branch-integration action; repository
+surfaces use that field before presenting integration as the sole remaining
+state.
+
 Each plan carries a `coverage` ledger for every repo-level surface rendered by
 Pronto: scope, Project Compass, provider evidence, pull requests, published
 releases, quality evidence, CI gates, quality findings, maturity, workspaces,

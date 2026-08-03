@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": 6,
+  "revision": 7,
   "project": {
     "name": "Pronto",
     "identity": "A local-first macOS command center for understanding and safely coordinating a portfolio of Git repositories and agent workspaces.",
@@ -288,15 +288,15 @@
         },
         {
           "id": "release-preparation",
-          "name": "The user can inspect a deterministic, evidence-backed release candidate and recipe before any release mutation.",
+          "name": "The user can locally inspect a deterministic release-readiness preview and recipe for a managed repository before any separately authorized release mutation.",
           "targets": ["complete_product"],
           "maturity": 50,
           "confidence": "medium",
           "layers": {
-            "intended": "Release preparation remains permission-aware, reviewable, and separate from publication.",
+            "intended": "Release preparation is a local, read-only inspection capability for managed repositories; it remains permission-aware, reviewable, and separate from publication.",
             "planned": "Release rules, candidate traceability, validation gates, isolated worktrees, and draft-release handoff follow stable single-repository behavior.",
             "implemented": "Prepare and release-preview projections represent baselines, candidates, blockers, and recipes without publishing.",
-            "verified": "Source tests cover preview contracts, but Pronto has no confirmed release baseline or provider-native release proof for this revision."
+            "verified": "Source tests cover preview contracts, and a live local preview returned a deterministic nine-step recipe, explicit blockers, and actions_performed false. Provider-native publication of Pronto is not part of this local product outcome."
           },
           "evidence": [
             {
@@ -308,14 +308,14 @@
               "ref": ".agents/context/commands.md",
               "note": "Documents prepare and release-preview as non-operational projections.",
               "observed_at": "2026-07-29T17:43:37Z"
+            },
+            {
+              "ref": "pnpm --silent run cli release preview Pronto --json",
+              "note": "The live local preview returned a deterministic nine-step recipe, explained the current workspace and configuration blockers, deferred provider mutation, and reported actions_performed false.",
+              "observed_at": "2026-08-03T18:03:42Z"
             }
           ],
-          "blockers": [
-            {
-              "kind": "verification",
-              "summary": "No real release candidate has completed the intended provider-native review and publication boundary."
-            }
-          ]
+          "blockers": []
         }
       ]
     }
@@ -404,8 +404,8 @@
     },
     {
       "kind": "verification-gap",
-      "summary": "Scoped provider freshness is now proven for Pronto; release preparation still lacks a real release-candidate and publication-boundary exercise.",
-      "status": "open",
+      "summary": "Release preparation is correctly bounded to local read-only preview of managed repositories; provider-native publication of Pronto is not required product evidence.",
+      "status": "resolved",
       "observed_at": "2026-07-29T18:18:28Z",
       "evidence": [
         {
@@ -417,6 +417,16 @@
           "ref": "docs/product-decisions.md",
           "note": "Release behavior remains behind explicit evidence and authorization boundaries.",
           "observed_at": "2026-07-29T18:18:28Z"
+        },
+        {
+          "ref": "conversation:2026-08-03:local-release-preview-boundary",
+          "note": "The user corrected the finish line: Pronto is local-only and must not be blocked on its own provider-native release publication.",
+          "observed_at": "2026-08-03T18:04:36Z"
+        },
+        {
+          "ref": "pnpm --silent run cli release preview Pronto --json",
+          "note": "The live local preview exercised the intended non-mutating product boundary and returned actions_performed false.",
+          "observed_at": "2026-08-03T18:03:42Z"
         }
       ]
     },
@@ -467,5 +477,5 @@
       ]
     }
   ],
-  "updated_at": "2026-08-01T19:08:33Z"
+  "updated_at": "2026-08-03T18:04:36Z"
 }

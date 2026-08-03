@@ -15,6 +15,46 @@ type SelectedPreparation = {
   preparation: RepositoryPreparation;
 };
 
+async function confirmReleaseVersion({
+  version,
+  selectedRepository,
+  selectedPreparation,
+  setSnapshot,
+  setSelectedRepositoryId,
+  setSelectedPreparation,
+}: {
+  version: string | null;
+  selectedRepository: RepositorySnapshot;
+  selectedPreparation: SelectedPreparation;
+  setSnapshot: Dispatch<SetStateAction<PortfolioSnapshot>>;
+  setSelectedRepositoryId: Dispatch<SetStateAction<string | null>>;
+  setSelectedPreparation: Dispatch<SetStateAction<SelectedPreparation | null>>;
+}): Promise<void> {
+  const nextSnapshot = await api.setReleaseVersion(
+    selectedRepository.id,
+    version,
+  );
+  setSnapshot(nextSnapshot);
+  const nextRepository =
+    nextSnapshot.repositories.find(
+      (repository) => repository.id === selectedRepository.id,
+    ) ?? null;
+  if (!nextRepository) {
+    setSelectedRepositoryId(null);
+    setSelectedPreparation(null);
+    return;
+  }
+  const preparation = await api.prepareRepository(
+    nextRepository.id,
+    selectedPreparation.preparation.pull_request.workspace_id,
+  );
+  setSelectedRepositoryId(nextRepository.id);
+  setSelectedPreparation({
+    repository: nextRepository,
+    preparation,
+  });
+}
+
 export function usePreparationActions({
   selectedRepository,
   selectedPreparation,
@@ -68,28 +108,13 @@ export function usePreparationActions({
     async (version: string | null): Promise<void> => {
       if (!selectedRepository || !selectedPreparation) return;
       try {
-        const nextSnapshot = await api.setReleaseVersion(
-          selectedRepository.id,
+        await confirmReleaseVersion({
           version,
-        );
-        setSnapshot(nextSnapshot);
-        const nextRepository =
-          nextSnapshot.repositories.find(
-            (repository) => repository.id === selectedRepository.id,
-          ) ?? null;
-        if (!nextRepository) {
-          setSelectedRepositoryId(null);
-          setSelectedPreparation(null);
-          return;
-        }
-        const preparation = await api.prepareRepository(
-          nextRepository.id,
-          selectedPreparation.preparation.pull_request.workspace_id,
-        );
-        setSelectedRepositoryId(nextRepository.id);
-        setSelectedPreparation({
-          repository: nextRepository,
-          preparation,
+          selectedRepository,
+          selectedPreparation,
+          setSnapshot,
+          setSelectedRepositoryId,
+          setSelectedPreparation,
         });
       } catch (caught) {
         setError(

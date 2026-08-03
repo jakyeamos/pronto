@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": 2,
+  "revision": 3,
   "commitments": [
     {
       "id": "fleet-remediation-ui-coverage",
@@ -36,6 +36,56 @@
       }
     }
   ],
-  "reconciliations": [],
-  "updated_at": "2026-07-29T19:33:09Z"
+  "reconciliations": [
+    {
+      "id": "local-release-preview-boundary",
+      "observed_at": "2026-08-03T18:04:36Z",
+      "source": {
+        "ref": "conversation:2026-08-03:local-release-preview-boundary",
+        "note": "The user identified that a local-only Pronto installation should not be blocked on a provider-native release of Pronto itself.",
+        "observed_at": "2026-08-03T18:04:36Z"
+      },
+      "classification": "corrective",
+      "materiality": "high",
+      "incoming": "Keep release preview as a local capability for managed repositories, remove Pronto's provider-publication blocker and duplicate drift, and prevent duplicate remediation projection.",
+      "project_evidence": [
+        {
+          "ref": "docs/product-decisions.md",
+          "note": "Pronto is local-first and provider release or publish behavior is outside the initial authority boundary.",
+          "observed_at": "2026-07-25T00:00:00Z"
+        },
+        {
+          "ref": "pnpm --silent run cli release preview Pronto --json",
+          "note": "A live local preview returned a deterministic recipe and performed no mutation.",
+          "observed_at": "2026-08-03T18:03:42Z"
+        }
+      ],
+      "preserved": [
+        "Release-readiness preview remains a complete-product capability for repositories managed by Pronto.",
+        "Release mutation and publication remain separate explicit authority boundaries."
+      ],
+      "changed": [
+        "The verification boundary is local read-only preview rather than provider-native publication of Pronto.",
+        "The unsupported publication blocker and its duplicate open drift are resolved."
+      ],
+      "contradicted": [
+        "The previous contract incorrectly treated publishing Pronto as necessary proof of the local release-preview capability."
+      ],
+      "deferred": [
+        "Provider-native release publication remains outside this local product outcome."
+      ],
+      "left_behind": [],
+      "unknown": [],
+      "disposition": "proceed-with-preservation",
+      "question": "",
+      "reason": "The previous finish line confused the repository being inspected with the local product performing the inspection.",
+      "user_decision": "Apply the local-only correction while retaining release preview for managed repositories.",
+      "decision_source": {
+        "ref": "conversation:2026-08-03:apply-local-release-preview-correction",
+        "note": "The user explicitly approved the proposed correction.",
+        "observed_at": "2026-08-03T18:04:36Z"
+      }
+    }
+  ],
+  "updated_at": "2026-08-03T18:04:36Z"
 }

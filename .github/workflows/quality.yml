@@ -42,6 +42,9 @@ jobs:
           - name: Runtime smoke
             command: pnpm smoke
             prerequisite: none
+          - name: Repository contract
+            command: pnpm contract:check
+            prerequisite: none
           - name: Lint
             command: pnpm lint
             prerequisite: none

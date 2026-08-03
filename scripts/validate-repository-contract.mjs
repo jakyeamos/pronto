@@ -12,6 +12,41 @@ const requiredDocuments = [
   "docs/repository-contract.md",
   "docs/implementation-examples.md",
 ];
+const evidenceContractPath = ".agents/environment-legibility.json";
+const automationFiles = new Set([
+  ".circleci/config.yml",
+  ".circleci/config.yaml",
+  ".gitlab-ci.yml",
+  ".gitlab-ci.yaml",
+  ".github/CODEOWNERS",
+  ".pre-commit-config.yaml",
+  ".pre-commit-config.yml",
+  "CODEOWNERS",
+  "Jenkinsfile",
+  "azure-pipelines.yml",
+  "azure-pipelines.yaml",
+]);
+const validationRoots = new Set([
+  "bin",
+  "script",
+  "scripts",
+  "spec",
+  "specs",
+  "test",
+  "tests",
+  "tools",
+]);
+const requiredDimensionHeadings = {
+  architecture_boundaries: "## Architecture and ownership boundaries",
+  coding_conventions: "## Coding conventions",
+  context_routing: "Read the deeper file only when the task matches it:",
+  security_constraints: "## Security and credential constraints",
+  failure_modes: "## Common failure modes and recovery",
+  implementation_examples: "## Add or change an evidence projection",
+  definition_of_done: "## Definition of done",
+  approval_gated_paths: "## Approval-gated paths and operations",
+  deployment_rollback: "## Installation, release, and rollback",
+};
 const errors = [];
 
 function read(relative) {
@@ -23,14 +58,96 @@ function read(relative) {
   return fs.readFileSync(absolute, "utf8");
 }
 
+function readContractPath(relative, label) {
+  if (typeof relative !== "string" || !relative.trim()) {
+    errors.push(`${label}: path is missing`);
+    return "";
+  }
+  const parts = relative.split(/[\\/]+/);
+  if (path.isAbsolute(relative) || parts.includes("..")) {
+    errors.push(`${label}: path is outside the repository: ${relative}`);
+    return "";
+  }
+  let current = root;
+  for (const part of parts) {
+    current = path.join(current, part);
+    if (fs.existsSync(current) && fs.lstatSync(current).isSymbolicLink()) {
+      errors.push(`${label}: symlinked paths are not allowed: ${relative}`);
+      return "";
+    }
+  }
+  const absolute = path.resolve(root, relative);
+  if (!absolute.startsWith(`${root}${path.sep}`) || !fs.existsSync(absolute)) {
+    errors.push(`${label}: referenced file is missing or unsafe: ${relative}`);
+    return "";
+  }
+  if (!fs.statSync(absolute).isFile()) {
+    errors.push(`${label}: referenced path is not a file: ${relative}`);
+    return "";
+  }
+  return fs.readFileSync(absolute, "utf8");
+}
+
+function isValidationSurface(relative) {
+  const normalized = relative.replaceAll("\\", "/");
+  const parts = normalized.split("/");
+  const name = parts.at(-1)?.toLowerCase() ?? "";
+  return (
+    validationRoots.has(parts[0]?.toLowerCase()) ||
+    name.startsWith("test_") ||
+    name.endsWith("_test.py") ||
+    name.includes(".test.") ||
+    name.includes(".spec.") ||
+    normalized.startsWith(".github/actions/")
+  );
+}
+
+function isAutomationSurface(relative) {
+  const normalized = relative.replaceAll("\\", "/");
+  return (
+    automationFiles.has(normalized) ||
+    /^\.github\/workflows\/[^/]+\.ya?ml$/.test(normalized)
+  );
+}
+
 const documents = new Map(
   requiredDocuments.map((relative) => [relative, read(relative)]),
 );
 const router = documents.get(".agents/context/README.md") ?? "";
+const repositoryContract = documents.get("docs/repository-contract.md") ?? "";
+const implementationExamples =
+  documents.get("docs/implementation-examples.md") ?? "";
 if (!/canonical branch[^\n]{0,80}`?main`?/i.test(router)) {
   errors.push(
     ".agents/context/README.md: canonical main branch is not declared",
   );
+}
+
+for (const [dimension, heading] of Object.entries(requiredDimensionHeadings)) {
+  const contents =
+    dimension === "implementation_examples"
+      ? implementationExamples
+      : dimension === "context_routing"
+        ? router
+        : repositoryContract;
+  if (!contents.includes(heading)) {
+    errors.push(
+      `${dimension}: required contract heading is missing: ${heading}`,
+    );
+  }
+}
+
+for (const heading of [
+  "## Add or change an evidence projection",
+  "## Add or change a quality or remediation rule",
+  "## Add or change a repository surface",
+  "## Preserve before folding",
+]) {
+  if (!implementationExamples.includes(heading)) {
+    errors.push(
+      `implementation examples: required heading is missing: ${heading}`,
+    );
+  }
 }
 
 for (const [relative, contents] of documents) {
@@ -103,6 +220,99 @@ if (matrix) {
   }
 }
 
+let evidenceContract;
+try {
+  evidenceContract = JSON.parse(read(evidenceContractPath));
+} catch (error) {
+  errors.push(`${evidenceContractPath}: invalid JSON: ${error.message}`);
+}
+
+if (evidenceContract) {
+  if (
+    evidenceContract.schema_version !==
+    "quality-runner-environment-legibility/v1"
+  ) {
+    errors.push(`${evidenceContractPath}: unsupported schema_version`);
+  }
+  if (!evidenceContract.owner) {
+    errors.push(`${evidenceContractPath}: owner is required`);
+  }
+  const reviewed = Date.parse(evidenceContract.last_reviewed);
+  const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+  if (
+    !Number.isFinite(reviewed) ||
+    reviewed > Date.now() ||
+    Date.now() - reviewed > ninetyDays
+  ) {
+    errors.push(
+      `${evidenceContractPath}: last_reviewed is missing, future-dated, or stale`,
+    );
+  }
+
+  const dimensions = evidenceContract.dimensions ?? {};
+  for (const dimension of Object.keys(requiredDimensionHeadings)) {
+    const entry = dimensions[dimension];
+    if (!entry) {
+      errors.push(`${evidenceContractPath}: ${dimension} is missing`);
+      continue;
+    }
+    for (const key of ["evidence", "validation", "automation"]) {
+      if (!Array.isArray(entry[key]) || entry[key].length === 0) {
+        errors.push(
+          `${evidenceContractPath}: ${dimension}.${key} must be non-empty`,
+        );
+      }
+    }
+    for (const evidencePath of entry.evidence ?? []) {
+      readContractPath(evidencePath, `${dimension}.evidence`);
+    }
+    for (const key of ["validation", "automation"]) {
+      for (const assertion of entry[key] ?? []) {
+        if (
+          !assertion ||
+          typeof assertion !== "object" ||
+          typeof assertion.path !== "string"
+        ) {
+          errors.push(
+            `${evidenceContractPath}: ${dimension}.${key} assertion is invalid`,
+          );
+          continue;
+        }
+        const allowed =
+          key === "validation"
+            ? isValidationSurface(assertion.path)
+            : isAutomationSurface(assertion.path);
+        if (!allowed) {
+          errors.push(
+            `${evidenceContractPath}: ${dimension}.${key} path is not an allowed surface: ${assertion.path}`,
+          );
+          continue;
+        }
+        const contents = readContractPath(
+          assertion.path,
+          `${dimension}.${key}`,
+        );
+        if (
+          !Array.isArray(assertion.contains) ||
+          assertion.contains.length === 0
+        ) {
+          errors.push(
+            `${evidenceContractPath}: ${dimension}.${key} assertion terms are missing`,
+          );
+          continue;
+        }
+        for (const term of assertion.contains) {
+          if (typeof term !== "string" || !contents.includes(term)) {
+            errors.push(
+              `${evidenceContractPath}: ${dimension}.${key} assertion did not match ${assertion.path}: ${term}`,
+            );
+          }
+        }
+      }
+    }
+  }
+}
+
 if (errors.length) {
   process.stderr.write(
     `${errors.map((error) => `contract error: ${error}`).join("\n")}\n`,
@@ -111,5 +321,5 @@ if (errors.length) {
 }
 
 process.stdout.write(
-  `Repository contract valid: ${requiredDocuments.length} routed documents and ${matrix.surfaces.length} change surfaces.\n`,
+  `Repository contract valid: ${requiredDocuments.length} routed documents, ${Object.keys(requiredDimensionHeadings).length} maturity dimensions, and ${matrix.surfaces.length} change surfaces.\n`,
 );

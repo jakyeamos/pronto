@@ -1,18 +1,12 @@
 import { Fragment, useState } from "react";
 import type { ReactElement } from "react";
 import {
-  AlertTriangle,
   ArrowLeft,
-  BellOff,
-  Check,
   ChevronRight,
-  Clock3,
-  Compass,
   GitBranch,
   MonitorDot,
   ShieldCheck,
   TerminalSquare,
-  X,
 } from "lucide-react";
 import type {
   AnalyticsSnapshot,
@@ -20,15 +14,8 @@ import type {
   ExternalTool,
   QualityGate,
   RepositorySnapshot,
-  WorkspaceSummary,
 } from "../types";
-import {
-  ConditionPill,
-  formatExactTime,
-  formatTime,
-  IconButton,
-  StatusPill,
-} from "./ConsolePrimitives";
+import { ConditionPill, formatTime, StatusPill } from "./ConsolePrimitives";
 import {
   QualityFindingsSummary,
   QualityGateCell,
@@ -36,78 +23,9 @@ import {
   QualityMaturitySummary,
   qualityGateDisplayLabel,
 } from "./QualityComponents";
+import { ProjectCompassDetail } from "./ProjectCompassDetail";
 import { RepositoryAnalyticsPanel } from "./RepositoryAnalyticsPanel";
-
-export function WorkspaceSyncDetailView({
-  workspace,
-  onClose,
-}: {
-  workspace: WorkspaceSummary;
-  onClose: () => void;
-}): ReactElement {
-  const detail = workspace.sync_detail;
-  return (
-    <section
-      className="workspace-sync-detail"
-      aria-label={`Unsynced workspace detail for ${workspace.branch}`}
-    >
-      <div className="workspace-sync-detail-header">
-        <div>
-          <p className="eyebrow">Unsynced workspace</p>
-          <h4>Sync evidence detail</h4>
-          <small>
-            {workspace.branch} · {workspace.path}
-          </small>
-        </div>
-        <StatusPill tone="amber">{workspace.sync_state}</StatusPill>
-      </div>
-      {detail ? (
-        <>
-          <div className="workspace-sync-detail-grid">
-            <div>
-              <span>Evidence observed</span>
-              <strong>{formatExactTime(detail.evidence_observed_at)}</strong>
-            </div>
-            <div>
-              <span>Evidence expires</span>
-              <strong>{formatExactTime(detail.evidence_expires_at)}</strong>
-            </div>
-            <div>
-              <span>Evidence window</span>
-              <strong>
-                {detail.evidence_window_minutes >= 60
-                  ? `${Math.round(detail.evidence_window_minutes / 60)} hours`
-                  : `${detail.evidence_window_minutes} minutes`}
-              </strong>
-            </div>
-          </div>
-          <div className="workspace-sync-detail-copy">
-            <span>Why this workspace is unsynced</span>
-            <p>{detail.reason}</p>
-          </div>
-          <div className="workspace-sync-detail-copy">
-            <span>Next safe scoped refresh</span>
-            <p>{detail.next_safe_action}</p>
-            <code>{detail.scoped_refresh_command}</code>
-            <small>{detail.authorization}</small>
-          </div>
-        </>
-      ) : (
-        <p className="quality-inline-empty">
-          Sync detail is unavailable in this snapshot. Run the scoped local
-          refresh from the CLI, then reopen this repository detail.
-        </p>
-      )}
-      <button
-        className="button button-quiet workspace-sync-detail-close"
-        type="button"
-        onClick={onClose}
-      >
-        Close sync detail
-      </button>
-    </section>
-  );
-}
+import { WorkspaceSyncDetailView } from "./WorkspaceSyncDetailView";
 
 export function RepositoryDetailSurface({
   repository,
@@ -213,88 +131,7 @@ export function RepositoryDetailSurface({
           </strong>
         </div>
       </div>
-      <div className="drawer-section compass-detail-section">
-        <div className="drawer-section-title">
-          <div>
-            <h3>
-              <Compass size={15} /> Project Compass
-            </h3>
-            <small>
-              Product-direction progress from{" "}
-              {repository.project_compass.contract_path}.
-            </small>
-          </div>
-          <StatusPill
-            tone={
-              repository.project_compass.status === "Ready"
-                ? "mint"
-                : repository.project_compass.status === "Invalid"
-                  ? "coral"
-                  : "slate"
-            }
-          >
-            {repository.project_compass.status}
-          </StatusPill>
-        </div>
-        {repository.project_compass.status === "Ready" ? (
-          <>
-            <div className="compass-product-truth">
-              <strong>
-                {repository.project_compass.project_name ?? repository.name}
-              </strong>
-              <p>{repository.project_compass.identity}</p>
-              <small>For {repository.project_compass.audience}</small>
-            </div>
-            <div className="compass-progress-grid">
-              <div>
-                <span>MVP</span>
-                <strong>
-                  {repository.project_compass.mvp.progress_percent ?? "Unknown"}
-                  {repository.project_compass.mvp.progress_percent === null
-                    ? ""
-                    : "%"}
-                </strong>
-                <small>
-                  {repository.project_compass.mvp.confidence} confidence
-                </small>
-              </div>
-              <div>
-                <span>Complete product</span>
-                <strong>
-                  {repository.project_compass.complete_product
-                    .progress_percent ?? "Unknown"}
-                  {repository.project_compass.complete_product
-                    .progress_percent === null
-                    ? ""
-                    : "%"}
-                </strong>
-                <small>
-                  {repository.project_compass.complete_product.confidence}{" "}
-                  confidence
-                </small>
-              </div>
-              <div>
-                <span>Open blockers</span>
-                <strong>{repository.project_compass.open_blockers}</strong>
-                <small>Across target outcomes</small>
-              </div>
-              <div>
-                <span>Open drift</span>
-                <strong>{repository.project_compass.open_drift}</strong>
-                <small>
-                  Revision {repository.project_compass.revision ?? "unknown"}
-                </small>
-              </div>
-            </div>
-          </>
-        ) : (
-          <p className="quality-inline-empty">
-            {repository.project_compass.status === "Invalid"
-              ? repository.project_compass.error
-              : "No Compass contract has been created for this repository yet."}
-          </p>
-        )}
-      </div>
+      <ProjectCompassDetail repository={repository} />
       <div className="drawer-section quality-detail-section">
         <div className="drawer-section-title">
           <div>
@@ -623,108 +460,5 @@ export function RepositoryDetailSurface({
         </button>
       </div>
     </section>
-  );
-}
-
-export function EvidenceDrawer({
-  repository,
-  condition,
-  onClose,
-  onExpected,
-}: {
-  repository: RepositorySnapshot;
-  condition: Condition;
-  onClose: () => void;
-  onExpected: () => void;
-}): ReactElement {
-  const isExpected = condition.status === "Expected";
-  return (
-    <div className="drawer-layer" role="presentation">
-      <button
-        className="drawer-scrim"
-        aria-label="Close evidence"
-        type="button"
-        onClick={onClose}
-      />
-      <aside
-        className="evidence-drawer"
-        aria-label={`${condition.title} evidence`}
-      >
-        <div className="drawer-header">
-          <div>
-            <p className="eyebrow">Why this is here</p>
-            <h2>{condition.title}</h2>
-          </div>
-          <IconButton label="Close evidence" onClick={onClose}>
-            <X size={18} />
-          </IconButton>
-        </div>
-        <div className="evidence-hero">
-          <ConditionPill condition={condition} />
-          <p>{condition.summary}</p>
-          <span>Repository · {repository.name}</span>
-        </div>
-        <div className="evidence-block">
-          <h3>Rule</h3>
-          <p>{condition.rule}</p>
-        </div>
-        <div className="evidence-block">
-          <h3>Evidence</h3>
-          <div className="evidence-list">
-            {condition.evidence.map((item) => (
-              <div className="evidence-row" key={`${item.label}-${item.value}`}>
-                <span>{item.label}</span>
-                <strong>{item.value || "Not available"}</strong>
-                <small>
-                  {item.source} · {formatTime(item.observed_at)}
-                </small>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="evidence-block">
-          <h3>Missing or bounded</h3>
-          {condition.missing.length === 0 ? (
-            <p className="evidence-positive">
-              <Check size={15} />
-              No missing facts recorded for this classification.
-            </p>
-          ) : (
-            <ul className="evidence-missing">
-              {condition.missing.map((item) => (
-                <li key={item}>
-                  <AlertTriangle size={14} />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        {condition.freshness && (
-          <div className="freshness-note">
-            <Clock3 size={15} />
-            <span>
-              <strong>Freshness</strong>
-              {condition.freshness}
-            </span>
-          </div>
-        )}
-        <div className="drawer-footer">
-          <button
-            className="button button-secondary"
-            type="button"
-            onClick={onExpected}
-          >
-            <BellOff size={15} />
-            {isExpected
-              ? "Return to active queue"
-              : "Mark current state expected"}
-          </button>
-          <span className="drawer-footnote">
-            Expected state is attached to this exact evidence fingerprint.
-          </span>
-        </div>
-      </aside>
-    </div>
   );
 }

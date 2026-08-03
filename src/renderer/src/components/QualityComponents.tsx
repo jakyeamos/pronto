@@ -391,6 +391,7 @@ export interface QualityAttentionItem {
   kind: "gate" | "findings";
   label: string;
   detail: string;
+  staleOnly: boolean;
   gate?: QualityGate;
 }
 
@@ -417,12 +418,18 @@ export function qualityAttentionItems(
       gate.freshness === "Conflicted" ||
       (required && gate.status === "Not configured");
     if (needsAttention) {
+      const staleOnly =
+        gate.freshness === "Stale" &&
+        gate.status !== "Failed" &&
+        gate.status !== "Blocked" &&
+        !(required && gate.status === "Not configured");
       items.push({
         kind: "gate",
         label: `${gate.label}${required ? " · release required" : ""}`,
         detail: configuredWithoutEvidence
           ? "Configured · no evidence"
           : `${gate.status} · ${gate.freshness}`,
+        staleOnly,
         gate,
       });
     }
@@ -432,6 +439,7 @@ export function qualityAttentionItems(
       kind: "findings",
       label: "High-severity QR findings",
       detail: `${repository.quality.findings.high_severity_total} critical or high finding${repository.quality.findings.high_severity_total === 1 ? "" : "s"}`,
+      staleOnly: false,
     });
   }
   return items;

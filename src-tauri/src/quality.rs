@@ -3477,6 +3477,7 @@ mod tests {
     fn ingests_qr_gates_and_severity_breakdown_without_running_commands() {
         let root = fixture_root();
         let repository_path = root.join("repo");
+        let observed_at = Utc::now().to_rfc3339();
         let run = repository_path
             .join(".quality-runner")
             .join("runs")
@@ -3484,16 +3485,38 @@ mod tests {
         fs::create_dir_all(&run).expect("QR run should be writable");
         fs::write(
             run.join("run-manifest.json"),
-            r#"{"created_at":"2026-07-26T11:00:00Z","git":{"branch":"main","head_sha":"abc"}}"#,
+            serde_json::json!({
+                "created_at": observed_at,
+                "git": { "branch": "main", "head_sha": "abc" }
+            })
+            .to_string(),
         )
         .expect("run manifest should be writable");
         fs::write(
             run.join("gate-verification.json"),
-            r#"{"gates":[
-                {"id":"runtime_smoke","status":"passed","capability_kind":"local_command","command":"pnpm smoke","completed_at":"2026-07-26T11:00:00Z"},
-                {"id":"security scan","status":"failed","capability_kind":"qr","reason":"finding threshold exceeded"},
-                {"id":"review","status":"skipped","skip_type":"missing evidence"}
-            ]}"#,
+            serde_json::json!({
+                "gates": [
+                    {
+                        "id": "runtime_smoke",
+                        "status": "passed",
+                        "capability_kind": "local_command",
+                        "command": "pnpm smoke",
+                        "completed_at": observed_at
+                    },
+                    {
+                        "id": "security scan",
+                        "status": "failed",
+                        "capability_kind": "qr",
+                        "reason": "finding threshold exceeded"
+                    },
+                    {
+                        "id": "review",
+                        "status": "skipped",
+                        "skip_type": "missing evidence"
+                    }
+                ]
+            })
+            .to_string(),
         )
         .expect("gate verification should be writable");
         fs::write(

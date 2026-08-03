@@ -1,3 +1,15 @@
+import type {
+  QualityPortfolioSnapshot,
+  QualitySnapshot,
+  ReleaseRecipeConfig,
+  ReleaseRuleConfig,
+} from "./types/quality";
+import type { RemediationRun } from "./types/remediation";
+
+export * from "./types/quality";
+export * from "./types/remediation";
+export * from "./types/insights";
+
 export interface RootConfig {
   id: string;
   path: string;
@@ -15,179 +27,6 @@ export interface ProductConfig {
   release_mode: string;
   created_at: string;
   updated_at: string;
-}
-
-export interface ReleaseRuleConfig {
-  name: string;
-  operator: "AND" | "OR" | string;
-  min_commits?: number;
-  min_elapsed_days?: number;
-  required_commit_types: string[];
-  allow_first_release: boolean;
-  required_quality_gates: QualityGateRequirement[];
-}
-
-export type QualityGateStatus =
-  "Passed" | "Failed" | "Blocked" | "Not configured";
-export type QualitySource = "CI" | "Local" | "QR";
-export type QualityFreshness = "Fresh" | "Stale" | "Unknown" | "Conflicted";
-
-export interface QualityGateRequirement {
-  gate_id: string;
-  source: QualitySource;
-}
-
-export interface QualityEvidence {
-  id: string;
-  source: QualitySource;
-  status: QualityGateStatus;
-  freshness: QualityFreshness;
-  observed_at?: string;
-  scanned_commit?: string;
-  scanned_branch?: string;
-  command?: string;
-  source_label: string;
-  report_path?: string;
-  report_url?: string;
-  report_kind?: string;
-  detail: string;
-}
-
-export interface QualityGate {
-  id: string;
-  label: string;
-  status: QualityGateStatus;
-  freshness: QualityFreshness;
-  evidence: QualityEvidence[];
-}
-
-export interface QualityFindings {
-  total: number;
-  actionable_total: number;
-  reviewed_total: number;
-  unreviewed_total: number;
-  disposition_counts: Record<string, number>;
-  stale_disposition_total: number;
-  disposition_status: string;
-  disposition_contract_path?: string;
-  disposition_message?: string;
-  severity_counts: Record<string, number>;
-  high_severity_total: number;
-  source?: QualitySource;
-  observed_at?: string;
-  scanned_commit?: string;
-  scanned_branch?: string;
-  freshness: QualityFreshness;
-  report_path?: string;
-}
-
-export interface QualityMaturity {
-  score?: number;
-  score_display?: string;
-  scored_dimension_count?: number;
-  dimension_scores?: Record<string, number>;
-  gaps?: Array<{
-    dimension: string;
-    status: string;
-    score?: number;
-    message: string;
-  }>;
-  audit_id?: string;
-  observed_at?: string;
-  freshness: QualityFreshness;
-  report_path?: string;
-}
-
-export interface QualityReadiness {
-  score?: number;
-  score_display?: string;
-  configuration_score?: number;
-  configuration_score_display?: string;
-  applicable_gate_ids: string[];
-  configured_gate_ids: string[];
-  unconfigured_gate_ids: string[];
-  covered_gate_ids: string[];
-  fresh_passing_gate_ids: string[];
-  missing_gate_ids: string[];
-  stale_gate_ids: string[];
-  failed_gate_ids: string[];
-  blocked_gate_ids: string[];
-}
-
-export interface QualitySnapshot {
-  gates: QualityGate[];
-  findings: QualityFindings;
-  maturity: QualityMaturity;
-  ci_readiness: QualityReadiness;
-  last_ingested_at?: string;
-  ingestion_status: string;
-  ingestion_message?: string;
-}
-
-export interface QualityPortfolioSnapshot {
-  audit_root?: string;
-  latest_audit_id?: string;
-  latest_audit_at?: string;
-  latest_audit_path?: string;
-  matched_repository_count: number;
-  maturity_score?: number;
-  maturity_score_display?: string;
-  scored_dimension_count?: number;
-  audit_status: string;
-  ci_readiness_score?: number;
-  ci_readiness_score_display?: string;
-  ci_readiness_full_repository_count?: number;
-  ci_readiness_repository_count?: number;
-  ci_readiness_unscored_repository_count?: number;
-  ci_readiness_open_gate_counts?: Record<string, number>;
-  ci_evidence_fresh_passing_gate_count?: number;
-  ci_evidence_ideal_gate_count?: number;
-  ci_configuration_configured_gate_count?: number;
-  ci_configuration_ideal_gate_count?: number;
-  ci_configuration_full_repository_count?: number;
-  ci_configuration_repository_count?: number;
-  ci_configuration_unscored_repository_count?: number;
-  feed_schema?: string;
-  provenance_hash?: string;
-}
-
-export interface ReleaseRecipeConfig {
-  name: string;
-  validation_commands: string[];
-  release_commands: string[];
-  generated_paths: string[];
-  commit_message: string;
-}
-
-interface AiPayloadCategory {
-  category: string;
-  included: boolean;
-  item_count: number;
-  byte_count: number;
-}
-
-interface AiSourceReference {
-  sha: string;
-  subject: string;
-  committed_at: string;
-  category: string;
-}
-
-export interface AiPayloadPreview {
-  repository_id: string;
-  workspace_id: string;
-  permission: string;
-  provider: string;
-  model?: string;
-  status: string;
-  reasons: string[];
-  categories: AiPayloadCategory[];
-  source_references: AiSourceReference[];
-  payload_text: string;
-  payload_bytes: number;
-  uncommitted_included: boolean;
-  request_performed: boolean;
-  generated_at: string;
 }
 
 export interface GroupConfig {
@@ -417,6 +256,19 @@ interface ProjectCompassTargetSummary {
   confidence_percent: number;
 }
 
+interface ProjectCompassBlockerSummary {
+  outcome_id: string;
+  outcome_name: string;
+  kind: string;
+  summary: string;
+}
+
+interface ProjectCompassDriftSummary {
+  kind: string;
+  summary: string;
+  observed_at: string;
+}
+
 interface ProjectCompassSummary {
   status: "Ready" | "Missing" | "Invalid";
   contract_path: string;
@@ -429,6 +281,8 @@ interface ProjectCompassSummary {
   complete_product: ProjectCompassTargetSummary;
   open_blockers: number;
   open_drift: number;
+  open_blocker_items: ProjectCompassBlockerSummary[];
+  open_drift_items: ProjectCompassDriftSummary[];
   error: string | null;
 }
 
@@ -543,161 +397,6 @@ export interface ActionAudit {
   completed_at?: string | null;
 }
 
-interface RemediationEvidence {
-  source: string;
-  label: string;
-  status: string;
-  freshness: string;
-  observed_at?: string | null;
-  report_path?: string | null;
-  detail: string;
-}
-
-export type RemediationActionStatus =
-  "open" | "in_progress" | "blocked" | "deferred" | "verified";
-
-export interface RemediationAction {
-  id: string;
-  stable_key: string;
-  repository_id: string;
-  domain: string;
-  title: string;
-  summary: string;
-  severity: string;
-  priority: string;
-  weight: number;
-  status: RemediationActionStatus;
-  acceptance_criteria: string[];
-  evidence: RemediationEvidence[];
-  related_finding_ids: string[];
-  source_run_id?: string | null;
-  updated_at: string;
-  completed_at?: string | null;
-  notes?: string | null;
-}
-
-interface RemediationProgress {
-  verified_weight: number;
-  total_weight: number;
-  deferred_weight: number;
-  percentage: number;
-}
-
-interface RemediationTrack {
-  domain: string;
-  label: string;
-  status: string;
-  action_ids: string[];
-  verified_weight: number;
-  total_weight: number;
-}
-
-interface RemediationCoverage {
-  surface: string;
-  label: string;
-  status: string;
-  detail: string;
-  action_ids: string[];
-}
-
-interface RemediationMaturityPolicy {
-  minimum_closure_score: number;
-  ideal_score: number;
-  scoring_owner: string;
-  improvement_rule: string;
-  integrity_rule: string;
-}
-
-interface RemediationGoalProfile {
-  schema_version: string;
-  target_state: string;
-  label: string;
-  source: string;
-  confidence: string;
-  reason: string;
-  contract_path: string;
-  required_gate_ids: string[];
-  optional_gate_ids: string[];
-  evidence_max_age_days: number;
-  closure_criteria: string[];
-  maturity_policy?: RemediationMaturityPolicy | null;
-  error?: string | null;
-}
-
-interface RemediationPlan {
-  schema_version: string;
-  id: string;
-  repository_id: string;
-  repository_name: string;
-  repository_path: string;
-  generated_at: string;
-  source_refresh_id?: string | null;
-  goal: RemediationGoalProfile;
-  current_stage: string;
-  status: string;
-  progress: RemediationProgress;
-  coverage: RemediationCoverage[];
-  tracks: RemediationTrack[];
-  actions: RemediationAction[];
-}
-
-interface RemediationExclusion {
-  repository_id: string;
-  repository_name: string;
-  repository_path: string;
-  reason: string;
-}
-
-interface RemediationClosure {
-  id: string;
-  repository_id: string;
-  repository_name: string;
-  repository_path: string;
-  plan_id: string;
-  target_state: string;
-  goal_source: string;
-  maturity_policy?: RemediationMaturityPolicy | null;
-  closed_at: string;
-  source_refresh_id?: string | null;
-  disposition: string;
-  summary: string;
-  resolved_action_count: number;
-  verified_action_count: number;
-  deferred_action_count: number;
-  last_evidence_at?: string | null;
-}
-
-interface RemediationRefreshStep {
-  id: string;
-  label: string;
-  status: string;
-  started_at?: string | null;
-  completed_at?: string | null;
-  detail: string;
-  evidence_path?: string | null;
-}
-
-export interface RemediationRun {
-  schema_version: string;
-  id: string;
-  generated_at: string;
-  source_refresh_id?: string | null;
-  status: string;
-  message?: string | null;
-  eligible_repository_ids: string[];
-  eligible_repository_paths: string[];
-  refresh_steps: RemediationRefreshStep[];
-  excluded_repositories: RemediationExclusion[];
-  closures: RemediationClosure[];
-  plans: RemediationPlan[];
-}
-
-export interface RemediationExport {
-  run_id: string;
-  output_path: string;
-  files: string[];
-}
-
 export interface PortfolioSnapshot {
   roots: RootConfig[];
   repositories: RepositorySnapshot[];
@@ -713,98 +412,4 @@ export interface PortfolioSnapshot {
   retention_days: number;
   generated_at: string;
   storage_path: string;
-}
-
-export interface AnalyticsMetricSample {
-  observed_at: string;
-  repository_count: number;
-  workspace_count: number;
-  branch_count: number;
-  active_condition_count: number;
-  dirty_workspace_count: number;
-  unsynced_workspace_count: number;
-  active_workspace_count: number;
-  interrupted_workspace_count: number;
-  idle_workspace_count: number;
-  unknown_workspace_count: number;
-  ahead_commit_count: number;
-  behind_commit_count: number;
-  commits_last_30_days?: number | null;
-  ci_readiness_score?: number | null;
-  maturity_score?: number | null;
-  findings_total?: number | null;
-  high_severity_findings?: number | null;
-  ci_readiness_scored_repository_count: number;
-  maturity_scored_repository_count: number;
-  findings_repository_count: number;
-  release_rule_repository_count: number;
-  release_ready_repository_count: number;
-  quality_freshness?: string;
-}
-
-export interface AnalyticsRepositorySeries {
-  repository_id: string;
-  name: string;
-  samples: AnalyticsMetricSample[];
-}
-
-export interface AnalyticsSnapshot {
-  schema_version: string;
-  generated_at: string;
-  source: string;
-  freshness: string;
-  range_days: number;
-  retention_days: number;
-  history_available_from?: string;
-  portfolio_samples: AnalyticsMetricSample[];
-  repositories: AnalyticsRepositorySeries[];
-}
-
-export interface SkillUsage {
-  recent_count: number;
-  all_time_count: number;
-  by_provider: Record<string, number>;
-  last_seen_at?: string;
-  telemetry_source: string;
-}
-
-export interface SkillProviderState {
-  state: string;
-  reason: string;
-  source_path?: string;
-}
-
-export interface SkillSource {
-  path: string;
-  root: string;
-  provenance: string;
-  sha256: string;
-  hosted_in_jakye_agent_setup: boolean;
-}
-
-export interface SkillRecord {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  family: string;
-  lifecycle: string;
-  hosted_in_jakye_agent_setup: boolean;
-  sources: SkillSource[];
-  providers: Record<string, SkillProviderState>;
-  parity_score?: number | null;
-  parity_evidence: string[];
-  usage: SkillUsage;
-}
-
-export interface SkillsSnapshot {
-  schema_version: string;
-  generated_at: string;
-  refreshed_at?: string;
-  freshness: string;
-  source: string;
-  recent_days: number;
-  roots: string[];
-  skills: SkillRecord[];
-  telemetry_gap: string;
 }

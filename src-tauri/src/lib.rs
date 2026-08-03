@@ -5,10 +5,68 @@ pub mod quality;
 pub mod remediation;
 pub mod skills;
 
+#[cfg(desktop)]
+const WINDOW_EDGE_SNAP_THRESHOLD: i32 = 16;
+
+#[cfg(desktop)]
+fn snapped_window_position(
+    position: tauri::PhysicalPosition<i32>,
+    window_size: tauri::PhysicalSize<u32>,
+    work_area: &tauri::PhysicalRect<i32, u32>,
+) -> Option<tauri::PhysicalPosition<i32>> {
+    fn snap_axis(value: i32, start: i32, end: i32) -> i32 {
+        if value.abs_diff(start) <= WINDOW_EDGE_SNAP_THRESHOLD as u32 {
+            start
+        } else if value.abs_diff(end) <= WINDOW_EDGE_SNAP_THRESHOLD as u32 {
+            end
+        } else {
+            value
+        }
+    }
+
+    let mut snapped = position;
+    if window_size.width <= work_area.size.width {
+        let right = work_area
+            .position
+            .x
+            .saturating_add(work_area.size.width.saturating_sub(window_size.width) as i32);
+        snapped.x = snap_axis(position.x, work_area.position.x, right);
+    }
+    if window_size.height <= work_area.size.height {
+        let bottom = work_area
+            .position
+            .y
+            .saturating_add(work_area.size.height.saturating_sub(window_size.height) as i32);
+        snapped.y = snap_axis(position.y, work_area.position.y, bottom);
+    }
+
+    (snapped != position).then_some(snapped)
+}
+
+#[cfg(desktop)]
+fn snap_window_to_work_area(window: &tauri::Window, position: tauri::PhysicalPosition<i32>) {
+    if window.is_fullscreen().unwrap_or(false) || window.is_maximized().unwrap_or(false) {
+        return;
+    }
+    let (Ok(window_size), Ok(Some(monitor))) = (window.outer_size(), window.current_monitor())
+    else {
+        return;
+    };
+    if let Some(snapped) = snapped_window_position(position, window_size, monitor.work_area()) {
+        let _ = window.set_position(snapped);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .on_window_event(|window, event| {
+            #[cfg(desktop)]
+            if let tauri::WindowEvent::Moved(position) = event {
+                snap_window_to_work_area(window, *position);
+            }
+        })
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -53,4 +111,41 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(all(test, desktop))]
+mod tests {
+    use super::*;
+
+    fn work_area() -> tauri::PhysicalRect<i32, u32> {
+        tauri::PhysicalRect {
+            position: tauri::PhysicalPosition::new(0, 24),
+            size: tauri::PhysicalSize::new(1440, 876),
+        }
+    }
+
+    #[test]
+    fn snaps_each_window_edge_to_the_visible_work_area() {
+        let size = tauri::PhysicalSize::new(700, 540);
+        assert_eq!(
+            snapped_window_position(tauri::PhysicalPosition::new(12, 36), size, &work_area()),
+            Some(tauri::PhysicalPosition::new(0, 24))
+        );
+        assert_eq!(
+            snapped_window_position(tauri::PhysicalPosition::new(728, 348), size, &work_area()),
+            Some(tauri::PhysicalPosition::new(740, 360))
+        );
+    }
+
+    #[test]
+    fn leaves_a_window_away_from_edges_unchanged() {
+        assert_eq!(
+            snapped_window_position(
+                tauri::PhysicalPosition::new(120, 140),
+                tauri::PhysicalSize::new(700, 540),
+                &work_area(),
+            ),
+            None
+        );
+    }
 }
