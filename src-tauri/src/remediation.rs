@@ -17,7 +17,7 @@ pub const EXCLUDED_REPOSITORY_NAMES: [&str; 2] = ["soundscape", "tenure"];
 const VERIFICATION_ACTION_KEY: &str = "verification:recheck-after-remediation";
 const RESOLVED_BY_REFRESH_LABEL: &str = "Resolved by remediation refresh";
 const PROJECT_COMPASS_OPEN_ITEMS_KEY: &str = "product_truth:project-compass-open-items";
-const FLEET_MATURITY_FINDING_PACK_PREFIX: &str = "quality-runner-environment-legibility-finding-";
+const FLEET_MATURITY_FINDING_PACK_PREFIX: &str = quality::FLEET_MATURITY_FINDING_SCHEMA_PREFIX;
 const LEGACY_PROJECT_COMPASS_OPEN_ITEM_KEYS: [&str; 2] = [
     "product_truth:project-compass-blockers",
     "product_truth:project-compass-drift",
@@ -2044,7 +2044,7 @@ fn is_fleet_maturity_finding(finding: &ParsedFinding) -> bool {
     finding
         .pack
         .as_deref()
-        .is_some_and(|pack| pack.starts_with(FLEET_MATURITY_FINDING_PACK_PREFIX))
+        .is_some_and(|pack| pack.starts_with(quality::FLEET_MATURITY_FINDING_SCHEMA_PREFIX))
 }
 
 fn add_branch_hygiene_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
@@ -3593,10 +3593,7 @@ fn fleet_finding_requires_remediation(item: &Value) -> bool {
     if item.get("applicable").and_then(Value::as_bool) == Some(false) {
         return false;
     }
-    let pack = first_string(item, &[&["schema"], &["pack"], &["pack_id"]]);
-    let is_maturity_record = pack
-        .as_deref()
-        .is_some_and(|pack| pack.starts_with(FLEET_MATURITY_FINDING_PACK_PREFIX));
+    let is_maturity_record = quality::is_fleet_maturity_finding(item);
     if !is_maturity_record {
         return true;
     }

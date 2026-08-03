@@ -14,6 +14,8 @@ pub const FINDING_DISPOSITIONS_RELATIVE_PATH: &str = ".pronto/quality-finding-di
 pub const CANONICAL_MATURITY_FEED_RELATIVE_PATH: &str =
     ".quality-runner/fleet-audit/current/maturity.json";
 const MATURITY_FEED_SCHEMA: &str = "quality-runner-maturity-feed/v1";
+pub(crate) const FLEET_MATURITY_FINDING_SCHEMA_PREFIX: &str =
+    "quality-runner-environment-legibility-finding-";
 const MATURITY_FEED_STATUS: [&str; 2] = ["completed", "complete_with_blockers"];
 const MATURITY_FEED_FORBIDDEN_KEYS: [&str; 15] = [
     "prompt",
@@ -558,7 +560,15 @@ pub fn fleet_audit_import(
             freshness: evaluate_audit_freshness_at(run_observed_at.as_deref(), Utc::now()),
             report_path: Some(path.to_string_lossy().to_string()),
         };
-        let severity_counts = fleet_severity_counts(&findings);
+        // Fleet maturity rows are evidence for the maturity projection, not code
+        // findings. Counting the raw array here duplicates maturity remediation and
+        // can manufacture an aggregate findings action when every dimension passes.
+        let quality_findings = findings
+            .iter()
+            .filter(|finding| !is_fleet_maturity_finding(finding))
+            .cloned()
+            .collect::<Vec<_>>();
+        let severity_counts = fleet_severity_counts(&quality_findings);
         let high_severity_total = severity_counts
             .iter()
             .filter(|(severity, _)| matches!(severity.as_str(), "critical" | "high"))
@@ -577,7 +587,7 @@ pub fn fleet_audit_import(
             FleetAuditEvidence {
                 maturity,
                 findings: QualityFindings {
-                    total: findings.len() as u64,
+                    total: quality_findings.len() as u64,
                     severity_counts,
                     high_severity_total,
                     source: Some(QualitySource::Qr),
@@ -596,6 +606,15 @@ pub fn fleet_audit_import(
         observed_at,
         evidence,
     }
+}
+
+pub(crate) fn is_fleet_maturity_finding(finding: &Value) -> bool {
+    ["schema", "pack", "pack_id"].iter().any(|key| {
+        finding
+            .get(key)
+            .and_then(Value::as_str)
+            .is_some_and(|value| value.starts_with(FLEET_MATURITY_FINDING_SCHEMA_PREFIX))
+    })
 }
 
 pub fn default_quality_gates() -> Vec<QualityGate> {
@@ -3643,6 +3662,70 @@ mod tests {
         assert_eq!(status, QualityGateStatus::NotConfigured);
         assert_eq!(freshness, QualityFreshness::Unknown);
         assert!(detail.contains("CI evidence"));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn fleet_import_keeps_maturity_rows_out_of_quality_findings() {
+        let root = fixture_root();
+        let repository_path = root.join("repo");
+        fs::create_dir_all(&repository_path).expect("repository should be writable");
+        let audit_root = root.join("audit");
+        fs::create_dir_all(audit_root.join("findings")).expect("audit should be writable");
+        fs::write(
+            audit_root.join("summary.json"),
+            r#"{"audit_id":"audit-fleet","as_of":"2026-08-03T20:05:55Z"}"#,
+        )
+        .expect("summary should be writable");
+        fs::write(
+            audit_root.join("findings").join("repo.json"),
+            serde_json::to_string(&serde_json::json!({
+                "audit_id": "audit-fleet-repo",
+                "as_of": "2026-08-03T20:05:55Z",
+                "repository": {
+                    "primary_path": repository_path.to_string_lossy(),
+                    "checkouts": [{"path": repository_path.to_string_lossy(), "head": "abc", "branch": "main"}]
+                },
+                "findings": [
+                    {
+                        "applicable": true,
+                        "dimension": "quality_commands",
+                        "score": 4,
+                        "schema": "quality-runner-environment-legibility-finding-v0.1",
+                        "severity": "observation",
+                        "status": "validated"
+                    },
+                    {
+                        "applicable": true,
+                        "dimension": "security_constraints",
+                        "score": 4,
+                        "pack": "quality-runner-environment-legibility-finding-v0.1",
+                        "severity": "observation",
+                        "status": "maintained"
+                    },
+                    {
+                        "finding_id": "finding-real",
+                        "schema": "quality-runner-code-finding-v1",
+                        "severity": "high"
+                    }
+                ]
+            }))
+            .expect("fleet finding should encode"),
+        )
+        .expect("fleet finding should be writable");
+
+        let imported =
+            fleet_audit_import(Some(&audit_root), &[fixture_repository(&repository_path)]);
+        let evidence = imported
+            .evidence
+            .get("repo-1")
+            .expect("repository evidence should be imported");
+
+        assert_eq!(evidence.maturity.score, Some(4.0));
+        assert_eq!(evidence.maturity.dimension_scores.len(), 2);
+        assert_eq!(evidence.findings.total, 1);
+        assert_eq!(evidence.findings.high_severity_total, 1);
+        assert_eq!(evidence.findings.severity_counts.get("high"), Some(&1));
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
