@@ -87,11 +87,17 @@ requests, published releases, quality evidence, CI gates, findings, maturity,
 workspaces, branches, submodules, conditions, release preparation, agent
 permission, and analytics.
 Each plan also contains an `explanation` projection that groups only active
-(`open`, `in_progress`, or `blocked`) actions into four ordered operator phases
-when applicable: preserve and reconcile repository work, reconcile product and
-provider truth, reach quality and maturity closure, and refresh, verify, and
-close. Every phase exposes linked action steps and completion criteria;
-verified history is not presented as remaining work. The explanation names
+(`open`, `in_progress`, or `blocked`) actions into ordered operator phases.
+Pronto supplies four default phase definitions—preserve and reconcile
+repository work, reconcile product and provider truth, reach quality and
+maturity closure, and refresh, verify, and close—but that sequence is not a
+maximum. A repository contract may add phase definitions, assign action
+domains to them, and place each addition after an earlier phase. Repository
+phases take ownership of their declared domains; active actions in an
+unassigned domain remain visible in an explicit `unclassified_remediation`
+phase. Every active action must appear exactly once. Every phase exposes linked
+action steps and completion criteria; verified history is not presented as
+remaining work. The explanation names
 `clear` and `verified` coverage surfaces as already healthy and repeats the
 goal-specific closure requirements. It is advisory and never authorizes Git,
 provider, publication, release, or pruning mutations. The Markdown queue export

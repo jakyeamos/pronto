@@ -96,6 +96,15 @@ interface RemediationMaturityPolicy {
   integrity_rule: string;
 }
 
+interface RemediationPhaseDefinition {
+  id: string;
+  title: string;
+  summary: string;
+  domains: string[];
+  completion_criterion: string;
+  after_phase_id?: string | null;
+}
+
 interface RemediationGoalProfile {
   schema_version: string;
   target_state: string;
@@ -108,6 +117,7 @@ interface RemediationGoalProfile {
   optional_gate_ids: string[];
   evidence_max_age_days: number;
   closure_criteria: string[];
+  remediation_phases?: RemediationPhaseDefinition[];
   maturity_policy?: RemediationMaturityPolicy | null;
   error?: string | null;
 }

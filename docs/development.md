@@ -88,6 +88,18 @@ history as remaining work, or imply authorization for Git, provider,
 publication, release, or pruning mutations. The active-queue Markdown export
 projects the same ordered phase titles as its `Remaining path` column.
 
+The four built-in phases are defaults, not a phase-count limit. A repository
+may add as many ordered phases as its real workflow requires through the
+optional `remediation_phases` array in its goal contract. Each phase owns one
+or more action domains and may name an earlier built-in or repository phase in
+`after_phase_id`. Declared ownership moves those domains out of the built-in
+phase that previously held them. IDs and domain ownership must be unique, and
+an ordering reference must point backward so the contract cannot contain an
+ambiguous or cyclic phase graph. If an active action reaches the planner with
+an unassigned domain, Pronto exposes it in `unclassified_remediation` instead
+of omitting it. The explanation projection must contain every active action
+exactly once.
+
 Each plan also carries a goal profile. A repository can confirm that profile in
 `.pronto/remediation-goal.json`:
 
@@ -98,7 +110,17 @@ Each plan also carries a goal profile. A repository can confirm that profile in
   "reason": "This package is distributed as a supported public release.",
   "additional_required_gate_ids": [],
   "optional_gate_ids": [],
-  "evidence_max_age_days": 7
+  "evidence_max_age_days": 7,
+  "remediation_phases": [
+    {
+      "id": "deployment_validation",
+      "title": "Validate deployment behavior",
+      "summary": "Verify the repository-specific deployment path.",
+      "domains": ["deployment_validation"],
+      "completion_criterion": "Fresh deployment evidence satisfies the repository contract.",
+      "after_phase_id": "quality_and_maturity"
+    }
+  ]
 }
 ```
 
