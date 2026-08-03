@@ -3632,9 +3632,7 @@ fn refresh_remediation_at(
         .map(|repository| repository.path.clone())
         .collect::<Vec<_>>();
     if eligible_paths.is_empty() {
-        return Err(
-            "No eligible repositories remain after excluding Soundscape and Tenure.".to_string(),
-        );
+        return Err("No eligible repositories remain for remediation refresh.".to_string());
     }
     let refresh_id = format!("remediation-refresh-{}", iso_now().replace([':', '-'], ""));
     let mut steps = remediation_refresh_steps();
@@ -3701,7 +3699,7 @@ fn refresh_remediation_at(
         &mut steps,
         "local_scan",
         "completed",
-        "Local evidence refreshed without scanning excluded repositories.",
+        "Local evidence refreshed for eligible repositories.",
         None,
     );
     persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
@@ -3926,7 +3924,7 @@ fn refresh_remediation_at(
             &mut steps,
             "provider",
             "in_progress",
-            "Refreshing GitHub context while preserving excluded repository state.",
+            "Refreshing GitHub context for eligible repositories.",
             None,
         );
         persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;

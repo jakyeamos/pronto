@@ -78,9 +78,13 @@ export function RemediationRunOverview({
           <CheckCircle2 size={18} />
         </div>
         <div className="remediation-overview-card">
-          <span>Excluded in-progress work</span>
+          <span>Scope exclusions</span>
           <strong>{run.excluded_repositories.length}</strong>
-          <small>Soundscape and Tenure stay out of the plan</small>
+          <small>
+            {run.excluded_repositories.length === 0
+              ? "All registered repositories are eligible"
+              : "Intentionally held-out repositories"}
+          </small>
           <ShieldAlert size={18} />
         </div>
       </section>
