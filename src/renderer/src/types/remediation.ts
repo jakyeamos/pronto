@@ -80,7 +80,7 @@ interface RemediationHealthySurface {
   detail: string;
 }
 
-interface RemediationExplanation {
+export interface RemediationExplanation {
   authority: string;
   summary: string;
   phases: RemediationExplanationPhase[];
