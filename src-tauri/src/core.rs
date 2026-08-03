@@ -6040,7 +6040,7 @@ fn prepare_release(
             target_branch
                 .clone()
                 .unwrap_or_else(|| "Unknown".to_string()),
-            "Local default branch and workspace target",
+            "Configured repository target or observed Git default",
             &observed_at,
         ),
         evidence(
@@ -7007,8 +7007,10 @@ fn transition_fingerprint(repository: &RepositorySnapshot) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{}|{}|{}|{}|{}|{}|{}",
+        "{}|{}|{}|{}|{}|{}|{}|{}|{}",
         repository.branch,
+        repository.target_branch.as_deref().unwrap_or_default(),
+        repository.target_branch_configured,
         repository.workspace.dirty,
         repository.workspace.added,
         repository.workspace.removed,
@@ -7510,7 +7512,7 @@ fn set_repository_target_branch_at(
             repository.name
         ));
     }
-    let mut configured = repository;
+    let mut configured = repository.clone();
     configured.target_branch = Some(target_branch.to_string());
     configured.target_branch_configured = true;
     let rescanned = scan_repository(
@@ -7518,6 +7520,8 @@ fn set_repository_target_branch_at(
         Some(&configured),
         &state.expected_conditions,
     );
+    append_transition_event(&mut state, Some(&repository), &rescanned);
+    prune_events(&mut state);
     state.repositories[repository_index] = rescanned;
     if !state.remediation.id.is_empty() {
         state.remediation = remediation::rebuild_run(
@@ -14509,6 +14513,8 @@ mod tests {
             Some("develop")
         );
         assert_eq!(configured.workspace.target_confidence, "High");
+        assert_eq!(updated.events[0].kind, "state-transition");
+        assert!(updated.events[0].fingerprint.contains("|develop|true|"));
 
         let fold_target = agent_fold_target(configured, None);
         assert_eq!(fold_target.0.as_deref(), Some("develop"));
