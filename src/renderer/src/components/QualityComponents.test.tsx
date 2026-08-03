@@ -174,6 +174,8 @@ function makeRepository(
     provider_state: "Local",
     branch: "main",
     default_branch: "main",
+    target_branch: "main",
+    target_branch_configured: false,
     workspace,
     workspaces: [workspace],
     branches: [],
@@ -1042,6 +1044,28 @@ describe("quality evidence surfaces", () => {
         allow_first_release: false,
         required_quality_gates: [{ gate_id: "build", source: "CI" }],
       },
+      target_branch: "develop",
+      target_branch_configured: true,
+      branches: [
+        {
+          name: "main",
+          role: "Production",
+          role_confidence: "High",
+          target_confidence: "High",
+          ahead: 0,
+          behind: 0,
+          integration_state: "No unique commits",
+        },
+        {
+          name: "develop",
+          role: "Integration",
+          role_confidence: "High",
+          target_confidence: "High",
+          ahead: 0,
+          behind: 0,
+          integration_state: "No unique commits",
+        },
+      ],
     });
     const markup = renderToStaticMarkup(
       <RepositoryDetailSurface
@@ -1050,11 +1074,18 @@ describe("quality evidence surfaces", () => {
         onBack={() => undefined}
         onOpenWorkspace={async () => undefined}
         onPrepareRepository={async () => undefined}
+        onTargetBranchChange={async () => undefined}
         onLifecycleChange={async () => undefined}
         onCondition={() => undefined}
       />,
     );
     expect(markup).toContain("Back to Portfolio");
+    expect(markup).toContain("Target branch");
+    expect(markup).toContain("Pronto override · Git default: main");
+    expect(markup).toContain('aria-label="Target branch for pronto"');
+    expect(markup).toContain(
+      '<option value="develop" selected="">develop</option>',
+    );
     expect(markup).toContain("/tmp/pronto");
     expect(markup).toContain("Quality gates");
     expect(markup).toContain("Project Compass");

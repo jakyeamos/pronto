@@ -26,6 +26,7 @@ import {
   RemediationMaturityPolicyCriteria,
   RemediationMaturityPolicyMeta,
 } from "./RemediationMaturityPolicy";
+import { RemediationExplanation } from "./RemediationExplanation";
 import { RemediationRunOverview } from "./RemediationRunOverview";
 
 function remediationActionSummary(
@@ -386,6 +387,11 @@ export function RemediationSurface({
                   </ul>
                 </details>
               </div>
+              {selectedPlan.explanation && (
+                <RemediationExplanation
+                  explanation={selectedPlan.explanation}
+                />
+              )}
               <div className="remediation-coverage-block">
                 <div className="remediation-coverage-heading">
                   <div>

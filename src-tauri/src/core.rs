@@ -368,6 +368,10 @@ pub struct RepositorySnapshot {
     pub provider_state: String,
     pub branch: String,
     pub default_branch: Option<String>,
+    #[serde(default)]
+    pub target_branch: Option<String>,
+    #[serde(default)]
+    pub target_branch_configured: bool,
     pub workspace: WorkspaceSummary,
     pub workspaces: Vec<WorkspaceSummary>,
     pub branches: Vec<BranchSummary>,
@@ -739,6 +743,8 @@ pub struct AgentRepositorySummary {
     pub lifecycle: String,
     pub branch: String,
     pub default_branch: Option<String>,
+    pub target_branch: Option<String>,
+    pub target_branch_configured: bool,
     pub workspaces: Vec<AgentWorkspaceSummary>,
     pub active_conditions: Vec<AgentConditionSummary>,
     pub quality_status: String,
@@ -5928,8 +5934,9 @@ fn prepare_release(
 ) -> ReleasePreparation {
     let observed_at = iso_now();
     let target_branch = repository
-        .default_branch
+        .target_branch
         .clone()
+        .or_else(|| repository.default_branch.clone())
         .or_else(|| workspace.target_branch.clone());
     let connected = provider_context_available(repository, provider_available);
     let baseline = connected
@@ -6033,7 +6040,7 @@ fn prepare_release(
             target_branch
                 .clone()
                 .unwrap_or_else(|| "Unknown".to_string()),
-            "Local default branch and workspace target",
+            "Configured repository target or observed Git default",
             &observed_at,
         ),
         evidence(
@@ -6378,6 +6385,8 @@ fn scan_workspace(
     path: &Path,
     is_primary: bool,
     default_branch: Option<&str>,
+    repository_target_branch: Option<&str>,
+    repository_target_confidence: &str,
     existing: Option<&RepositorySnapshot>,
 ) -> WorkspaceSummary {
     let (status, totals, operation, last_commit, last_commit_at, last_activity_at) =
@@ -6402,18 +6411,24 @@ fn scan_workspace(
     };
     let (mut role, mut role_confidence) = branch_role(&status.branch, default_branch);
     let (mut target_branch, mut target_confidence) =
-        target_for_branch(&status.branch, default_branch);
+        target_for_branch(&status.branch, repository_target_branch);
+    if target_branch.is_some() {
+        target_confidence = repository_target_confidence.to_string();
+    }
     if let Some(manifest) = activity.manifest.as_ref() {
-        if let Some(manifest_target) = manifest.target_branch.as_ref() {
-            target_branch = Some(manifest_target.clone());
-            target_confidence = "High".to_string();
+        if repository_target_branch.is_none() {
+            if let Some(manifest_target) = manifest.target_branch.as_ref() {
+                target_branch = Some(manifest_target.clone());
+                target_confidence = "High".to_string();
+            }
         }
         if manifest.agent_type.is_some() && role != "Production" {
             role = "Agent task".to_string();
             role_confidence = "High".to_string();
         }
     }
-    let integration_state = branch_integration_state(path, &status.branch, default_branch, None);
+    let integration_state =
+        branch_integration_state(path, &status.branch, repository_target_branch, None);
     let mut workspace = WorkspaceSummary {
         id: path_id("workspace", path),
         path: path.to_string_lossy().to_string(),
@@ -6440,8 +6455,12 @@ fn scan_workspace(
         activity,
         sync_detail: None,
     };
-    workspace.integration_state =
-        branch_integration_state(path, &workspace.branch, default_branch, Some(&workspace));
+    workspace.integration_state = branch_integration_state(
+        path,
+        &workspace.branch,
+        repository_target_branch,
+        Some(&workspace),
+    );
     workspace
 }
 
@@ -6792,6 +6811,17 @@ fn scan_repository(
     let provisional_branch = git_static(path, &["branch", "--show-current"])
         .unwrap_or_else(|| "Detached HEAD".to_string());
     let default_branch = detect_default_branch(path, &provisional_branch);
+    let configured_target_branch = existing
+        .filter(|repository| repository.target_branch_configured)
+        .and_then(|repository| repository.target_branch.clone());
+    let target_branch = configured_target_branch
+        .clone()
+        .or_else(|| default_branch.clone());
+    let target_confidence = if configured_target_branch.is_some() {
+        "High"
+    } else {
+        "Medium"
+    };
     let recorded_fetch = existing
         .filter(|_| remote_unchanged)
         .and_then(|repository| repository.last_fetch_at.clone());
@@ -6807,8 +6837,14 @@ fn scan_repository(
                 .iter()
                 .find(|workspace| workspace.path == canonical.to_string_lossy())
         });
-        let mut workspace =
-            scan_workspace(&canonical, is_primary, default_branch.as_deref(), existing);
+        let mut workspace = scan_workspace(
+            &canonical,
+            is_primary,
+            default_branch.as_deref(),
+            target_branch.as_deref(),
+            target_confidence,
+            existing,
+        );
         if existing_last_fetch.is_some() {
             workspace.remote_freshness = existing_last_fetch
                 .clone()
@@ -6826,6 +6862,8 @@ fn scan_repository(
             path,
             true,
             default_branch.as_deref(),
+            target_branch.as_deref(),
+            target_confidence,
             existing,
         ));
     }
@@ -6843,18 +6881,25 @@ fn scan_repository(
         let (role, role_confidence) = current_workspace
             .map(|workspace| (workspace.role.clone(), workspace.role_confidence.clone()))
             .unwrap_or_else(|| branch_role(&record.name, default_branch.as_deref()));
-        let (target_branch, target_confidence) = current_workspace
+        let (branch_target, branch_target_confidence) = current_workspace
             .map(|workspace| {
                 (
                     workspace.target_branch.clone(),
                     workspace.target_confidence.clone(),
                 )
             })
-            .unwrap_or_else(|| target_for_branch(&record.name, default_branch.as_deref()));
+            .unwrap_or_else(|| {
+                let (branch_target, mut confidence) =
+                    target_for_branch(&record.name, target_branch.as_deref());
+                if branch_target.is_some() {
+                    confidence = target_confidence.to_string();
+                }
+                (branch_target, confidence)
+            });
         let integration_state = branch_integration_state(
             path,
             &record.name,
-            default_branch.as_deref(),
+            target_branch.as_deref(),
             current_workspace,
         );
         let ahead = current_workspace
@@ -6868,8 +6913,8 @@ fn scan_repository(
             name: record.name,
             role,
             role_confidence,
-            target_branch,
-            target_confidence,
+            target_branch: branch_target,
+            target_confidence: branch_target_confidence,
             ahead,
             behind,
             integration_state,
@@ -6882,13 +6927,13 @@ fn scan_repository(
     primary_for_conditions.integration_state = branch_integration_state(
         path,
         &primary.branch,
-        default_branch.as_deref(),
+        target_branch.as_deref(),
         Some(&primary),
     );
     let conditions = build_conditions(
         &repository_id,
         &primary_for_conditions,
-        default_branch.as_deref(),
+        target_branch.as_deref(),
         expected,
         &observed_at,
     );
@@ -6924,6 +6969,8 @@ fn scan_repository(
         provider_state,
         branch: primary.branch.clone(),
         default_branch,
+        target_branch,
+        target_branch_configured: configured_target_branch.is_some(),
         workspace: primary,
         workspaces,
         branches,
@@ -6960,8 +7007,10 @@ fn transition_fingerprint(repository: &RepositorySnapshot) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{}|{}|{}|{}|{}|{}|{}",
+        "{}|{}|{}|{}|{}|{}|{}|{}|{}",
         repository.branch,
+        repository.target_branch.as_deref().unwrap_or_default(),
+        repository.target_branch_configured,
         repository.workspace.dirty,
         repository.workspace.added,
         repository.workspace.removed,
@@ -7433,6 +7482,54 @@ fn set_repository_lifecycle_at(
         .find(|repository| repository.id == repository_id)
         .ok_or_else(|| "Repository is not registered".to_string())?;
     repository.lifecycle = normalized_lifecycle;
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn set_repository_target_branch_at(
+    path: &Path,
+    repository_id: &str,
+    target_branch: &str,
+) -> Result<PortfolioSnapshot, String> {
+    let target_branch = target_branch.trim();
+    if target_branch.is_empty() || target_branch.contains('\0') {
+        return Err("Choose a valid target branch".to_string());
+    }
+    let mut state = load_store(path)?;
+    let repository_index = state
+        .repositories
+        .iter()
+        .position(|repository| repository.id == repository_id)
+        .ok_or_else(|| "Repository is not registered".to_string())?;
+    let repository = state.repositories[repository_index].clone();
+    if !repository
+        .branches
+        .iter()
+        .any(|branch| branch.name == target_branch)
+    {
+        return Err(format!(
+            "Target branch '{target_branch}' is not a local branch in {}",
+            repository.name
+        ));
+    }
+    let mut configured = repository.clone();
+    configured.target_branch = Some(target_branch.to_string());
+    configured.target_branch_configured = true;
+    let rescanned = scan_repository(
+        Path::new(&configured.path),
+        Some(&configured),
+        &state.expected_conditions,
+    );
+    append_transition_event(&mut state, Some(&repository), &rescanned);
+    prune_events(&mut state);
+    state.repositories[repository_index] = rescanned;
+    if !state.remediation.id.is_empty() {
+        state.remediation = remediation::rebuild_run(
+            &state.repositories,
+            &state.remediation,
+            state.quality.latest_audit_id.as_deref(),
+        );
+    }
     save_store(path, &state)?;
     Ok(snapshot_from_store(path, &state))
 }
@@ -8017,6 +8114,14 @@ pub fn set_repository_lifecycle(
 }
 
 #[tauri::command]
+pub fn set_repository_target_branch(
+    repository_id: String,
+    target_branch: String,
+) -> Result<PortfolioSnapshot, String> {
+    set_repository_target_branch_at(&store_path(), &repository_id, &target_branch)
+}
+
+#[tauri::command]
 pub fn set_release_rule(
     repository_id: String,
     release_rule: Option<ReleaseRuleConfig>,
@@ -8486,6 +8591,11 @@ fn agent_repository_summary(repository: &RepositorySnapshot) -> AgentRepositoryS
         lifecycle: repository.lifecycle.clone(),
         branch: repository.branch.clone(),
         default_branch: repository.default_branch.clone(),
+        target_branch: repository
+            .target_branch
+            .clone()
+            .or_else(|| repository.default_branch.clone()),
+        target_branch_configured: repository.target_branch_configured,
         workspaces: repository
             .workspaces
             .iter()
@@ -8875,10 +8985,18 @@ fn agent_fold_target(
             "Explicit".to_string(),
         );
     }
-    match repository.default_branch.clone() {
+    match repository
+        .target_branch
+        .clone()
+        .or_else(|| repository.default_branch.clone())
+    {
         Some(target) => (
             Some(target),
-            "Pronto observed default branch".to_string(),
+            if repository.target_branch_configured {
+                "Pronto configured repository target".to_string()
+            } else {
+                "Pronto observed default branch".to_string()
+            },
             "High".to_string(),
         ),
         None => (
@@ -12751,7 +12869,14 @@ mod tests {
     fn agent_sync_attention_matches_renderer_synced_state() {
         let root = fixture_root();
         let repository = fixture_repository(&root);
-        let mut workspace = scan_workspace(&repository, true, Some("main"), None);
+        let mut workspace = scan_workspace(
+            &repository,
+            true,
+            Some("main"),
+            Some("main"),
+            "Medium",
+            None,
+        );
         workspace.sync_state = "Synced".to_string();
         assert!(!workspace_requires_sync_attention(&workspace));
         workspace.sync_state = "Ahead by 1".to_string();
@@ -12763,7 +12888,14 @@ mod tests {
     fn workspace_sync_detail_exposes_expiry_reason_and_scoped_refresh() {
         let root = fixture_root();
         let repository = fixture_repository(&root);
-        let mut workspace = scan_workspace(&repository, true, Some("main"), None);
+        let mut workspace = scan_workspace(
+            &repository,
+            true,
+            Some("main"),
+            Some("main"),
+            "Medium",
+            None,
+        );
         workspace.sync_state = "Behind by 1".to_string();
         workspace.upstream = Some("origin/main".to_string());
         workspace.ahead = 0;
@@ -13196,7 +13328,7 @@ mod tests {
         )
         .expect("manifest should be writable");
 
-        let workspace = scan_workspace(&repository, true, Some("main"), None);
+        let workspace = scan_workspace(&repository, true, Some("main"), None, "Medium", None);
         assert_eq!(workspace.activity.state, "Active");
         assert_eq!(workspace.activity.confidence, "High");
         assert_eq!(
@@ -13230,7 +13362,14 @@ mod tests {
             .expect("feature file should be writable");
         git(&repository, &["add", "feature.txt"]);
         git(&repository, &["commit", "-m", "Feature commit"]);
-        let mut workspace = scan_workspace(&repository, true, Some("main"), None);
+        let mut workspace = scan_workspace(
+            &repository,
+            true,
+            Some("main"),
+            Some("main"),
+            "Medium",
+            None,
+        );
         workspace.activity.state = "Active".to_string();
         assert_eq!(
             branch_integration_state(
@@ -14341,6 +14480,57 @@ mod tests {
             .is_empty());
         fs::remove_dir_all(root).expect("fixture root should be removable");
         let _ = repository;
+    }
+
+    #[test]
+    fn repository_target_branch_override_persists_and_recomputes_tracking() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        git(&repository, &["branch", "develop"]);
+        let database = root.join("registry.db");
+        let snapshot = register_root_and_scan(&database, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        let repository_id = snapshot.repositories[0].id.clone();
+
+        assert_eq!(
+            snapshot.repositories[0].default_branch.as_deref(),
+            Some("main")
+        );
+        assert_eq!(
+            snapshot.repositories[0].target_branch.as_deref(),
+            Some("main")
+        );
+        assert!(!snapshot.repositories[0].target_branch_configured);
+
+        let updated = set_repository_target_branch_at(&database, &repository_id, "develop")
+            .expect("a local branch should be configurable as the repository target");
+        let configured = &updated.repositories[0];
+        assert_eq!(configured.default_branch.as_deref(), Some("main"));
+        assert_eq!(configured.target_branch.as_deref(), Some("develop"));
+        assert!(configured.target_branch_configured);
+        assert_eq!(
+            configured.workspace.target_branch.as_deref(),
+            Some("develop")
+        );
+        assert_eq!(configured.workspace.target_confidence, "High");
+        assert_eq!(updated.events[0].kind, "state-transition");
+        assert!(updated.events[0].fingerprint.contains("|develop|true|"));
+
+        let fold_target = agent_fold_target(configured, None);
+        assert_eq!(fold_target.0.as_deref(), Some("develop"));
+        assert_eq!(fold_target.1, "Pronto configured repository target");
+
+        let mut persisted = load_store(&database).expect("configured state should reload");
+        let refreshed = audited_scan_and_persist(&database, &mut persisted)
+            .expect("ordinary refresh should preserve the configured target");
+        assert_eq!(
+            refreshed.repositories[0].target_branch.as_deref(),
+            Some("develop")
+        );
+        assert!(refreshed.repositories[0].target_branch_configured);
+        assert!(set_repository_target_branch_at(&database, &repository_id, "missing").is_err());
+
+        fs::remove_dir_all(root).expect("target branch fixture should be removable");
     }
 
     #[test]

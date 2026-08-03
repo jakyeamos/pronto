@@ -98,6 +98,7 @@ pub fn run() {
             core::clear_condition_expected,
             core::update_root_settings,
             core::set_repository_lifecycle,
+            core::set_repository_target_branch,
             core::set_release_rule,
             core::set_release_recipe,
             core::set_release_version,

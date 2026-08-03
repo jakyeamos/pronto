@@ -153,6 +153,43 @@ pub struct RemediationGoalProfile {
     pub error: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RemediationExplanationStep {
+    pub action_id: String,
+    pub title: String,
+    pub summary: String,
+    pub status: String,
+    pub priority: String,
+    pub completion_criteria: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RemediationExplanationPhase {
+    pub id: String,
+    pub title: String,
+    pub summary: String,
+    pub status: String,
+    pub steps: Vec<RemediationExplanationStep>,
+    pub completion_criterion: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RemediationHealthySurface {
+    pub surface: String,
+    pub label: String,
+    pub status: String,
+    pub detail: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RemediationExplanation {
+    pub authority: String,
+    pub summary: String,
+    pub phases: Vec<RemediationExplanationPhase>,
+    pub healthy_surfaces: Vec<RemediationHealthySurface>,
+    pub closure_requirements: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RemediationPlan {
     pub schema_version: String,
@@ -171,6 +208,8 @@ pub struct RemediationPlan {
     pub progress: RemediationProgress,
     #[serde(default)]
     pub coverage: Vec<RemediationCoverage>,
+    #[serde(default)]
+    pub explanation: RemediationExplanation,
     pub tracks: Vec<RemediationTrack>,
     pub actions: Vec<RemediationAction>,
 }
@@ -765,6 +804,7 @@ pub fn recompute_plan_derived(plan: &mut RemediationPlan) {
     plan.status = plan_status(&plan.actions);
     plan.current_stage = current_stage(&plan.actions);
     plan.integration_only_remaining = integration_only_remaining(&plan.actions);
+    plan.explanation = build_remediation_explanation(&plan.goal, &plan.actions, &plan.coverage);
 }
 
 pub fn normalize_queue(run: &mut RemediationRun, closed_at: &str) {
@@ -1055,6 +1095,7 @@ fn build_plan(
     retain_resolved_action_history(&mut actions, previous, generated_at);
     let progress = calculate_progress(&actions);
     let coverage = build_ui_coverage(repository, &goal, &actions);
+    let explanation = build_remediation_explanation(&goal, &actions, &coverage);
     let tracks = build_tracks(&actions);
     let status = plan_status(&actions);
     let current_stage = current_stage(&actions);
@@ -1076,6 +1117,7 @@ fn build_plan(
         integration_only_remaining,
         progress,
         coverage,
+        explanation,
         tracks,
         actions,
     }
@@ -1228,27 +1270,32 @@ fn add_scope_seed(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) 
             source_run_id: None,
         });
     }
-    if repository.default_branch.is_none() {
+    if repository
+        .target_branch
+        .as_ref()
+        .or(repository.default_branch.as_ref())
+        .is_none()
+    {
         seeds.push(ActionSeed {
-            stable_key: "scope:confirm-default-branch".to_string(),
+            stable_key: "scope:confirm-target-branch".to_string(),
             domain: "scope".to_string(),
             title: "Confirm the canonical integration branch".to_string(),
-            summary: "Pronto cannot determine the repository's default branch, so branch comparisons and integration targets are ambiguous.".to_string(),
+            summary: "Pronto has no configured target or observed default branch, so branch comparisons and integration targets are ambiguous.".to_string(),
             severity: "scope".to_string(),
             priority: "P1".to_string(),
             weight: 2,
             acceptance_criteria: vec![
                 "The canonical integration branch is confirmed from repository or provider evidence.".to_string(),
-                "Pronto records the default branch and can evaluate branch integration against it.".to_string(),
+                "Pronto records the target branch and can evaluate branch integration against it.".to_string(),
             ],
             evidence: vec![evidence(
                 "Pronto",
-                "Default branch",
+                "Target branch",
                 "Missing",
                 "Unknown",
                 Some(&repository.last_scan_at),
                 None,
-                "No default branch was resolved for this repository.",
+                "No target or default branch was resolved for this repository.",
             )],
             related_finding_ids: Vec::new(),
             source_run_id: None,
@@ -2495,9 +2542,14 @@ fn build_ui_coverage(
             "scope",
             "Repository scope",
             &format!(
-                "Lifecycle: {} · candidate: {} · default branch: {}.",
+                "Lifecycle: {} · candidate: {} · target branch: {} · Git default: {}.",
                 repository.lifecycle,
                 repository.lifecycle_candidate,
+                repository
+                    .target_branch
+                    .as_deref()
+                    .or(repository.default_branch.as_deref())
+                    .unwrap_or("Unknown"),
                 repository.default_branch.as_deref().unwrap_or("Unknown")
             ),
             &["scope:"],
@@ -2765,6 +2817,134 @@ fn coverage_for_prefixes(
         status: status.to_string(),
         detail: detail.to_string(),
         action_ids: matching.iter().map(|action| action.id.clone()).collect(),
+    }
+}
+
+fn build_remediation_explanation(
+    goal: &RemediationGoalProfile,
+    actions: &[RemediationAction],
+    coverage: &[RemediationCoverage],
+) -> RemediationExplanation {
+    let phase_definitions = [
+        (
+            "preserve_and_reconcile",
+            "Preserve and reconcile repository work",
+            "Protect active or ambiguous work, then make workspaces, branches, operations, and the canonical target intentional.",
+            &["scope", "repository_health", "branch_hygiene"][..],
+            "Every scoped workspace, branch, operation, and repository-health action is verified or explicitly deferred with evidence.",
+        ),
+        (
+            "product_and_provider_truth",
+            "Reconcile product and provider truth",
+            "Align the intended product outcome with fresh provider-native repository, pull-request, and release evidence.",
+            &["product_truth", "provider"][..],
+            "Product intent and provider-native branch, pull-request, and release evidence satisfy the repository goal.",
+        ),
+        (
+            "quality_and_maturity",
+            "Reach quality and maturity closure",
+            "Refresh required evidence, clear actionable findings and gate failures, and reach the applicable maturity floor without manufacturing evidence.",
+            &["evidence_refresh", "ci_ideal", "qr_findings", "maturity"][..],
+            "Required gates and quality evidence are fresh, actionable findings are cleared, and applicable maturity reaches its minimum closure score.",
+        ),
+        (
+            "verify_and_close",
+            "Refresh, verify, and close",
+            "Re-run the scoped evidence sources after the material work and confirm that the repository can leave the active queue.",
+            &["verification"][..],
+            "A fresh scoped remediation projection reports no open or blocked actions and records the repository in closure history.",
+        ),
+    ];
+    let phases = phase_definitions
+        .iter()
+        .filter_map(|(id, title, summary, domains, completion_criterion)| {
+            let matching = actions
+                .iter()
+                .filter(|action| {
+                    domains.contains(&action.domain.as_str())
+                        && matches!(action.status.as_str(), "open" | "in_progress" | "blocked")
+                })
+                .collect::<Vec<_>>();
+            if matching.is_empty() {
+                return None;
+            }
+            let status = if matching.iter().any(|action| action.status == "blocked") {
+                "blocked"
+            } else if matching.iter().any(|action| action.status == "in_progress") {
+                "in_progress"
+            } else {
+                "open"
+            };
+            Some(RemediationExplanationPhase {
+                id: (*id).to_string(),
+                title: (*title).to_string(),
+                summary: (*summary).to_string(),
+                status: status.to_string(),
+                steps: matching
+                    .iter()
+                    .map(|action| RemediationExplanationStep {
+                        action_id: action.id.clone(),
+                        title: action.title.clone(),
+                        summary: action.summary.clone(),
+                        status: action.status.clone(),
+                        priority: action.priority.clone(),
+                        completion_criteria: action.acceptance_criteria.clone(),
+                    })
+                    .collect(),
+                completion_criterion: (*completion_criterion).to_string(),
+            })
+        })
+        .collect::<Vec<_>>();
+    let active_action_count = phases.iter().map(|phase| phase.steps.len()).sum::<usize>();
+    let summary = if phases.is_empty() {
+        "No active remediation phase remains. Refresh scoped evidence before treating the repository as closed."
+            .to_string()
+    } else {
+        let phase_noun = if phases.len() == 1 { "phase" } else { "phases" };
+        let phase_verb = if phases.len() == 1 {
+            "remains"
+        } else {
+            "remain"
+        };
+        let action_noun = if active_action_count == 1 {
+            "action"
+        } else {
+            "actions"
+        };
+        format!(
+            "{} ordered remediation {phase_noun} {phase_verb} across {active_action_count} active {action_noun}. Work from the first unresolved phase and verify each result before closure.",
+            phases.len(),
+        )
+    };
+    let healthy_surfaces = coverage
+        .iter()
+        .filter(|entry| matches!(entry.status.as_str(), "clear" | "verified"))
+        .map(|entry| RemediationHealthySurface {
+            surface: entry.surface.clone(),
+            label: entry.label.clone(),
+            status: entry.status.clone(),
+            detail: entry.detail.clone(),
+        })
+        .collect::<Vec<_>>();
+    let mut closure_requirements = goal.closure_criteria.clone();
+    if let Some(policy) = &goal.maturity_policy {
+        closure_requirements.push(format!(
+            "Fresh applicable maturity evidence reaches at least {:.1}/4; {:.1}/4 remains the evidence-backed ideal, not a requirement for leaving remediation.",
+            policy.minimum_closure_score, policy.ideal_score
+        ));
+    }
+    closure_requirements.push(
+        "A final scoped refresh reports no open or blocked remediation actions; only then does the repository leave the active queue."
+            .to_string(),
+    );
+
+    RemediationExplanation {
+        authority: "Advisory only: this explanation orders evidence-backed work but does not authorize Git, provider, publication, release, or pruning mutations."
+            .to_string(),
+        summary,
+        phases,
+        healthy_surfaces,
+        closure_requirements,
     }
 }
 
@@ -3364,15 +3544,15 @@ intended repository goal and raw action weight are used as tie-breakers.\n\n\
 ## Active queue\n\n\
 Active repositories: **{}**. Retained closures: **{}**.\n\n\
 <!-- prettier-ignore -->\n\
-| Rank | Repository | Goal | Goal source | Status | Current stage | Leverage | Tracked gaps | Active actions | First safe action |\n\
-| ---: | --- | --- | --- | --- | --- | --- | ---: | ---: | --- |\n",
+| Rank | Repository | Goal | Goal source | Status | Current stage | Remaining path | Leverage | Tracked gaps | Active actions | First safe action |\n\
+| ---: | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | --- |\n",
         run.schema_version,
         run.generated_at,
         run.plans.len(),
         run.closures.len()
     );
     if run.plans.is_empty() {
-        output.push_str("| — | _No active remediation remains_ | — | — | complete | complete | — | 0 | 0 | Refresh scoped evidence before treating this as current. |\n");
+        output.push_str("| — | _No active remediation remains_ | — | — | complete | complete | — | — | 0 | 0 | Refresh scoped evidence before treating this as current. |\n");
     } else {
         for (index, plan) in run.plans.iter().enumerate() {
             let active_action_count = plan
@@ -3388,15 +3568,23 @@ Active repositories: **{}**. Retained closures: **{}**.\n\n\
             let first_action = first_active_action(plan)
                 .map(|action| action.title.as_str())
                 .unwrap_or("Refresh scoped evidence and recheck the plan.");
+            let remaining_path = plan
+                .explanation
+                .phases
+                .iter()
+                .map(|phase| phase.title.as_str())
+                .collect::<Vec<_>>()
+                .join(" → ");
             let leverage = queue_leverage(&plan.repository_name).1;
             output.push_str(&format!(
-                "| {} | `{}` | {} | {} | {} | {} | {} | {} | {} | {} |\n",
+                "| {} | `{}` | {} | {} | {} | {} | {} | {} | {} | {} | {} |\n",
                 index + 1,
                 markdown_cell(&plan.repository_name),
                 markdown_cell(&plan.goal.label),
                 markdown_cell(&plan.goal.source),
                 markdown_cell(&plan.status),
                 markdown_cell(&plan.current_stage),
+                markdown_cell(&remaining_path),
                 markdown_cell(leverage),
                 tracked_gap_count,
                 active_action_count,
@@ -3519,6 +3707,8 @@ mod tests {
             provider_state: "GitHub connected".to_string(),
             branch: "dev".to_string(),
             default_branch: Some("dev".to_string()),
+            target_branch: Some("dev".to_string()),
+            target_branch_configured: false,
             workspace: WorkspaceSummary {
                 id: format!("workspace-{name}"),
                 path: format!("/tmp/{name}"),
@@ -3610,6 +3800,8 @@ mod tests {
         goal.source = "repository_contract".to_string();
         goal.confidence = "High".to_string();
         goal.reason = "Fixture repository is actively maintained.".to_string();
+        let coverage = Vec::new();
+        let explanation = build_remediation_explanation(&goal, &actions, &coverage);
         RemediationPlan {
             schema_version: REMEDIATION_SCHEMA.to_string(),
             id: format!("plan-{repository_name}"),
@@ -3626,7 +3818,8 @@ mod tests {
             status: status.to_string(),
             integration_only_remaining: integration_only_remaining(&actions),
             progress: calculate_progress(&actions),
-            coverage: Vec::new(),
+            coverage,
+            explanation,
             tracks: build_tracks(&actions),
             actions,
         }
@@ -4027,6 +4220,94 @@ mod tests {
     }
 
     #[test]
+    fn remediation_explanation_groups_work_into_ordered_phases_and_names_healthy_surfaces() {
+        let mut preserve = fixture_action(
+            "branch_hygiene:dirty:workspace",
+            "branch_hygiene",
+            "P1",
+            2,
+            "open",
+        );
+        preserve.title = "Preserve the dirty workspace".to_string();
+        preserve.summary = "Review and preserve the current coherent slice.".to_string();
+        preserve.acceptance_criteria = vec!["The workspace is intentional.".to_string()];
+        let mut provider = fixture_action("provider:pull-request:14", "provider", "P2", 2, "open");
+        provider.title = "Resolve pull request evidence".to_string();
+        let mut maturity = fixture_action(
+            "maturity:dimension:quality_commands",
+            "maturity",
+            "P2",
+            2,
+            "blocked",
+        );
+        maturity.title = "Improve quality command maturity".to_string();
+        let verification = fixture_action(VERIFICATION_ACTION_KEY, "verification", "P2", 1, "open");
+        let verified_history = fixture_action(
+            "product_truth:resolved",
+            "product_truth",
+            "P2",
+            1,
+            "verified",
+        );
+        let actions = vec![preserve, provider, maturity, verification, verified_history];
+        let coverage = vec![
+            RemediationCoverage {
+                surface: "quality_evidence".to_string(),
+                label: "Quality evidence".to_string(),
+                status: "clear".to_string(),
+                detail: "Required evidence is fresh.".to_string(),
+                action_ids: Vec::new(),
+            },
+            RemediationCoverage {
+                surface: "maturity".to_string(),
+                label: "Repository maturity".to_string(),
+                status: "blocked".to_string(),
+                detail: "Score: 2.5/4.".to_string(),
+                action_ids: vec!["maturity:dimension:quality_commands".to_string()],
+            },
+        ];
+        let goal = goal_definition("active_maintained").expect("goal should be supported");
+
+        let explanation = build_remediation_explanation(&goal, &actions, &coverage);
+
+        assert_eq!(
+            explanation
+                .phases
+                .iter()
+                .map(|phase| phase.id.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "preserve_and_reconcile",
+                "product_and_provider_truth",
+                "quality_and_maturity",
+                "verify_and_close"
+            ]
+        );
+        assert_eq!(explanation.phases[0].steps.len(), 1);
+        assert_eq!(
+            explanation.phases[0].steps[0].title,
+            "Preserve the dirty workspace"
+        );
+        assert_eq!(explanation.phases[2].status, "blocked");
+        assert_eq!(
+            explanation.summary,
+            "4 ordered remediation phases remain across 4 active actions. Work from the first unresolved phase and verify each result before closure."
+        );
+        assert!(!explanation
+            .phases
+            .iter()
+            .flat_map(|phase| &phase.steps)
+            .any(|step| step.action_id == "product_truth:resolved"));
+        assert_eq!(explanation.healthy_surfaces.len(), 1);
+        assert_eq!(explanation.healthy_surfaces[0].surface, "quality_evidence");
+        assert!(explanation
+            .closure_requirements
+            .iter()
+            .any(|requirement| requirement.contains("at least 3.0/4")));
+        assert!(explanation.authority.contains("does not authorize Git"));
+    }
+
+    #[test]
     fn clean_only_goal_does_not_inherit_universal_quality_or_maturity_work() {
         let fixture_id = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
         let root = std::env::temp_dir().join(format!("pronto-clean-goal-{fixture_id}"));
@@ -4240,6 +4521,8 @@ mod tests {
         assert!(markdown.contains(
             "| 1 | `active-repo` | Active maintained repository | repository_contract | open |"
         ));
+        assert!(markdown.contains("| Remaining path |"));
+        assert!(markdown.contains("Preserve and reconcile repository work"));
         assert!(markdown
             .contains("| `closed-repo` | active_maintained | repository_contract | verified |"));
         assert!(!markdown.contains("| 2 | `closed-repo` |"));

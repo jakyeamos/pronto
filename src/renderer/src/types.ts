@@ -232,6 +232,8 @@ export interface RepositorySnapshot {
   provider_state: string;
   branch: string;
   default_branch?: string;
+  target_branch?: string;
+  target_branch_configured: boolean;
   workspace: WorkspaceSummary;
   workspaces: WorkspaceSummary[];
   branches: BranchSummary[];

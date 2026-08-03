@@ -138,6 +138,45 @@ function run(): RemediationRun {
             action_ids: [activeAction.id],
           },
         ],
+        explanation: {
+          authority:
+            "Advisory only: this explanation orders evidence-backed work but does not authorize Git, provider, publication, release, or pruning mutations.",
+          summary:
+            "1 ordered remediation phase remains across 1 active action.",
+          phases: [
+            {
+              id: "preserve_and_reconcile",
+              title: "Preserve and reconcile repository work",
+              summary:
+                "Protect active work and make the repository state intentional.",
+              status: "open",
+              steps: [
+                {
+                  action_id: activeAction.id,
+                  title: activeAction.title,
+                  summary: activeAction.summary,
+                  status: activeAction.status,
+                  priority: activeAction.priority,
+                  completion_criteria: activeAction.acceptance_criteria,
+                },
+              ],
+              completion_criterion:
+                "Every scoped workspace and branch action is verified.",
+            },
+          ],
+          healthy_surfaces: [
+            {
+              surface: "quality_evidence",
+              label: "Quality evidence",
+              status: "clear",
+              detail: "Required evidence is fresh.",
+            },
+          ],
+          closure_requirements: [
+            "Fresh release evidence passes.",
+            "A final scoped refresh reports no open or blocked actions.",
+          ],
+        },
         tracks: [
           {
             domain: "branch_hygiene",
@@ -180,6 +219,15 @@ describe("remediation active queue", () => {
     expect(markup).toContain("4.0/4 evidence-backed ideal");
     expect(markup).toContain("Do not add or accept superficial documentation");
     expect(markup).toContain("UI tracking coverage");
+    expect(markup).toContain("Remediation path");
+    expect(markup).toContain("1 phase");
+    expect(markup).toContain("Preserve and reconcile repository work");
+    expect(markup).toContain("Preserve the dirty workspace");
+    expect(markup).toContain("What done means");
+    expect(markup).toContain("Already healthy ·");
+    expect(markup).toContain("Required evidence is fresh");
+    expect(markup).toContain("What closes this plan");
+    expect(markup).toContain("does not authorize Git");
     expect(markup).toContain("Project Compass");
     expect(markup).toContain("attention");
     expect(markup).toContain("Repositories removed from the active queue");

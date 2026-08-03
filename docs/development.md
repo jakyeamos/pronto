@@ -78,6 +78,16 @@ informational and goal-inapplicable surfaces remain visible without creating
 fake work. This parity invariant prevents a UI warning such as “Compass
 missing” from disappearing from fleet remediation plans.
 
+The plan's `explanation` is the standard human- and machine-readable operating
+narrative over those actions. It groups active work into ordered phases,
+preserves each action's title, summary, priority, status, and acceptance
+criteria as concrete steps, lists already-healthy coverage separately, and
+states what must become true for closure. The underlying actions remain the
+authority: the explanation must never hide active work, present verified
+history as remaining work, or imply authorization for Git, provider,
+publication, release, or pruning mutations. The active-queue Markdown export
+projects the same ordered phase titles as its `Remaining path` column.
+
 Each plan also carries a goal profile. A repository can confirm that profile in
 `.pronto/remediation-goal.json`:
 

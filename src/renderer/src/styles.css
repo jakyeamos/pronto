@@ -4923,6 +4923,188 @@ h1 {
   margin: 8px 0 0;
   padding-left: var(--space-lg);
 }
+.remediation-explanation-block {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(145deg, rgba(42, 84, 113, 0.18), transparent 58%),
+    rgba(13, 27, 46, 0.44);
+}
+.remediation-explanation-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.remediation-explanation-heading > div {
+  display: grid;
+  gap: var(--space-3xs);
+}
+.remediation-explanation-heading span {
+  color: var(--faint);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.remediation-explanation-heading strong {
+  color: #e1edf9;
+  font-size: 12px;
+}
+.remediation-explanation-heading small {
+  max-width: 58%;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+  text-align: right;
+}
+.remediation-phase-list {
+  display: grid;
+  gap: 10px;
+}
+.remediation-phase {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: rgba(18, 37, 61, 0.58);
+}
+.remediation-phase-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.remediation-phase-heading > div {
+  display: grid;
+  gap: 2px;
+}
+.remediation-phase-heading span {
+  color: var(--blue);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.remediation-phase-heading h3 {
+  margin: 0;
+  color: #dbe8f6;
+  font-size: 11px;
+}
+.remediation-phase > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+.remediation-phase-steps {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.remediation-phase-steps > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 12px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(10, 24, 42, 0.52);
+}
+.remediation-phase-steps > li > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.remediation-phase-steps strong {
+  color: #ccd9e8;
+  font-size: 9px;
+}
+.remediation-phase-steps span,
+.remediation-phase-steps details {
+  color: var(--faint);
+  font-size: 8px;
+  line-height: 1.4;
+}
+.remediation-phase-step-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.remediation-phase-step-meta > span:first-child {
+  padding-top: 3px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.remediation-phase-steps details {
+  grid-column: 1 / -1;
+}
+.remediation-phase-steps summary,
+.remediation-explanation-footnotes summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+.remediation-phase-steps ul,
+.remediation-explanation-footnotes ul {
+  margin: 7px 0 0;
+  padding-left: 18px;
+}
+.remediation-phase-exit {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #9bcdbd;
+  font-size: 8px;
+  line-height: 1.4;
+}
+.remediation-phase-exit svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.remediation-explanation-footnotes {
+  display: grid;
+  gap: 8px;
+  padding-top: 2px;
+}
+.remediation-explanation-footnotes details,
+.remediation-explanation-footnotes > small {
+  color: var(--faint);
+  font-size: 8px;
+  line-height: 1.45;
+}
+.remediation-healthy-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.remediation-healthy-list > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid rgba(108, 190, 159, 0.16);
+  border-radius: 7px;
+  background: rgba(35, 93, 74, 0.12);
+}
+.remediation-healthy-list svg {
+  flex: 0 0 auto;
+  color: var(--mint);
+}
+.remediation-healthy-list span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.remediation-healthy-list strong {
+  color: #bddbce;
+  font-size: 8px;
+}
 .remediation-coverage-block {
   display: grid;
   gap: var(--space-sm);
@@ -5277,6 +5459,24 @@ h1 {
   }
 }
 @media (max-width: 700px) {
+  .remediation-explanation-heading,
+  .remediation-phase-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .remediation-explanation-heading small {
+    max-width: none;
+    text-align: left;
+  }
+  .remediation-phase-steps > li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .remediation-phase-steps details {
+    grid-column: auto;
+  }
+  .remediation-healthy-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .remediation-coverage-grid {
     grid-template-columns: 1fr;
   }
