@@ -55,6 +55,12 @@ Rust build so a dependency update cannot silently raise the minimum.
 
 ## Remediation queue contract
 
+For sequential agent execution, use the
+[remediation handoff protocol](./remediation-sequential-handoff.md). It keeps
+the Pronto projection authoritative while recording one active Sol-to-Luna
+dispatch, the returned evidence, independent verification, and the next queue
+transition.
+
 `pronto remediation --json` exposes `pronto-remediation/v3`. The `plans`
 array is the ranked active queue rather than an all-repository inventory.
 Freshly verified or explicitly deferred terminal plans leave that array and

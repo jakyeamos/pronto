@@ -16,6 +16,7 @@ const fixtureFiles = [
   ".github/workflows/quality.yml",
   "docs/implementation-examples.md",
   "docs/implementation-plan.md",
+  "docs/remediation-sequential-handoff.md",
   "docs/repository-contract.md",
   "scripts/validate-repository-contract.mjs",
 ];
