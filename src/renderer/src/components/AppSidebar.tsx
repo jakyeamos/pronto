@@ -87,13 +87,40 @@ export function AppSidebar({
       ),
     [remediation.plans],
   );
+  const excludedRepositoryIds = useMemo(
+    () =>
+      new Set(
+        remediation.excluded_repositories.map(
+          (exclusion) => exclusion.repository_id,
+        ),
+      ),
+    [remediation.excluded_repositories],
+  );
+  const excludedRepositoryPaths = useMemo(
+    () =>
+      new Set(
+        remediation.excluded_repositories.map(
+          (exclusion) => exclusion.repository_path,
+        ),
+      ),
+    [remediation.excluded_repositories],
+  );
+  const eligibleRepositories = useMemo(
+    () =>
+      repositories.filter(
+        (repository) =>
+          !excludedRepositoryIds.has(repository.id) &&
+          !excludedRepositoryPaths.has(repository.path),
+      ),
+    [excludedRepositoryIds, excludedRepositoryPaths, repositories],
+  );
   const filteredRepositories = useMemo(() => {
     const normalizedQuery = repositoryQuery.trim().toLowerCase();
-    if (!normalizedQuery) return repositories;
-    return repositories.filter((repository) =>
+    if (!normalizedQuery) return eligibleRepositories;
+    return eligibleRepositories.filter((repository) =>
       repository.name.toLowerCase().includes(normalizedQuery),
     );
-  }, [repositories, repositoryQuery]);
+  }, [eligibleRepositories, repositoryQuery]);
 
   return (
     <aside className="sidebar">
@@ -124,7 +151,7 @@ export function AppSidebar({
             <p className="eyebrow" id="sidebar-repositories-title">
               Repositories
             </p>
-            <span>{repositories.length} local</span>
+            <span>{eligibleRepositories.length} eligible local</span>
           </div>
           <GitBranch size={14} />
         </div>
@@ -140,8 +167,10 @@ export function AppSidebar({
         <div className="sidebar-repository-list">
           {filteredRepositories.length === 0 ? (
             <span className="sidebar-empty">
-              {repositories.length === 0
-                ? "No local repositories"
+              {eligibleRepositories.length === 0
+                ? repositories.length === 0
+                  ? "No local repositories"
+                  : "No eligible repositories"
                 : "No matching repositories"}
             </span>
           ) : (

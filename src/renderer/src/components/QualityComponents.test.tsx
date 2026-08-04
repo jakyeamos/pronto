@@ -828,6 +828,44 @@ describe("quality evidence surfaces", () => {
     expect(markup).not.toContain("Private by default");
   });
 
+  it("keeps remediation-excluded repositories out of the sidebar", () => {
+    const eligible = makeRepository({
+      id: "eligible-repository",
+      name: "Eligible project",
+      path: "/tmp/eligible-project",
+    });
+    const excluded = makeRepository({
+      id: "excluded-repository",
+      name: "Excluded project",
+      path: "/tmp/excluded-project",
+    });
+    const remediation = makePortfolio([eligible, excluded]).remediation;
+    remediation.excluded_repositories = [
+      {
+        repository_id: excluded.id,
+        repository_name: excluded.name,
+        repository_path: excluded.path,
+        reason: "Currently in progress; excluded from this refresh.",
+      },
+    ];
+
+    const markup = renderToStaticMarkup(
+      <AppSidebar
+        activeNav="portfolio"
+        activeConditionCount={0}
+        repositories={[eligible, excluded]}
+        remediation={remediation}
+        selectedRepositoryId={null}
+        onNavigate={() => undefined}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup).toContain("1 eligible local");
+    expect(markup).toContain("Eligible project");
+    expect(markup).not.toContain("Excluded project");
+  });
+
   it("shows stale-only repositories in blue and preserves red precedence", () => {
     const staleQuality = makeQuality({
       gates: [makeGate("build", "Build", "Passed", "Stale")],
