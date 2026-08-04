@@ -21,6 +21,9 @@ Read the deeper file only when the task matches it:
 - [Implementation examples](../../docs/implementation-examples.md) — existing
   end-to-end patterns for projection, quality, remediation, and change-surface
   work.
+- [Sequential remediation handoff](../../docs/remediation-sequential-handoff.md)
+  — the Sol orchestrator, Luna Max executor, one-at-a-time dispatch, result,
+  verification, and resume contract.
 - [Implementation plan](../../docs/implementation-plan.md) — product
   boundaries and the source-of-truth relationship between the desktop app and
   CLI.
