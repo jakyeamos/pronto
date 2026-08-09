@@ -1,0 +1,67 @@
+{
+  "schema": "fleet-branch-preservation/v1",
+  "authorized_by_user": true,
+  "created_at": "2026-08-09T02:42:26Z",
+  "status": "preserved",
+  "scope": "exact-target branches blocked by ownership or canonical-dev truth",
+  "entries": [
+    {
+      "repository": "jakyeamos/Fantasy",
+      "repository_path": "/Users/jakyeamos/projects/Fantasy",
+      "source_branch": "codex/rebuild-gpt56",
+      "source_sha": "ec614a53a7614f6375277082881cb4899eeb695b",
+      "local_dev_sha": "ec614a53a7614f6375277082881cb4899eeb695b",
+      "live_dev_sha": "ec614a53a7614f6375277082881cb4899eeb695b",
+      "remote_source_ref": "absent",
+      "source_worktree": "/Users/jakyeamos/projects/Fantasy/.worktrees/gpt56-v2",
+      "source_worktree_dirty": true,
+      "active_owner": "current user / codex-rebuild-gpt56 worktree",
+      "reason": "The exact-target branch is attached to a dirty worktree with broad product and test changes; the canonical dev checkout is also dirty.",
+      "next_action": "Owner must decompose and atomically commit or explicitly preserve the work before removing the attached worktree or branch.",
+      "prune_action": "preserve"
+    },
+    {
+      "repository": "jakyeamos/ai-workflow-leverage",
+      "repository_path": "/Users/jakyeamos/projects/ai-workflow-leverage",
+      "source_branch": "codex/audit-environment-lifecycle",
+      "source_sha": "edc2d9eebb083f5eccd8313ca851828c8a9d61fc",
+      "local_dev_sha": "edc2d9eebb083f5eccd8313ca851828c8a9d61fc",
+      "live_dev_sha": "4092306327da7de3e2b86754926fc4ae40e77af0",
+      "remote_source_ref": "absent",
+      "source_worktrees": [],
+      "active_owner": "repository default bare checkout / current user",
+      "reason": "Local dev and the exact-target branch are ahead of live origin/dev; pruning against local truth would violate the live-target gate.",
+      "next_action": "Reconcile live origin/dev with the owner after reviewing the local-vs-live divergence, then reclassify the local branch.",
+      "prune_action": "preserve"
+    },
+    {
+      "repository": "jakyeamos/jakyeamos-agent-skills",
+      "repository_path": "/Users/jakyeamos/projects/jakyeamos-agent-skills",
+      "source_branch": "codex/environment-legibility-agent-skills",
+      "source_sha": "fbaa55e2436d19171694f9b6b6d9404ce79a617b",
+      "local_dev_sha": "fbaa55e2436d19171694f9b6b6d9404ce79a617b",
+      "live_dev_sha": "d1fd110c2ee30356d53241f4e7d3997e6ab9df47",
+      "remote_source_ref": "absent",
+      "source_worktrees": [],
+      "active_owner": "current user / dev checkout",
+      "reason": "Canonical dev is dirty and ahead of live origin/dev by three commits; the exact-target local branch cannot be pruned until target truth and ownership are reconciled.",
+      "next_action": "Decompose the dirty dev changes into owned atomic slices, then reconcile the three-commit local/live difference before pruning.",
+      "prune_action": "preserve"
+    },
+    {
+      "repository": "jakyeamos/mac-control",
+      "repository_path": "/Users/jakyeamos/projects/mac-control",
+      "source_branch": "codex/verified-route-memory",
+      "source_sha": "68a48d6b3c3972f8718ad3ee260f8a79b6a60922",
+      "local_dev_sha": "68a48d6b3c3972f8718ad3ee260f8a79b6a60922",
+      "live_dev_sha": "3b5a2b9e775dbd15f22d66df804d91b2293aca86",
+      "remote_source_ref": "absent",
+      "source_worktrees": [],
+      "active_owner": "current user / dev checkout",
+      "reason": "Canonical dev is dirty and ahead of live origin/dev by sixteen commits; pruning against the local target would discard unresolved target truth.",
+      "next_action": "Decompose and verify the dirty dev work, then reconcile local dev with live origin/dev before any branch deletion.",
+      "prune_action": "preserve"
+    }
+  ],
+  "global_next_action": "Owner review is required for the four preserved workspaces; no force deletion, blanket staging, stash cleanup, or local-target pruning is authorized by this receipt."
+}
