@@ -3359,6 +3359,11 @@ h1 {
   color: var(--amber);
   line-height: 1.35;
 }
+.target-evidence-refresh-button {
+  width: 100%;
+  justify-content: center;
+  margin-top: var(--space-xs);
+}
 .target-evidence-loading {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

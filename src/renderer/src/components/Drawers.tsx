@@ -6,6 +6,7 @@ import {
   GitBranch,
   LoaderCircle,
   MonitorDot,
+  RefreshCw,
   ShieldCheck,
   TerminalSquare,
 } from "lucide-react";
@@ -160,16 +161,30 @@ export function RepositoryDetailSurface({
               ))
             )}
           </select>
+          <button
+            className="button button-secondary target-evidence-refresh-button"
+            type="button"
+            aria-label={`Refresh target evidence for ${repository.name}`}
+            disabled={!displayedTargetBranch || isRefreshing}
+            onClick={() => {
+              if (!displayedTargetBranch) return;
+              setPendingTargetBranch(displayedTargetBranch);
+              void onTargetBranchChange(displayedTargetBranch);
+            }}
+          >
+            <RefreshCw size={12} />
+            Refresh evidence
+          </button>
           <small>
             {repository.target_branch_configured
               ? `Pronto override · Git default: ${repository.default_branch ?? "Unknown"}`
               : `Following Git default: ${repository.default_branch ?? "Unknown"}`}
           </small>
           <small className="target-branch-note">
-            Selecting a branch checks existing target evidence first, then runs
-            QR quality and fleet audits in a clean disposable worktree when the
-            target head changed or matching evidence is unavailable; your active
-            workspace is not switched.
+            Selecting a branch or refreshing evidence checks existing target
+            evidence first, then runs QR quality and fleet audits in a clean
+            disposable worktree when the target head changed or matching
+            evidence is unavailable; your active workspace is not switched.
           </small>
           <small>
             Evidence target: {displayedTargetBranch || "Unknown"}
