@@ -1,0 +1,43 @@
+{
+  "schema": "fleet-branch-prune-completion/v1",
+  "repository": "jakyeamos/agent-eval-runtime",
+  "repository_path": "/Users/jakyeamos/projects/agent-eval-runtime",
+  "remote": "origin",
+  "authorized_by_user": true,
+  "created_at": "2026-08-09T02:35:31Z",
+  "status": "completed",
+  "previous_receipt": ".pronto/branch-prune-agent-eval-runtime-dev-fold-20260809.json",
+  "target": {
+    "branch": "dev",
+    "local_sha": "23a567d58b743297108b4da64233d23ca70586e0",
+    "live_sha": "23a567d58b743297108b4da64233d23ca70586e0",
+    "local_live_relation": "in-sync"
+  },
+  "preconditions": {
+    "source_branch": "codex/dev-fold-aios-mining-eval",
+    "source_sha": "2076154fb5fda02ea791d0ae53f9c3a7105df219",
+    "source_is_ancestor_of_target": true,
+    "source_protected": false,
+    "target_protected": false,
+    "active_prs": [],
+    "source_worktrees": [],
+    "default_branch": "main",
+    "consumer_search": "no registered repository references"
+  },
+  "action": {
+    "remote_delete": "git push origin --delete codex/dev-fold-aios-mining-eval",
+    "local_delete": "git branch -d codex/dev-fold-aios-mining-eval from clean detached dev worktree",
+    "temporary_worktree_removed": true,
+    "force_delete_used": false
+  },
+  "verification": {
+    "live_source_ref": "absent",
+    "local_source_ref": "absent",
+    "live_dev_sha": "23a567d58b743297108b4da64233d23ca70586e0",
+    "remaining_envelope_branch_live_sha": "08f8667ac56b2e522bbc02fb3f71eae81312650d",
+    "remaining_envelope_branch_preserved": true,
+    "current_checkout_preserved": true,
+    "current_checkout_branch": "main"
+  },
+  "next_action": "Refresh Pronto; keep the separate mining-eval envelope branch preserved pending its own classification."
+}

@@ -1,0 +1,44 @@
+{
+  "schema": "fleet-branch-prune-completion/v1",
+  "repository": "jakyeamos/marketing-autoresearch",
+  "repository_path": "/Users/jakyeamos/projects/marketing-autoresearch",
+  "remote": "origin",
+  "authorized_by_user": true,
+  "created_at": "2026-08-09T02:35:31Z",
+  "status": "completed",
+  "previous_receipt": ".pronto/branch-prune-marketing-autoresearch-20260809.json",
+  "target": {
+    "branch": "dev",
+    "local_sha": "3b21c3e2762a94b0608258f746224c8ba2eb120a",
+    "live_sha": "3b21c3e2762a94b0608258f746224c8ba2eb120a",
+    "local_live_relation": "in-sync"
+  },
+  "preconditions": {
+    "source_branch": "codex/dev-fold-aios-cutover-marketing",
+    "source_sha": "29052bbb7248cf715df3e9a3eb9a9bc0fba0fb78",
+    "source_is_ancestor_of_target": true,
+    "source_protected": false,
+    "target_protected": false,
+    "active_prs": [],
+    "historical_merged_pr": {
+      "number": 1,
+      "merged_at": "2026-08-04T04:07:39Z",
+      "url": "https://github.com/jakyeamos/marketing-autoresearch/pull/1"
+    },
+    "source_worktrees": [],
+    "consumer_search": "no registered repository references"
+  },
+  "action": {
+    "remote_delete": "git push origin --delete codex/dev-fold-aios-cutover-marketing",
+    "local_delete": "git branch -d codex/dev-fold-aios-cutover-marketing",
+    "force_delete_used": false
+  },
+  "verification": {
+    "live_source_ref": "absent",
+    "local_source_ref": "absent",
+    "live_dev_sha": "3b21c3e2762a94b0608258f746224c8ba2eb120a",
+    "current_checkout_preserved": true,
+    "current_checkout_branch": "dev"
+  },
+  "next_action": "Refresh Pronto and preserve the dirty untracked .mac-control and .project-compass paths."
+}
