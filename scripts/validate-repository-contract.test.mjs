@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fixtureFiles = [
+  ".agents/agent-usability.json",
   ".agents/change-surface-matrix.json",
   ".agents/context/README.md",
   ".agents/context/branch-sensitive-quality-verification.md",
@@ -17,6 +18,7 @@ const fixtureFiles = [
   ".github/workflows/quality.yml",
   "docs/implementation-examples.md",
   "docs/implementation-plan.md",
+  "docs/agent-usability-maturity.md",
   "docs/mac-control-maturity-gate.md",
   "docs/remediation-sequential-handoff.md",
   "docs/repository-contract.md",
@@ -87,6 +89,19 @@ test("accepts the repository-owned maturity evidence fixture", (t) => {
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /9 maturity dimensions/);
+});
+
+test("rejects an unresolved tool-to-skill relationship", (t) => {
+  const fixture = createFixture(t);
+  const contractPath = path.join(fixture, ".agents/agent-usability.json");
+  const contract = JSON.parse(fs.readFileSync(contractPath, "utf8"));
+  contract.tools[0].skills = ["missing-skill"];
+  writeJson(contractPath, contract);
+
+  assertRejected(
+    runValidator(fixture),
+    /pronto-cli: unknown skill reference: missing-skill/,
+  );
 });
 
 for (const [label, unsafePath] of [

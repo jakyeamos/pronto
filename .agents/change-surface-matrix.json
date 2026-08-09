@@ -46,13 +46,14 @@
     {
       "id": "agent-context",
       "scope": "local",
-      "path": ".agents/context/",
+      "path": ".agents/context/ and .agents/agent-usability.json",
       "owner": "Pronto repository maintainers",
-      "condition": "Agent-visible commands, freshness semantics, authorization boundaries, or routing behavior changes.",
+      "condition": "Agent-visible commands, documentation and skill relationships, freshness semantics, authorization boundaries, or routing behavior changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "Validate every documented command against pnpm cli help.",
-        "Verify relative context links resolve inside the repository."
+        "Verify relative context links resolve inside the repository.",
+        "Run a scoped Quality Runner fleet audit and inspect agent_usability."
       ],
       "status": "applicable"
     },
@@ -88,7 +89,7 @@
       "scope": "external",
       "path": "~/.quality-runner/fleet-audit/current/maturity.json",
       "owner": "Quality Runner",
-      "condition": "Quality Runner changes its maturity feed, repository identity, gate, finding, freshness, or provenance contract.",
+      "condition": "Quality Runner changes its maturity feed, repository identity, gate, finding, agent-usability, growth-health, freshness, or provenance contract.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "quality-runner doctor --json",
