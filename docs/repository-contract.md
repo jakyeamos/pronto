@@ -64,6 +64,11 @@ For finding counts and the repository review ledger, prefer QR's fingerprinted
 findings remain remediation context but must not replace stable detector
 identities; use the aggregate only when the fingerprinted report is absent.
 
+The [Mac Control maturity gate](mac-control-maturity-gate.md) is an additional
+condition on the existing 4.0/4.0 maturity ideal. It applies to the current
+maturity scope and does not define a four-repository denominator or inferred
+cohort.
+
 Network refreshes, Git writes, provider mutations, application installation,
 and release publication are separate authority boundaries. Use the narrowest
 repository or provider scope and preserve the exact source commit and evidence

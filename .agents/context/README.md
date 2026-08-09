@@ -27,6 +27,9 @@ Read the deeper file only when the task matches it:
 - [Implementation plan](../../docs/implementation-plan.md) — product
   boundaries and the source-of-truth relationship between the desktop app and
   CLI.
+- [Branch-sensitive quality verification](branch-sensitive-quality-verification.md)
+  — required when a branch or commit selector is adjacent to displayed quality
+  or tenure statistics.
 
 The global `$pronto` skill owns the cross-repository workflow. This context
 packet owns the current repository contract and should be updated when the CLI
