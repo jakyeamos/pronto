@@ -1,8 +1,10 @@
+// @vitest-environment happy-dom
 // quality-gate: allow static-ui-test: verifies incomplete persisted payloads normalize safely and provider parity is never overstated in rendered evidence.
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { normalizeSkillsSnapshot } from "../skillsSnapshot";
-import type { SkillRecord, SkillsSnapshot } from "../types";
+import type { PapercutBacklog, SkillRecord, SkillsSnapshot } from "../types";
 import { SkillsSurface } from "./SkillsComponents";
 
 function makeSkill(overrides: Partial<SkillRecord> = {}): SkillRecord {
@@ -54,6 +56,23 @@ function makeSnapshot(skills: SkillRecord[] = [makeSkill()]): SkillsSnapshot {
   };
 }
 
+const papercutProps = {
+  papercutBacklog: {
+    schema_version: "pronto-papercuts/v1",
+    family: "design-audit",
+    generated_at: "2026-07-27T12:00:00Z",
+    papercuts: [],
+    counts: { total: 0, open: 0, in_progress: 0, deferred: 0, resolved: 0 },
+  } satisfies PapercutBacklog,
+  onRefreshPapercutBacklog: async () => undefined,
+  onCreatePapercut: async () => undefined,
+  onPapercutStatusChange: async () => undefined,
+};
+
+afterEach(() => {
+  cleanup();
+});
+
 describe("skills surface", () => {
   it("renders provider states, hosted badge, usage, and unknown parity honestly", () => {
     const markup = renderToStaticMarkup(
@@ -62,6 +81,7 @@ describe("skills surface", () => {
         isRefreshing={false}
         onRefresh={() => undefined}
         onOpenSource={() => undefined}
+        {...papercutProps}
       />,
     );
     expect(markup).toContain("jakye-agent-setup");
@@ -85,6 +105,7 @@ describe("skills surface", () => {
         isRefreshing={false}
         onRefresh={() => undefined}
         onOpenSource={() => undefined}
+        {...papercutProps}
       />,
     );
     expect(markup).toContain("Browser");
@@ -98,6 +119,7 @@ describe("skills surface", () => {
         isRefreshing={false}
         onRefresh={() => undefined}
         onOpenSource={() => undefined}
+        {...papercutProps}
       />,
     );
     expect(markup).toContain("No skills indexed yet");
@@ -115,6 +137,7 @@ describe("skills surface", () => {
         isRefreshing={false}
         onRefresh={() => undefined}
         onOpenSource={() => undefined}
+        {...papercutProps}
       />,
     );
     expect(markup).toContain("legacy-skill");
@@ -130,8 +153,47 @@ describe("skills surface", () => {
         isRefreshing={false}
         onRefresh={() => undefined}
         onOpenSource={() => undefined}
+        {...papercutProps}
       />,
     );
     expect(markup).toContain("No skills indexed yet");
+  });
+
+  it("opens Papercuts as a skill detail route from the Skills inventory", () => {
+    render(
+      <SkillsSurface
+        snapshot={makeSnapshot([
+          makeSkill({
+            id: "papercuts",
+            name: "Papercuts",
+            description:
+              "Capture and triage durable small hurts from the design-audit family.",
+            family: "Design Audit",
+            sources: [],
+            providers: {
+              pronto: {
+                state: "native",
+                reason: "Native Pronto design-audit backlog surface",
+              },
+            },
+          }),
+        ])}
+        isRefreshing={false}
+        onRefresh={() => undefined}
+        onOpenSource={() => undefined}
+        {...papercutProps}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Papercuts"));
+
+    expect(
+      screen.getByRole("heading", { name: "Papercuts", level: 2 }),
+    ).toBeTruthy();
+    expect(screen.getByText("Skill detail · Design audit")).toBeTruthy();
+    expect(
+      screen.getByText("Turn small friction into a visible backlog."),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "All skills" })).toBeTruthy();
   });
 });

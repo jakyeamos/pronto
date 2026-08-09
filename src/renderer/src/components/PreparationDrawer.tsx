@@ -88,6 +88,7 @@ export function PreparationDrawer({
 }): ReactElement {
   const pullRequest = preparation.pull_request;
   const release = preparation.release;
+  const gitStatusUnavailable = pullRequest.status_available === false;
   return (
     <div className="drawer-layer drawer-layer-front" role="presentation">
       <button
@@ -164,11 +165,21 @@ export function PreparationDrawer({
             </div>
             <div>
               <span>Workspace</span>
-              <strong>{pullRequest.dirty ? "Dirty" : "Clean"}</strong>
+              <strong>
+                {gitStatusUnavailable
+                  ? "Git status unavailable"
+                  : pullRequest.dirty
+                    ? "Dirty"
+                    : "Clean"}
+              </strong>
             </div>
             <div>
               <span>Push state</span>
-              <strong>{pullRequest.upstream ?? "No upstream"}</strong>
+              <strong>
+                {gitStatusUnavailable
+                  ? "Unknown"
+                  : (pullRequest.upstream ?? "No upstream")}
+              </strong>
             </div>
             <div>
               <span>Provider</span>

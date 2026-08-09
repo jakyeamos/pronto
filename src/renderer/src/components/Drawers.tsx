@@ -1,9 +1,10 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import {
   ArrowLeft,
   ChevronRight,
   GitBranch,
+  LoaderCircle,
   MonitorDot,
   ShieldCheck,
   TerminalSquare,
@@ -21,8 +22,11 @@ import {
   QualityGateCell,
   QualityGateStatusPill,
   QualityMaturitySummary,
+  projectQualityGateForTarget,
+  projectQualityReadinessForTarget,
   qualityGateDisplayLabel,
 } from "./QualityComponents";
+import { targetScopeForRepository } from "../branchEvidence";
 import { ProjectCompassDetail } from "./ProjectCompassDetail";
 import { RepositoryAnalyticsPanel } from "./RepositoryAnalyticsPanel";
 import { WorkspaceSyncDetailView } from "./WorkspaceSyncDetailView";
@@ -30,6 +34,7 @@ import { WorkspaceSyncDetailView } from "./WorkspaceSyncDetailView";
 export function RepositoryDetailSurface({
   repository,
   analytics,
+  isRefreshing,
   onBack,
   onOpenWorkspace,
   onPrepareRepository,
@@ -40,6 +45,7 @@ export function RepositoryDetailSurface({
 }: {
   repository: RepositorySnapshot;
   analytics: AnalyticsSnapshot;
+  isRefreshing: boolean;
   onBack: () => void;
   onOpenWorkspace: (workspaceId: string, tool: ExternalTool) => Promise<void>;
   onPrepareRepository: (workspaceId?: string) => Promise<void>;
@@ -51,8 +57,27 @@ export function RepositoryDetailSurface({
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
     null,
   );
-  const selectedTargetBranch =
-    repository.target_branch ?? repository.default_branch ?? "";
+  const target = targetScopeForRepository(repository);
+  const selectedTargetBranch = target.branch ?? "";
+  const selectedTargetCommit = target.commit;
+  const [pendingTargetBranch, setPendingTargetBranch] = useState<string | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!isRefreshing) setPendingTargetBranch(null);
+  }, [isRefreshing]);
+  const displayedTargetBranch = pendingTargetBranch ?? selectedTargetBranch;
+  const displayedTargetCommit = pendingTargetBranch
+    ? repository.branches.find((branch) => branch.name === pendingTargetBranch)
+        ?.last_commit
+    : selectedTargetCommit;
+  const targetEvidenceRefreshing = isRefreshing && pendingTargetBranch !== null;
+  const targetReadiness = projectQualityReadinessForTarget(
+    repository.quality.ci_readiness,
+    repository.quality.gates,
+    target.branch,
+    target.commit,
+  );
   const targetBranches = Array.from(
     new Set(
       [
@@ -117,9 +142,13 @@ export function RepositoryDetailSurface({
           <select
             className="drawer-select"
             aria-label={`Target branch for ${repository.name}`}
-            value={selectedTargetBranch}
-            disabled={targetBranches.length === 0}
-            onChange={(event) => void onTargetBranchChange(event.target.value)}
+            value={displayedTargetBranch}
+            disabled={targetBranches.length === 0 || isRefreshing}
+            onChange={(event) => {
+              const branch = event.target.value;
+              setPendingTargetBranch(branch);
+              void onTargetBranchChange(branch);
+            }}
           >
             {targetBranches.length === 0 ? (
               <option value="">Unknown</option>
@@ -136,6 +165,37 @@ export function RepositoryDetailSurface({
               ? `Pronto override · Git default: ${repository.default_branch ?? "Unknown"}`
               : `Following Git default: ${repository.default_branch ?? "Unknown"}`}
           </small>
+          <small className="target-branch-note">
+            Selecting a branch checks existing target evidence first, then runs
+            QR quality and fleet audits in a clean disposable worktree when the
+            target head changed or matching evidence is unavailable; your active
+            workspace is not switched.
+          </small>
+          <small>
+            Evidence target: {displayedTargetBranch || "Unknown"}
+            {displayedTargetCommit
+              ? ` @ ${displayedTargetCommit.slice(0, 8)}`
+              : " · head unavailable"}
+          </small>
+          {targetEvidenceRefreshing && (
+            <div
+              className="target-evidence-loading"
+              role="status"
+              aria-live="polite"
+            >
+              <LoaderCircle
+                size={15}
+                className="target-evidence-loading-icon spin"
+              />
+              <span>Refreshing evidence for {displayedTargetBranch}…</span>
+              <small>
+                Resolving the target head and checking existing evidence. A QR
+                audit runs only when the target head changed or matching
+                evidence is unavailable. Existing evidence is held until the
+                check completes.
+              </small>
+            </div>
+          )}
         </div>
         <div>
           <span>Lifecycle</span>
@@ -184,33 +244,56 @@ export function RepositoryDetailSurface({
             {repository.quality.ingestion_status}
           </StatusPill>
         </div>
-        <div className="quality-detail-overview">
-          <QualityMaturitySummary
-            maturity={repository.quality.maturity}
-            readiness={repository.quality.ci_readiness}
-            onOpenReport={onOpenReport}
-          />
-          <QualityFindingsSummary
-            findings={repository.quality.findings}
-            onOpenReport={onOpenReport}
-          />
-        </div>
-        <div className="quality-detail-gates">
-          {detailQualityGates.map((gate) => (
-            <QualityGateCell
-              gate={gate}
-              configured={repository.quality.ci_readiness.configured_gate_ids.includes(
-                gate.id,
-              )}
-              key={gate.id}
-              onOpenReport={onOpenReport}
+        {targetEvidenceRefreshing ? (
+          <div className="target-evidence-loading" role="status">
+            <LoaderCircle
+              size={15}
+              className="target-evidence-loading-icon spin"
             />
-          ))}
-        </div>
-        {repository.quality.ingestion_message && (
-          <p className="quality-inline-empty">
-            <ShieldCheck size={14} /> {repository.quality.ingestion_message}
-          </p>
+            <span>Ingesting {displayedTargetBranch} evidence…</span>
+            <small>
+              Quality gates, maturity, findings, and remediation will update
+              together when the audit finishes.
+            </small>
+          </div>
+        ) : (
+          <>
+            <div className="quality-detail-overview">
+              <QualityMaturitySummary
+                maturity={repository.quality.maturity}
+                readiness={targetReadiness.readiness}
+                targetBranch={target.branch}
+                targetCommit={target.commit}
+                targetReadinessState={targetReadiness.state}
+                onOpenReport={onOpenReport}
+              />
+              <QualityFindingsSummary
+                findings={repository.quality.findings}
+                targetBranch={selectedTargetBranch || undefined}
+                targetCommit={selectedTargetCommit}
+                onOpenReport={onOpenReport}
+              />
+            </div>
+            <div className="quality-detail-gates">
+              {detailQualityGates.map((gate) => (
+                <QualityGateCell
+                  gate={gate}
+                  configured={repository.quality.ci_readiness.configured_gate_ids.includes(
+                    gate.id,
+                  )}
+                  key={gate.id}
+                  onOpenReport={onOpenReport}
+                  targetBranch={target.branch}
+                  targetCommit={target.commit}
+                />
+              ))}
+            </div>
+            {repository.quality.ingestion_message && (
+              <p className="quality-inline-empty">
+                <ShieldCheck size={14} /> {repository.quality.ingestion_message}
+              </p>
+            )}
+          </>
         )}
       </div>
       <RepositoryAnalyticsPanel repository={repository} analytics={analytics} />
@@ -227,7 +310,18 @@ export function RepositoryDetailSurface({
             {repository.release_rule ? "Configured" : "Not configured"}
           </StatusPill>
         </div>
-        {repository.release_rule ? (
+        {targetEvidenceRefreshing ? (
+          <div className="target-evidence-loading" role="status">
+            <LoaderCircle
+              size={15}
+              className="target-evidence-loading-icon spin"
+            />
+            <span>Refreshing release remediation evidence…</span>
+            <small>
+              The release trace will use the newly ingested target results.
+            </small>
+          </div>
+        ) : repository.release_rule ? (
           <>
             <div className="repository-release-rule-meta">
               <strong>{repository.release_rule.name}</strong>
@@ -251,6 +345,13 @@ export function RepositoryDetailSurface({
                     const gate = repository.quality.gates.find(
                       (candidate) => candidate.id === requirement.gate_id,
                     );
+                    const gateProjection = gate
+                      ? projectQualityGateForTarget(
+                          gate,
+                          target.branch,
+                          target.commit,
+                        )
+                      : undefined;
                     const configuredWithoutEvidence =
                       gate?.status === "Not configured" &&
                       repository.quality.ci_readiness.configured_gate_ids.includes(
@@ -265,14 +366,28 @@ export function RepositoryDetailSurface({
                           <strong>{gate?.label ?? requirement.gate_id}</strong>
                           <small>{requirement.source} evidence</small>
                         </span>
-                        {configuredWithoutEvidence ? (
+                        {gateProjection &&
+                        gateProjection.state === "unavailable" &&
+                        (gate?.evidence.length ?? 0) > 0 ? (
+                          <StatusPill tone="amber">
+                            Target evidence unavailable
+                          </StatusPill>
+                        ) : gateProjection?.state === "stale" ? (
+                          <StatusPill tone="amber">
+                            Stale branch evidence
+                          </StatusPill>
+                        ) : gateProjection?.state === "unscoped" ? (
+                          <StatusPill tone="amber">
+                            Unscoped evidence
+                          </StatusPill>
+                        ) : configuredWithoutEvidence ? (
                           <StatusPill tone="slate">
                             Awaiting evidence
                           </StatusPill>
-                        ) : gate ? (
+                        ) : gateProjection ? (
                           <QualityGateStatusPill
-                            status={gate.status}
-                            freshness={gate.freshness}
+                            status={gateProjection.gate.status}
+                            freshness={gateProjection.gate.freshness}
                           />
                         ) : (
                           <StatusPill tone="slate">Not configured</StatusPill>
@@ -303,6 +418,7 @@ export function RepositoryDetailSurface({
         <div className="workspace-list">
           {repository.workspaces.map((workspace) => {
             const showingSyncDetail = selectedWorkspaceId === workspace.id;
+            const gitStatusUnavailable = workspace.status_available === false;
             return (
               <Fragment key={workspace.id}>
                 <div className="workspace-card">
@@ -313,14 +429,32 @@ export function RepositoryDetailSurface({
                         ? "Primary checkout"
                         : "Linked worktree"}
                     </span>
-                    <StatusPill tone={workspace.dirty ? "coral" : "mint"}>
-                      {workspace.dirty ? "Dirty" : "Clean"}
+                    <StatusPill
+                      tone={
+                        gitStatusUnavailable
+                          ? "amber"
+                          : workspace.dirty
+                            ? "coral"
+                            : "mint"
+                      }
+                    >
+                      {gitStatusUnavailable
+                        ? "Git status unavailable"
+                        : workspace.dirty
+                          ? "Dirty"
+                          : "Clean"}
                     </StatusPill>
                   </div>
-                  <strong>{workspace.branch}</strong>
+                  <strong>
+                    {gitStatusUnavailable
+                      ? "Git status unavailable"
+                      : workspace.branch}
+                  </strong>
                   <span>{workspace.path}</span>
                   <small>
-                    {workspace.sync_state} · {workspace.remote_freshness}
+                    {gitStatusUnavailable
+                      ? workspace.status_error || "Git status unavailable"
+                      : `${workspace.sync_state} · ${workspace.remote_freshness}`}
                   </small>
                   <div className="workspace-activity">
                     <StatusPill

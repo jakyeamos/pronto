@@ -9,7 +9,11 @@ import {
 } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
-import type { RemediationAction, RemediationRun } from "../types";
+import type {
+  RemediationAction,
+  RemediationRun,
+  RepositorySnapshot,
+} from "../types";
 import { RemediationSurface } from "./RemediationSurface";
 
 const noop = async (): Promise<void> => undefined;
@@ -193,6 +197,50 @@ function run(): RemediationRun {
   };
 }
 
+function repositoryWithTarget(): RepositorySnapshot {
+  return {
+    id: "repo-active",
+    name: "tenure",
+    path: "/tmp/active",
+    branch: "dev",
+    default_branch: "main",
+    target_branch: "main",
+    target_branch_configured: true,
+    workspace: {
+      branch: "dev",
+      last_commit: "dev-head-1234567890",
+    },
+    branches: [
+      {
+        name: "main",
+        role: "Production",
+        role_confidence: "High",
+        target_confidence: "High",
+        ahead: 0,
+        behind: 0,
+        integration_state: "Synced",
+        last_commit: "target-head-1234567890",
+      },
+    ],
+  } as RepositorySnapshot;
+}
+
+function runWithEvidence(
+  scanned_branch?: string,
+  scanned_commit?: string,
+): RemediationRun {
+  const targetedRun = run();
+  targetedRun.plans[0].actions[0] = {
+    ...targetedRun.plans[0].actions[0],
+    evidence: targetedRun.plans[0].actions[0].evidence.map((item) => ({
+      ...item,
+      scanned_branch,
+      scanned_commit,
+    })),
+  };
+  return targetedRun;
+}
+
 describe("remediation active queue", () => {
   it("renders ranked active work separately from retained closures", () => {
     const markup = renderToStaticMarkup(
@@ -262,6 +310,107 @@ describe("remediation active queue", () => {
 
     expect(markup).toContain("9%");
     expect(markup).toContain("4/47 points");
+  });
+
+  it("keeps remediation evidence scoped to the selected target branch and head", () => {
+    const repository = repositoryWithTarget();
+    const mismatch = renderToStaticMarkup(
+      <RemediationSurface
+        run={runWithEvidence("dev", "stale-head-1234567890")}
+        repositories={[repository]}
+        isRefreshing={false}
+        onRefresh={noop}
+        onExport={noop}
+        onUpdateStatus={noop}
+        onOpenRepository={() => undefined}
+      />,
+    );
+
+    expect(mismatch).toContain("Evidence target");
+    expect(mismatch).toContain("main @ target-h");
+    expect(mismatch).toContain("Target evidence unavailable");
+    expect(mismatch).toContain("Raw remediation evidence");
+    expect(mismatch).toContain(
+      "Branch/head provenance does not match the selected target.",
+    );
+
+    const matching = renderToStaticMarkup(
+      <RemediationSurface
+        run={runWithEvidence("main", "target-head-1234567890")}
+        repositories={[repository]}
+        isRefreshing={false}
+        onRefresh={noop}
+        onExport={noop}
+        onUpdateStatus={noop}
+        onOpenRepository={() => undefined}
+      />,
+    );
+
+    expect(matching).toContain("Fresh target evidence");
+    expect(matching).toContain("Evidence");
+    expect(matching).not.toContain("Target evidence unavailable");
+    expect(matching).not.toContain("Raw remediation evidence");
+
+    const staleRepository = {
+      ...repository,
+      branch: "dev",
+      target_branch: "dev",
+      workspace: {
+        branch: "dev",
+        last_commit: "target-head-1234567890",
+      },
+      branches: [
+        {
+          name: "dev",
+          role: "Development",
+          role_confidence: "High",
+          target_confidence: "High",
+          ahead: 0,
+          behind: 0,
+          integration_state: "Synced",
+          last_commit: "target-head-1234567890",
+        },
+      ],
+    } as RepositorySnapshot;
+    const stale = renderToStaticMarkup(
+      <RemediationSurface
+        run={runWithEvidence("dev", "stale-head-1234567890")}
+        repositories={[staleRepository]}
+        isRefreshing={false}
+        onRefresh={noop}
+        onExport={noop}
+        onUpdateStatus={noop}
+        onOpenRepository={() => undefined}
+      />,
+    );
+
+    expect(stale).toContain("Evidence target");
+    expect(stale).toContain("dev @ target-h");
+    expect(stale).toContain("Stale branch evidence");
+    expect(stale).toContain(
+      "The selected branch matches, but this evidence predates the selected target head.",
+    );
+    expect(stale).not.toContain("Target evidence unavailable");
+    expect(stale).not.toContain("Raw remediation evidence");
+
+    const ambiguous = renderToStaticMarkup(
+      <RemediationSurface
+        run={runWithEvidence()}
+        repositories={[repository]}
+        isRefreshing={false}
+        onRefresh={noop}
+        onExport={noop}
+        onUpdateStatus={noop}
+        onOpenRepository={() => undefined}
+      />,
+    );
+
+    expect(ambiguous).toContain("Unscoped evidence");
+    expect(ambiguous).toContain(
+      "Branch/head provenance is not recorded for this evidence.",
+    );
+    expect(ambiguous).not.toContain("Target evidence unavailable");
+    expect(ambiguous).not.toContain("Raw remediation evidence");
   });
 
   it("renders every backend-defined remediation phase without a four-phase ceiling", () => {

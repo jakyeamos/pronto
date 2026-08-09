@@ -44,6 +44,8 @@ export interface QualityGate {
 
 export interface QualityFindings {
   total: number;
+  category_counts?: Record<string, number>;
+  actionable_category_counts?: Record<string, number>;
   actionable_total: number;
   reviewed_total: number;
   unreviewed_total: number;
@@ -75,6 +77,8 @@ export interface QualityMaturity {
   }>;
   audit_id?: string;
   observed_at?: string;
+  scanned_commit?: string;
+  scanned_branch?: string;
   freshness: QualityFreshness;
   report_path?: string;
 }
@@ -95,11 +99,58 @@ export interface QualityReadiness {
   blocked_gate_ids: string[];
 }
 
+export interface MacControlRepositoryState {
+  repository_id: string;
+  repository_name: string;
+  applicability: string;
+  status: string;
+  freshness: string;
+  ideal_state: boolean;
+  supported_task_count: number;
+  measured_route_count: number;
+  implementation_status?: string;
+  implementation_criteria_passed_count?: number;
+  implementation_criteria_total?: number;
+  live_status?: string;
+  live_task_count?: number;
+  live_attempt_count?: number;
+  live_success_count?: number;
+  criteria?: Record<string, boolean>;
+  failure_reasons?: string[];
+  observed_at?: string;
+  observed_commit?: string;
+  report_path?: string;
+}
+
+export interface MacControlPortfolioSnapshot {
+  status: string;
+  freshness: string;
+  ideal_state: boolean;
+  applicable_repository_count: number;
+  not_applicable_repository_count: number;
+  evaluated_repository_count: number;
+  implementation_status?: string;
+  implementation_criteria_passed_count?: number;
+  implementation_criteria_total?: number;
+  live_status?: string;
+  live_task_count?: number;
+  measured_task_count?: number;
+  live_attempt_count?: number;
+  live_success_count?: number;
+  repository_states?: MacControlRepositoryState[];
+  failure_reasons?: string[];
+  observed_at?: string;
+  report_path?: string;
+  run_id?: string;
+}
+
 export interface QualitySnapshot {
   gates: QualityGate[];
   findings: QualityFindings;
   maturity: QualityMaturity;
+  target_fleet_audit_root?: string;
   ci_readiness: QualityReadiness;
+  mac_control_ideal_state?: MacControlRepositoryState;
   last_ingested_at?: string;
   ingestion_status: string;
   ingestion_message?: string;
@@ -130,6 +181,7 @@ export interface QualityPortfolioSnapshot {
   ci_configuration_unscored_repository_count?: number;
   feed_schema?: string;
   provenance_hash?: string;
+  mac_control_ideal_state?: MacControlPortfolioSnapshot;
 }
 
 export interface ReleaseRecipeConfig {

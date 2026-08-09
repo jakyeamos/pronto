@@ -23,6 +23,7 @@ export function RemediationRunOverview({
   onExport: () => Promise<void>;
 }): ReactElement {
   const closures = run.closures ?? [];
+  const githubOnlyCandidates = run.github_only_candidates ?? [];
   const openActionCount = run.plans.reduce(
     (total, plan) =>
       total +
@@ -76,6 +77,12 @@ export function RemediationRunOverview({
           <strong>{closures.length}</strong>
           <small>Verified or explicitly deferred queue exits</small>
           <CheckCircle2 size={18} />
+        </div>
+        <div className="remediation-overview-card">
+          <span>GitHub-only candidates</span>
+          <strong>{githubOnlyCandidates.length}</strong>
+          <small>Retained provider evidence · last task: GitHub only</small>
+          <GitBranch size={18} />
         </div>
         <div className="remediation-overview-card">
           <span>Scope exclusions</span>

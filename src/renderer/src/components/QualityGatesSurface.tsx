@@ -12,10 +12,12 @@ import {
   QualityFindingsSummary,
   QualityGateCell,
   QualityMaturitySummary,
+  projectQualityReadinessForTarget,
   qualityConfigurationSummary,
   qualityEvidenceSummary,
   qualityGateDisplayLabel,
 } from "./QualityComponents";
+import { targetScopeForRepository } from "../branchEvidence";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
 
 const CANONICAL_GATE_IDS = [
@@ -125,6 +127,7 @@ export function QualityGatesSurface({
   const portfolioQuality = snapshot.quality;
   const configuration = qualityConfigurationSummary(portfolioQuality);
   const evidence = qualityEvidenceSummary(portfolioQuality);
+  const macControl = portfolioQuality.mac_control_ideal_state;
   return (
     <>
       {showOverview && (
@@ -162,6 +165,46 @@ export function QualityGatesSurface({
             <ClipboardCheck size={18} />
           </div>
           <div className="quality-overview-card">
+            <span>Mac Control ideal state</span>
+            <strong>
+              {macControl?.ideal_state ? "Pass" : (macControl?.status ?? "—")}
+            </strong>
+            <small>
+              {macControl
+                ? `${macControl.applicable_repository_count} applicable repositories · ${macControl.freshness}`
+                : "Not configured"}
+            </small>
+            <small>
+              {macControl &&
+              typeof macControl.implementation_criteria_passed_count ===
+                "number" &&
+              typeof macControl.implementation_criteria_total === "number"
+                ? "Implementation: " +
+                  macControl.implementation_criteria_passed_count +
+                  "/" +
+                  macControl.implementation_criteria_total +
+                  " criteria · " +
+                  (macControl.implementation_status ?? "—")
+                : "Implementation lane not reported"}
+            </small>
+            <small>
+              {macControl &&
+              typeof macControl.measured_task_count === "number" &&
+              typeof macControl.live_task_count === "number"
+                ? "Live tasks: " +
+                  macControl.measured_task_count +
+                  "/" +
+                  macControl.live_task_count +
+                  " measured · " +
+                  (macControl.live_status ?? "—")
+                : "Live task lane not reported"}
+            </small>
+            <small>
+              Both lanes are required before claiming the 4.0/4.0 maturity ideal
+            </small>
+            <ShieldCheck size={18} />
+          </div>
+          <div className="quality-overview-card">
             <span>Repositories matched</span>
             <strong>{portfolioQuality.matched_repository_count}</strong>
             <small>
@@ -186,9 +229,9 @@ export function QualityGatesSurface({
             <CheckCircle2 size={18} />
           </div>
           <div className="quality-overview-card">
-            <span>High-severity QR findings</span>
+            <span>High-severity QR findings in imported scans</span>
             <strong>{highFindings}</strong>
-            <small>Critical and high items in current reports</small>
+            <small>Target matching is shown per repository below</small>
             <ShieldCheck size={18} />
           </div>
         </section>
@@ -305,88 +348,118 @@ export function QualityGatesSurface({
                 </tr>
               </thead>
               <tbody>
-                {repositories.map((repository) => (
-                  <tr key={repository.id}>
-                    <th
-                      scope="row"
-                      className="quality-repository-cell quality-matrix-sticky quality-matrix-repository-column"
-                    >
-                      <button
-                        className="quality-repository-button"
-                        type="button"
-                        onClick={() => onOpenRepository(repository)}
+                {repositories.map((repository) => {
+                  const target = targetScopeForRepository(repository);
+                  const targetReadiness = projectQualityReadinessForTarget(
+                    repository.quality.ci_readiness,
+                    repository.quality.gates,
+                    target.branch,
+                    target.commit,
+                  );
+                  return (
+                    <tr key={repository.id}>
+                      <th
+                        scope="row"
+                        className="quality-repository-cell quality-matrix-sticky quality-matrix-repository-column"
                       >
-                        <strong>{repository.name}</strong>
-                        <span>{repository.path}</span>
-                        <small>
-                          <GitBranch size={11} /> {repository.branch} · scanned{" "}
-                          {formatTime(repository.last_scan_at)}
-                        </small>
-                      </button>
-                    </th>
-                    <td className="quality-matrix-sticky quality-matrix-maturity-column">
-                      <QualityMaturitySummary
-                        maturity={repository.quality.maturity}
-                        readiness={repository.quality.ci_readiness}
-                        compact
-                        onOpenReport={onOpenReport}
-                      />
-                    </td>
-                    <td className="quality-matrix-sticky quality-matrix-findings-column">
-                      <QualityFindingsSummary
-                        findings={repository.quality.findings}
-                        onOpenReport={onOpenReport}
-                      />
-                    </td>
-                    {columns.map((column) => {
-                      const gate = repository.quality.gates.find(
-                        (candidate) => candidate.id === column,
-                      );
-                      const optionalColumn = !CANONICAL_GATE_IDS.includes(
-                        column as (typeof CANONICAL_GATE_IDS)[number],
-                      );
-                      const applicableColumn =
-                        repository.quality.ci_readiness.applicable_gate_ids.includes(
-                          column,
+                        <button
+                          className="quality-repository-button"
+                          type="button"
+                          onClick={() => onOpenRepository(repository)}
+                        >
+                          <strong>{repository.name}</strong>
+                          <span>{repository.path}</span>
+                          <small>
+                            <GitBranch size={11} /> {repository.branch} ·
+                            scanned {formatTime(repository.last_scan_at)}
+                          </small>
+                          <small>
+                            Target {target.branch ?? "unavailable"}
+                            {target.commit
+                              ? ` @ ${target.commit.slice(0, 8)}`
+                              : " · head unavailable"}
+                          </small>
+                        </button>
+                      </th>
+                      <td className="quality-matrix-sticky quality-matrix-maturity-column">
+                        <QualityMaturitySummary
+                          maturity={repository.quality.maturity}
+                          readiness={targetReadiness.readiness}
+                          targetBranch={target.branch}
+                          targetCommit={target.commit}
+                          targetReadinessState={targetReadiness.state}
+                          compact
+                          onOpenReport={onOpenReport}
+                        />
+                      </td>
+                      <td className="quality-matrix-sticky quality-matrix-findings-column">
+                        <QualityFindingsSummary
+                          findings={repository.quality.findings}
+                          targetBranch={
+                            repository.target_branch ??
+                            repository.default_branch
+                          }
+                          targetCommit={target.commit}
+                          onOpenReport={onOpenReport}
+                        />
+                      </td>
+                      {columns.map((column) => {
+                        const gate = repository.quality.gates.find(
+                          (candidate) => candidate.id === column,
                         );
-                      return (
-                        <td key={column} className="quality-matrix-gate-column">
-                          {gate ? (
-                            <QualityGateCell
-                              gate={gate}
-                              configured={repository.quality.ci_readiness.configured_gate_ids.includes(
-                                gate.id,
-                              )}
-                              compact
-                              showLabel={false}
-                              onOpenReport={onOpenReport}
-                            />
-                          ) : optionalColumn && !applicableColumn ? (
-                            <span
-                              className="quality-matrix-empty-cell"
-                              aria-label="Not applicable for this repository"
-                            />
-                          ) : (
-                            <QualityGateCell
-                              gate={{
-                                id: column,
-                                label: column,
-                                status: "Not configured",
-                                freshness: "Unknown",
-                                evidence: [],
-                              }}
-                              configured={repository.quality.ci_readiness.configured_gate_ids.includes(
-                                column,
-                              )}
-                              compact
-                              showLabel={false}
-                            />
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                        const optionalColumn = !CANONICAL_GATE_IDS.includes(
+                          column as (typeof CANONICAL_GATE_IDS)[number],
+                        );
+                        const applicableColumn =
+                          repository.quality.ci_readiness.applicable_gate_ids.includes(
+                            column,
+                          );
+                        return (
+                          <td
+                            key={column}
+                            className="quality-matrix-gate-column"
+                          >
+                            {gate ? (
+                              <QualityGateCell
+                                gate={gate}
+                                configured={repository.quality.ci_readiness.configured_gate_ids.includes(
+                                  gate.id,
+                                )}
+                                compact
+                                showLabel={false}
+                                onOpenReport={onOpenReport}
+                                targetBranch={target.branch}
+                                targetCommit={target.commit}
+                              />
+                            ) : optionalColumn && !applicableColumn ? (
+                              <span
+                                className="quality-matrix-empty-cell"
+                                aria-label="Not applicable for this repository"
+                              />
+                            ) : (
+                              <QualityGateCell
+                                gate={{
+                                  id: column,
+                                  label: column,
+                                  status: "Not configured",
+                                  freshness: "Unknown",
+                                  evidence: [],
+                                }}
+                                configured={repository.quality.ci_readiness.configured_gate_ids.includes(
+                                  column,
+                                )}
+                                compact
+                                showLabel={false}
+                                targetBranch={target.branch}
+                                targetCommit={target.commit}
+                              />
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

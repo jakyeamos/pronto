@@ -12,6 +12,11 @@ import type {
   RepositoryPreparation,
   ReleaseRecipeConfig,
   ReleaseRuleConfig,
+  PromotionDecision,
+  PromotionInbox,
+  CreatePapercutInput,
+  PapercutBacklog,
+  PapercutStatus,
 } from "./types";
 
 export const emptySnapshot: PortfolioSnapshot = {
@@ -47,6 +52,7 @@ export const emptySnapshot: PortfolioSnapshot = {
     refresh_steps: [],
     excluded_repositories: [],
     closures: [],
+    github_only_candidates: [],
     plans: [],
   },
   retention_days: 90,
@@ -66,7 +72,7 @@ export const emptyAnalytics: AnalyticsSnapshot = {
 };
 
 export const emptySkills: SkillsSnapshot = {
-  schema_version: "pronto-skills/v2",
+  schema_version: "pronto-skills/v3",
   generated_at: new Date().toISOString(),
   freshness: "Unavailable until the first skills refresh",
   source: "Local skill roots and local session records",
@@ -74,6 +80,46 @@ export const emptySkills: SkillsSnapshot = {
   roots: [],
   skills: [],
   telemetry_gap: "No skills refresh has been recorded.",
+};
+
+export const emptyPromotionInbox: PromotionInbox = {
+  schema_version: "leverage-promotion-inbox/v1",
+  visibility: "private",
+  generated_at: new Date().toISOString(),
+  source_root: "",
+  candidates: [],
+  counts: {
+    total: 0,
+    pending: 0,
+    deferred: 0,
+    rejected: 0,
+    accepted: 0,
+    complete: 0,
+    drafts: 0,
+  },
+  coverage: null,
+  discovery: null,
+  errors: [],
+  manual_review_required: true,
+  jas_mutation: false,
+  status: "unavailable",
+  provenance_hash: "",
+  message: "Promotion review is available in the Pronto desktop app.",
+  jas_admission: null,
+};
+
+export const emptyPapercutBacklog: PapercutBacklog = {
+  schema_version: "pronto-papercuts/v1",
+  family: "design-audit",
+  generated_at: new Date().toISOString(),
+  papercuts: [],
+  counts: {
+    total: 0,
+    open: 0,
+    in_progress: 0,
+    deferred: 0,
+    resolved: 0,
+  },
 };
 
 function isDesktopBridgeAvailable(): boolean {
@@ -99,6 +145,82 @@ export async function getSkills(): Promise<SkillsSnapshot> {
   return normalizeSkillsSnapshot(await invoke<unknown>("get_skills"));
 }
 
+export async function getPromotionInbox(): Promise<PromotionInbox> {
+  if (!isDesktopBridgeAvailable()) return emptyPromotionInbox;
+  return invoke<PromotionInbox>("get_promotion_inbox");
+}
+
+export async function refreshPromotionInbox(): Promise<PromotionInbox> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Promotion review is available in the Pronto desktop app.");
+  }
+  return invoke<PromotionInbox>("get_promotion_inbox");
+}
+
+export async function decidePromotion(
+  candidateId: string,
+  decision: PromotionDecision,
+  reason?: string,
+): Promise<PromotionInbox> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error(
+      "Promotion decisions are available in the Pronto desktop app.",
+    );
+  }
+  return invoke<PromotionInbox>("decide_promotion", {
+    candidateId,
+    decision,
+    reason: reason?.trim() || null,
+  });
+}
+
+export async function getPapercutBacklog(): Promise<PapercutBacklog> {
+  if (!isDesktopBridgeAvailable()) return emptyPapercutBacklog;
+  return invoke<PapercutBacklog>("get_papercut_backlog");
+}
+
+export async function refreshPapercutBacklog(): Promise<PapercutBacklog> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Papercut review is available in the Pronto desktop app.");
+  }
+  return invoke<PapercutBacklog>("get_papercut_backlog");
+}
+
+export async function createPapercut(
+  input: CreatePapercutInput,
+): Promise<PapercutBacklog> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Papercut capture is available in the Pronto desktop app.");
+  }
+  return invoke<PapercutBacklog>("create_papercut", {
+    title: input.title.trim(),
+    detail: input.detail.trim(),
+    surface: input.surface.trim(),
+    source: input.source,
+    priority: input.priority,
+    evidenceRefs: input.evidenceRefs
+      .map((value) => value.trim())
+      .filter(Boolean),
+    impact: input.impact.trim(),
+    nextAction: input.nextAction.trim(),
+  });
+}
+
+export async function setPapercutStatus(
+  papercutId: string,
+  status: PapercutStatus,
+): Promise<PapercutBacklog> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error(
+      "Papercut status updates are available in the Pronto desktop app.",
+    );
+  }
+  return invoke<PapercutBacklog>("set_papercut_status", {
+    papercutId,
+    status,
+  });
+}
+
 export async function refreshSkills(): Promise<SkillsSnapshot> {
   if (!isDesktopBridgeAvailable()) {
     throw new Error("Skills refresh is available in the Pronto desktop app.");
@@ -120,6 +242,13 @@ export async function refresh(): Promise<PortfolioSnapshot> {
     throw new Error("Open Pronto as a desktop app to scan local repositories.");
   }
   return invoke<PortfolioSnapshot>("refresh");
+}
+
+export async function refreshQuality(): Promise<PortfolioSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Quality refresh is available in the Pronto desktop app.");
+  }
+  return invoke<PortfolioSnapshot>("refresh_quality");
 }
 
 export async function refreshGithub(): Promise<PortfolioSnapshot> {
@@ -149,7 +278,7 @@ export async function setRemediationActionStatus(
     );
   }
   return invoke<PortfolioSnapshot>("set_remediation_action_status", {
-    action_id: actionId,
+    actionId,
     status,
     notes: notes ?? null,
   });
@@ -164,7 +293,7 @@ export async function exportRemediation(
     );
   }
   return invoke<RemediationExport>("export_remediation", {
-    output_dir: outputDir ?? null,
+    outputDir: outputDir ?? null,
   });
 }
 
@@ -177,8 +306,8 @@ export async function openWorkspace(
     throw new Error("External handoff is available in the Pronto desktop app.");
   }
   return invoke<PortfolioSnapshot>("open_workspace", {
-    repository_id: repositoryId,
-    workspace_id: workspaceId,
+    repositoryId,
+    workspaceId,
     tool,
   });
 }
@@ -193,8 +322,8 @@ export async function prepareRepository(
     );
   }
   return invoke<RepositoryPreparation>("prepare_repository", {
-    repository_id: repositoryId,
-    workspace_id: workspaceId,
+    repositoryId,
+    workspaceId,
   });
 }
 
@@ -206,8 +335,8 @@ export async function setReleaseRule(
     throw new Error("Release rules are available in the Pronto desktop app.");
   }
   return invoke<PortfolioSnapshot>("set_release_rule", {
-    repository_id: repositoryId,
-    release_rule: releaseRule,
+    repositoryId,
+    releaseRule,
   });
 }
 
@@ -219,8 +348,8 @@ export async function setReleaseRecipe(
     throw new Error("Release recipes are available in the Pronto desktop app.");
   }
   return invoke<PortfolioSnapshot>("set_release_recipe", {
-    repository_id: repositoryId,
-    release_recipe: releaseRecipe,
+    repositoryId,
+    releaseRecipe,
   });
 }
 
@@ -234,8 +363,8 @@ export async function setReleaseVersion(
     );
   }
   return invoke<PortfolioSnapshot>("set_release_version", {
-    repository_id: repositoryId,
-    release_version: releaseVersion,
+    repositoryId,
+    releaseVersion,
   });
 }
 
@@ -247,7 +376,7 @@ export async function setAiPermission(
     throw new Error("AI permissions are available in the Pronto desktop app.");
   }
   return invoke<PortfolioSnapshot>("set_ai_permission", {
-    repository_id: repositoryId,
+    repositoryId,
     permission,
   });
 }
@@ -262,8 +391,8 @@ export async function previewAiSummary(
     );
   }
   return invoke<AiPayloadPreview>("preview_ai_summary", {
-    repository_id: repositoryId,
-    workspace_id: workspaceId,
+    repositoryId,
+    workspaceId,
   });
 }
 
@@ -286,7 +415,7 @@ export async function openQualityReport(
     throw new Error("Quality reports are available in the Pronto desktop app.");
   }
   return invoke<PortfolioSnapshot>("open_quality_report", {
-    report_path: reportPath,
+    reportPath,
   });
 }
 
@@ -309,8 +438,8 @@ export async function markExpected(
     );
   }
   return invoke<PortfolioSnapshot>("mark_condition_expected", {
-    repository_id: repositoryId,
-    condition_id: conditionId,
+    repositoryId,
+    conditionId,
   });
 }
 
@@ -324,8 +453,8 @@ export async function clearExpected(
     );
   }
   return invoke<PortfolioSnapshot>("clear_condition_expected", {
-    repository_id: repositoryId,
-    condition_id: conditionId,
+    repositoryId,
+    conditionId,
   });
 }
 
@@ -339,10 +468,10 @@ export async function updateRootSettings(
     throw new Error("Root settings are available in the Pronto desktop app.");
   }
   return invoke<PortfolioSnapshot>("update_root_settings", {
-    root_id: rootId,
-    ignore_patterns: ignorePatterns,
-    refresh_policy: refreshPolicy,
-    background_monitoring: backgroundMonitoring,
+    rootId,
+    ignorePatterns,
+    refreshPolicy,
+    backgroundMonitoring,
   });
 }
 
@@ -356,7 +485,7 @@ export async function setRepositoryLifecycle(
     );
   }
   return invoke<PortfolioSnapshot>("set_repository_lifecycle", {
-    repository_id: repositoryId,
+    repositoryId,
     lifecycle,
   });
 }
@@ -371,8 +500,23 @@ export async function setRepositoryTargetBranch(
     );
   }
   return invoke<PortfolioSnapshot>("set_repository_target_branch", {
-    repository_id: repositoryId,
-    target_branch: targetBranch,
+    repositoryId,
+    targetBranch,
+  });
+}
+
+export async function refreshRepositoryTargetEvidence(
+  repositoryId: string,
+  targetBranch: string,
+): Promise<PortfolioSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error(
+      "Target evidence refresh is available in the Pronto desktop app.",
+    );
+  }
+  return invoke<PortfolioSnapshot>("refresh_repository_target_evidence", {
+    repositoryId,
+    targetBranch,
   });
 }
 
@@ -385,7 +529,7 @@ export async function setRetentionDays(
     );
   }
   return invoke<PortfolioSnapshot>("set_retention_days", {
-    retention_days: retentionDays,
+    retentionDays,
   });
 }
 
@@ -401,10 +545,10 @@ export async function upsertProduct(
     );
   }
   return invoke<PortfolioSnapshot>("upsert_product", {
-    product_id: productId,
+    productId,
     name,
-    repository_ids: repositoryIds,
-    release_mode: releaseMode,
+    repositoryIds,
+    releaseMode,
   });
 }
 
@@ -416,7 +560,7 @@ export async function deleteProduct(
       "Product configuration is available in the Pronto desktop app.",
     );
   }
-  return invoke<PortfolioSnapshot>("delete_product", { product_id: productId });
+  return invoke<PortfolioSnapshot>("delete_product", { productId });
 }
 
 export async function upsertGroup(
@@ -430,9 +574,9 @@ export async function upsertGroup(
     );
   }
   return invoke<PortfolioSnapshot>("upsert_group", {
-    group_id: groupId,
+    groupId,
     name,
-    repository_ids: repositoryIds,
+    repositoryIds,
   });
 }
 
@@ -442,5 +586,5 @@ export async function deleteGroup(groupId: string): Promise<PortfolioSnapshot> {
       "Group configuration is available in the Pronto desktop app.",
     );
   }
-  return invoke<PortfolioSnapshot>("delete_group", { group_id: groupId });
+  return invoke<PortfolioSnapshot>("delete_group", { groupId });
 }

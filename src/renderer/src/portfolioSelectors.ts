@@ -22,7 +22,9 @@ export function countUnsyncedRepositories(
   repositories: RepositorySnapshot[],
 ): number {
   return repositories.filter(
-    (repository) => repository.workspace.sync_state !== "Synced",
+    (repository) =>
+      repository.workspace.status_available !== false &&
+      repository.workspace.sync_state !== "Synced",
   ).length;
 }
 

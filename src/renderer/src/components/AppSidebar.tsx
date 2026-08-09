@@ -130,6 +130,7 @@ export function AppSidebar({
             className={`nav-item ${activeNav === id ? "nav-item-active" : ""}`}
             type="button"
             key={id}
+            id={`nav-${id}`}
             title={label}
             aria-current={activeNav === id ? "page" : undefined}
             onClick={() => onNavigate(id)}
@@ -174,7 +175,7 @@ export function AppSidebar({
                 : "No matching repositories"}
             </span>
           ) : (
-            filteredRepositories.map((repository) => {
+            filteredRepositories.map((repository, index) => {
               const status = repositoryStatus(
                 repository,
                 remediationByRepositoryId.get(repository.id),
@@ -187,6 +188,7 @@ export function AppSidebar({
                       : ""
                   }`}
                   type="button"
+                  aria-label={`Open repository ${repository.name}, item ${index + 1}`}
                   key={repository.id}
                   onClick={() => onOpenRepository(repository)}
                 >

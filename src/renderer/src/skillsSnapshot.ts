@@ -1,5 +1,11 @@
 import type {
+  SkillBackfillCapability,
+  SkillBackfillPhase,
+  SkillFindingCapability,
+  SkillFindingClass,
   SkillProviderState,
+  SkillQualityRunnerCoverage,
+  SkillQualityRunnerRepresentation,
   SkillRecord,
   SkillSource,
   SkillUsage,
@@ -26,6 +32,120 @@ function countValue(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value)
     ? Math.max(0, Math.round(value))
     : 0;
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter(
+        (item): item is string =>
+          typeof item === "string" && item.trim().length > 0,
+      )
+    : [];
+}
+
+function normalizeFindingClass(value: unknown): SkillFindingClass | null {
+  const item = asRecord(value);
+  const id = optionalString(item.id);
+  if (!id) return null;
+  return {
+    id,
+    label: stringValue(item.label, id),
+    state: stringValue(item.state, "unknown"),
+    evidence: stringValue(
+      item.evidence,
+      "Finding-class evidence is unavailable.",
+    ),
+  };
+}
+
+function normalizeBackfillPhase(value: unknown): SkillBackfillPhase | null {
+  const item = asRecord(value);
+  const id = optionalString(item.id);
+  if (!id) return null;
+  return {
+    id,
+    state: stringValue(item.state, "unknown"),
+    evidence: stringValue(item.evidence, "Backfill evidence is unavailable."),
+  };
+}
+
+function unknownFindingCapability(): SkillFindingCapability {
+  return {
+    finding_expectation: "review_required",
+    finding_expectation_reason:
+      "No reviewed finding profile or Quality Runner capability evidence was found for this skill.",
+    finding_classes: [],
+    backfill: {
+      mode: "not_evidenced",
+      phases: [],
+      safety:
+        "Inventory evidence only; review is required before treating this skill as a finding source.",
+    },
+    quality_runner: {
+      status: "unknown",
+      adapter: "",
+      finding_categories: [],
+      coverage: { rule_count: 0, finding_count: 0, statuses: [] },
+      evidence: [],
+      gaps: [
+        "No Quality Runner capability feed or reviewed adapter was found.",
+      ],
+    },
+    gaps: [
+      "Review whether this skill should produce findings before adding it to the Quality Runner representation.",
+    ],
+  };
+}
+
+function normalizeFindingCapability(value: unknown): SkillFindingCapability {
+  const capability = asRecord(value);
+  const fallback = unknownFindingCapability();
+  const backfill = asRecord(capability.backfill);
+  const qualityRunner = asRecord(capability.quality_runner);
+  const coverage = asRecord(qualityRunner.coverage);
+  const normalizedBackfill: SkillBackfillCapability = {
+    mode: stringValue(backfill.mode, fallback.backfill.mode),
+    phases: Array.isArray(backfill.phases)
+      ? backfill.phases
+          .map(normalizeBackfillPhase)
+          .filter((phase): phase is SkillBackfillPhase => phase !== null)
+      : fallback.backfill.phases,
+    safety: stringValue(backfill.safety, fallback.backfill.safety),
+  };
+  const normalizedCoverage: SkillQualityRunnerCoverage = {
+    rule_count: countValue(coverage.rule_count),
+    finding_count: countValue(coverage.finding_count),
+    statuses: stringList(coverage.statuses),
+  };
+  const normalizedQualityRunner: SkillQualityRunnerRepresentation = {
+    status: stringValue(qualityRunner.status, fallback.quality_runner.status),
+    adapter: stringValue(
+      qualityRunner.adapter,
+      fallback.quality_runner.adapter,
+    ),
+    finding_categories: stringList(qualityRunner.finding_categories),
+    coverage: normalizedCoverage,
+    evidence: stringList(qualityRunner.evidence),
+    gaps: stringList(qualityRunner.gaps),
+  };
+  return {
+    finding_expectation: stringValue(
+      capability.finding_expectation,
+      fallback.finding_expectation,
+    ),
+    finding_expectation_reason: stringValue(
+      capability.finding_expectation_reason,
+      fallback.finding_expectation_reason,
+    ),
+    finding_classes: Array.isArray(capability.finding_classes)
+      ? capability.finding_classes
+          .map(normalizeFindingClass)
+          .filter((item): item is SkillFindingClass => item !== null)
+      : [],
+    backfill: normalizedBackfill,
+    quality_runner: normalizedQualityRunner,
+    gaps: stringList(capability.gaps),
+  };
 }
 
 function normalizeProvider(value: unknown): SkillProviderState {
@@ -115,6 +235,7 @@ function normalizeSkill(value: unknown, index: number): SkillRecord {
         ? parityEvidence
         : ["Parity evidence is unavailable."],
     usage: normalizeUsage(skill.usage),
+    finding_capability: normalizeFindingCapability(skill.finding_capability),
   };
 }
 
@@ -127,7 +248,7 @@ export function normalizeSkillsSnapshot(value: unknown): SkillsSnapshot {
   const refreshedAt = optionalString(snapshot.refreshed_at);
 
   return {
-    schema_version: stringValue(snapshot.schema_version, "pronto-skills/v2"),
+    schema_version: stringValue(snapshot.schema_version, "pronto-skills/v3"),
     generated_at: generatedAt,
     ...(refreshedAt ? { refreshed_at: refreshedAt } : {}),
     freshness: stringValue(

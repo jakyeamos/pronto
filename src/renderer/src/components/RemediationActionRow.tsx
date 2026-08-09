@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import type { RemediationAction, RemediationActionStatus } from "../types";
+import { hasTargetScope, projectEvidenceForTarget } from "../branchEvidence";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
 
 const actionStatuses: RemediationActionStatus[] = [
@@ -46,22 +47,54 @@ export function formatRemediationTime(value?: string | null): string {
   return value ? formatTime(value) : "Not recorded";
 }
 
-function actionEvidenceIsFresh(action: RemediationAction): boolean {
-  return action.evidence.some(
-    (item) => item.freshness.toLowerCase() === "fresh",
-  );
+function actionEvidenceIsFresh(
+  action: RemediationAction,
+  targetBranch?: string,
+  targetCommit?: string,
+): boolean {
+  const evidence = projectEvidenceForTarget(
+    action.evidence,
+    targetBranch,
+    targetCommit,
+  ).evidence;
+  return evidence.some((item) => item.freshness.toLowerCase() === "fresh");
 }
 
 export function RemediationActionRow({
   action,
   onUpdateStatus,
+  targetBranch,
+  targetCommit,
 }: {
   action: RemediationAction;
   onUpdateStatus: (
     actionId: string,
     status: RemediationActionStatus,
   ) => Promise<void>;
+  targetBranch?: string;
+  targetCommit?: string;
 }): ReactElement {
+  const targetMode = hasTargetScope(targetBranch, targetCommit);
+  const targetEvidenceProjection = projectEvidenceForTarget(
+    action.evidence,
+    targetBranch,
+    targetCommit,
+  );
+  const targetEvidenceVerified =
+    !targetMode || targetEvidenceProjection.state === "verified";
+  const targetEvidenceStale =
+    targetMode && targetEvidenceProjection.state === "stale";
+  const targetEvidenceUnscoped =
+    targetMode && targetEvidenceProjection.state === "unscoped";
+  const evidenceForDisplay =
+    targetMode && targetEvidenceProjection.state === "unavailable"
+      ? action.evidence
+      : targetEvidenceProjection.evidence;
+  const evidenceIsFresh = actionEvidenceIsFresh(
+    action,
+    targetBranch,
+    targetCommit,
+  );
   return (
     <article className="remediation-action-card">
       <div className="remediation-action-heading">
@@ -97,10 +130,29 @@ export function RemediationActionRow({
         <StatusPill tone={remediationStatusTone(action.status)}>
           {remediationStatusLabel(action.status)}
         </StatusPill>
-        <StatusPill tone={actionEvidenceIsFresh(action) ? "mint" : "amber"}>
-          {actionEvidenceIsFresh(action)
-            ? "Fresh evidence"
-            : "Evidence needs refresh"}
+        <StatusPill
+          tone={
+            !targetEvidenceVerified ||
+            targetEvidenceStale ||
+            targetEvidenceUnscoped ||
+            !evidenceIsFresh
+              ? "amber"
+              : "mint"
+          }
+        >
+          {targetMode && targetEvidenceStale
+            ? "Stale branch evidence"
+            : targetMode && targetEvidenceUnscoped
+              ? "Unscoped evidence"
+              : !targetEvidenceVerified
+                ? "Target evidence unavailable"
+                : targetMode
+                  ? evidenceIsFresh
+                    ? "Fresh target evidence"
+                    : "Target evidence needs refresh"
+                  : evidenceIsFresh
+                    ? "Fresh evidence"
+                    : "Evidence needs refresh"}
         </StatusPill>
         <span>Updated {formatRemediationTime(action.updated_at)}</span>
       </div>
@@ -117,14 +169,43 @@ export function RemediationActionRow({
             </ul>
           </div>
           <div>
-            <strong>Evidence</strong>
-            {action.evidence.length === 0 ? (
+            <strong>
+              {targetMode && !targetEvidenceVerified
+                ? targetEvidenceStale
+                  ? "Stale branch evidence"
+                  : targetEvidenceUnscoped
+                    ? "Unscoped evidence"
+                    : "Raw remediation evidence"
+                : "Evidence"}
+            </strong>
+            {targetMode && targetEvidenceStale && (
               <span className="remediation-muted">
-                No source evidence recorded.
+                The selected branch matches, but this evidence predates the
+                selected target head.
+              </span>
+            )}
+            {targetMode && targetEvidenceUnscoped && (
+              <span className="remediation-muted">
+                Branch/head provenance is not recorded for this evidence.
+              </span>
+            )}
+            {targetMode &&
+              !targetEvidenceVerified &&
+              !targetEvidenceStale &&
+              !targetEvidenceUnscoped && (
+                <span className="remediation-muted">
+                  Branch/head provenance does not match the selected target.
+                </span>
+              )}
+            {evidenceForDisplay.length === 0 ? (
+              <span className="remediation-muted">
+                {targetMode
+                  ? "No target evidence recorded."
+                  : "No source evidence recorded."}
               </span>
             ) : (
               <div className="remediation-evidence-list">
-                {action.evidence.map((item, index) => (
+                {evidenceForDisplay.map((item, index) => (
                   <div
                     className="remediation-evidence-item"
                     key={`${item.source}-${item.label}-${index}`}

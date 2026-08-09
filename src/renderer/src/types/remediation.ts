@@ -4,6 +4,8 @@ interface RemediationEvidence {
   status: string;
   freshness: string;
   observed_at?: string | null;
+  scanned_commit?: string | null;
+  scanned_branch?: string | null;
   report_path?: string | null;
   detail: string;
 }
@@ -94,6 +96,7 @@ interface RemediationMaturityPolicy {
   scoring_owner: string;
   improvement_rule: string;
   integrity_rule: string;
+  ideal_gate_ids?: string[];
 }
 
 interface RemediationPhaseDefinition {
@@ -115,6 +118,7 @@ interface RemediationGoalProfile {
   contract_path: string;
   required_gate_ids: string[];
   optional_gate_ids: string[];
+  maturity_gate_ids?: string[];
   evidence_max_age_days: number;
   closure_criteria: string[];
   remediation_phases?: RemediationPhaseDefinition[];
@@ -177,6 +181,18 @@ interface RemediationRefreshStep {
   evidence_path?: string | null;
 }
 
+export interface GitHubOnlyCandidate {
+  repository_id: string;
+  provider: string;
+  full_name: string;
+  html_url: string;
+  archived: boolean;
+  label: string;
+  status: string;
+  last_remediation_task: string;
+  observed_at: string;
+}
+
 export interface RemediationRun {
   schema_version: string;
   id: string;
@@ -189,6 +205,7 @@ export interface RemediationRun {
   refresh_steps: RemediationRefreshStep[];
   excluded_repositories: RemediationExclusion[];
   closures: RemediationClosure[];
+  github_only_candidates?: GitHubOnlyCandidate[];
   plans: RemediationPlan[];
 }
 

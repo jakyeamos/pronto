@@ -14,6 +14,7 @@ import type {
   RemediationRun,
   RepositorySnapshot,
 } from "../types";
+import { targetScopeForRepository } from "../branchEvidence";
 import { StatusPill } from "./ConsolePrimitives";
 import {
   formatRemediationTime,
@@ -112,6 +113,9 @@ export function RemediationSurface({
         (repository) => repository.id === selectedPlan.repository_id,
       )
     : undefined;
+  const selectedTarget = selectedRepository
+    ? targetScopeForRepository(selectedRepository)
+    : {};
 
   return (
     <div className="remediation-surface">
@@ -392,6 +396,23 @@ export function RemediationSurface({
                   explanation={selectedPlan.explanation}
                 />
               )}
+              {selectedRepository && (
+                <div className="remediation-evidence-scope">
+                  <div>
+                    <span>Evidence target</span>
+                    <strong>
+                      {selectedTarget.branch ?? "Unknown"}
+                      {selectedTarget.commit
+                        ? ` @ ${selectedTarget.commit.slice(0, 8)}`
+                        : " · head unavailable"}
+                    </strong>
+                  </div>
+                  <small>
+                    Remediation evidence is target-specific only when its source
+                    branch and commit match this target exactly.
+                  </small>
+                </div>
+              )}
               <div className="remediation-coverage-block">
                 <div className="remediation-coverage-heading">
                   <div>
@@ -470,6 +491,8 @@ export function RemediationSurface({
                     action={action}
                     key={action.id}
                     onUpdateStatus={onUpdateStatus}
+                    targetBranch={selectedTarget.branch}
+                    targetCommit={selectedTarget.commit}
                   />
                 ))}
               </div>

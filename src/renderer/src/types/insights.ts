@@ -65,6 +65,49 @@ export interface SkillSource {
   hosted_in_jakye_agent_setup: boolean;
 }
 
+export interface SkillFindingClass {
+  id: string;
+  label: string;
+  state: string;
+  evidence: string;
+}
+
+export interface SkillBackfillPhase {
+  id: string;
+  state: string;
+  evidence: string;
+}
+
+export interface SkillBackfillCapability {
+  mode: string;
+  phases: SkillBackfillPhase[];
+  safety: string;
+}
+
+export interface SkillQualityRunnerCoverage {
+  rule_count: number;
+  finding_count: number;
+  statuses: string[];
+}
+
+export interface SkillQualityRunnerRepresentation {
+  status: string;
+  adapter: string;
+  finding_categories: string[];
+  coverage: SkillQualityRunnerCoverage;
+  evidence: string[];
+  gaps: string[];
+}
+
+export interface SkillFindingCapability {
+  finding_expectation: string;
+  finding_expectation_reason: string;
+  finding_classes: SkillFindingClass[];
+  backfill: SkillBackfillCapability;
+  quality_runner: SkillQualityRunnerRepresentation;
+  gaps: string[];
+}
+
 export interface SkillRecord {
   id: string;
   name: string;
@@ -78,6 +121,7 @@ export interface SkillRecord {
   parity_score?: number | null;
   parity_evidence: string[];
   usage: SkillUsage;
+  finding_capability?: SkillFindingCapability | null;
 }
 
 export interface SkillsSnapshot {

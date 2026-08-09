@@ -20,6 +20,7 @@ import { AppTopbar } from "./components/AppTopbar";
 import { formatTime, StatusPill } from "./components/ConsolePrimitives";
 import { RepositoryDetailSurface } from "./components/Drawers";
 import { PortfolioCollectionsSurface } from "./components/PortfolioCollectionsSurface";
+import { PromotionSurface } from "./components/PromotionSurface";
 import { QualityGatesSurface } from "./components/QualityGatesSurface";
 import { RemediationSurface } from "./components/RemediationSurface";
 import { RemoteCatalogSurface } from "./components/RemoteCatalogSurface";
@@ -54,6 +55,8 @@ export function App(): ReactElement {
     setSnapshot,
     analytics,
     skills,
+    promotionInbox,
+    papercutBacklog,
     isRefreshing,
     error,
     setError,
@@ -61,6 +64,11 @@ export function App(): ReactElement {
     setNotice,
     loadSnapshot,
     handleRefreshSkills,
+    handleRefreshPromotionInbox,
+    handlePromotionDecision,
+    handleRefreshPapercutBacklog,
+    handleCreatePapercut,
+    handlePapercutStatus,
     handleOpenSkillSource,
     handleAddRoot,
     handleSaveRoot,
@@ -191,7 +199,10 @@ export function App(): ReactElement {
     async (targetBranch: string): Promise<void> => {
       if (!selectedRepository) return;
       await loadSnapshot(() =>
-        api.setRepositoryTargetBranch(selectedRepository.id, targetBranch),
+        api.refreshRepositoryTargetEvidence(
+          selectedRepository.id,
+          targetBranch,
+        ),
       );
     },
     [loadSnapshot, selectedRepository],
@@ -251,7 +262,9 @@ export function App(): ReactElement {
   const dateLabel = currentDateLabel();
   const isPortfolio = activeNav === "portfolio";
   const showingRepositoryDetail = Boolean(
-    selectedRepository && activeNav !== "remediation",
+    selectedRepository &&
+    activeNav !== "remediation" &&
+    activeNav !== "promotions",
   );
 
   return (
@@ -282,6 +295,8 @@ export function App(): ReactElement {
           onRefresh={() => {
             if (activeNav === "remediation") {
               void handleRefreshRemediation();
+            } else if (activeNav === "promotions") {
+              void handleRefreshPromotionInbox();
             } else {
               setIsRefreshConfirmationOpen(true);
             }
@@ -350,6 +365,7 @@ export function App(): ReactElement {
             <RepositoryDetailSurface
               repository={selectedRepository}
               analytics={analytics}
+              isRefreshing={isRefreshing}
               onBack={() => setSelectedRepositoryId(null)}
               onOpenWorkspace={handleOpenWorkspace}
               onPrepareRepository={handlePrepareRepository}
@@ -408,6 +424,13 @@ export function App(): ReactElement {
               onUpdateStatus={handleRemediationStatus}
               onOpenRepository={handleOpenRepository}
             />
+          ) : activeNav === "promotions" ? (
+            <PromotionSurface
+              inbox={promotionInbox}
+              isRefreshing={isRefreshing}
+              onRefresh={handleRefreshPromotionInbox}
+              onDecide={handlePromotionDecision}
+            />
           ) : activeNav === "analytics" ? (
             <AnalyticsSurface
               analytics={analytics}
@@ -419,6 +442,10 @@ export function App(): ReactElement {
               isRefreshing={isRefreshing}
               onRefresh={() => void handleRefreshSkills()}
               onOpenSource={(path) => void handleOpenSkillSource(path)}
+              papercutBacklog={papercutBacklog}
+              onRefreshPapercutBacklog={handleRefreshPapercutBacklog}
+              onCreatePapercut={handleCreatePapercut}
+              onPapercutStatusChange={handlePapercutStatus}
             />
           ) : activeNav === "activity" ? (
             <ActivitySurface
