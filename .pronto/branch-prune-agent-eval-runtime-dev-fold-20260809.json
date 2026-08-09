@@ -1,0 +1,40 @@
+{
+  "schema": "fleet-branch-prune/v1",
+  "repository": "jakyeamos/agent-eval-runtime",
+  "repository_path": "/Users/jakyeamos/projects/agent-eval-runtime",
+  "remote": "origin",
+  "target": {
+    "branch": "dev",
+    "sha": "23a567d58b743297108b4da64233d23ca70586e0",
+    "live_sha": null,
+    "local_live_relation": "unknown: live remote verification unavailable"
+  },
+  "preconditions": {
+    "target_fetched_remote_exact": true,
+    "target_live_verified": false,
+    "source_worktrees": [],
+    "open_prs": [],
+    "source_remote_state": "present-at-source-sha",
+    "protected_source_branches": "unknown: GitHub protection API returned HTTP 403",
+    "target_protection": "unknown: GitHub protection API returned HTTP 403",
+    "external_consumer_search": "no registered repository references"
+  },
+  "status": "preserved",
+  "created_at": "2026-08-09T01:49:11Z",
+  "verification": {
+    "source_sha": "2076154fb5fda02ea791d0ae53f9c3a7105df219",
+    "local_source_ref": "retained",
+    "remote_source_ref": "retained",
+    "local_deletion": "not attempted",
+    "next_action": "retry live remote and protection verification before any deletion"
+  },
+  "refs": [
+    {
+      "name": "codex/dev-fold-aios-mining-eval",
+      "source_sha": "2076154fb5fda02ea791d0ae53f9c3a7105df219",
+      "classification": "integrated",
+      "remote_state": "present-at-source-sha",
+      "action": "preserve-live-and-protection-check-blocked"
+    }
+  ]
+}
