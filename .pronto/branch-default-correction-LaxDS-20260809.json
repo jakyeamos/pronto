@@ -1,0 +1,57 @@
+{
+  "schema": "fleet-branch-default-correction/v1",
+  "repository": "jakyeamos/LaxDS",
+  "repository_path": "/Users/jakyeamos/projects/LaxDS",
+  "remote": "origin",
+  "authorized_by_user": true,
+  "created_at": "2026-08-09T02:28:20Z",
+  "status": "completed",
+  "before": {
+    "default_branch": "codex/lacrosse-data-scaffold",
+    "source_sha": "33ff413e65f47171a7341fb479746f03de432480",
+    "dev_sha": "e70b7df77603e90f2ca67a93bbce3b9c900df177",
+    "release_tag": "v1.0",
+    "release_tag_sha": "e504cee88535e75ebc13942632aa58f961740a55",
+    "source_protected": false,
+    "dev_protected": false,
+    "open_prs": [],
+    "source_worktrees": []
+  },
+  "release_default_selection": {
+    "branch_created": "master",
+    "branch_sha": "e504cee88535e75ebc13942632aa58f961740a55",
+    "source": "annotated tag v1.0",
+    "tag_message": "Lacrosse data analytics scaffold v1.0",
+    "documented_truth": "v1.0 is complete, audited, archived, cleaned up, and tagged",
+    "reason": "No live main or master existed; the documented release tag is the least-assumptive release/default baseline."
+  },
+  "correction": {
+    "remote_branch_created": "master",
+    "provider_operation": "PATCH repos/jakyeamos/LaxDS default_branch=master",
+    "default_branch_after": "master",
+    "provider_verified": true,
+    "repository_archived": false
+  },
+  "source_prune": {
+    "branch": "codex/lacrosse-data-scaffold",
+    "classification": "integrated",
+    "source_is_ancestor_of_target": true,
+    "local_delete": "git branch -d codex/lacrosse-data-scaffold",
+    "local_verified_absent": true,
+    "remote_delete": "git push origin --delete codex/lacrosse-data-scaffold",
+    "remote_verified_absent": true,
+    "source_sha": "33ff413e65f47171a7341fb479746f03de432480"
+  },
+  "verification": {
+    "default_branch": "master",
+    "live_master_sha": "e504cee88535e75ebc13942632aa58f961740a55",
+    "live_dev_sha": "e70b7df77603e90f2ca67a93bbce3b9c900df177",
+    "live_source_ref": "absent",
+    "local_source_ref": "absent",
+    "current_checkout_modified": true,
+    "current_checkout_preserved": true,
+    "current_checkout_branch": "codex/doi-research-readiness",
+    "current_checkout_untracked": [".mac-control"]
+  },
+  "next_action": "Refresh Pronto and rerun fleet route; preserve the dirty DOI-readiness checkout and existing maturity gaps."
+}

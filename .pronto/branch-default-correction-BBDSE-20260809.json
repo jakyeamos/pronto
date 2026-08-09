@@ -1,0 +1,46 @@
+{
+  "schema": "fleet-branch-default-correction/v1",
+  "repository": "jakyeamos/BBDSE",
+  "repository_path": "/Users/jakyeamos/projects/BBDSE",
+  "remote": "origin",
+  "authorized_by_user": true,
+  "created_at": "2026-08-09T02:28:20Z",
+  "status": "completed",
+  "before": {
+    "default_branch": "codex/womens-stats-scaffold",
+    "source_sha": "a6424212240bbbc4e35174fc3acb67e74d256ded",
+    "dev_sha": "99f828df6bb7a06c1a578723d4daefab6279f0c1",
+    "master_sha": "5fa5addf7436d54bf5e67b71b29a81e373915f66",
+    "source_protected": false,
+    "dev_protected": false,
+    "master_protected": false,
+    "open_prs": [],
+    "source_worktrees": []
+  },
+  "correction": {
+    "provider_operation": "PATCH repos/jakyeamos/BBDSE default_branch=master",
+    "default_branch_after": "master",
+    "provider_verified": true,
+    "repository_archived": false
+  },
+  "source_prune": {
+    "branch": "codex/womens-stats-scaffold",
+    "classification": "integrated",
+    "source_is_ancestor_of_target": true,
+    "local_delete": "git branch -d codex/womens-stats-scaffold",
+    "local_verified_absent": true,
+    "remote_delete": "git push origin --delete codex/womens-stats-scaffold",
+    "remote_verified_absent": true,
+    "source_sha": "a6424212240bbbc4e35174fc3acb67e74d256ded"
+  },
+  "verification": {
+    "default_branch": "master",
+    "live_master_sha": "5fa5addf7436d54bf5e67b71b29a81e373915f66",
+    "live_dev_sha": "99f828df6bb7a06c1a578723d4daefab6279f0c1",
+    "live_source_ref": "absent",
+    "local_source_ref": "absent",
+    "current_checkout_modified": false,
+    "current_checkout_preserved": true
+  },
+  "next_action": "Refresh Pronto and rerun fleet route; retain existing dirty-workspace ownership boundaries."
+}
