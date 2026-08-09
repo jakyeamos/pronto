@@ -1,0 +1,45 @@
+{
+  "schema": "fleet-branch-prune/v1",
+  "repository": "jakyeamos/BBDSE",
+  "repository_path": "/Users/jakyeamos/projects/BBDSE",
+  "remote": "origin",
+  "target": {
+    "branch": "dev",
+    "sha": "99f828df6bb7a06c1a578723d4daefab6279f0c1",
+    "live_sha": "99f828df6bb7a06c1a578723d4daefab6279f0c1",
+    "local_live_relation": "in-sync"
+  },
+  "preconditions": {
+    "target_live_verified": true,
+    "target_local_live_exact": true,
+    "source_worktrees": [],
+    "open_prs": [],
+    "default_branch": "codex/womens-stats-scaffold",
+    "default_branch_invariant": "blocks deletion",
+    "release_branch_available": "master",
+    "protected_source_branches": "unknown: GitHub protection API returned HTTP 403",
+    "target_protection": "unknown: GitHub protection API returned HTTP 403",
+    "external_consumer_search": "not completed; default-branch invariant blocks deletion before consumer check",
+    "source_is_ancestor_of_target": true,
+    "source_remote_state": "present-at-source-sha"
+  },
+  "status": "preserved",
+  "created_at": "2026-08-09T02:02:22Z",
+  "verification": {
+    "live_source_sha": "a6424212240bbbc4e35174fc3acb67e74d256ded",
+    "live_dev_sha": "99f828df6bb7a06c1a578723d4daefab6279f0c1",
+    "local_source_ref": "retained",
+    "remote_source_ref": "retained",
+    "local_deletion": "not attempted",
+    "next_action": "Owner must authorize a provider-side default-branch change to master and re-run protection/consumer checks before any deletion."
+  },
+  "refs": [
+    {
+      "name": "codex/womens-stats-scaffold",
+      "source_sha": "a6424212240bbbc4e35174fc3acb67e74d256ded",
+      "classification": "integrated",
+      "remote_state": "present-at-source-sha",
+      "action": "preserve-default-branch-and-protection-check-blocked"
+    }
+  ]
+}
