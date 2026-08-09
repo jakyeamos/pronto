@@ -1,0 +1,42 @@
+{
+  "schema": "fleet-branch-prune/v1",
+  "repository": "jakyeamos/Terrace",
+  "repository_path": "/Users/jakyeamos/projects/Terrace",
+  "remote": "origin",
+  "target": {
+    "branch": "dev",
+    "sha": "a4be9396842a6ef3e69f65a70f60c51634a9e349",
+    "live_sha": "a4be9396842a6ef3e69f65a70f60c51634a9e349",
+    "local_live_relation": "in-sync"
+  },
+  "preconditions": {
+    "target_live_verified": true,
+    "target_local_live_exact": true,
+    "source_worktrees": [],
+    "open_prs": [],
+    "protected_source_branches": [],
+    "target_protection": "unprotected",
+    "external_consumer_search": "no registered repository references",
+    "canonical_root_dirty_on_other_active_work": true
+  },
+  "status": "completed",
+  "created_at": "2026-08-09T01:32:09Z",
+  "completed_at": "2026-08-09T01:36:00Z",
+  "verification": {
+    "live_dev_sha": "a4be9396842a6ef3e69f65a70f60c51634a9e349",
+    "live_pruned_ref": "absent",
+    "local_dev_sha": "a4be9396842a6ef3e69f65a70c51634a9e349",
+    "local_tracking_dev_sha": "a4be9396842a6ef3e69f65a70c51634a9e349",
+    "local_pruned_refs": "absent",
+    "temporary_worktree_removed": true
+  },
+  "refs": [
+    {
+      "name": "codex/full-audit-fold-terrace",
+      "source_sha": "a4be9396842a6ef3e69f65a70f60c51634a9e349",
+      "classification": "integrated",
+      "remote_state": "present-at-source-sha",
+      "action": "delete-remote-then-local-normal"
+    }
+  ]
+}
