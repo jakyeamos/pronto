@@ -1,0 +1,47 @@
+{
+  "schema": "fleet-branch-prune/v1",
+  "repository": "jakyeamos/quality-runner",
+  "repository_path": "/Users/jakyeamos/projects/quality-runner",
+  "remote": "origin",
+  "target": {
+    "branch": "dev",
+    "sha": "432a959ac1bedf12a69792393640e1bf5e6e4b09",
+    "live_sha": "432a959ac1bedf12a69792393640e1bf5e6e4b09",
+    "local_live_relation": "in-sync"
+  },
+  "preconditions": {
+    "target_live_verified": true,
+    "target_local_live_exact": true,
+    "source_worktrees": [],
+    "open_prs": [],
+    "historical_closed_prs": [
+      {
+        "number": 1,
+        "state": "CLOSED",
+        "url": "https://github.com/jakyeamos/quality-runner/pull/1"
+      }
+    ],
+    "protected_source_branches": [],
+    "target_protection": "unprotected",
+    "external_consumer_search": "no registered repository references; source ref is remote-missing"
+  },
+  "status": "preserved",
+  "completed_at": "2026-08-09T01:27:00Z",
+  "verification": {
+    "live_dev_sha": "432a959ac1bedf12a69792393640e1bf5e6e4b09",
+    "source_ref": "retained",
+    "local_deletion": "refused-by-normal-branch-d",
+    "force_delete": "not attempted",
+    "temporary_worktree_removed": true,
+    "next_action": "retain until an explicit reviewed replacement or ancestry-preserving fold makes normal deletion provable"
+  },
+  "refs": [
+    {
+      "name": "codex/ci-warning-cleanup",
+      "source_sha": "633bb215e99c7a2a2f70c21f1135556344edd96d",
+      "classification": "patch-equivalent",
+      "remote_state": "absent",
+      "action": "delete-local-normal"
+    }
+  ]
+}
