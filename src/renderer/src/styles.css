@@ -3445,6 +3445,72 @@ h1 {
 .quality-maturity-gaps span {
   color: var(--faint);
 }
+.agent-usability-summary {
+  margin-top: var(--space-3xs);
+  padding-top: var(--space-2xs);
+  border-top: 1px solid rgba(119, 168, 255, 0.12);
+}
+.agent-usability-summary > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 8px;
+  cursor: pointer;
+}
+.agent-usability-summary > summary > strong {
+  color: #b9d2ff;
+  font-size: 9px;
+}
+.agent-usability-summary .status-pill {
+  padding: 1px 4px;
+  font-size: 7px;
+}
+.agent-usability-lanes {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.agent-usability-lanes li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1px 4px;
+}
+.agent-usability-lanes span,
+.agent-usability-lanes strong,
+.agent-usability-lanes small,
+.agent-usability-growth span,
+.agent-usability-growth small {
+  font-size: 8px;
+  line-height: 1.35;
+}
+.agent-usability-lanes span,
+.agent-usability-growth span {
+  color: var(--muted);
+}
+.agent-usability-lanes strong {
+  color: #b9d2ff;
+}
+.agent-usability-lanes small {
+  grid-column: 1 / -1;
+  color: var(--faint);
+}
+.agent-usability-growth {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 4px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(119, 168, 255, 0.1);
+}
+.agent-usability-growth small {
+  flex-basis: 100%;
+  color: var(--faint);
+}
 .quality-readiness {
   display: grid;
   gap: 4px;

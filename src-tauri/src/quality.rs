@@ -281,6 +281,92 @@ pub struct QualityMaturityGap {
     pub message: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AgentUsabilityLane {
+    pub id: String,
+    pub label: String,
+    pub applicable: bool,
+    pub score: Option<f64>,
+    pub status: String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct AgentUsabilityGrowthHealth {
+    pub status: String,
+    pub message: String,
+    pub document_count: u64,
+    pub agent_document_count: u64,
+    pub routed_agent_document_count: u64,
+    pub unrouted_agent_document_count: u64,
+    pub oversized_document_count: u64,
+    pub skill_count: u64,
+    pub family_count: u64,
+    pub largest_family_size: u64,
+    pub unclassified_skill_count: u64,
+    pub oversized_skill_count: u64,
+    pub tool_count: u64,
+    pub documented_tool_count: u64,
+    pub skill_covered_tool_count: u64,
+    pub behavior_declared_tool_count: u64,
+    pub behavior_verified_tool_count: u64,
+    pub inventory_truncated: bool,
+}
+
+impl Default for AgentUsabilityGrowthHealth {
+    fn default() -> Self {
+        Self {
+            status: "unavailable".to_string(),
+            message: "Agent-usability growth evidence is unavailable.".to_string(),
+            document_count: 0,
+            agent_document_count: 0,
+            routed_agent_document_count: 0,
+            unrouted_agent_document_count: 0,
+            oversized_document_count: 0,
+            skill_count: 0,
+            family_count: 0,
+            largest_family_size: 0,
+            unclassified_skill_count: 0,
+            oversized_skill_count: 0,
+            tool_count: 0,
+            documented_tool_count: 0,
+            skill_covered_tool_count: 0,
+            behavior_declared_tool_count: 0,
+            behavior_verified_tool_count: 0,
+            inventory_truncated: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct AgentUsabilityMaturity {
+    pub schema: String,
+    pub status: String,
+    pub manifest_status: String,
+    pub manifest_path: String,
+    pub applicable_lane_count: u64,
+    pub covered_lane_count: u64,
+    pub lanes: Vec<AgentUsabilityLane>,
+    pub growth_health: AgentUsabilityGrowthHealth,
+}
+
+impl Default for AgentUsabilityMaturity {
+    fn default() -> Self {
+        Self {
+            schema: "quality-runner-agent-usability/v1".to_string(),
+            status: "unavailable".to_string(),
+            manifest_status: "missing".to_string(),
+            manifest_path: ".agents/agent-usability.json".to_string(),
+            applicable_lane_count: 0,
+            covered_lane_count: 0,
+            lanes: Vec::new(),
+            growth_health: AgentUsabilityGrowthHealth::default(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QualityMaturity {
     pub score: Option<f64>,
@@ -290,6 +376,8 @@ pub struct QualityMaturity {
     pub dimension_scores: BTreeMap<String, f64>,
     #[serde(default)]
     pub gaps: Vec<QualityMaturityGap>,
+    #[serde(default)]
+    pub agent_usability: Option<AgentUsabilityMaturity>,
     pub audit_id: Option<String>,
     pub observed_at: Option<String>,
     #[serde(default)]
@@ -308,6 +396,7 @@ impl Default for QualityMaturity {
             scored_dimension_count: None,
             dimension_scores: BTreeMap::new(),
             gaps: Vec::new(),
+            agent_usability: None,
             audit_id: None,
             observed_at: None,
             scanned_commit: None,
@@ -677,6 +766,7 @@ pub fn fleet_audit_import(
             scored_dimension_count: Some(dimension_scores.len() as u64),
             dimension_scores,
             gaps: fleet_maturity_gaps(&findings),
+            agent_usability: None,
             audit_id: Some(run_id.clone()),
             observed_at: run_observed_at.clone(),
             scanned_commit: scanned_commit.clone(),
@@ -1911,6 +2001,7 @@ pub fn audit_import(root: Option<&Path>, repositories: &[RepositorySnapshot]) ->
                 scored_dimension_count: finding.scored_dimension_count,
                 dimension_scores: finding.dimension_scores.clone(),
                 gaps: Vec::new(),
+                agent_usability: None,
                 audit_id: run.audit_id.clone(),
                 observed_at: run.as_of.clone(),
                 scanned_commit: None,
@@ -2076,6 +2167,10 @@ pub fn maturity_feed_import(
                         .collect()
                 })
                 .unwrap_or_default(),
+            agent_usability: projection
+                .get("agent_usability")
+                .filter(|value| value.is_object())
+                .and_then(|value| serde_json::from_value(value.clone()).ok()),
             audit_id: audit_id.map(str::to_string),
             observed_at: as_of.map(str::to_string),
             scanned_commit: projection
@@ -3274,6 +3369,34 @@ mod tests {
             },
             "provenance_hash": "",
         });
+        feed["repositories"][0]["agent_usability"] = serde_json::json!({
+            "schema": "quality-runner-agent-usability/v1",
+            "status": "attention",
+            "manifest_status": "present",
+            "manifest_path": ".agents/agent-usability.json",
+            "applicable_lane_count": 4,
+            "covered_lane_count": 3,
+            "lanes": [{
+                "id": "documentation_contract",
+                "label": "Documentation contract",
+                "applicable": true,
+                "score": 4,
+                "status": "maintained",
+                "message": "Every declared tool has fresh, routed documentation."
+            }],
+            "growth_health": {
+                "status": "healthy",
+                "message": "Documentation and skill structure remains proportionate and routed.",
+                "document_count": 12,
+                "agent_document_count": 3,
+                "routed_agent_document_count": 3,
+                "skill_count": 4,
+                "family_count": 2,
+                "tool_count": 2,
+                "documented_tool_count": 2,
+                "skill_covered_tool_count": 2
+            }
+        });
         feed["provenance_hash"] =
             Value::String(maturity_feed_hash(&feed).expect("fixture feed should hash"));
         feed
@@ -3482,6 +3605,14 @@ mod tests {
             imported.maturities[&repository.id].gaps[0].dimension,
             "change_surface_coverage"
         );
+        let agent_usability = imported.maturities[&repository.id]
+            .agent_usability
+            .as_ref()
+            .expect("feed should preserve agent-usability evidence");
+        assert_eq!(agent_usability.covered_lane_count, 3);
+        assert_eq!(agent_usability.lanes[0].id, "documentation_contract");
+        assert_eq!(agent_usability.growth_health.skill_count, 4);
+        assert_eq!(agent_usability.growth_health.family_count, 2);
         assert_eq!(
             imported.maturities[&repository.id].freshness,
             QualityFreshness::Fresh

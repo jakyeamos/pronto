@@ -75,12 +75,54 @@ export interface QualityMaturity {
     score?: number;
     message: string;
   }>;
+  agent_usability?: AgentUsabilityMaturity;
   audit_id?: string;
   observed_at?: string;
   scanned_commit?: string;
   scanned_branch?: string;
   freshness: QualityFreshness;
   report_path?: string;
+}
+
+export interface AgentUsabilityLane {
+  id: string;
+  label: string;
+  applicable: boolean;
+  score?: number;
+  status: string;
+  message: string;
+}
+
+export interface AgentUsabilityGrowthHealth {
+  status: string;
+  message: string;
+  document_count: number;
+  agent_document_count: number;
+  routed_agent_document_count: number;
+  unrouted_agent_document_count: number;
+  oversized_document_count: number;
+  skill_count: number;
+  family_count: number;
+  largest_family_size: number;
+  unclassified_skill_count: number;
+  oversized_skill_count: number;
+  tool_count: number;
+  documented_tool_count: number;
+  skill_covered_tool_count: number;
+  behavior_declared_tool_count: number;
+  behavior_verified_tool_count: number;
+  inventory_truncated: boolean;
+}
+
+export interface AgentUsabilityMaturity {
+  schema: string;
+  status: string;
+  manifest_status: string;
+  manifest_path: string;
+  applicable_lane_count: number;
+  covered_lane_count: number;
+  lanes: AgentUsabilityLane[];
+  growth_health: AgentUsabilityGrowthHealth;
 }
 
 export interface QualityReadiness {

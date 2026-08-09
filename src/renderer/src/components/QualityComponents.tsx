@@ -37,6 +37,13 @@ function qualityFreshnessTone(freshness: QualityFreshness): string {
   return "slate";
 }
 
+function agentUsabilityTone(status: string): string {
+  if (status === "healthy" || status === "behavior_verified") return "mint";
+  if (status === "blocked") return "red";
+  if (status === "attention" || status === "stale") return "amber";
+  return "slate";
+}
+
 export interface TargetQualityGateProjection {
   gate: QualityGate;
   verified: boolean;
@@ -694,6 +701,63 @@ export function QualityMaturitySummary({
             ))}
           </ul>
         )}
+      {maturity.agent_usability && (
+        <details className="agent-usability-summary">
+          <summary>
+            <span>Agent usability</span>
+            <strong>
+              {maturity.agent_usability.covered_lane_count}/
+              {maturity.agent_usability.applicable_lane_count} lanes
+            </strong>
+            <StatusPill
+              tone={agentUsabilityTone(maturity.agent_usability.status)}
+            >
+              {maturity.agent_usability.status.replaceAll("_", " ")}
+            </StatusPill>
+          </summary>
+          <ul
+            className="agent-usability-lanes"
+            aria-label="Agent usability lanes"
+          >
+            {maturity.agent_usability.lanes.map((lane) => (
+              <li key={lane.id}>
+                <span>{lane.label}</span>
+                <strong>
+                  {lane.score === undefined ? "—" : `${lane.score}/4`}
+                </strong>
+                <small>{lane.message}</small>
+              </li>
+            ))}
+          </ul>
+          <div className="agent-usability-growth">
+            <span>Growth health</span>
+            <StatusPill
+              tone={agentUsabilityTone(
+                maturity.agent_usability.growth_health.status,
+              )}
+            >
+              {maturity.agent_usability.growth_health.status.replaceAll(
+                "_",
+                " ",
+              )}
+            </StatusPill>
+            <small>
+              {
+                maturity.agent_usability.growth_health
+                  .routed_agent_document_count
+              }
+              /{maturity.agent_usability.growth_health.agent_document_count}{" "}
+              agent docs routed ·{" "}
+              {maturity.agent_usability.growth_health.skill_count} skills in{" "}
+              {maturity.agent_usability.growth_health.family_count} families ·{" "}
+              {maturity.agent_usability.growth_health.skill_covered_tool_count}/
+              {maturity.agent_usability.growth_health.tool_count} tools
+              skill-covered
+            </small>
+            <small>{maturity.agent_usability.growth_health.message}</small>
+          </div>
+        </details>
+      )}
       <QualityReadinessSummary
         readiness={readiness}
         compact={compact}
