@@ -1602,9 +1602,12 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("Target branch");
     expect(markup).toContain("Pronto override · Git default: main");
     expect(markup).toContain(
-      "Selecting a branch checks existing target evidence first, then runs QR quality and fleet audits in a clean disposable worktree when the target head changed or matching evidence is unavailable; your active workspace is not switched.",
+      "Selecting a branch or refreshing evidence checks existing target evidence first, then runs QR quality and fleet audits in a clean disposable worktree when the target head changed or matching evidence is unavailable; your active workspace is not switched.",
     );
     expect(markup).toContain('aria-label="Target branch for pronto"');
+    expect(markup).toContain(
+      'aria-label="Refresh target evidence for pronto"',
+    );
     expect(markup).toContain(
       '<option value="develop" selected="">develop</option>',
     );
@@ -1703,6 +1706,50 @@ describe("quality evidence surfaces", () => {
     expect(
       screen.getByRole("combobox", { name: "Target branch for pronto" }),
     ).toHaveProperty("disabled", true);
+  });
+
+  it("refreshes target evidence without requiring a branch value change", () => {
+    const repository = makeRepository({
+      target_branch: "main",
+      target_branch_configured: true,
+      branches: [
+        {
+          name: "main",
+          role: "Production",
+          role_confidence: "High",
+          target_confidence: "High",
+          ahead: 0,
+          behind: 0,
+          integration_state: "No unique commits",
+          last_commit: "main-commit",
+        },
+      ],
+    });
+    const requestedBranches: string[] = [];
+
+    render(
+      <RepositoryDetailSurface
+        repository={repository}
+        analytics={analyticsSnapshot}
+        isRefreshing={false}
+        onBack={() => undefined}
+        onOpenWorkspace={async () => undefined}
+        onPrepareRepository={async () => undefined}
+        onTargetBranchChange={async (branch) => {
+          requestedBranches.push(branch);
+        }}
+        onLifecycleChange={async () => undefined}
+        onCondition={() => undefined}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Refresh target evidence for pronto",
+      }),
+    );
+
+    expect(requestedBranches).toEqual(["main"]);
   });
 
   it("makes missing Compass item details explicit for legacy snapshots", () => {
