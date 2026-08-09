@@ -1,0 +1,35 @@
+{
+  "schema": "fleet-branch-prune/v1",
+  "repository": "jakyeamos/pre-cr-suite",
+  "repository_path": "/Users/jakyeamos/projects/pre-cr-suite-lsp",
+  "remote": "origin",
+  "repository_mode": "bare-with-attached-worktrees",
+  "target": {
+    "branch": "dev",
+    "sha": "a670a839ac75fb099d9ac78df396e538ec7625d5",
+    "live_sha": "a670a839ac75fb099d9ac78df396e538ec7625d5",
+    "local_live_relation": "in-sync"
+  },
+  "preconditions": {
+    "target_live_verified": true,
+    "target_local_live_exact": true,
+    "source_worktrees": [],
+    "open_prs": [],
+    "protected_source_branches": [],
+    "target_protection": "unprotected",
+    "external_consumer_search": "no registered repository references",
+    "source_remote_state": "present-at-source-sha",
+    "source_is_ancestor_of_target": true
+  },
+  "status": "planned",
+  "created_at": "2026-08-09T01:49:11Z",
+  "refs": [
+    {
+      "name": "codex/full-audit-fold-pre-cr",
+      "source_sha": "a670a839ac75fb099d9ac78df396e538ec7625d5",
+      "classification": "integrated",
+      "remote_state": "present-at-source-sha",
+      "action": "delete-remote-then-local-normal"
+    }
+  ]
+}
