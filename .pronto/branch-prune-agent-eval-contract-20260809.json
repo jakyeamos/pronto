@@ -1,0 +1,44 @@
+{
+  "schema": "fleet-branch-prune/v1",
+  "repository": "jakyeamos/agent-eval-contract",
+  "repository_path": "/Users/jakyeamos/projects/agent-eval-contract",
+  "remote": "origin",
+  "target": {
+    "branch": "dev",
+    "sha": "74797a7b0427f506f08db7764b3e794808759751",
+    "live_sha": "74797a7b0427f506f08db7764b3e794808759751",
+    "local_live_relation": "in-sync"
+  },
+  "preconditions": {
+    "target_live_verified": true,
+    "target_local_live_exact": true,
+    "source_worktrees": [],
+    "open_prs": [],
+    "protected_source_branches": [],
+    "external_consumer_search": "no repository references outside Git metadata"
+  },
+  "status": "completed",
+  "completed_at": "2026-08-09T01:20:00Z",
+  "verification": {
+    "live_dev_sha": "74797a7b0427f506f08db7764b3e794808759751",
+    "live_pruned_ref": "absent",
+    "local_pruned_refs": "absent",
+    "temporary_worktree_removed": true
+  },
+  "refs": [
+    {
+      "name": "codex/agent-eval-command-surface",
+      "source_sha": "3a6d01abf8b485cabacea0cef87e972ea372891a",
+      "classification": "integrated",
+      "remote_state": "absent",
+      "action": "delete-local-normal"
+    },
+    {
+      "name": "codex/full-audit-fold-agent-eval-contract",
+      "source_sha": "74797a7b0427f506f08db7764b3e794808759751",
+      "classification": "integrated",
+      "remote_state": "present-at-source-sha",
+      "action": "delete-remote-then-local-normal"
+    }
+  ]
+}
