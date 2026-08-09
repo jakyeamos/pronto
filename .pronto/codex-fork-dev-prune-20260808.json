@@ -1,0 +1,2629 @@
+{
+  "schema": "codex-fork-dev-prune/v1",
+  "action": "fork-local-delete-inherited-dev-prefix-refs",
+  "repository": "jakyeamos/codex",
+  "source_repository": "openai/codex",
+  "created_at": "2026-08-09T00:36:01.705Z",
+  "reason": "GitHub rejects refs/heads/dev while inherited refs/heads/dev/* exist.",
+  "preconditions": {
+    "fork_ref_count": 520,
+    "source_ref_count": 520,
+    "exact_sha_matches": 520,
+    "fork_only_refs": 0,
+    "sha_mismatches": 0,
+    "missing_in_fork": 0,
+    "fork_pull_requests": 0,
+    "protected_branches": [],
+    "rulesets": []
+  },
+  "status": "completed",
+  "completed_at": "2026-08-09T00:37:22.459Z",
+  "deletion": {
+    "deleted_ref_count": 520,
+    "batch_count": 11,
+    "remote": "origin",
+    "verification": "all recorded refs were accepted for deletion"
+  },
+  "refs": [
+    {
+      "name": "dev/aaronl/dynamic-tool-content-items",
+      "target_sha": "c0696ac9690e6d4b8406556e92180ccbd462f27c",
+      "source_sha": "c0696ac9690e6d4b8406556e92180ccbd462f27c"
+    },
+    {
+      "name": "dev/aaronl/elicitation-debug",
+      "target_sha": "317ebf64cefcfdb97b01bc7033d1adaf469cd2a6",
+      "source_sha": "317ebf64cefcfdb97b01bc7033d1adaf469cd2a6"
+    },
+    {
+      "name": "dev/aaronl/per-host-config---4iq5iwu8x2lp1i",
+      "target_sha": "ff341d816dceb6f415a3dc1354559eabbdd55472",
+      "source_sha": "ff341d816dceb6f415a3dc1354559eabbdd55472"
+    },
+    {
+      "name": "dev/aaronl/per-host-config---4iq5j-c67u0n13",
+      "target_sha": "2918f174dfa231547251f92bba94bc4099210ab6",
+      "source_sha": "2918f174dfa231547251f92bba94bc4099210ab6"
+    },
+    {
+      "name": "dev/aaronl/skill-instructions-tweak",
+      "target_sha": "9ba10a010c1896a8caf4a67d2e60ca3892c6ce2d",
+      "source_sha": "9ba10a010c1896a8caf4a67d2e60ca3892c6ce2d"
+    },
+    {
+      "name": "dev/abhinav/centralize-approval-prompts",
+      "target_sha": "d9d15997a46da93316ebf3a11246d0428284ca9d",
+      "source_sha": "d9d15997a46da93316ebf3a11246d0428284ca9d"
+    },
+    {
+      "name": "dev/abhinav/experimental-hooks-feature",
+      "target_sha": "bb700c14c722a3d2512eab5a43376cda8f877574",
+      "source_sha": "bb700c14c722a3d2512eab5a43376cda8f877574"
+    },
+    {
+      "name": "dev/abhinav/permission-request-hook",
+      "target_sha": "6f56c2b579300dac97fc2eb0c2bf4c741a5bfb5f",
+      "source_sha": "6f56c2b579300dac97fc2eb0c2bf4c741a5bfb5f"
+    },
+    {
+      "name": "dev/abhinav/permission-request-hook-universal-fields",
+      "target_sha": "4557ab2d2330204f8c3972f34d94e2f36e142d2e",
+      "source_sha": "4557ab2d2330204f8c3972f34d94e2f36e142d2e"
+    },
+    {
+      "name": "dev/abhinav/plugin-hooks-toggle-semantics",
+      "target_sha": "24c0dcc4b3ebcb470fde9c4390d5497e9ddc2edc",
+      "source_sha": "24c0dcc4b3ebcb470fde9c4390d5497e9ddc2edc"
+    },
+    {
+      "name": "dev/abhinav/remote-sandbox-requirements",
+      "target_sha": "501047b14db5036ae6bed6e0623b2739330d7781",
+      "source_sha": "501047b14db5036ae6bed6e0623b2739330d7781"
+    },
+    {
+      "name": "dev/abhinav/revive-17594",
+      "target_sha": "b7d467e29e98041cf996083fb551510b505df32b",
+      "source_sha": "b7d467e29e98041cf996083fb551510b505df32b"
+    },
+    {
+      "name": "dev/abhishek/add-user-command-to-model-context2",
+      "target_sha": "933de8595a6d0f8f0152278f77b5406712ba5858",
+      "source_sha": "933de8595a6d0f8f0152278f77b5406712ba5858"
+    },
+    {
+      "name": "dev/abhishek/fix-test-flake",
+      "target_sha": "cf9a4f4c40614f7271f61b3202dd111bd317a5fc",
+      "source_sha": "cf9a4f4c40614f7271f61b3202dd111bd317a5fc"
+    },
+    {
+      "name": "dev/adaley/default-apps-mcp-routes",
+      "target_sha": "ff66dc23cbfc00e6c6757edbcbbf2249b8b7ce9e",
+      "source_sha": "ff66dc23cbfc00e6c6757edbcbbf2249b8b7ce9e"
+    },
+    {
+      "name": "dev/adaley/fix-stale-codex-apps-mcp-auth",
+      "target_sha": "f1debcae06b39292c32a43dc8a9360a54d0d1375",
+      "source_sha": "f1debcae06b39292c32a43dc8a9360a54d0d1375"
+    },
+    {
+      "name": "dev/adaley/inject-plugin-app-ids",
+      "target_sha": "364d340d0a673d52802b8e2eb2ff9568799cbf81",
+      "source_sha": "364d340d0a673d52802b8e2eb2ff9568799cbf81"
+    },
+    {
+      "name": "dev/adaley/new-apps-mcp",
+      "target_sha": "c165c9ae0664372280eaa5cb823883cb0c4ec7c6",
+      "source_sha": "c165c9ae0664372280eaa5cb823883cb0c4ec7c6"
+    },
+    {
+      "name": "dev/adaley/plugin-suggestion-outcome-core",
+      "target_sha": "baa3df615802b39deb4dbbbb6722f17da41ab3ad",
+      "source_sha": "baa3df615802b39deb4dbbbb6722f17da41ab3ad"
+    },
+    {
+      "name": "dev/adaley/plugin-suggestion-outcome-event",
+      "target_sha": "1174a9f4c2e6a5da7757efd063182dc4bc925618",
+      "source_sha": "1174a9f4c2e6a5da7757efd063182dc4bc925618"
+    },
+    {
+      "name": "dev/adaley/request-plugin-install-remote-ids",
+      "target_sha": "3d8d4e7c5810a9dfb5949baece10c8165d14b6ec",
+      "source_sha": "3d8d4e7c5810a9dfb5949baece10c8165d14b6ec"
+    },
+    {
+      "name": "dev/adaley/search-plugins",
+      "target_sha": "b62c204993b67da3eb5fb7132da4662d2869ccb2",
+      "source_sha": "b62c204993b67da3eb5fb7132da4662d2869ccb2"
+    },
+    {
+      "name": "dev/add-turn-plan-type-telemetry",
+      "target_sha": "8fef273391ab360f69fea20c2ae0f17443d9ea15",
+      "source_sha": "8fef273391ab360f69fea20c2ae0f17443d9ea15"
+    },
+    {
+      "name": "dev/adrian/codex/agent-identity",
+      "target_sha": "d7f6f4173aa40baa286b8ad29f47895d799bcc36",
+      "source_sha": "d7f6f4173aa40baa286b8ad29f47895d799bcc36"
+    },
+    {
+      "name": "dev/adrian/codex/agent-identity-use-assertion-v2",
+      "target_sha": "a87e178824ef8ec55f6b2d7a2a6e2518e0c69795",
+      "source_sha": "a87e178824ef8ec55f6b2d7a2a6e2518e0c69795"
+    },
+    {
+      "name": "dev/adrian/codex/hai-background-task-auth",
+      "target_sha": "c024f87725cdb2110607258c848f955c8039659e",
+      "source_sha": "c024f87725cdb2110607258c848f955c8039659e"
+    },
+    {
+      "name": "dev/adrian/codex/revert-pr1-use-agent-identity-flag",
+      "target_sha": "9439cba9992a8fe667229cb3dbec9ea6011e414c",
+      "source_sha": "9439cba9992a8fe667229cb3dbec9ea6011e414c"
+    },
+    {
+      "name": "dev/adrian/codex/revert-pr2-agent-identity-registration",
+      "target_sha": "0e47f90468544658c839f7624abc31b34f4ecd3a",
+      "source_sha": "0e47f90468544658c839f7624abc31b34f4ecd3a"
+    },
+    {
+      "name": "dev/adrian/codex/revert-pr3-register-tasks",
+      "target_sha": "2976ebb472e7ee7e5360c3288fae9ad472026d3e",
+      "source_sha": "2976ebb472e7ee7e5360c3288fae9ad472026d3e"
+    },
+    {
+      "name": "dev/adrian/codex/revert-pr4-task-state-prewarm",
+      "target_sha": "61edaf10704bbf46487d90ad61b40f198f1f0c4e",
+      "source_sha": "61edaf10704bbf46487d90ad61b40f198f1f0c4e"
+    },
+    {
+      "name": "dev/adrian/codex/revert-pr5-downstream-assertion",
+      "target_sha": "b7586545c6de8c338d4a9594af21f27f3b7ec41d",
+      "source_sha": "b7586545c6de8c338d4a9594af21f27f3b7ec41d"
+    },
+    {
+      "name": "dev/adrian/codex/revert-pr6-background-auth",
+      "target_sha": "0bbaf6f714f4a95540981c1bd22cf88a6cb608ab",
+      "source_sha": "0bbaf6f714f4a95540981c1bd22cf88a6cb608ab"
+    },
+    {
+      "name": "dev/adrian/codex/revert-pr7-background-more-calls",
+      "target_sha": "2e59854488c5d437bef249a0470611e5ae52ae17",
+      "source_sha": "2e59854488c5d437bef249a0470611e5ae52ae17"
+    },
+    {
+      "name": "dev/adrian/codex/revert-pr8-agent-identity-fixture",
+      "target_sha": "1e12fb9620876639f49eb3c75e1b6ae6b98e5cab",
+      "source_sha": "1e12fb9620876639f49eb3c75e1b6ae6b98e5cab"
+    },
+    {
+      "name": "dev/agamble/realtime-commentary-developer-role",
+      "target_sha": "ce6614d28f48ea69a6d391b6152091dfa03fe475",
+      "source_sha": "ce6614d28f48ea69a6d391b6152091dfa03fe475"
+    },
+    {
+      "name": "dev/agamble/realtime-prompt-overrides-rust",
+      "target_sha": "ffc0c2934ce53435f8faa1e8fdad768a57be4883",
+      "source_sha": "ffc0c2934ce53435f8faa1e8fdad768a57be4883"
+    },
+    {
+      "name": "dev/agamble/realtime-upstream-session-id",
+      "target_sha": "2d66c1a97488764fa9b0daae789a8cd229ce7927",
+      "source_sha": "2d66c1a97488764fa9b0daae789a8cd229ce7927"
+    },
+    {
+      "name": "dev/alexz/auth-elicitation-capability-split",
+      "target_sha": "a8e87ee0030cba06f75e0cf4ca0a0c9391636e56",
+      "source_sha": "a8e87ee0030cba06f75e0cf4ca0a0c9391636e56"
+    },
+    {
+      "name": "dev/alexz/connector-guardian-managed-app-requirements",
+      "target_sha": "81a7a9445978f8e9159ba2bd52606ecebd1ec992",
+      "source_sha": "81a7a9445978f8e9159ba2bd52606ecebd1ec992"
+    },
+    {
+      "name": "dev/alexz/flora-always-allow-link-id",
+      "target_sha": "e699e15061c1ce93bcd4e7307c8bdadf1c122fe7",
+      "source_sha": "e699e15061c1ce93bcd4e7307c8bdadf1c122fe7"
+    },
+    {
+      "name": "dev/alexz/plugin-use-rbac",
+      "target_sha": "4aa3ab67ef4da827d1a1e05d9e76b28d6f9fcf0f",
+      "source_sha": "4aa3ab67ef4da827d1a1e05d9e76b28d6f9fcf0f"
+    },
+    {
+      "name": "dev/alexz/prompt-writes-approval-mode",
+      "target_sha": "253e11a6ac1c97a0e07ac8ccae2925dd69d83f37",
+      "source_sha": "253e11a6ac1c97a0e07ac8ccae2925dd69d83f37"
+    },
+    {
+      "name": "dev/alexz/skills-sidebar-when-plugins-disabled",
+      "target_sha": "fad757473557805f7dac932da32edc2518a73aa6",
+      "source_sha": "fad757473557805f7dac932da32edc2518a73aa6"
+    },
+    {
+      "name": "dev/amjith/implement-readline-shortcuts-c-y-and-c-underscore",
+      "target_sha": "0f0cc0329198da00ddccad7bd90f12ccc8fcea51",
+      "source_sha": "0f0cc0329198da00ddccad7bd90f12ccc8fcea51"
+    },
+    {
+      "name": "dev/amruth/bwrap-health-probe-fix",
+      "target_sha": "550e31b17498f64a8beb66d5631b6ba7dbd7f843",
+      "source_sha": "550e31b17498f64a8beb66d5631b6ba7dbd7f843"
+    },
+    {
+      "name": "dev/ashwinnathan/add-capabilities-support-sdk-v2",
+      "target_sha": "42d89d39f8db0229578fe29b9e49b0154681687f",
+      "source_sha": "42d89d39f8db0229578fe29b9e49b0154681687f"
+    },
+    {
+      "name": "dev/ashwinnathan/builtin-tool-configuration",
+      "target_sha": "27d20b3e5400d30dc5a88e7f04e7c6b918397a05",
+      "source_sha": "27d20b3e5400d30dc5a88e7f04e7c6b918397a05"
+    },
+    {
+      "name": "dev/ashwinnathan/manual-tool-execution-mode",
+      "target_sha": "3013b516cf6e8480dc0ae4e0c1a504d4aa5742af",
+      "source_sha": "3013b516cf6e8480dc0ae4e0c1a504d4aa5742af"
+    },
+    {
+      "name": "dev/bazel-failure-output-preview",
+      "target_sha": "cd56da42e4122e1927d7c31011207ea1a56cbba4",
+      "source_sha": "cd56da42e4122e1927d7c31011207ea1a56cbba4"
+    },
+    {
+      "name": "dev/bazel-full-failed-test-logs",
+      "target_sha": "d416b7af670266795ca65c5231413a8c590673f6",
+      "source_sha": "d416b7af670266795ca65c5231413a8c590673f6"
+    },
+    {
+      "name": "dev/bede/lzqyusnuktoo",
+      "target_sha": "f8f549d779a08b5d782bdf9d1580a11b79f69766",
+      "source_sha": "f8f549d779a08b5d782bdf9d1580a11b79f69766"
+    },
+    {
+      "name": "dev/bookholt/git-query-hardening",
+      "target_sha": "f053a08f4a12b90281d47e20691fac48245fc3f3",
+      "source_sha": "f053a08f4a12b90281d47e20691fac48245fc3f3"
+    },
+    {
+      "name": "dev/bookholt/pr-22208",
+      "target_sha": "240d80895da596b1bfd5645335ff7af9a4c0ac85",
+      "source_sha": "240d80895da596b1bfd5645335ff7af9a4c0ac85"
+    },
+    {
+      "name": "dev/bookholt/psec2859-trust-gate-repo-skills",
+      "target_sha": "0ccc69e28c89f94563e99a8a6c9876519385980c",
+      "source_sha": "0ccc69e28c89f94563e99a8a6c9876519385980c"
+    },
+    {
+      "name": "dev/bookholt/reject-powershell-param-blocks",
+      "target_sha": "27f22b54aef4d7e5eb6c564e969c961c74605461",
+      "source_sha": "27f22b54aef4d7e5eb6c564e969c961c74605461"
+    },
+    {
+      "name": "dev/bookholt/request-config-hardening",
+      "target_sha": "9176718eb74a04098cb4809c1c6395794ec5c091",
+      "source_sha": "9176718eb74a04098cb4809c1c6395794ec5c091"
+    },
+    {
+      "name": "dev/bookholt/windows-read-root-refresh",
+      "target_sha": "c2651026ca3058f20343cc3236714e93e6f161bb",
+      "source_sha": "c2651026ca3058f20343cc3236714e93e6f161bb"
+    },
+    {
+      "name": "dev/bookholt/windows-sandbox-setup-errors",
+      "target_sha": "5634aa3bf2615b7e20f4779b840416bc026be2ae",
+      "source_sha": "5634aa3bf2615b7e20f4779b840416bc026be2ae"
+    },
+    {
+      "name": "dev/by/codex-environment",
+      "target_sha": "af9b98e158f0fa351f164e242a31778243cb8f57",
+      "source_sha": "af9b98e158f0fa351f164e242a31778243cb8f57"
+    },
+    {
+      "name": "dev/by/wsv2-keep-connection-across-turns",
+      "target_sha": "a7c1a8cdd0cd60fb208b0dde66ef5cd6fcaba417",
+      "source_sha": "a7c1a8cdd0cd60fb208b0dde66ef5cd6fcaba417"
+    },
+    {
+      "name": "dev/carlc/dummy-pr-24832",
+      "target_sha": "3d3d685d53dd3936f9f08609e756c6d74cc47ba5",
+      "source_sha": "3d3d685d53dd3936f9f08609e756c6d74cc47ba5"
+    },
+    {
+      "name": "dev/caseychow/fix-linear",
+      "target_sha": "45e887e72fcb42ea672ec7ceb46951af03d9be16",
+      "source_sha": "45e887e72fcb42ea672ec7ceb46951af03d9be16"
+    },
+    {
+      "name": "dev/cc/add-readme-mcp",
+      "target_sha": "ecacd8057fb1e5ec53998490f717a51e1109a17d",
+      "source_sha": "ecacd8057fb1e5ec53998490f717a51e1109a17d"
+    },
+    {
+      "name": "dev/cc/auth-fix-1",
+      "target_sha": "c60230ec9e18ab9ca4e693071722526d2dec197c",
+      "source_sha": "c60230ec9e18ab9ca4e693071722526d2dec197c"
+    },
+    {
+      "name": "dev/cc/aws-auth",
+      "target_sha": "c002d7ab26f3f93ad2aaea97533fa4daaf1a3587",
+      "source_sha": "c002d7ab26f3f93ad2aaea97533fa4daaf1a3587"
+    },
+    {
+      "name": "dev/cc/browser-login",
+      "target_sha": "09637409b07dcd7be47c42a7c088ec3e14934522",
+      "source_sha": "09637409b07dcd7be47c42a7c088ec3e14934522"
+    },
+    {
+      "name": "dev/cc/fix",
+      "target_sha": "9f678d256ba398eb1d2e716e196706b3b55c10f0",
+      "source_sha": "9f678d256ba398eb1d2e716e196706b3b55c10f0"
+    },
+    {
+      "name": "dev/cc/fix-2",
+      "target_sha": "254cf94e3822c171e80d9f3ec100202efece25c5",
+      "source_sha": "254cf94e3822c171e80d9f3ec100202efece25c5"
+    },
+    {
+      "name": "dev/cc/multi-proxy",
+      "target_sha": "4fbccee01eb276e85b70819edf07fae845b5620e",
+      "source_sha": "4fbccee01eb276e85b70819edf07fae845b5620e"
+    },
+    {
+      "name": "dev/cc/new-code-path",
+      "target_sha": "09d312bce113655c6981d0b486327f66f367d001",
+      "source_sha": "09d312bce113655c6981d0b486327f66f367d001"
+    },
+    {
+      "name": "dev/cc/new-schema",
+      "target_sha": "1cbedbb11d61d47d16b634f9431269be429f87a8",
+      "source_sha": "1cbedbb11d61d47d16b634f9431269be429f87a8"
+    },
+    {
+      "name": "dev/cc/read-only",
+      "target_sha": "5cce1f73450124ff9b099c5859bdc792fc5b710f",
+      "source_sha": "5cce1f73450124ff9b099c5859bdc792fc5b710f"
+    },
+    {
+      "name": "dev/cc/release",
+      "target_sha": "907411be57c3612b45108d28ab20d91539bad7ce",
+      "source_sha": "907411be57c3612b45108d28ab20d91539bad7ce"
+    },
+    {
+      "name": "dev/cc/reload-401",
+      "target_sha": "c6ab9af63724c0843de2a191766e95af980cc0d9",
+      "source_sha": "c6ab9af63724c0843de2a191766e95af980cc0d9"
+    },
+    {
+      "name": "dev/cc/revert-2",
+      "target_sha": "7c36d5c07c0ad07fc375c005c96d46fe0661079d",
+      "source_sha": "7c36d5c07c0ad07fc375c005c96d46fe0661079d"
+    },
+    {
+      "name": "dev/cc/skill-sandbox",
+      "target_sha": "fef532c9ad1c51706032a4e934a1e8ce74140f65",
+      "source_sha": "fef532c9ad1c51706032a4e934a1e8ce74140f65"
+    },
+    {
+      "name": "dev/cc/skill-sandbox-2",
+      "target_sha": "28a079f0c67dd3cdd08a6feb9865ff8f4976ba1d",
+      "source_sha": "28a079f0c67dd3cdd08a6feb9865ff8f4976ba1d"
+    },
+    {
+      "name": "dev/cc/skill-sandbox-3",
+      "target_sha": "8f6050aafeef6124f94d3343c0a644c402a36d43",
+      "source_sha": "8f6050aafeef6124f94d3343c0a644c402a36d43"
+    },
+    {
+      "name": "dev/cc/skill-sandbox-seatbelt",
+      "target_sha": "8be9296b05586114f04ffe848772934de3c50374",
+      "source_sha": "8be9296b05586114f04ffe848772934de3c50374"
+    },
+    {
+      "name": "dev/cc/tmp",
+      "target_sha": "50437ca3026e03b09a8b64a480c92dd08d60dc80",
+      "source_sha": "50437ca3026e03b09a8b64a480c92dd08d60dc80"
+    },
+    {
+      "name": "dev/cc/zsh-fork-debug-2",
+      "target_sha": "252568bc6fc3a7bf151d33c52233ec66274ef6ab",
+      "source_sha": "252568bc6fc3a7bf151d33c52233ec66274ef6ab"
+    },
+    {
+      "name": "dev/cc/zsh-log",
+      "target_sha": "2f2700dfc893991639755d4abfae27733be14a59",
+      "source_sha": "2f2700dfc893991639755d4abfae27733be14a59"
+    },
+    {
+      "name": "dev/ccui/turn-attribution-context",
+      "target_sha": "8ee0afb9a15a1595751221a8400df0c4ee89bb24",
+      "source_sha": "8ee0afb9a15a1595751221a8400df0c4ee89bb24"
+    },
+    {
+      "name": "dev/ccunningham/pasted-image-tests",
+      "target_sha": "94ddb3bc2379d7352fc68dcb9ddef66f8ced0570",
+      "source_sha": "94ddb3bc2379d7352fc68dcb9ddef66f8ced0570"
+    },
+    {
+      "name": "dev/charlesdu/exec-client-metadata",
+      "target_sha": "a71195253b71514d2a580862ab918f8477c4382b",
+      "source_sha": "a71195253b71514d2a580862ab918f8477c4382b"
+    },
+    {
+      "name": "dev/charlesdu/remove-carver-agent-name",
+      "target_sha": "bbf6ec8ae5373b1dd93fa0574cc3d66c472d21ce",
+      "source_sha": "bbf6ec8ae5373b1dd93fa0574cc3d66c472d21ce"
+    },
+    {
+      "name": "dev/charlesgong/external-agent-import-progress-observability",
+      "target_sha": "b2bceb79040561a6f5f9574b9955a87aad1cd64c",
+      "source_sha": "b2bceb79040561a6f5f9574b9955a87aad1cd64c"
+    },
+    {
+      "name": "dev/charlesgong/external-agent-import-sources",
+      "target_sha": "9e242a5eab5a30384e4726dff37f6fcc932f61fc",
+      "source_sha": "9e242a5eab5a30384e4726dff37f6fcc932f61fc"
+    },
+    {
+      "name": "dev/charlesgong/home-instructions-dir",
+      "target_sha": "26df9c9efe2a8a84e1ca72d33c0630b3a3142ec1",
+      "source_sha": "26df9c9efe2a8a84e1ca72d33c0630b3a3142ec1"
+    },
+    {
+      "name": "dev/charlesgong/import-external-agent-memory",
+      "target_sha": "923df3e976a315019f4e2530070b8fd102d38e30",
+      "source_sha": "923df3e976a315019f4e2530070b8fd102d38e30"
+    },
+    {
+      "name": "dev/charlesgong/multi-source-import",
+      "target_sha": "c6bd7ff8759b40ae8f735cf9fa01548d7b5a059f",
+      "source_sha": "c6bd7ff8759b40ae8f735cf9fa01548d7b5a059f"
+    },
+    {
+      "name": "dev/charlesgong/plugin-agents",
+      "target_sha": "d38dcd9870008a778a2aed67902d8f5992e5dd72",
+      "source_sha": "d38dcd9870008a778a2aed67902d8f5992e5dd72"
+    },
+    {
+      "name": "dev/charlesgong/plugin-command-skills",
+      "target_sha": "390c58bd45fe1692b07251d597f81eebcb14479e",
+      "source_sha": "390c58bd45fe1692b07251d597f81eebcb14479e"
+    },
+    {
+      "name": "dev/charlesgong/plugin-install-manifest-name",
+      "target_sha": "610f1cd88357277eac694682633ecbfeaf6e8f60",
+      "source_sha": "610f1cd88357277eac694682633ecbfeaf6e8f60"
+    },
+    {
+      "name": "dev/charlesgong/session-import-and-command-migration",
+      "target_sha": "d1243be71dc8b397e4ed24b2db59a0148193fa85",
+      "source_sha": "d1243be71dc8b397e4ed24b2db59a0148193fa85"
+    },
+    {
+      "name": "dev/charlesgong/validate-external-agent-skills",
+      "target_sha": "0332a6dd4c1f8134a7906363eee040d4abc31cfd",
+      "source_sha": "0332a6dd4c1f8134a7906363eee040d4abc31cfd"
+    },
+    {
+      "name": "dev/charley/image-input-trace-metadata",
+      "target_sha": "7993b1ad7243f97321f123068e00bc7d8a0498dc",
+      "source_sha": "7993b1ad7243f97321f123068e00bc7d8a0498dc"
+    },
+    {
+      "name": "dev/charley/node-repl-stderr-otel-spans",
+      "target_sha": "68725041550eb26251d05ef6c13e573f99910b46",
+      "source_sha": "68725041550eb26251d05ef6c13e573f99910b46"
+    },
+    {
+      "name": "dev/codex/add-custom-models-support-in-config.toml",
+      "target_sha": "f1b7eebfa1da9c8f972541f72f0b7e52e804797d",
+      "source_sha": "f1b7eebfa1da9c8f972541f72f0b7e52e804797d"
+    },
+    {
+      "name": "dev/codex/add-custom-models-support-in-config.toml-r2",
+      "target_sha": "0c9c2298e38f18c978682044e66b49e0200ef9f8",
+      "source_sha": "0c9c2298e38f18c978682044e66b49e0200ef9f8"
+    },
+    {
+      "name": "dev/codex/add-fork-option-to-codex-exec",
+      "target_sha": "2c239b76711bd5af70195291f0a3fd230f22a975",
+      "source_sha": "2c239b76711bd5af70195291f0a3fd230f22a975"
+    },
+    {
+      "name": "dev/codex_exclude_output_streaming",
+      "target_sha": "d8044aede8abd19277ce995e01f4bb5048037943",
+      "source_sha": "d8044aede8abd19277ce995e01f4bb5048037943"
+    },
+    {
+      "name": "dev/conrad/codex-plugin-cache-symlinks",
+      "target_sha": "b5559296959fede16849b7399378dcb19b2e270f",
+      "source_sha": "b5559296959fede16849b7399378dcb19b2e270f"
+    },
+    {
+      "name": "dev/conrad/codex/macos-sandbox-args",
+      "target_sha": "f473f92e7798923ac84371859da2ea726479ff6c",
+      "source_sha": "f473f92e7798923ac84371859da2ea726479ff6c"
+    },
+    {
+      "name": "dev/conrad/sbpl-fixes",
+      "target_sha": "032b478ec1cf0a01f93e716419da046ef0433ebf",
+      "source_sha": "032b478ec1cf0a01f93e716419da046ef0433ebf"
+    },
+    {
+      "name": "dev/darrenhwang/codex-auth-session-logging-id",
+      "target_sha": "6bfb18835711897201778efe95b6733ead0ba805",
+      "source_sha": "6bfb18835711897201778efe95b6733ead0ba805"
+    },
+    {
+      "name": "dev/david.hao/add-install-script-for-codex-cli",
+      "target_sha": "d2e6c34b005fd6893cea72d1d608869476cf9afe",
+      "source_sha": "d2e6c34b005fd6893cea72d1d608869476cf9afe"
+    },
+    {
+      "name": "dev/david.hao/background-app-server",
+      "target_sha": "fbf0c14a278fe319f46ae03c8b3720cf4109c48b",
+      "source_sha": "fbf0c14a278fe319f46ae03c8b3720cf4109c48b"
+    },
+    {
+      "name": "dev/david.hao/worktree",
+      "target_sha": "03b8ed70e9b54f6389629d890705d3728c672daa",
+      "source_sha": "03b8ed70e9b54f6389629d890705d3728c672daa"
+    },
+    {
+      "name": "dev/defer-mcp-oauth-discovery",
+      "target_sha": "3c66a4a82023a3c6169c7a3529178b340b931c3f",
+      "source_sha": "3c66a4a82023a3c6169c7a3529178b340b931c3f"
+    },
+    {
+      "name": "dev/defer-plugin-mcp-initialization",
+      "target_sha": "88165dcd0786c8446837eed9ea8cb5d19a4dd3af",
+      "source_sha": "88165dcd0786c8446837eed9ea8cb5d19a4dd3af"
+    },
+    {
+      "name": "dev/defer-thread-session-initialization",
+      "target_sha": "63b70414692c745d0925921037343f2578a9b73e",
+      "source_sha": "63b70414692c745d0925921037343f2578a9b73e"
+    },
+    {
+      "name": "dev/dhruvgupta/desktop-account-sessions-rust",
+      "target_sha": "b7fde7542caf12e4c3514f706333f9fe5376af10",
+      "source_sha": "b7fde7542caf12e4c3514f706333f9fe5376af10"
+    },
+    {
+      "name": "dev/dhruvgupta/desktop-account-sessions-rust-storage",
+      "target_sha": "fd36ea04e24626e891a78c9c5ee0e535798a715b",
+      "source_sha": "fd36ea04e24626e891a78c9c5ee0e535798a715b"
+    },
+    {
+      "name": "dev/drew/mcp-resource-read-meta",
+      "target_sha": "a0c925bf3a8398747a6d54d527b0db38100a4498",
+      "source_sha": "a0c925bf3a8398747a6d54d527b0db38100a4498"
+    },
+    {
+      "name": "dev/drew/origin-call",
+      "target_sha": "fa0af6bc6f27f73519554c1b7df00b9c3d10935d",
+      "source_sha": "fa0af6bc6f27f73519554c1b7df00b9c3d10935d"
+    },
+    {
+      "name": "dev/eburke/codex/add-codex-cli-key-rotation",
+      "target_sha": "b26a07ef9de8b655a0645e30845fc22d2ed7608b",
+      "source_sha": "b26a07ef9de8b655a0645e30845fc22d2ed7608b"
+    },
+    {
+      "name": "dev/eburke/codex/macos-akv-signing-with-test-mode",
+      "target_sha": "0fec20ca7926d0452729de1e20ac2062799c7568",
+      "source_sha": "0fec20ca7926d0452729de1e20ac2062799c7568"
+    },
+    {
+      "name": "dev/efrazer/agent-identity-apps-mcp-gates",
+      "target_sha": "db2d9f471f31c5cba0c1bc1a70b94ea1750ce58c",
+      "source_sha": "db2d9f471f31c5cba0c1bc1a70b94ea1750ce58c"
+    },
+    {
+      "name": "dev/efrazer/agent-identity-auth-runtime",
+      "target_sha": "6e797a075d2aa5cb49f6a611ede1e6a5446844d0",
+      "source_sha": "6e797a075d2aa5cb49f6a611ede1e6a5446844d0"
+    },
+    {
+      "name": "dev/efrazer/agent-identity-minimal-auth",
+      "target_sha": "375d41a3ad2f40d003fc7930295f1fda572cdfda",
+      "source_sha": "375d41a3ad2f40d003fc7930295f1fda572cdfda"
+    },
+    {
+      "name": "dev/efrazer/app-server-queue-1-payload",
+      "target_sha": "bca98f5762cee548505ee03202052ff861fde0a8",
+      "source_sha": "bca98f5762cee548505ee03202052ff861fde0a8"
+    },
+    {
+      "name": "dev/efrazer/app-server-queue-10-api",
+      "target_sha": "f371cb05a36bf58e6a1a47fbf024633a563faf3d",
+      "source_sha": "f371cb05a36bf58e6a1a47fbf024633a563faf3d"
+    },
+    {
+      "name": "dev/efrazer/app-server-queue-2-store",
+      "target_sha": "2892e9e1bacf696059939a5813c2a6019fa80133",
+      "source_sha": "2892e9e1bacf696059939a5813c2a6019fa80133"
+    },
+    {
+      "name": "dev/efrazer/app-server-queue-3-rpc",
+      "target_sha": "ee4634a18fee1fc2deb140b65fbc5297a1e4b87a",
+      "source_sha": "ee4634a18fee1fc2deb140b65fbc5297a1e4b87a"
+    },
+    {
+      "name": "dev/efrazer/app-server-queue-4-dispatch",
+      "target_sha": "ef8672f22b4b8beec6ae9129cc124be098f3e96a",
+      "source_sha": "ef8672f22b4b8beec6ae9129cc124be098f3e96a"
+    },
+    {
+      "name": "dev/efrazer/app-server-queue-5-tui-poc",
+      "target_sha": "07b25626b4912b2d5b3f9565d465f96db6b7e536",
+      "source_sha": "07b25626b4912b2d5b3f9565d465f96db6b7e536"
+    },
+    {
+      "name": "dev/efrazer/app-server-queue-6-turn-start-types",
+      "target_sha": "8751324dfe9935a54a5c67969e4bbf44f6def1c5",
+      "source_sha": "8751324dfe9935a54a5c67969e4bbf44f6def1c5"
+    },
+    {
+      "name": "dev/efrazer/app-server-queue-7-idle-user-submission",
+      "target_sha": "b6841f6adb591120722e80f5f66b334f462a6505",
+      "source_sha": "b6841f6adb591120722e80f5f66b334f462a6505"
+    },
+    {
+      "name": "dev/efrazer/app-server-queue-7-runtime-roots",
+      "target_sha": "61299d9752bbfae02164558ed6d65e09ed5ef897",
+      "source_sha": "61299d9752bbfae02164558ed6d65e09ed5ef897"
+    },
+    {
+      "name": "dev/efrazer/app-server-queue-8-store",
+      "target_sha": "19d58dfe9a7f56a341c2d329c8a33eef39e4e493",
+      "source_sha": "19d58dfe9a7f56a341c2d329c8a33eef39e4e493"
+    },
+    {
+      "name": "dev/efrazer/app-server-queue-9-service",
+      "target_sha": "2aa714e273a3c979fa2f7a3e672b193397d01b48",
+      "source_sha": "2aa714e273a3c979fa2f7a3e672b193397d01b48"
+    },
+    {
+      "name": "dev/efrazer/app-server-queue-gated",
+      "target_sha": "47c4d6d4b22295161d0ec947e8092ab8d5dc54d1",
+      "source_sha": "47c4d6d4b22295161d0ec947e8092ab8d5dc54d1"
+    },
+    {
+      "name": "dev/efrazer/spend-controls-usage-contract",
+      "target_sha": "ad1facce2ba1caa243e7fa5cd3614e1f2be47530",
+      "source_sha": "ad1facce2ba1caa243e7fa5cd3614e1f2be47530"
+    },
+    {
+      "name": "dev/efrazer/thread-settings-runtime-roots",
+      "target_sha": "be7f4298574590a4a2abdc62f2932d52fa51f5a8",
+      "source_sha": "be7f4298574590a4a2abdc62f2932d52fa51f5a8"
+    },
+    {
+      "name": "dev/efrazer/user-message-queue-12-tui",
+      "target_sha": "e096bc93f045b1912a5b76fbf162eafe0ae303ff",
+      "source_sha": "e096bc93f045b1912a5b76fbf162eafe0ae303ff"
+    },
+    {
+      "name": "dev/eh/request-user-input-fields",
+      "target_sha": "5620d7431a3486e3443df5e5661bcd1df103903e",
+      "source_sha": "5620d7431a3486e3443df5e5661bcd1df103903e"
+    },
+    {
+      "name": "dev/extract-realtime-from-core",
+      "target_sha": "5c85133b552bb3f5bb120c825fb17a090b8c41ed",
+      "source_sha": "5c85133b552bb3f5bb120c825fb17a090b8c41ed"
+    },
+    {
+      "name": "dev/fix-main-model-tests",
+      "target_sha": "cc96a03f105ae6af03f1593a167dd7dd8c9d7b47",
+      "source_sha": "cc96a03f105ae6af03f1593a167dd7dd8c9d7b47"
+    },
+    {
+      "name": "dev/flaky-notify-initialize-test",
+      "target_sha": "32049db714df22feb3088a030ed90bf654f65612",
+      "source_sha": "32049db714df22feb3088a030ed90bf654f65612"
+    },
+    {
+      "name": "dev/flaky-subagent-completion-watcher",
+      "target_sha": "b9a2e400018c219e3010a5a5b8ded8645184da0b",
+      "source_sha": "b9a2e400018c219e3010a5a5b8ded8645184da0b"
+    },
+    {
+      "name": "dev/flaky-subagent-completion-watcher-revival",
+      "target_sha": "2c00009dba58fc8cbf05bf7ce252810b8c580c7d",
+      "source_sha": "2c00009dba58fc8cbf05bf7ce252810b8c580c7d"
+    },
+    {
+      "name": "dev/flaky-thread-unsubscribe-test",
+      "target_sha": "38e772e46389c65f40c9d2fcc1c1543358231f75",
+      "source_sha": "38e772e46389c65f40c9d2fcc1c1543358231f75"
+    },
+    {
+      "name": "dev/flaky-unicode-shell-command-test",
+      "target_sha": "249648d7b46653cdaea729b489b6900a50016941",
+      "source_sha": "249648d7b46653cdaea729b489b6900a50016941"
+    },
+    {
+      "name": "dev/flaky-websocket-harness-binding",
+      "target_sha": "4194759e85fd8c5d932f9911643fc1f10b76442b",
+      "source_sha": "4194759e85fd8c5d932f9911643fc1f10b76442b"
+    },
+    {
+      "name": "dev/flaky-websocket-initialize-ordering",
+      "target_sha": "b9a2e400018c219e3010a5a5b8ded8645184da0b",
+      "source_sha": "b9a2e400018c219e3010a5a5b8ded8645184da0b"
+    },
+    {
+      "name": "dev/friel/agent-tools-namespace",
+      "target_sha": "7559f163fd5d29d6f39d099d1523d43a30bfece1",
+      "source_sha": "7559f163fd5d29d6f39d099d1523d43a30bfece1"
+    },
+    {
+      "name": "dev/friel/bounded-thread-listing",
+      "target_sha": "6feb350a5ea74edd51e1e956f5c7fd3054862a5c",
+      "source_sha": "6feb350a5ea74edd51e1e956f5c7fd3054862a5c"
+    },
+    {
+      "name": "dev/friel/collab-stack",
+      "target_sha": "599ed9dc05eafd116192184bd54a2a55a2c49366",
+      "source_sha": "599ed9dc05eafd116192184bd54a2a55a2c49366"
+    },
+    {
+      "name": "dev/friel/collab-tui",
+      "target_sha": "993d3874e133dac4237ffc4493b22dac73f4fae8",
+      "source_sha": "993d3874e133dac4237ffc4493b22dac73f4fae8"
+    },
+    {
+      "name": "dev/friel/fix-proc-macro-error2-advisory",
+      "target_sha": "4869e674c135a0913ad2b3c696341af7f1d89723",
+      "source_sha": "4869e674c135a0913ad2b3c696341af7f1d89723"
+    },
+    {
+      "name": "dev/friel/fork-context-inherits-parent-model",
+      "target_sha": "e351cad98ed82ed27bf4de5840276c14509f8b94",
+      "source_sha": "e351cad98ed82ed27bf4de5840276c14509f8b94"
+    },
+    {
+      "name": "dev/friel/fork-context-role-defaults",
+      "target_sha": "0312f9b81e418f4b97374434b4096bd82c8557f4",
+      "source_sha": "0312f9b81e418f4b97374434b4096bd82c8557f4"
+    },
+    {
+      "name": "dev/friel/fork-mcp-manager",
+      "target_sha": "13494934867c28c8970a9af203bc1ebd63aff32a",
+      "source_sha": "13494934867c28c8970a9af203bc1ebd63aff32a"
+    },
+    {
+      "name": "dev/friel/fork-prefix-request-test",
+      "target_sha": "b6be6d0984074ec8679a83c866307e49d198a925",
+      "source_sha": "b6be6d0984074ec8679a83c866307e49d198a925"
+    },
+    {
+      "name": "dev/friel/fork-prompt-cache-key",
+      "target_sha": "2be95f50828e8f25a86a6f73446a3563e34b38bf",
+      "source_sha": "2be95f50828e8f25a86a6f73446a3563e34b38bf"
+    },
+    {
+      "name": "dev/friel/fork-references",
+      "target_sha": "9cef1b9415da54a9104084d8f67b5bdd2d5c212a",
+      "source_sha": "9cef1b9415da54a9104084d8f67b5bdd2d5c212a"
+    },
+    {
+      "name": "dev/friel/frodex-129-custom-models-prompts",
+      "target_sha": "4f3b42c321f0658fcdacdf8fc62a0e2e056e5ad4",
+      "source_sha": "4f3b42c321f0658fcdacdf8fc62a0e2e056e5ad4"
+    },
+    {
+      "name": "dev/friel/frodex-129-fork-cache-exec",
+      "target_sha": "d1ec95ec0ef273a6ec9b9880f6c64569b7f356ad",
+      "source_sha": "d1ec95ec0ef273a6ec9b9880f6c64569b7f356ad"
+    },
+    {
+      "name": "dev/friel/frodex-129-fork-command-debug",
+      "target_sha": "c9ea01a7500c3d80264e011473337fbead7e0302",
+      "source_sha": "c9ea01a7500c3d80264e011473337fbead7e0302"
+    },
+    {
+      "name": "dev/friel/frodex-129-rollout-segment-references",
+      "target_sha": "b0535972810b86a21d65b4968944f8c0f3fd1688",
+      "source_sha": "b0535972810b86a21d65b4968944f8c0f3fd1688"
+    },
+    {
+      "name": "dev/friel/frodex-129-tui-subagents-fork",
+      "target_sha": "efdf88acb610e50345d4d3614597cffdd047b4de",
+      "source_sha": "efdf88acb610e50345d4d3614597cffdd047b4de"
+    },
+    {
+      "name": "dev/friel/frodex-129-watchdog-parent-messaging",
+      "target_sha": "84a34f29926d77408859f1fab92c824dba3a5ad1",
+      "source_sha": "84a34f29926d77408859f1fab92c824dba3a5ad1"
+    },
+    {
+      "name": "dev/friel/frodex-129-watchdog-runtime-base",
+      "target_sha": "692b62e278a66d9d9f0e81c02db55a701d38dd56",
+      "source_sha": "692b62e278a66d9d9f0e81c02db55a701d38dd56"
+    },
+    {
+      "name": "dev/friel/imagegen-view-image",
+      "target_sha": "7d6e7c71ca48a81b5f53d68313b706c13bbef252",
+      "source_sha": "7d6e7c71ca48a81b5f53d68313b706c13bbef252"
+    },
+    {
+      "name": "dev/friel/marketplace-git-plugin-metadata",
+      "target_sha": "abe976b921264d1644fe30abf7c42ea9eea560c9",
+      "source_sha": "abe976b921264d1644fe30abf7c42ea9eea560c9"
+    },
+    {
+      "name": "dev/friel/optimize-thread-history-reading",
+      "target_sha": "0fe5f32c229f026625306c19b4d79838f02dc778",
+      "source_sha": "0fe5f32c229f026625306c19b4d79838f02dc778"
+    },
+    {
+      "name": "dev/friel/preserve-late-steer-after-turn-finalization",
+      "target_sha": "875de1ec111beed474f590f0d329f7b9cf1835e3",
+      "source_sha": "875de1ec111beed474f590f0d329f7b9cf1835e3"
+    },
+    {
+      "name": "dev/friel/request-user-input-schema-parity",
+      "target_sha": "ea8575f462116e8c046d0065a9065315472cbdde",
+      "source_sha": "ea8575f462116e8c046d0065a9065315472cbdde"
+    },
+    {
+      "name": "dev/friel/rollout-reference-readers",
+      "target_sha": "4f4e4b8e76a23a88cf5e72a42ec172c5bfbcf167",
+      "source_sha": "4f4e4b8e76a23a88cf5e72a42ec172c5bfbcf167"
+    },
+    {
+      "name": "dev/friel/session-segmentation",
+      "target_sha": "848575dc0d9feddd91b6656d8b4cadfb18d2d73c",
+      "source_sha": "848575dc0d9feddd91b6656d8b4cadfb18d2d73c"
+    },
+    {
+      "name": "dev/friel/spawn-mode-removal",
+      "target_sha": "a2d205cd9b8cee932870120a063b8690ce6a0eeb",
+      "source_sha": "a2d205cd9b8cee932870120a063b8690ce6a0eeb"
+    },
+    {
+      "name": "dev/friel/subagent-inbox-injection",
+      "target_sha": "679de088a30d3e793f8c4115ca81bb06ec53e5f7",
+      "source_sha": "679de088a30d3e793f8c4115ca81bb06ec53e5f7"
+    },
+    {
+      "name": "dev/friel/test-123",
+      "target_sha": "f5c0f46b117942d8fe696db702255b69485a769e",
+      "source_sha": "f5c0f46b117942d8fe696db702255b69485a769e"
+    },
+    {
+      "name": "dev/friel/tui-collab-foundation",
+      "target_sha": "74644b13de45a9d4ea8f95f449dae682d6b429e2",
+      "source_sha": "74644b13de45a9d4ea8f95f449dae682d6b429e2"
+    },
+    {
+      "name": "dev/friel/tui-watchdog-and-subagent-behavior",
+      "target_sha": "d28a4191224707ba2f6bd2208d9210644099090d",
+      "source_sha": "d28a4191224707ba2f6bd2208d9210644099090d"
+    },
+    {
+      "name": "dev/friel/watchdog-close-guard-no-auto-close-2",
+      "target_sha": "d4ed343c1d4acbf8d29971b0f206bcff2737b0a1",
+      "source_sha": "d4ed343c1d4acbf8d29971b0f206bcff2737b0a1"
+    },
+    {
+      "name": "dev/friel/watchdog-interval-reset",
+      "target_sha": "a4c2eaeaf19481da9fc6702a0d5beffe5e53e38e",
+      "source_sha": "a4c2eaeaf19481da9fc6702a0d5beffe5e53e38e"
+    },
+    {
+      "name": "dev/friel/watchdog-runtime-and-prompts",
+      "target_sha": "a9c622b81c353e95a45a0429e1c281281e3f7f29",
+      "source_sha": "a9c622b81c353e95a45a0429e1c281281e3f7f29"
+    },
+    {
+      "name": "dev/friel/watchdog-self-close-tool",
+      "target_sha": "f03478f38d43598af3d6f8aac8edb549ad4ebc70",
+      "source_sha": "f03478f38d43598af3d6f8aac8edb549ad4ebc70"
+    },
+    {
+      "name": "dev/honor-null-thread-instructions",
+      "target_sha": "9212c9681525dd4a07b31ca28cd3f47b6618a5da",
+      "source_sha": "9212c9681525dd4a07b31ca28cd3f47b6618a5da"
+    },
+    {
+      "name": "dev/ianw/device-auth-terminal-contrast",
+      "target_sha": "36a957566ce5e35c51322523b581a71711ae2d8b",
+      "source_sha": "36a957566ce5e35c51322523b581a71711ae2d8b"
+    },
+    {
+      "name": "dev/iceweasel/copy-codex-exe",
+      "target_sha": "e3ba3394fa30e21505d1c78cc8096262ea9af820",
+      "source_sha": "e3ba3394fa30e21505d1c78cc8096262ea9af820"
+    },
+    {
+      "name": "dev/iceweasel/fix-bash-highlighting-stack-overflow",
+      "target_sha": "0c5ce68ac644434c6d0253f95fcfc9a7b2d57ad3",
+      "source_sha": "0c5ce68ac644434c6d0253f95fcfc9a7b2d57ad3"
+    },
+    {
+      "name": "dev/iceweasel/fix-sandbox-typo",
+      "target_sha": "49dffea543c7d537fd474b1fc01a2abb27c6099a",
+      "source_sha": "49dffea543c7d537fd474b1fc01a2abb27c6099a"
+    },
+    {
+      "name": "dev/iceweasel/gcm",
+      "target_sha": "2bd87d1a7580b2ac7a1727660f2dcb9ab0f7393d",
+      "source_sha": "2bd87d1a7580b2ac7a1727660f2dcb9ab0f7393d"
+    },
+    {
+      "name": "dev/iceweasel/npm-publish-idempotent",
+      "target_sha": "c4bb7db1595123acc73abef26df4beb5b9565b39",
+      "source_sha": "c4bb7db1595123acc73abef26df4beb5b9565b39"
+    },
+    {
+      "name": "dev/iceweasel/reintroduce-winget",
+      "target_sha": "c961ee9c150f38e781bf580fd34e4480148534a1",
+      "source_sha": "c961ee9c150f38e781bf580fd34e4480148534a1"
+    },
+    {
+      "name": "dev/iceweasel/sandbox-fix-piped-commands",
+      "target_sha": "ee92200813d0d012052b77d0b14419c9fb303ddc",
+      "source_sha": "ee92200813d0d012052b77d0b14419c9fb303ddc"
+    },
+    {
+      "name": "dev/iceweasel/sandbox-integration-tests-1",
+      "target_sha": "0248b2b7fa94a7034f03a0148ab0e4d7bbbe891c",
+      "source_sha": "0248b2b7fa94a7034f03a0148ab0e4d7bbbe891c"
+    },
+    {
+      "name": "dev/iceweasel/sandbox-user",
+      "target_sha": "ce9d7c59a49ac6eaf6dbe00a33000cfd3a9f3b59",
+      "source_sha": "ce9d7c59a49ac6eaf6dbe00a33000cfd3a9f3b59"
+    },
+    {
+      "name": "dev/iceweasel/sandbox-v2",
+      "target_sha": "cc13396c299ba32ee02a853e72d230c4f6e88c90",
+      "source_sha": "cc13396c299ba32ee02a853e72d230c4f6e88c90"
+    },
+    {
+      "name": "dev/iceweasel/unified-exec-windows-close-sessions",
+      "target_sha": "53e648595898f94ef3afdba828e76bacb5b9ae05",
+      "source_sha": "53e648595898f94ef3afdba828e76bacb5b9ae05"
+    },
+    {
+      "name": "dev/iceweasel/use-config-cwd",
+      "target_sha": "204043d15bd5b177489536e5f759d4007882c3c2",
+      "source_sha": "204043d15bd5b177489536e5f759d4007882c3c2"
+    },
+    {
+      "name": "dev/iceweasel/windows-sandbox-15179",
+      "target_sha": "6111b0ecbb362b9cacfcf5ac3dfcff5802239eb9",
+      "source_sha": "6111b0ecbb362b9cacfcf5ac3dfcff5802239eb9"
+    },
+    {
+      "name": "dev/iceweasel/windows-sandbox-15298",
+      "target_sha": "3e671ee6e055cd94473522f1a22d55ab147d1256",
+      "source_sha": "3e671ee6e055cd94473522f1a22d55ab147d1256"
+    },
+    {
+      "name": "dev/iceweasel/windows-sandbox-scaffold",
+      "target_sha": "db7950e68a2b0bc758d25a4c47990a6ea1506cab",
+      "source_sha": "db7950e68a2b0bc758d25a4c47990a6ea1506cab"
+    },
+    {
+      "name": "dev/iceweasel/windows-truecolor",
+      "target_sha": "bb86dbd80d35e5a3fd3a3353bfe1422700fac4ad",
+      "source_sha": "bb86dbd80d35e5a3fd3a3353bfe1422700fac4ad"
+    },
+    {
+      "name": "dev/iceweasel/windows-unified-exec",
+      "target_sha": "8874c898c91add0d9a4f078f7d662b822bec5355",
+      "source_sha": "8874c898c91add0d9a4f078f7d662b822bec5355"
+    },
+    {
+      "name": "dev/iceweasel/windows-user-message-color",
+      "target_sha": "3d3ca6475d0a38bb96afd225b49340430fd487f8",
+      "source_sha": "3d3ca6475d0a38bb96afd225b49340430fd487f8"
+    },
+    {
+      "name": "dev/iceweasel/windows-user-message-style",
+      "target_sha": "c81c1330702a653b0beffada4653779b75f5a673",
+      "source_sha": "c81c1330702a653b0beffada4653779b75f5a673"
+    },
+    {
+      "name": "dev/instrument-thread-start-response",
+      "target_sha": "3b0a93185d0b4fa3fb300def5d25421462692fa8",
+      "source_sha": "3b0a93185d0b4fa3fb300def5d25421462692fa8"
+    },
+    {
+      "name": "dev/javi/atomic-running-resume",
+      "target_sha": "0e597b272c0437353e1fabeba87d65d3a5709f91",
+      "source_sha": "0e597b272c0437353e1fabeba87d65d3a5709f91"
+    },
+    {
+      "name": "dev/javi/clean-up-ptys",
+      "target_sha": "4a84e26bbce25e595a2dcaa2ec6d300ab56258a1",
+      "source_sha": "4a84e26bbce25e595a2dcaa2ec6d300ab56258a1"
+    },
+    {
+      "name": "dev/javi/codex/app-server-hang",
+      "target_sha": "e355bf261a0d5c71aed0dbf4deb1cd7d45b11e33",
+      "source_sha": "e355bf261a0d5c71aed0dbf4deb1cd7d45b11e33"
+    },
+    {
+      "name": "dev/javi/conversation-naming-rollout",
+      "target_sha": "1364a8104026a6dbec474cf8d5b1dce79bbbbf4c",
+      "source_sha": "1364a8104026a6dbec474cf8d5b1dce79bbbbf4c"
+    },
+    {
+      "name": "dev/javi/cursor-timeout-error",
+      "target_sha": "557731d7d62765f1030fefea4167b44bd76b3c86",
+      "source_sha": "557731d7d62765f1030fefea4167b44bd76b3c86"
+    },
+    {
+      "name": "dev/javi/desktop-session-source",
+      "target_sha": "e29c6aef80b5afab7bd184d3109565931d758e11",
+      "source_sha": "e29c6aef80b5afab7bd184d3109565931d758e11"
+    },
+    {
+      "name": "dev/javi/fix-app-server-export-clash",
+      "target_sha": "f3531c92c742aa120e2a7bd25649db9e1d21bd28",
+      "source_sha": "f3531c92c742aa120e2a7bd25649db9e1d21bd28"
+    },
+    {
+      "name": "dev/javi/fix-fs-helper-macos-startup-ipc",
+      "target_sha": "2628c0becfa5b6949064bec9ab485ba2b2d88c43",
+      "source_sha": "2628c0becfa5b6949064bec9ab485ba2b2d88c43"
+    },
+    {
+      "name": "dev/javi/macos-notifications",
+      "target_sha": "11028280dc0f6a7e5a9037cdca8298bc0958a372",
+      "source_sha": "11028280dc0f6a7e5a9037cdca8298bc0958a372"
+    },
+    {
+      "name": "dev/javi/mcp-auth-refresh",
+      "target_sha": "214ac14b608369ad740f51b60f7fce42cb3f0a68",
+      "source_sha": "214ac14b608369ad740f51b60f7fce42cb3f0a68"
+    },
+    {
+      "name": "dev/javi/rollout-recorder-stop-on-failure",
+      "target_sha": "bf5a4924c7fc740f58377df218a930558f05af39",
+      "source_sha": "bf5a4924c7fc740f58377df218a930558f05af39"
+    },
+    {
+      "name": "dev/jcoens/reasoning_level",
+      "target_sha": "ce85be18bee239de64e0dcccc7ea140b37b8273f",
+      "source_sha": "ce85be18bee239de64e0dcccc7ea140b37b8273f"
+    },
+    {
+      "name": "dev/jdavenport/codex-fedramp-api-native-exe",
+      "target_sha": "7867f85bf783e57cba89f282e1cb904bc0aa717b",
+      "source_sha": "7867f85bf783e57cba89f282e1cb904bc0aa717b"
+    },
+    {
+      "name": "dev/jessedu/configurable-generated-image-directory",
+      "target_sha": "b1b3eec56e3945bdc9cc4f378a89aebae86bdce9",
+      "source_sha": "b1b3eec56e3945bdc9cc4f378a89aebae86bdce9"
+    },
+    {
+      "name": "dev/jlewi/wasm",
+      "target_sha": "78cdff946581323dbe81032e3b620a7000080b80",
+      "source_sha": "78cdff946581323dbe81032e3b620a7000080b80"
+    },
+    {
+      "name": "dev/jm/codex-installation-id-response-headers",
+      "target_sha": "2dab970ee4e1fba977ebc02137fcd2032103e133",
+      "source_sha": "2dab970ee4e1fba977ebc02137fcd2032103e133"
+    },
+    {
+      "name": "dev/jm/devicecheck-app-server",
+      "target_sha": "ed6d07a7f1828094bb8f3161b03c90696a3cc78b",
+      "source_sha": "ed6d07a7f1828094bb8f3161b03c90696a3cc78b"
+    },
+    {
+      "name": "dev/jm/devicecheck-diagram-assets",
+      "target_sha": "67d50ef1d79984225f78de3a1664a17b0daf1fa1",
+      "source_sha": "67d50ef1d79984225f78de3a1664a17b0daf1fa1"
+    },
+    {
+      "name": "dev/jm/fix-app-server-attestation-omission",
+      "target_sha": "dba48ce15f948c5520e804921cf4138bb9531ab1",
+      "source_sha": "dba48ce15f948c5520e804921cf4138bb9531ab1"
+    },
+    {
+      "name": "dev/jm/fix-codex-installation-id-header-propagation",
+      "target_sha": "1b57648d3362dab399c1649a495cfb6ed55e70fc",
+      "source_sha": "1b57648d3362dab399c1649a495cfb6ed55e70fc"
+    },
+    {
+      "name": "dev/jn/codex/progress-notifications",
+      "target_sha": "163c32eedbd7d9b727ddcaa490b51e235eb50f62",
+      "source_sha": "163c32eedbd7d9b727ddcaa490b51e235eb50f62"
+    },
+    {
+      "name": "dev/joeflorencio/lock-and-use-codex-bundle-cache",
+      "target_sha": "8cafe7639e83e693d228fa3cda1cb1f7db4345f6",
+      "source_sha": "8cafe7639e83e693d228fa3cda1cb1f7db4345f6"
+    },
+    {
+      "name": "dev/josiah/experiment-jsonrpc",
+      "target_sha": "da432778b1eb48298c3a5899f6f532a1e022877a",
+      "source_sha": "da432778b1eb48298c3a5899f6f532a1e022877a"
+    },
+    {
+      "name": "dev/kevinlin/guardian-observability",
+      "target_sha": "c1d032588b1515b0f0153e6442e1a762424276d5",
+      "source_sha": "c1d032588b1515b0f0153e6442e1a762424276d5"
+    },
+    {
+      "name": "dev/kevinliu/codex/update-model-references-to-gpt-5.5",
+      "target_sha": "205d60adddb5dbc57a84a50e86d43fb14bc77686",
+      "source_sha": "205d60adddb5dbc57a84a50e86d43fb14bc77686"
+    },
+    {
+      "name": "dev/khoi/codex/browser-use-external-feature",
+      "target_sha": "f1d018ff59a45ec29a3ca0e5e6be2bb889a1ba4b",
+      "source_sha": "f1d018ff59a45ec29a3ca0e5e6be2bb889a1ba4b"
+    },
+    {
+      "name": "dev/khoi/codex/remote-control-local-thread-debug-combined",
+      "target_sha": "3e6ceb26bdf2d7067a845ea341e99a09cc76c400",
+      "source_sha": "3e6ceb26bdf2d7067a845ea341e99a09cc76c400"
+    },
+    {
+      "name": "dev/khoi/codex/remote-control-local-thread-prototype-main",
+      "target_sha": "df8f6372dc91f0f7c4bdf138b09abd8874c92707",
+      "source_sha": "df8f6372dc91f0f7c4bdf138b09abd8874c92707"
+    },
+    {
+      "name": "dev/koffing-max-reasoning-models-core",
+      "target_sha": "8440dd056fb55dc814473d7d2f83d5853f3fd3e2",
+      "source_sha": "8440dd056fb55dc814473d7d2f83d5853f3fd3e2"
+    },
+    {
+      "name": "dev/kyleb/generic-process-lifecycle-hooks",
+      "target_sha": "1884f253daf58f854828c60ef677b612a6e6b37b",
+      "source_sha": "1884f253daf58f854828c60ef677b612a6e6b37b"
+    },
+    {
+      "name": "dev/kyleb/generic-process-lifecycle-hooks-v3",
+      "target_sha": "6bd7bd6bec413027e7cb253705a9df1aaae7ba42",
+      "source_sha": "6bd7bd6bec413027e7cb253705a9df1aaae7ba42"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-analytics-contract",
+      "target_sha": "ce4a157adff19c7e491995f87086675ce19cb1cc",
+      "source_sha": "ce4a157adff19c7e491995f87086675ce19cb1cc"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-analytics-contract-v3",
+      "target_sha": "ef993e544d1b7f68cecb0bcaa5b08ca5fe274070",
+      "source_sha": "ef993e544d1b7f68cecb0bcaa5b08ca5fe274070"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-command-resolver",
+      "target_sha": "ea2fc2fd409a84e5072bda4dd928eac8ff3b428c",
+      "source_sha": "ea2fc2fd409a84e5072bda4dd928eac8ff3b428c"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-command-resolver-tests-v3",
+      "target_sha": "a96c06cbf77d45a03c978c143cdfce1387a48c7f",
+      "source_sha": "a96c06cbf77d45a03c978c143cdfce1387a48c7f"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-command-resolver-v3",
+      "target_sha": "31e76110a5ab62e33c72198c97b0a3911a0a2bb7",
+      "source_sha": "31e76110a5ab62e33c72198c97b0a3911a0a2bb7"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-identity-plumbing",
+      "target_sha": "d90859dcb375309e901267c9467e228c157c8028",
+      "source_sha": "d90859dcb375309e901267c9467e228c157c8028"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-identity-v3",
+      "target_sha": "a1ad2a78ff3526c88ae222de0b0a564465c65b8f",
+      "source_sha": "a1ad2a78ff3526c88ae222de0b0a564465c65b8f"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-lifecycle-metrics",
+      "target_sha": "fedbe6802257762b6d121b535d239f957616ea01",
+      "source_sha": "fedbe6802257762b6d121b535d239f957616ea01"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-lifecycle-metrics-v3",
+      "target_sha": "05f457cff88d5d14ce5b84eab1f7a84f9310a08e",
+      "source_sha": "05f457cff88d5d14ce5b84eab1f7a84f9310a08e"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-shell-lifecycle",
+      "target_sha": "783bcc25a2a4ed30570da1d6b295b7fd644b1d47",
+      "source_sha": "783bcc25a2a4ed30570da1d6b295b7fd644b1d47"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-shell-lifecycle-e2e-v3",
+      "target_sha": "57ad2a34578811b06816098c0f7fbb35f4c17000",
+      "source_sha": "57ad2a34578811b06816098c0f7fbb35f4c17000"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-shell-lifecycle-v3",
+      "target_sha": "237ee85f976329c9e757012cfcdc48dfc73ce434",
+      "source_sha": "237ee85f976329c9e757012cfcdc48dfc73ce434"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-unified-exec-lifecycle",
+      "target_sha": "e6c8b82fe48423556946f474f253dae9d447ab0c",
+      "source_sha": "e6c8b82fe48423556946f474f253dae9d447ab0c"
+    },
+    {
+      "name": "dev/kyleb/plugin-script-unified-exec-lifecycle-v3",
+      "target_sha": "8ac88da0eae0520b00e49bb369a764ca6afa5582",
+      "source_sha": "8ac88da0eae0520b00e49bb369a764ca6afa5582"
+    },
+    {
+      "name": "dev/kylepatel/flora-plugin-suggestion-metadata",
+      "target_sha": "062f24ff4da358568a8476d9b0c458645f7813ce",
+      "source_sha": "062f24ff4da358568a8476d9b0c458645f7813ce"
+    },
+    {
+      "name": "dev/kylepatel/prompt-for-writes-mcp-approval",
+      "target_sha": "5e86a50f8407ac165f806e36c3fe30e77d58582a",
+      "source_sha": "5e86a50f8407ac165f806e36c3fe30e77d58582a"
+    },
+    {
+      "name": "dev/lazy-mcp-tool-search-registration",
+      "target_sha": "e4e781af093a5abaa7d459b777dd6610ef54b4ed",
+      "source_sha": "e4e781af093a5abaa7d459b777dd6610ef54b4ed"
+    },
+    {
+      "name": "dev/log-realtime-location",
+      "target_sha": "aea44bd1c7a145ebc6230a98cdad7ee15cd22d3f",
+      "source_sha": "aea44bd1c7a145ebc6230a98cdad7ee15cd22d3f"
+    },
+    {
+      "name": "dev/marco/privacy-export-cli-skeleton",
+      "target_sha": "a790400a8f8159f026ae474696d8f19b13c4e44f",
+      "source_sha": "a790400a8f8159f026ae474696d8f19b13c4e44f"
+    },
+    {
+      "name": "dev/mcgrew/network-otel-logs",
+      "target_sha": "b7ce246480159e71ad246b3ba157a1c659ca791b",
+      "source_sha": "b7ce246480159e71ad246b3ba157a1c659ca791b"
+    },
+    {
+      "name": "dev/model-catalog-refresh-serialization",
+      "target_sha": "b83f7eef6eb854003613fa87f85f8b5305962e8d",
+      "source_sha": "b83f7eef6eb854003613fa87f85f8b5305962e8d"
+    },
+    {
+      "name": "dev/mousseau/namespace-collison-error",
+      "target_sha": "6e8785a021f4fd3c40d4f25b053e2f3070122998",
+      "source_sha": "6e8785a021f4fd3c40d4f25b053e2f3070122998"
+    },
+    {
+      "name": "dev/mstoiber/stop-exposing-direct-mcp-context",
+      "target_sha": "0a451911c3bc2ee30179c0b15882c5f0b47bfffe",
+      "source_sha": "0a451911c3bc2ee30179c0b15882c5f0b47bfffe"
+    },
+    {
+      "name": "dev/mzeng/a_never_fix",
+      "target_sha": "afe57f7db81051cfe1d778e9e2ae96c012cc5fdb",
+      "source_sha": "afe57f7db81051cfe1d778e9e2ae96c012cc5fdb"
+    },
+    {
+      "name": "dev/mzeng/aimonitor_client_1",
+      "target_sha": "c00c8fc8746e75ebc93fe3bf2ede5cd203dda324",
+      "source_sha": "c00c8fc8746e75ebc93fe3bf2ede5cd203dda324"
+    },
+    {
+      "name": "dev/mzeng/app_list_tui",
+      "target_sha": "d92fb2a6c7fa8e7bf7cb44e43746f8cf9d1e8220",
+      "source_sha": "d92fb2a6c7fa8e7bf7cb44e43746f8cf9d1e8220"
+    },
+    {
+      "name": "dev/mzeng/apps-runtime-state-api",
+      "target_sha": "befcf12158ccf9bfd7c5407ff74edff5c6ad5bf3",
+      "source_sha": "befcf12158ccf9bfd7c5407ff74edff5c6ad5bf3"
+    },
+    {
+      "name": "dev/mzeng/apps-runtime-state-manager",
+      "target_sha": "4f6fb1bbf118525ec4092df7b679416715961837",
+      "source_sha": "4f6fb1bbf118525ec4092df7b679416715961837"
+    },
+    {
+      "name": "dev/mzeng/apps-runtime-state-refresh",
+      "target_sha": "adefe7420ccee02a972d4448da333c2b9a193815",
+      "source_sha": "adefe7420ccee02a972d4448da333c2b9a193815"
+    },
+    {
+      "name": "dev/mzeng/apps-runtime-state-request-stable",
+      "target_sha": "b2fb980f671858c2823bd929f97e19ce3d46de65",
+      "source_sha": "b2fb980f671858c2823bd929f97e19ce3d46de65"
+    },
+    {
+      "name": "dev/mzeng/avoid_duplicate_codex_apps_tools_refresh",
+      "target_sha": "361dff228e061b48ce88789b1fdeb1a5c71ab480",
+      "source_sha": "361dff228e061b48ce88789b1fdeb1a5c71ab480"
+    },
+    {
+      "name": "dev/mzeng/cam_client_1",
+      "target_sha": "1414963114a8f8e5fb360902e191539172501acb",
+      "source_sha": "1414963114a8f8e5fb360902e191539172501acb"
+    },
+    {
+      "name": "dev/mzeng/codex_apps_mcp_declare",
+      "target_sha": "d076acc51d9c8ae1ef99e5592297b86d3a210710",
+      "source_sha": "d076acc51d9c8ae1ef99e5592297b86d3a210710"
+    },
+    {
+      "name": "dev/mzeng/connector_fields",
+      "target_sha": "45a414b16afd013286d309f279ee8c9cbd24c0ed",
+      "source_sha": "45a414b16afd013286d309f279ee8c9cbd24c0ed"
+    },
+    {
+      "name": "dev/mzeng/connectors_codex_cli_1",
+      "target_sha": "ad5d583d50b9de16cdcd09d256bca10793fd8d8b",
+      "source_sha": "ad5d583d50b9de16cdcd09d256bca10793fd8d8b"
+    },
+    {
+      "name": "dev/mzeng/connectors_codex_cli_5",
+      "target_sha": "ac4dff66e48f9717b9329dce102627d4632f48cf",
+      "source_sha": "ac4dff66e48f9717b9329dce102627d4632f48cf"
+    },
+    {
+      "name": "dev/mzeng/connectors_codex_cli_6",
+      "target_sha": "5ba424284ad4b618495cf9e8fe9a0a83fb80b566",
+      "source_sha": "5ba424284ad4b618495cf9e8fe9a0a83fb80b566"
+    },
+    {
+      "name": "dev/mzeng/elicitation_i18n",
+      "target_sha": "e44aee78ad8996a3c867e1b0632513feeda6405f",
+      "source_sha": "e44aee78ad8996a3c867e1b0632513feeda6405f"
+    },
+    {
+      "name": "dev/mzeng/elicitation_message_polish",
+      "target_sha": "fba13b1a8b146d6c5ab2e588c6d38ccbc00c8b70",
+      "source_sha": "fba13b1a8b146d6c5ab2e588c6d38ccbc00c8b70"
+    },
+    {
+      "name": "dev/mzeng/explicit_plugin_mention_context_fix",
+      "target_sha": "7557b4ca98aa323dcffcae0bd8ee7ff49f9ebecc",
+      "source_sha": "7557b4ca98aa323dcffcae0bd8ee7ff49f9ebecc"
+    },
+    {
+      "name": "dev/mzeng/fix-clippy-clone-warning",
+      "target_sha": "756ba8baae8b033e02fa8f26b5d16ad5b06adc02",
+      "source_sha": "756ba8baae8b033e02fa8f26b5d16ad5b06adc02"
+    },
+    {
+      "name": "dev/mzeng/fix-flaky-app-list-tests",
+      "target_sha": "b1f6bdb0525280f503ebc04b185179a294bfef2c",
+      "source_sha": "b1f6bdb0525280f503ebc04b185179a294bfef2c"
+    },
+    {
+      "name": "dev/mzeng/fix_app_in_skill_list",
+      "target_sha": "e7352dee4aa88b3feef5ff085a2c9d9b6435d1a8",
+      "source_sha": "e7352dee4aa88b3feef5ff085a2c9d9b6435d1a8"
+    },
+    {
+      "name": "dev/mzeng/fix_mcp_tool_call_mismatch",
+      "target_sha": "fe79b5f8e7d042d21b72d5bf401d9bb4d4def372",
+      "source_sha": "fe79b5f8e7d042d21b72d5bf401d9bb4d4def372"
+    },
+    {
+      "name": "dev/mzeng/fix_non_apps_mcps_selection",
+      "target_sha": "23e54eadcce36594127b73857418276f33935e13",
+      "source_sha": "23e54eadcce36594127b73857418276f33935e13"
+    },
+    {
+      "name": "dev/mzeng/flip-authelicitation-flag",
+      "target_sha": "ef63440a9a74a05bd4e90ad23dcf4966770f4577",
+      "source_sha": "ef63440a9a74a05bd4e90ad23dcf4966770f4577"
+    },
+    {
+      "name": "dev/mzeng/hot_reload_config",
+      "target_sha": "b4843a50b1ae9c59f9430f2c53a03cfa897201bc",
+      "source_sha": "b4843a50b1ae9c59f9430f2c53a03cfa897201bc"
+    },
+    {
+      "name": "dev/mzeng/improve_mention_extract",
+      "target_sha": "f2995fd4c0e211950f92cb6ebd5ad9db0c7ec136",
+      "source_sha": "f2995fd4c0e211950f92cb6ebd5ad9db0c7ec136"
+    },
+    {
+      "name": "dev/mzeng/inbox_1",
+      "target_sha": "da838ef284f8c764bb6e7ddfef78e27d11729ae8",
+      "source_sha": "da838ef284f8c764bb6e7ddfef78e27d11729ae8"
+    },
+    {
+      "name": "dev/mzeng/keep-mcp-tools-consistent",
+      "target_sha": "ce5c64c584ff5ea57465b8df22b6e206e1194b22",
+      "source_sha": "ce5c64c584ff5ea57465b8df22b6e206e1194b22"
+    },
+    {
+      "name": "dev/mzeng/load-plugin-skills-concurrently",
+      "target_sha": "8c52fda78248ec533378301b7dace943cae50bc1",
+      "source_sha": "8c52fda78248ec533378301b7dace943cae50bc1"
+    },
+    {
+      "name": "dev/mzeng/mcp-meta-by-server",
+      "target_sha": "33ad2c97377a9a038dce18d2e50f484898e53abb",
+      "source_sha": "33ad2c97377a9a038dce18d2e50f484898e53abb"
+    },
+    {
+      "name": "dev/mzeng/mcp_apps_3",
+      "target_sha": "eda59fc8f0484a0dc2e56dd01882e2dd10891b9d",
+      "source_sha": "eda59fc8f0484a0dc2e56dd01882e2dd10891b9d"
+    },
+    {
+      "name": "dev/mzeng/mcp_schema_2025_11_25",
+      "target_sha": "90e9ad5ffbd18ae4bc6582f5f443cca1a5a7a406",
+      "source_sha": "90e9ad5ffbd18ae4bc6582f5f443cca1a5a7a406"
+    },
+    {
+      "name": "dev/mzeng/mcp_server_elicitation",
+      "target_sha": "7b6486a145ed4c02d878c971bdc8ef92eaa8ab82",
+      "source_sha": "7b6486a145ed4c02d878c971bdc8ef92eaa8ab82"
+    },
+    {
+      "name": "dev/mzeng/oauth-probe",
+      "target_sha": "8b82b790380b5a5ae8d0da68df0da06b5f6e1d30",
+      "source_sha": "8b82b790380b5a5ae8d0da68df0da06b5f6e1d30"
+    },
+    {
+      "name": "dev/mzeng/plugin-catalog-revisions",
+      "target_sha": "f0ce10bbf3598a105b8f050f5709544830b72c3c",
+      "source_sha": "f0ce10bbf3598a105b8f050f5709544830b72c3c"
+    },
+    {
+      "name": "dev/mzeng/plugin-catalog-snapshots",
+      "target_sha": "030adac6449d243452a01d7c3a8babf80939f181",
+      "source_sha": "030adac6449d243452a01d7c3a8babf80939f181"
+    },
+    {
+      "name": "dev/mzeng/plugin_mcp_cleanup",
+      "target_sha": "188efe8c1a68213fc061b0713bae9feafbd011be",
+      "source_sha": "188efe8c1a68213fc061b0713bae9feafbd011be"
+    },
+    {
+      "name": "dev/mzeng/plugin_suggesitons",
+      "target_sha": "dff58de9129b5d02fa1a7d9efdcfa89884c253f6",
+      "source_sha": "dff58de9129b5d02fa1a7d9efdcfa89884c253f6"
+    },
+    {
+      "name": "dev/mzeng/rcmp_upgrade",
+      "target_sha": "b2312a87ab5a551b147b78dedb51da52a203add4",
+      "source_sha": "b2312a87ab5a551b147b78dedb51da52a203add4"
+    },
+    {
+      "name": "dev/mzeng/readable_elicitation_model_driven",
+      "target_sha": "b98f286c55bdad26bdc8e830caf7edeafe2045b3",
+      "source_sha": "b98f286c55bdad26bdc8e830caf7edeafe2045b3"
+    },
+    {
+      "name": "dev/mzeng/reuse-plugin-skill-root-snapshots",
+      "target_sha": "31491e461bcf77ea4074023acdf5f2bb1ff32aa9",
+      "source_sha": "31491e461bcf77ea4074023acdf5f2bb1ff32aa9"
+    },
+    {
+      "name": "dev/mzeng/reuse-read-directory-entry-kind",
+      "target_sha": "38846d7f1a193526e7134a2b6aa2c703fcfe3e99",
+      "source_sha": "38846d7f1a193526e7134a2b6aa2c703fcfe3e99"
+    },
+    {
+      "name": "dev/mzeng/runtime-tool-catalog-manager",
+      "target_sha": "9436b328ae2402ce07a90318088d1b24aac1559c",
+      "source_sha": "9436b328ae2402ce07a90318088d1b24aac1559c"
+    },
+    {
+      "name": "dev/mzeng/sandbox_configs",
+      "target_sha": "65dd93e8ad0a9cdf0cafea4a604912b4f6ff819e",
+      "source_sha": "65dd93e8ad0a9cdf0cafea4a604912b4f6ff819e"
+    },
+    {
+      "name": "dev/mzeng/sandbox_policies",
+      "target_sha": "5185567b62c84c6a1404258535930a18eed0fa9c",
+      "source_sha": "5185567b62c84c6a1404258535930a18eed0fa9c"
+    },
+    {
+      "name": "dev/mzeng/skill_deps_extraction",
+      "target_sha": "4d49fb8539af0e5d9efe0b8ff189cf8395ba74d4",
+      "source_sha": "4d49fb8539af0e5d9efe0b8ff189cf8395ba74d4"
+    },
+    {
+      "name": "dev/mzeng/skill_token_limit",
+      "target_sha": "deae88d37160cf504988a650cb3c88c1c441d058",
+      "source_sha": "deae88d37160cf504988a650cb3c88c1c441d058"
+    },
+    {
+      "name": "dev/mzeng/tool_discovery",
+      "target_sha": "5ef74e74b53ba7a33f50ac09264e3a44c0410b99",
+      "source_sha": "5ef74e74b53ba7a33f50ac09264e3a44c0410b99"
+    },
+    {
+      "name": "dev/mzeng/tool_installer_tool",
+      "target_sha": "02be9c582777b45b2982fab4f160eff8b952a34f",
+      "source_sha": "02be9c582777b45b2982fab4f160eff8b952a34f"
+    },
+    {
+      "name": "dev/mzeng/tool_search_tool_name",
+      "target_sha": "d803f4694a8ab41b830deb8fcb20dbb6072ee56f",
+      "source_sha": "d803f4694a8ab41b830deb8fcb20dbb6072ee56f"
+    },
+    {
+      "name": "dev/mzeng/tool_suggest_description",
+      "target_sha": "21a655d0fab200fa3a8287a1b9ac8bafa567f41e",
+      "source_sha": "21a655d0fab200fa3a8287a1b9ac8bafa567f41e"
+    },
+    {
+      "name": "dev/mzeng/tool_suggest_fix",
+      "target_sha": "6010c15b564fd171a6baad58f360ff380337d8b4",
+      "source_sha": "6010c15b564fd171a6baad58f360ff380337d8b4"
+    },
+    {
+      "name": "dev/mzeng/transform_human_readable_tool_call_ids",
+      "target_sha": "d0f8f8796075f2077ed765ac122330fa265b3795",
+      "source_sha": "d0f8f8796075f2077ed765ac122330fa265b3795"
+    },
+    {
+      "name": "dev/mzeng/turn-start-mcp-availability-analytics",
+      "target_sha": "92b90d0b3c317996d1772d82b1bdaa520d567b8d",
+      "source_sha": "92b90d0b3c317996d1772d82b1bdaa520d567b8d"
+    },
+    {
+      "name": "dev/mzeng/update_models_json",
+      "target_sha": "91bbe70bbb85cbab3137b8dc1fbd7f1bbfcebcce",
+      "source_sha": "91bbe70bbb85cbab3137b8dc1fbd7f1bbfcebcce"
+    },
+    {
+      "name": "dev/ningyi/codex_turn_git_metadata",
+      "target_sha": "e7a305d4f15ff12fde2892022b3cfa0b8a2a76ed",
+      "source_sha": "e7a305d4f15ff12fde2892022b3cfa0b8a2a76ed"
+    },
+    {
+      "name": "dev/ningyi/to_do_codex_feedback_eval_mirror",
+      "target_sha": "0651e165298823936b0295fa6bd89618a83c22b6",
+      "source_sha": "0651e165298823936b0295fa6bd89618a83c22b6"
+    },
+    {
+      "name": "dev/ningyi/to_do_window_generation_rollback_resume",
+      "target_sha": "ff0779880a344fb8b32089c465bb5d664c5ac65b",
+      "source_sha": "ff0779880a344fb8b32089c465bb5d664c5ac65b"
+    },
+    {
+      "name": "dev/nlieb/remote-ssh-exec-registry",
+      "target_sha": "e76d1f0bf099a0248667eb4531e51931d0559f24",
+      "source_sha": "e76d1f0bf099a0248667eb4531e51931d0559f24"
+    },
+    {
+      "name": "dev/nmccormack/browser-63507-update-plugin-prompt-examples-from-computer",
+      "target_sha": "ee38dbbc200b61d08dc8267dbf5fc2c43753a710",
+      "source_sha": "ee38dbbc200b61d08dc8267dbf5fc2c43753a710"
+    },
+    {
+      "name": "dev/pbakkum/codex-realtimeapi-port",
+      "target_sha": "ddda43919fef4bd4a6426e223b3f747993885b71",
+      "source_sha": "ddda43919fef4bd4a6426e223b3f747993885b71"
+    },
+    {
+      "name": "dev/pbakkum/spinner",
+      "target_sha": "3a67f45701a88d601444d8210b317381ac48ada7",
+      "source_sha": "3a67f45701a88d601444d8210b317381ac48ada7"
+    },
+    {
+      "name": "dev/pr13593-lint-fix",
+      "target_sha": "75499a381b27a59763893613b267989bcfe5f63a",
+      "source_sha": "75499a381b27a59763893613b267989bcfe5f63a"
+    },
+    {
+      "name": "dev/preserve-model-derived-instructions",
+      "target_sha": "cd095e5efaec88fef940219ae25111d36b95ed70",
+      "source_sha": "cd095e5efaec88fef940219ae25111d36b95ed70"
+    },
+    {
+      "name": "dev/python-goal-controls-e2e",
+      "target_sha": "879c090ccc1dc7ae0f3fcd6fe01d7b38db4f4b85",
+      "source_sha": "879c090ccc1dc7ae0f3fcd6fe01d7b38db4f4b85"
+    },
+    {
+      "name": "dev/python-goal-e2e",
+      "target_sha": "3d72c4826c9c8375e0ba8eb9944ed10d54c89458",
+      "source_sha": "3d72c4826c9c8375e0ba8eb9944ed10d54c89458"
+    },
+    {
+      "name": "dev/python-goal-public-api",
+      "target_sha": "206478d338ebc5763a9a92e150bc3e15a28c914f",
+      "source_sha": "206478d338ebc5763a9a92e150bc3e15a28c914f"
+    },
+    {
+      "name": "dev/python-goal-public-methods",
+      "target_sha": "1f89f5233a81839922a13022dfe892a3c2668672",
+      "source_sha": "1f89f5233a81839922a13022dfe892a3c2668672"
+    },
+    {
+      "name": "dev/python-sdk-goal-turns",
+      "target_sha": "0351cd28ad85d01c7dd9b8cd2321f22786354c07",
+      "source_sha": "0351cd28ad85d01c7dd9b8cd2321f22786354c07"
+    },
+    {
+      "name": "dev/qiyaoq/add-steerable-approval",
+      "target_sha": "671cc4644bb715bee88767ce84f372bab5f2eb62",
+      "source_sha": "671cc4644bb715bee88767ce84f372bab5f2eb62"
+    },
+    {
+      "name": "dev/raju/codex-turn-context-overrides",
+      "target_sha": "50e02cbeb3b4e1fa33edc9f86ec5ebb70ca8d933",
+      "source_sha": "50e02cbeb3b4e1fa33edc9f86ec5ebb70ca8d933"
+    },
+    {
+      "name": "dev/rasmus/agent-graph-store-injection",
+      "target_sha": "450444e31648bc06f290fa61f9a648214e2c6b60",
+      "source_sha": "450444e31648bc06f290fa61f9a648214e2c6b60"
+    },
+    {
+      "name": "dev/rasmus/config_store",
+      "target_sha": "6e9afdf9a17798d537b819c576a54f7f73a431d7",
+      "source_sha": "6e9afdf9a17798d537b819c576a54f7f73a431d7"
+    },
+    {
+      "name": "dev/rasmus/config_store_local_use",
+      "target_sha": "4e5f10f1b6a1f691c327a44214ca72659b80a62b",
+      "source_sha": "4e5f10f1b6a1f691c327a44214ca72659b80a62b"
+    },
+    {
+      "name": "dev/rasmus/fix-main-test-flakes",
+      "target_sha": "d9f72b6af2a429d15f327bc8477f427c2aa5db06",
+      "source_sha": "d9f72b6af2a429d15f327bc8477f427c2aa5db06"
+    },
+    {
+      "name": "dev/rasmus/fix-thread-inventory-windows-test",
+      "target_sha": "3a8ba4ceabe6ee8ee3eab5e599f37294d277da45",
+      "source_sha": "3a8ba4ceabe6ee8ee3eab5e599f37294d277da45"
+    },
+    {
+      "name": "dev/rasmus/grpc-log-client-sink2",
+      "target_sha": "99bcadd0b13e0ba2bb99c7dde053f97f7770fce9",
+      "source_sha": "99bcadd0b13e0ba2bb99c7dde053f97f7770fce9"
+    },
+    {
+      "name": "dev/rasmus/pass_user_instructions",
+      "target_sha": "fdba436cc082a9dd0b3807c1bf359378d716754d",
+      "source_sha": "fdba436cc082a9dd0b3807c1bf359378d716754d"
+    },
+    {
+      "name": "dev/rasmus/ping_pong_pump",
+      "target_sha": "cf698a53f1b7b50e24c06d47a7b2b770a98d9e61",
+      "source_sha": "cf698a53f1b7b50e24c06d47a7b2b770a98d9e61"
+    },
+    {
+      "name": "dev/rasmus/remote-user-shell-command",
+      "target_sha": "a4964ff46d6c4a8d2e0586a456c2e272483de022",
+      "source_sha": "a4964ff46d6c4a8d2e0586a456c2e272483de022"
+    },
+    {
+      "name": "dev/rasmus/remote-user-shell-command-main",
+      "target_sha": "f854517e243c711aa3f0df5794ba1cf3f5f51c7b",
+      "source_sha": "f854517e243c711aa3f0df5794ba1cf3f5f51c7b"
+    },
+    {
+      "name": "dev/rasmus/remote-user-shell-command-openai-pin",
+      "target_sha": "b02da179537d0d4d218d3c7793487f83215086f6",
+      "source_sha": "b02da179537d0d4d218d3c7793487f83215086f6"
+    },
+    {
+      "name": "dev/rasmus/remote-user-shell-command-pin-base",
+      "target_sha": "83b9bfec8923abbe0f38e62b7c9390f3a767ea82",
+      "source_sha": "83b9bfec8923abbe0f38e62b7c9390f3a767ea82"
+    },
+    {
+      "name": "dev/rasmus/remote-user-shell-env",
+      "target_sha": "0968f33680fc36eec263992e800ecc0b889896d6",
+      "source_sha": "0968f33680fc36eec263992e800ecc0b889896d6"
+    },
+    {
+      "name": "dev/rasmus/remote_agent_store_client",
+      "target_sha": "4980d00b951d450772afc5340e157d7a6e505eeb",
+      "source_sha": "4980d00b951d450772afc5340e157d7a6e505eeb"
+    },
+    {
+      "name": "dev/rasmus/reusable_formatter",
+      "target_sha": "bf8238756df1c4c9a06a6e60eac96ef89bbf2168",
+      "source_sha": "bf8238756df1c4c9a06a6e60eac96ef89bbf2168"
+    },
+    {
+      "name": "dev/rasmus/session_config_loader_interface",
+      "target_sha": "7b994100b3fd43eec35cb2bc2300296738a2ee25",
+      "source_sha": "7b994100b3fd43eec35cb2bc2300296738a2ee25"
+    },
+    {
+      "name": "dev/rasmus/surface_error_ws_close",
+      "target_sha": "74d0570cd7e589a014473b764c0d08f36b7167b7",
+      "source_sha": "74d0570cd7e589a014473b764c0d08f36b7167b7"
+    },
+    {
+      "name": "dev/rasmus/tokio_tls",
+      "target_sha": "49ed76673e116c40b983286e7dc2e7290287a763",
+      "source_sha": "49ed76673e116c40b983286e7dc2e7290287a763"
+    },
+    {
+      "name": "dev/realtime-connection-text-done",
+      "target_sha": "cf4d35639e84c1c846c30e65c78b12400199fd3f",
+      "source_sha": "cf4d35639e84c1c846c30e65c78b12400199fd3f"
+    },
+    {
+      "name": "dev/realtime-ctrl-c-close-first",
+      "target_sha": "576dc290a8c6f5fc59bdce92a924bfb42f489a7a",
+      "source_sha": "576dc290a8c6f5fc59bdce92a924bfb42f489a7a"
+    },
+    {
+      "name": "dev/realtime-delegation-xml",
+      "target_sha": "6392a83bac95ba9cb55fa0144c3c9f8580ce58fa",
+      "source_sha": "6392a83bac95ba9cb55fa0144c3c9f8580ce58fa"
+    },
+    {
+      "name": "dev/realtime-final-handoff",
+      "target_sha": "abcedbf71b799d4c569100db3250b93e3820c4fe",
+      "source_sha": "abcedbf71b799d4c569100db3250b93e3820c4fe"
+    },
+    {
+      "name": "dev/realtime-output-transcript",
+      "target_sha": "934ef25b97522a682cdc740e1f1a2824438265af",
+      "source_sha": "934ef25b97522a682cdc740e1f1a2824438265af"
+    },
+    {
+      "name": "dev/realtime-user-text",
+      "target_sha": "50830d2187af44daf0d6a28b3d9e02a71278eb37",
+      "source_sha": "50830d2187af44daf0d6a28b3d9e02a71278eb37"
+    },
+    {
+      "name": "dev/realtime-voice-selection",
+      "target_sha": "2f9090be62723ab15e3e8821c846eed1ebf9149c",
+      "source_sha": "2f9090be62723ab15e3e8821c846eed1ebf9149c"
+    },
+    {
+      "name": "dev/realtime-webrtc-e2e-tests",
+      "target_sha": "22d07e7f8f5d7dee4444413c1e5235fe73a4bec1",
+      "source_sha": "22d07e7f8f5d7dee4444413c1e5235fe73a4bec1"
+    },
+    {
+      "name": "dev/realtime-webrtc-sideband",
+      "target_sha": "794a0240f9fe7508524c68636609a542f90704a3",
+      "source_sha": "794a0240f9fe7508524c68636609a542f90704a3"
+    },
+    {
+      "name": "dev/remote-mcp-exec-disconnect",
+      "target_sha": "9ef1cab6f7dcb968f4fffe2bf445f2a50f71f782",
+      "source_sha": "9ef1cab6f7dcb968f4fffe2bf445f2a50f71f782"
+    },
+    {
+      "name": "dev/remote-mcp-http-oauth-full-ci",
+      "target_sha": "f128f30011dd6860e9b5b9b4e5168474eaab8a0d",
+      "source_sha": "f128f30011dd6860e9b5b9b4e5168474eaab8a0d"
+    },
+    {
+      "name": "dev/remote-mcp-oauth",
+      "target_sha": "f8e2beeafae92c91e5630efd4a79dec03fcc0606",
+      "source_sha": "f8e2beeafae92c91e5630efd4a79dec03fcc0606"
+    },
+    {
+      "name": "dev/retry-unsupported-subagent-effort",
+      "target_sha": "80785e6f863ecb3539f735494631370faa214aec",
+      "source_sha": "80785e6f863ecb3539f735494631370faa214aec"
+    },
+    {
+      "name": "dev/revert-pr-17047",
+      "target_sha": "f8d4fffbb5b6ffbb31e89071f3444b4993f4af1b",
+      "source_sha": "f8d4fffbb5b6ffbb31e89071f3444b4993f4af1b"
+    },
+    {
+      "name": "dev/role-locked-spawn-settings",
+      "target_sha": "f0a2ee1e7ab32937e39f726e63c3f7030a83414d",
+      "source_sha": "f0a2ee1e7ab32937e39f726e63c3f7030a83414d"
+    },
+    {
+      "name": "dev/rphilizaire/default-fallback-tool-search",
+      "target_sha": "be867fbad23d1ae50e686954886187427998f3ac",
+      "source_sha": "be867fbad23d1ae50e686954886187427998f3ac"
+    },
+    {
+      "name": "dev/rphilizaire/retry-compressed-request-uncompressed",
+      "target_sha": "016133bcaea9edfee9f53c7913f0a48507edec0c",
+      "source_sha": "016133bcaea9edfee9f53c7913f0a48507edec0c"
+    },
+    {
+      "name": "dev/rphilizaire/trace-startup-prewarm",
+      "target_sha": "6479c2df3fd2bae0d375df8b635e61655065a626",
+      "source_sha": "6479c2df3fd2bae0d375df8b635e61655065a626"
+    },
+    {
+      "name": "dev/sayan/async-compact",
+      "target_sha": "95b16816f522d357140696eccdc2bcfcc18a71df",
+      "source_sha": "95b16816f522d357140696eccdc2bcfcc18a71df"
+    },
+    {
+      "name": "dev/sayan/async-executor",
+      "target_sha": "95a91a715a8c4815e36859cfc08bccb10eb477fe",
+      "source_sha": "95a91a715a8c4815e36859cfc08bccb10eb477fe"
+    },
+    {
+      "name": "dev/sayan/bundled-models-when-remote-models-disabled",
+      "target_sha": "b4f639b81be7bc7288c34ae9ef234fbb69c740ac",
+      "source_sha": "b4f639b81be7bc7288c34ae9ef234fbb69c740ac"
+    },
+    {
+      "name": "dev/sayan/cleanup-mcp-prefix",
+      "target_sha": "bc961b75f1f99dd461a3ddf6c29eccd29ca2eedf",
+      "source_sha": "bc961b75f1f99dd461a3ddf6c29eccd29ca2eedf"
+    },
+    {
+      "name": "dev/sayan/client-modelinfo-overrides",
+      "target_sha": "3e8dba4ac9963f9125930a83d5a3c9e897413832",
+      "source_sha": "3e8dba4ac9963f9125930a83d5a3c9e897413832"
+    },
+    {
+      "name": "dev/sayan/config-jsonschema-2",
+      "target_sha": "4cf0f06ef53d259571d7e529e7cafeee2606f723",
+      "source_sha": "4cf0f06ef53d259571d7e529e7cafeee2606f723"
+    },
+    {
+      "name": "dev/sayan/custom-catalog-ignores-presets",
+      "target_sha": "911b2bf45b2a03ce6349c5094bb991d2ad82e79f",
+      "source_sha": "911b2bf45b2a03ce6349c5094bb991d2ad82e79f"
+    },
+    {
+      "name": "dev/sayan/default-shell-tool-desc",
+      "target_sha": "04a07a1d4042872b2986a8bc18ba8fc1058e940e",
+      "source_sha": "04a07a1d4042872b2986a8bc18ba8fc1058e940e"
+    },
+    {
+      "name": "dev/sayan/dynamic-tool-namespace-description",
+      "target_sha": "7fe2e420ab1cc8ee8255d81b76405f6cbf4adbc3",
+      "source_sha": "7fe2e420ab1cc8ee8255d81b76405f6cbf4adbc3"
+    },
+    {
+      "name": "dev/sayan/dynamic-tool-tst-fallback",
+      "target_sha": "f21c73be9dcb2a8763d6da1f2531751418a1606e",
+      "source_sha": "f21c73be9dcb2a8763d6da1f2531751418a1606e"
+    },
+    {
+      "name": "dev/sayan/image-search-flag",
+      "target_sha": "bcb5b8f7034826ba9b3b467d2ed999aab535322f",
+      "source_sha": "bcb5b8f7034826ba9b3b467d2ed999aab535322f"
+    },
+    {
+      "name": "dev/sayan/namespace-refactor-3",
+      "target_sha": "0732c913fb83e59b6a4b0ec95109e16ae8b0784d",
+      "source_sha": "0732c913fb83e59b6a4b0ec95109e16ae8b0784d"
+    },
+    {
+      "name": "dev/sayan/namespace-refactor-3-simplified",
+      "target_sha": "52a0ab1201c2c3fda775f9b45d4c3326a4d9b806",
+      "source_sha": "52a0ab1201c2c3fda775f9b45d4c3326a4d9b806"
+    },
+    {
+      "name": "dev/sayan/plugin-mentions-linux-debug",
+      "target_sha": "464d4da7f6e97af87ffa5f4ebf92767db7258046",
+      "source_sha": "464d4da7f6e97af87ffa5f4ebf92767db7258046"
+    },
+    {
+      "name": "dev/sayan/prefix-models-script",
+      "target_sha": "78b820939789a35cf8240e8e25ef13b3a35305b3",
+      "source_sha": "78b820939789a35cf8240e8e25ef13b3a35305b3"
+    },
+    {
+      "name": "dev/sayan/revert-oauth-scope",
+      "target_sha": "0455ec3e098951f5a1db59174b01e78157f66c6e",
+      "source_sha": "0455ec3e098951f5a1db59174b01e78157f66c6e"
+    },
+    {
+      "name": "dev/sayan/sse-compact",
+      "target_sha": "1bb860c88f76da13fa32b77401dbcbaf3a6ae838",
+      "source_sha": "1bb860c88f76da13fa32b77401dbcbaf3a6ae838"
+    },
+    {
+      "name": "dev/sayan/tmp-disable-test",
+      "target_sha": "8d007a5fc2a4abdd5a3f2a3dd0d61c976cd49d51",
+      "source_sha": "8d007a5fc2a4abdd5a3f2a3dd0d61c976cd49d51"
+    },
+    {
+      "name": "dev/sayan/tool-definition-mcp-adapter",
+      "target_sha": "f53e6061a420995ae75fbb1dcdd8105d10f16489",
+      "source_sha": "f53e6061a420995ae75fbb1dcdd8105d10f16489"
+    },
+    {
+      "name": "dev/sayan/tool-definition-unification",
+      "target_sha": "104a3f71a63373728d35f392a377915a46ff41f0",
+      "source_sha": "104a3f71a63373728d35f392a377915a46ff41f0"
+    },
+    {
+      "name": "dev/sayan/unify-mcp-types",
+      "target_sha": "258951b6ae3b10a0e5664781e068ec4c68536198",
+      "source_sha": "258951b6ae3b10a0e5664781e068ec4c68536198"
+    },
+    {
+      "name": "dev/sayan/user-id-metric",
+      "target_sha": "fac99a8cabbe0fc32c53fa7c5180852c72adc99b",
+      "source_sha": "fac99a8cabbe0fc32c53fa7c5180852c72adc99b"
+    },
+    {
+      "name": "dev/sayan/web-search-integration-tests",
+      "target_sha": "bfdec816e3241027626f3eccea3c392ec0fd56da",
+      "source_sha": "bfdec816e3241027626f3eccea3c392ec0fd56da"
+    },
+    {
+      "name": "dev/sayan/websearch-schema-under-budget",
+      "target_sha": "b178195a33604e00ceb14dc5cd2009bfdeb33046",
+      "source_sha": "b178195a33604e00ceb14dc5cd2009bfdeb33046"
+    },
+    {
+      "name": "dev/sayan/win-ci-fix",
+      "target_sha": "e68e8f41a7a620d8275709e22ee41ddb9f46ee78",
+      "source_sha": "e68e8f41a7a620d8275709e22ee41ddb9f46ee78"
+    },
+    {
+      "name": "dev/sdk-python-dangerous-bypass",
+      "target_sha": "a1ef35b7b066f9c9a145a74eaa944dff891f0ff7",
+      "source_sha": "a1ef35b7b066f9c9a145a74eaa944dff891f0ff7"
+    },
+    {
+      "name": "dev/se-8040-nonblocking-mcp-auth",
+      "target_sha": "0f1380eede62b6738753a6479edf10abff453c4e",
+      "source_sha": "0f1380eede62b6738753a6479edf10abff453c4e"
+    },
+    {
+      "name": "dev/service-tier-core-model-info",
+      "target_sha": "aef60ceb7812bd7523538c35d04b3b20d87b57c5",
+      "source_sha": "aef60ceb7812bd7523538c35d04b3b20d87b57c5"
+    },
+    {
+      "name": "dev/service-tier-fast-config",
+      "target_sha": "da8716b9e3c2c28de827dc595a5b6c0edb9f99b4",
+      "source_sha": "da8716b9e3c2c28de827dc595a5b6c0edb9f99b4"
+    },
+    {
+      "name": "dev/service-tier-metadata-ui",
+      "target_sha": "c76e96986d40734c68eea1667d0a0eb368dace33",
+      "source_sha": "c76e96986d40734c68eea1667d0a0eb368dace33"
+    },
+    {
+      "name": "dev/service-tier-tui-commands",
+      "target_sha": "9d53969237e05f3ee0c0483798748a23ca739bd9",
+      "source_sha": "9d53969237e05f3ee0c0483798748a23ca739bd9"
+    },
+    {
+      "name": "dev/sgarg/account-routing-override-cli",
+      "target_sha": "b077ca79d7e5ade46da1ca8aca2e04aa7f64b0ad",
+      "source_sha": "b077ca79d7e5ade46da1ca8aca2e04aa7f64b0ad"
+    },
+    {
+      "name": "dev/shaqayeq/python-pypi-release",
+      "target_sha": "31f2559546138e205cb60edbba34090d8bc5fef7",
+      "source_sha": "31f2559546138e205cb60edbba34090d8bc5fef7"
+    },
+    {
+      "name": "dev/shaqayeq/python-runtime-package",
+      "target_sha": "f412b3911852beb30a01a5798d1bb7f495014564",
+      "source_sha": "f412b3911852beb30a01a5798d1bb7f495014564"
+    },
+    {
+      "name": "dev/shaqayeq/python-sdk-ci",
+      "target_sha": "d3925e62ad923b614466433207ca0e5ad81d3048",
+      "source_sha": "d3925e62ad923b614466433207ca0e5ad81d3048"
+    },
+    {
+      "name": "dev/shaqayeq/python-sdk-ci-2",
+      "target_sha": "9a480fd4fe6487c63037b55a8af8f37cbb531b11",
+      "source_sha": "9a480fd4fe6487c63037b55a8af8f37cbb531b11"
+    },
+    {
+      "name": "dev/shaqayeq/python-sdk-package",
+      "target_sha": "e1a9b32590c1109fe1215424072614034e8beade",
+      "source_sha": "e1a9b32590c1109fe1215424072614034e8beade"
+    },
+    {
+      "name": "dev/shaqayeq/python-sdk-pinned-artifacts",
+      "target_sha": "5a7db9e60b44c773735518b1c241a107bebd1d21",
+      "source_sha": "5a7db9e60b44c773735518b1c241a107bebd1d21"
+    },
+    {
+      "name": "dev/shaqayeq/python-sdk-turn-multiplexing",
+      "target_sha": "083243dca1c4c7632c615558b17973ef90ba2f7f",
+      "source_sha": "083243dca1c4c7632c615558b17973ef90ba2f7f"
+    },
+    {
+      "name": "dev/shayne/scope-mcp-startup",
+      "target_sha": "06a02e02636306131054b0bc5048d66901811e47",
+      "source_sha": "06a02e02636306131054b0bc5048d66901811e47"
+    },
+    {
+      "name": "dev/shell-improvements",
+      "target_sha": "5db3e5fba4ec0e3a1c10af2c5e78b0c67a21d7de",
+      "source_sha": "5db3e5fba4ec0e3a1c10af2c5e78b0c67a21d7de"
+    },
+    {
+      "name": "dev/shijie/drop-windows-signing-deployment",
+      "target_sha": "1b3b6da296c51b2bf3e3db929c7b9a86e625dbf1",
+      "source_sha": "1b3b6da296c51b2bf3e3db929c7b9a86e625dbf1"
+    },
+    {
+      "name": "dev/ssetty/explicit-plugin-app-startup",
+      "target_sha": "c4d81e84a298531b9ba423d8aceedf462d514308",
+      "source_sha": "c4d81e84a298531b9ba423d8aceedf462d514308"
+    },
+    {
+      "name": "dev/ssetty/rmcp-init-failure-metric",
+      "target_sha": "59cd46774ea6526d144a304141ba7d8510793910",
+      "source_sha": "59cd46774ea6526d144a304141ba7d8510793910"
+    },
+    {
+      "name": "dev/ssetty/shared-reqwest-http-client",
+      "target_sha": "5ea4aeda62ff24adee2e6319027aebc29a6e537f",
+      "source_sha": "5ea4aeda62ff24adee2e6319027aebc29a6e537f"
+    },
+    {
+      "name": "dev/steele/agent-identity-updates",
+      "target_sha": "45282486606503854a9543ecb09841f340f7a8e8",
+      "source_sha": "45282486606503854a9543ecb09841f340f7a8e8"
+    },
+    {
+      "name": "dev/steve/codex-full-delegate",
+      "target_sha": "4b14ab36b9a895f1776c914c54a20b4dce4f3566",
+      "source_sha": "4b14ab36b9a895f1776c914c54a20b4dce4f3566"
+    },
+    {
+      "name": "dev/steve/pydantic-generation",
+      "target_sha": "ff0c861cd4d057c03b1d2654b9d8a6ee57c307e9",
+      "source_sha": "ff0c861cd4d057c03b1d2654b9d8a6ee57c307e9"
+    },
+    {
+      "name": "dev/steve/python-sdk-core-release",
+      "target_sha": "65640e29185bc241806121e50ba30867fcf5e302",
+      "source_sha": "65640e29185bc241806121e50ba30867fcf5e302"
+    },
+    {
+      "name": "dev/steve/thread-snapshotting",
+      "target_sha": "790abea674ac2bf64e69df24a286b8a819f36aef",
+      "source_sha": "790abea674ac2bf64e69df24a286b8a819f36aef"
+    },
+    {
+      "name": "dev/stevenlee/local-mcp-oauth-callback-id",
+      "target_sha": "305e33f9038aa8bdf2dfd6ccc4b0eb6fb2e5a002",
+      "source_sha": "305e33f9038aa8bdf2dfd6ccc4b0eb6fb2e5a002"
+    },
+    {
+      "name": "dev/stevenlee/m3-connector-metadata-store",
+      "target_sha": "a47c96f887f4f1e5fc329df7de2f307abc922568",
+      "source_sha": "a47c96f887f4f1e5fc329df7de2f307abc922568"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-callback-url",
+      "target_sha": "05eae210ac8338ba8bf5c0f0a1f00d64b213804c",
+      "source_sha": "05eae210ac8338ba8bf5c0f0a1f00d64b213804c"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-independent-3-refresh-transaction",
+      "target_sha": "f5a04628b68d3594ecb1bb0168fb7ad229951c97",
+      "source_sha": "f5a04628b68d3594ecb1bb0168fb7ad229951c97"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-independent-3-transport-recovery",
+      "target_sha": "aaebdab06778eeefe3de5a1eac63fc24f74b1eca",
+      "source_sha": "aaebdab06778eeefe3de5a1eac63fc24f74b1eca"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-independent-4-login-logout-locking",
+      "target_sha": "77ff78873393c99f8b60a1549e8b4a82b5d90601",
+      "source_sha": "77ff78873393c99f8b60a1549e8b4a82b5d90601"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-independent-5-auto-diagnostics",
+      "target_sha": "14578ad4fcce911c6fdbcc412ade8a2dec3a4457",
+      "source_sha": "14578ad4fcce911c6fdbcc412ade8a2dec3a4457"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-refresh-transaction",
+      "target_sha": "75bac1f9488f463dcabd0eec4b7d589350b75f87",
+      "source_sha": "75bac1f9488f463dcabd0eec4b7d589350b75f87"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-stack-1-refresh-transaction",
+      "target_sha": "4d4b956ab938b220b673f498fede92885e59b1d2",
+      "source_sha": "4d4b956ab938b220b673f498fede92885e59b1d2"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-stack-2-authoritative-reread",
+      "target_sha": "8b83b05278df2fb7fdc92afc09a9bb9350b1bcfc",
+      "source_sha": "8b83b05278df2fb7fdc92afc09a9bb9350b1bcfc"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-stack-3-login-logout",
+      "target_sha": "b60ae97b67db610038724a6cff7533d487167ebc",
+      "source_sha": "b60ae97b67db610038724a6cff7533d487167ebc"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-stack-4-shared-stores",
+      "target_sha": "665d653e5a679c981dc85737e60adb7f9b08f1f8",
+      "source_sha": "665d653e5a679c981dc85737e60adb7f9b08f1f8"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-stack-5-cancellation-safe-refresh",
+      "target_sha": "f800bd9e4ad8e5be2214ca80221b1f0a44915290",
+      "source_sha": "f800bd9e4ad8e5be2214ca80221b1f0a44915290"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-stack-5-codex-refresh",
+      "target_sha": "2e6a3e1b9e0f101e4d214dc8b8cb29317321a09e",
+      "source_sha": "2e6a3e1b9e0f101e4d214dc8b8cb29317321a09e"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-stack-6-auto-read-errors",
+      "target_sha": "2b64cf47dbc4de90b3b7c77c5870f7180669927d",
+      "source_sha": "2b64cf47dbc4de90b3b7c77c5870f7180669927d"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-stack-6-codex-recovery",
+      "target_sha": "78a6a3e3604a2aa6b0a16f6ddc49390ecd302717",
+      "source_sha": "78a6a3e3604a2aa6b0a16f6ddc49390ecd302717"
+    },
+    {
+      "name": "dev/stevenlee/mcp-oauth-stack-8-transport-tests",
+      "target_sha": "8d833da122a586b9799f3abf4add3eba5190e0a8",
+      "source_sha": "8d833da122a586b9799f3abf4add3eba5190e0a8"
+    },
+    {
+      "name": "dev/stevenlee/plugin-service-preview-routing",
+      "target_sha": "d8753c9c05db906bc31c824aca1178e54795705c",
+      "source_sha": "d8753c9c05db906bc31c824aca1178e54795705c"
+    },
+    {
+      "name": "dev/stevenlee/tool-search-app-server-api",
+      "target_sha": "caef31349a410871263a8bd09ee00eb864660724",
+      "source_sha": "caef31349a410871263a8bd09ee00eb864660724"
+    },
+    {
+      "name": "dev/stevenlee/tool-search-debug-inspector-api",
+      "target_sha": "dd64a9a6e625954c8a396b88f6d930552f858794",
+      "source_sha": "dd64a9a6e625954c8a396b88f6d930552f858794"
+    },
+    {
+      "name": "dev/stevenlee/tool-search-field-aware-ranking",
+      "target_sha": "43767cd963006bea91db18edbd11f9594fe95edd",
+      "source_sha": "43767cd963006bea91db18edbd11f9594fe95edd"
+    },
+    {
+      "name": "dev/stevenlee/tool-search-pipeline-debug",
+      "target_sha": "f3a679e05510e7e653f72ff23b9bd2632eb46b2a",
+      "source_sha": "f3a679e05510e7e653f72ff23b9bd2632eb46b2a"
+    },
+    {
+      "name": "dev/syuan/pause-on-elicitation",
+      "target_sha": "ed2c5a81263e4d8db7d2c03cea0d3942679e1f61",
+      "source_sha": "ed2c5a81263e4d8db7d2c03cea0d3942679e1f61"
+    },
+    {
+      "name": "dev/tamird/preserve-v2-evicted-agent-status",
+      "target_sha": "3a047b211f1876f337076792427624d400ef10ec",
+      "source_sha": "3a047b211f1876f337076792427624d400ef10ec"
+    },
+    {
+      "name": "dev/test-core-codeowners",
+      "target_sha": "21fae90417550647cc162d4672d6d19bcc97991b",
+      "source_sha": "21fae90417550647cc162d4672d6d19bcc97991b"
+    },
+    {
+      "name": "dev/thread-initialization-profiling",
+      "target_sha": "821b7cad15b544e4c5546d393f2236bbd8b5b117",
+      "source_sha": "821b7cad15b544e4c5546d393f2236bbd8b5b117"
+    },
+    {
+      "name": "dev/tlwang-hackathon-1",
+      "target_sha": "5396defe86be9f8a191ce37bad8c6f5e04832821",
+      "source_sha": "5396defe86be9f8a191ce37bad8c6f5e04832821"
+    },
+    {
+      "name": "dev/tlwang-hackathon-2",
+      "target_sha": "5f4a2b0fbb934dff2191fd2f0064a93ea954b106",
+      "source_sha": "5f4a2b0fbb934dff2191fd2f0064a93ea954b106"
+    },
+    {
+      "name": "dev/vasili/prefetched-tool-results",
+      "target_sha": "687543f401a9a8cc09927a24fc4fd722f0ec1397",
+      "source_sha": "687543f401a9a8cc09927a24fc4fd722f0ec1397"
+    },
+    {
+      "name": "dev/warn-malformed-disabled-project-config",
+      "target_sha": "67ac8c6cc0e8d963e07e741189ac58c9dcad73e6",
+      "source_sha": "67ac8c6cc0e8d963e07e741189ac58c9dcad73e6"
+    },
+    {
+      "name": "dev/wendyjiao/live-update-prompt",
+      "target_sha": "0bedc2100567130ada0e0894adea3dae4f775392",
+      "source_sha": "0bedc2100567130ada0e0894adea3dae4f775392"
+    },
+    {
+      "name": "dev/wholley/codex/skill-owner-metadata",
+      "target_sha": "a8b926a19c00139904dc93fb2684767a4a5c7846",
+      "source_sha": "a8b926a19c00139904dc93fb2684767a4a5c7846"
+    },
+    {
+      "name": "dev/windows-apply-patch-timeout",
+      "target_sha": "811d686d693b06065311d7407b2ab81c30195bc1",
+      "source_sha": "811d686d693b06065311d7407b2ab81c30195bc1"
+    },
+    {
+      "name": "dev/windows-core-ci-fixes",
+      "target_sha": "aabeb33f76040c062407c2bcc93d846c23d80838",
+      "source_sha": "aabeb33f76040c062407c2bcc93d846c23d80838"
+    },
+    {
+      "name": "dev/winston/app-server-atomic-tree-teardown",
+      "target_sha": "b2c07ba8d823b0ea112e27b78a3a3f5168683662",
+      "source_sha": "b2c07ba8d823b0ea112e27b78a3a3f5168683662"
+    },
+    {
+      "name": "dev/winston/app-server-exact-teardown-admission",
+      "target_sha": "5368909df2f7931a77afe9c0256e7d4ed3d77158",
+      "source_sha": "5368909df2f7931a77afe9c0256e7d4ed3d77158"
+    },
+    {
+      "name": "dev/winston/app-server-idle-snapshot-prep",
+      "target_sha": "69309d111e8507ffb8feb93698fc26dcecc1a169",
+      "source_sha": "69309d111e8507ffb8feb93698fc26dcecc1a169"
+    },
+    {
+      "name": "dev/winston/app-server-idle-teardown-owner",
+      "target_sha": "2cf1e9dd69e219dd0b354e30be607564962df47e",
+      "source_sha": "2cf1e9dd69e219dd0b354e30be607564962df47e"
+    },
+    {
+      "name": "dev/winston/app-server-listener-ownership",
+      "target_sha": "97c1778e72d6d4c95c2ca756958b022c00c7d44b",
+      "source_sha": "97c1778e72d6d4c95c2ca756958b022c00c7d44b"
+    },
+    {
+      "name": "dev/winston/app-server-resume-config-reuse",
+      "target_sha": "bffe3b0d630350ba33a9439ef06749ef61d7e54e",
+      "source_sha": "bffe3b0d630350ba33a9439ef06749ef61d7e54e"
+    },
+    {
+      "name": "dev/winston/app-server-resume-idle-admission",
+      "target_sha": "0ce1cd8c769f93e06ac73668029c1997c0c26677",
+      "source_sha": "0ce1cd8c769f93e06ac73668029c1997c0c26677"
+    },
+    {
+      "name": "dev/winston/consumer-lockdown-thinking-plus-apps-mcp-headers",
+      "target_sha": "daf57839de8e0e9f3d5f122c4e7440a53135638f",
+      "source_sha": "daf57839de8e0e9f3d5f122c4e7440a53135638f"
+    },
+    {
+      "name": "dev/winston/credentialed-routes-backend-adapter",
+      "target_sha": "8b36328178dd167a5780bc6b5062fad75ca5428c",
+      "source_sha": "8b36328178dd167a5780bc6b5062fad75ca5428c"
+    },
+    {
+      "name": "dev/winston/credentialed-routes-context",
+      "target_sha": "67b001abb5e82a28e49b6793919388cc2d42e734",
+      "source_sha": "67b001abb5e82a28e49b6793919388cc2d42e734"
+    },
+    {
+      "name": "dev/winston/credentialed-routes-discovery",
+      "target_sha": "c15d48747aac842187c1f94f446e5a4b90713e0b",
+      "source_sha": "c15d48747aac842187c1f94f446e5a4b90713e0b"
+    },
+    {
+      "name": "dev/winston/credentialed-routes-e2e",
+      "target_sha": "09662e94e939bcb9f445b23dcf6b2edad8a040bc",
+      "source_sha": "09662e94e939bcb9f445b23dcf6b2edad8a040bc"
+    },
+    {
+      "name": "dev/winston/credentialed-routes-mitm",
+      "target_sha": "deb41380164a5fdaf7b8283821e4e7d915155d41",
+      "source_sha": "deb41380164a5fdaf7b8283821e4e7d915155d41"
+    },
+    {
+      "name": "dev/winston/credentialed-routes-proxy-rebase",
+      "target_sha": "dbe5006ddd1abce9ad7828f506b1dd1f8f22742a",
+      "source_sha": "dbe5006ddd1abce9ad7828f506b1dd1f8f22742a"
+    },
+    {
+      "name": "dev/winston/credentialed-routes-refresh",
+      "target_sha": "85bc199453af95c785369b3e5026b114b32f6d8b",
+      "source_sha": "85bc199453af95c785369b3e5026b114b32f6d8b"
+    },
+    {
+      "name": "dev/winston/exec-scoped-network-proxy",
+      "target_sha": "313ff96e8ea67b5f37db6258ca2b8bd7e7027106",
+      "source_sha": "313ff96e8ea67b5f37db6258ca2b8bd7e7027106"
+    },
+    {
+      "name": "dev/winston/fix-state-migration-version",
+      "target_sha": "912b540969e77eb508c71cb0ea4a7f989e5a1728",
+      "source_sha": "912b540969e77eb508c71cb0ea4a7f989e5a1728"
+    },
+    {
+      "name": "dev/winston/guardian-deterministic-assessment",
+      "target_sha": "b6821a8732b0fe3449906958ed43c2ad5a59d054",
+      "source_sha": "b6821a8732b0fe3449906958ed43c2ad5a59d054"
+    },
+    {
+      "name": "dev/winston/guardian-deterministic-review-mode",
+      "target_sha": "90b95081778afbe69407c63be62d51489945ebdd",
+      "source_sha": "90b95081778afbe69407c63be62d51489945ebdd"
+    },
+    {
+      "name": "dev/winston/guardian-network-denial-context",
+      "target_sha": "058d3a7a810cd211453ea7d192561253a6607d91",
+      "source_sha": "058d3a7a810cd211453ea7d192561253a6607d91"
+    },
+    {
+      "name": "dev/winston/guardian-network-deterministic-review",
+      "target_sha": "8944713d0a39273579b150fa934c7528b72bcd5b",
+      "source_sha": "8944713d0a39273579b150fa934c7528b72bcd5b"
+    },
+    {
+      "name": "dev/winston/guardian-network-trigger-candidates",
+      "target_sha": "ab8fc0fab63a37674806443ae204c5b03c66e5aa",
+      "source_sha": "ab8fc0fab63a37674806443ae204c5b03c66e5aa"
+    },
+    {
+      "name": "dev/winston/guardian-policy",
+      "target_sha": "1568ae3222f0b4b0ae6600c80129a0331de814b1",
+      "source_sha": "1568ae3222f0b4b0ae6600c80129a0331de814b1"
+    },
+    {
+      "name": "dev/winston/guardian-policy-update",
+      "target_sha": "56ced97b1594461fc666ba3e83ef48f624fa4d08",
+      "source_sha": "56ced97b1594461fc666ba3e83ef48f624fa4d08"
+    },
+    {
+      "name": "dev/winston/guardian-search-deterministic-review-hook",
+      "target_sha": "40a51b041d88cf1c043b9e56e99b6abc9af96760",
+      "source_sha": "40a51b041d88cf1c043b9e56e99b6abc9af96760"
+    },
+    {
+      "name": "dev/winston/managed-mitm-hook-constraints",
+      "target_sha": "f74951488bbfa0afd66ccad2e99fa55c2146096f",
+      "source_sha": "f74951488bbfa0afd66ccad2e99fa55c2146096f"
+    },
+    {
+      "name": "dev/winston/mitm-ca-bundle-helpers",
+      "target_sha": "23ba4ebbc3bb4b7ae7adcd077ccc226eac124c0d",
+      "source_sha": "23ba4ebbc3bb4b7ae7adcd077ccc226eac124c0d"
+    },
+    {
+      "name": "dev/winston/mitm-child-ca-materialization",
+      "target_sha": "438686dc0f8c2936acc02303539e1005f5e72faa",
+      "source_sha": "438686dc0f8c2936acc02303539e1005f5e72faa"
+    },
+    {
+      "name": "dev/winston/mitm-child-env-snapshots",
+      "target_sha": "9cf8420105d2bc41bc1197a905aebd033ab4cdfe",
+      "source_sha": "9cf8420105d2bc41bc1197a905aebd033ab4cdfe"
+    },
+    {
+      "name": "dev/winston/mitm-codeowners",
+      "target_sha": "59cb396ac73d28ab7a14d5dbb43b0ee54313eef8",
+      "source_sha": "59cb396ac73d28ab7a14d5dbb43b0ee54313eef8"
+    },
+    {
+      "name": "dev/winston/mitm-command-ca-bundles",
+      "target_sha": "ac4ea2c8d52c0ec60f7062c5c75e745e4fd501a2",
+      "source_sha": "ac4ea2c8d52c0ec60f7062c5c75e745e4fd501a2"
+    },
+    {
+      "name": "dev/winston/mitm-platform-ca-roots",
+      "target_sha": "0afb245941fb1c150d897154b9d91509b0e336a8",
+      "source_sha": "0afb245941fb1c150d897154b9d91509b0e336a8"
+    },
+    {
+      "name": "dev/winston/mitm-sandbox-readable-carvebacks",
+      "target_sha": "ec9d5e729c7e80688ad5cb27d3f3db9aa4018b28",
+      "source_sha": "ec9d5e729c7e80688ad5cb27d3f3db9aa4018b28"
+    },
+    {
+      "name": "dev/winston/mitm-scope-startup-ca-baseline",
+      "target_sha": "50a3a70b55c2ff70db855f678408e51d7e1f2f95",
+      "source_sha": "50a3a70b55c2ff70db855f678408e51d7e1f2f95"
+    },
+    {
+      "name": "dev/winston/mitm-startup-ca-env",
+      "target_sha": "06a19f2c9a2be3343bb37a6a6ea52d3f9db5c810",
+      "source_sha": "06a19f2c9a2be3343bb37a6a6ea52d3f9db5c810"
+    },
+    {
+      "name": "dev/winston/policy-review-524",
+      "target_sha": "0b582d22a64a484b04a28f938ed4ce353862f63e",
+      "source_sha": "0b582d22a64a484b04a28f938ed4ce353862f63e"
+    },
+    {
+      "name": "dev/winston/policy-update",
+      "target_sha": "4005f184fc0b3419ad92d92effaf20c5650a2bbd",
+      "source_sha": "4005f184fc0b3419ad92d92effaf20c5650a2bbd"
+    },
+    {
+      "name": "dev/winston/policy-update-2",
+      "target_sha": "9c62d80df3668bddad306087d09622889c2e364f",
+      "source_sha": "9c62d80df3668bddad306087d09622889c2e364f"
+    },
+    {
+      "name": "dev/winston/policy-update-3",
+      "target_sha": "c53dfa8c00b0ed0fa4bc1ee54babc92d5909683a",
+      "source_sha": "c53dfa8c00b0ed0fa4bc1ee54babc92d5909683a"
+    },
+    {
+      "name": "dev/winston/policy-update-4",
+      "target_sha": "81b67a807cff2c2a8756501aba3fd845ee0ff091",
+      "source_sha": "81b67a807cff2c2a8756501aba3fd845ee0ff091"
+    },
+    {
+      "name": "dev/winston/policy-update-5",
+      "target_sha": "0dee2385473a7d76b7a9c462370a48c74aaad730",
+      "source_sha": "0dee2385473a7d76b7a9c462370a48c74aaad730"
+    },
+    {
+      "name": "dev/winston/policy-wording-update",
+      "target_sha": "ec98c27893cafb4f209d6211429fee3162a315de",
+      "source_sha": "ec98c27893cafb4f209d6211429fee3162a315de"
+    },
+    {
+      "name": "dev/winston/quic-http3-mitm-spike",
+      "target_sha": "a4101509c5036ea978f7999d2b25cab9b1fb43bc",
+      "source_sha": "a4101509c5036ea978f7999d2b25cab9b1fb43bc"
+    },
+    {
+      "name": "dev/winston/thread-idle-shutdown",
+      "target_sha": "bc530e25f6af0332e0bf5fbf8937296e32288aee",
+      "source_sha": "bc530e25f6af0332e0bf5fbf8937296e32288aee"
+    },
+    {
+      "name": "dev/winston/thread-idle-shutdown-completion",
+      "target_sha": "c9d6f4f4441713ffb4d48868e67230d5efa22111",
+      "source_sha": "c9d6f4f4441713ffb4d48868e67230d5efa22111"
+    },
+    {
+      "name": "dev/winston/thread-idle-shutdown-reservations",
+      "target_sha": "b133fd4368e93dea7463b4342d8b36d9c7d3efcf",
+      "source_sha": "b133fd4368e93dea7463b4342d8b36d9c7d3efcf"
+    },
+    {
+      "name": "dev/winston/thread-idle-shutdown-startup",
+      "target_sha": "13385391c111df0ac7ae01369c527aa61c0ec5b2",
+      "source_sha": "13385391c111df0ac7ae01369c527aa61c0ec5b2"
+    },
+    {
+      "name": "dev/winston/thread-publication-lifecycle",
+      "target_sha": "a5e66c6979f378fa01411d737b87762837bf8f57",
+      "source_sha": "a5e66c6979f378fa01411d737b87762837bf8f57"
+    },
+    {
+      "name": "dev/wolf/mcp-resource-updated-producer",
+      "target_sha": "f0fab7831773b2be4895bff234515b8888f5c8d1",
+      "source_sha": "f0fab7831773b2be4895bff234515b8888f5c8d1"
+    },
+    {
+      "name": "dev/zhao/1",
+      "target_sha": "000796f75b59d1aada9ef623838755fdd77b9dfa",
+      "source_sha": "000796f75b59d1aada9ef623838755fdd77b9dfa"
+    },
+    {
+      "name": "dev/zhao/2",
+      "target_sha": "0924389ba773dab4b2cc46b57b2bd7c2b56413d5",
+      "source_sha": "0924389ba773dab4b2cc46b57b2bd7c2b56413d5"
+    },
+    {
+      "name": "dev/zhao/3",
+      "target_sha": "01a881474716d2f363214c808bce7e2075948a04",
+      "source_sha": "01a881474716d2f363214c808bce7e2075948a04"
+    },
+    {
+      "name": "dev/zhao/4",
+      "target_sha": "16faa24118a259c97777d7ad6a42bc4bdde43154",
+      "source_sha": "16faa24118a259c97777d7ad6a42bc4bdde43154"
+    },
+    {
+      "name": "dev/zhao/5",
+      "target_sha": "2c204a1b3cfa2de18f2ab2177815ef1309ed8f9a",
+      "source_sha": "2c204a1b3cfa2de18f2ab2177815ef1309ed8f9a"
+    },
+    {
+      "name": "dev/zhao/6",
+      "target_sha": "2c204a1b3cfa2de18f2ab2177815ef1309ed8f9a",
+      "source_sha": "2c204a1b3cfa2de18f2ab2177815ef1309ed8f9a"
+    },
+    {
+      "name": "dev/zhao/7",
+      "target_sha": "bf0ba872008c88dc51105f9e9d8a1bb54067c347",
+      "source_sha": "bf0ba872008c88dc51105f9e9d8a1bb54067c347"
+    },
+    {
+      "name": "dev/zhao/8",
+      "target_sha": "4488061a9d1721dedc1e012ed97b5c6c62b08da3",
+      "source_sha": "4488061a9d1721dedc1e012ed97b5c6c62b08da3"
+    },
+    {
+      "name": "dev/zhao/add-test",
+      "target_sha": "702bd194438e6dde5c3c2ef90fa60f214254cb2a",
+      "source_sha": "702bd194438e6dde5c3c2ef90fa60f214254cb2a"
+    },
+    {
+      "name": "dev/zhao/better-ask-again",
+      "target_sha": "0a1a58b3bd7e58cdcd3266f0d69a72d0cd2e3416",
+      "source_sha": "0a1a58b3bd7e58cdcd3266f0d69a72d0cd2e3416"
+    },
+    {
+      "name": "dev/zhao/better-error-handling",
+      "target_sha": "ca1428670e6ccde8e35ecdcde23504a5a92273fe",
+      "source_sha": "ca1428670e6ccde8e35ecdcde23504a5a92273fe"
+    },
+    {
+      "name": "dev/zhao/cleaned-up-better-ask-again",
+      "target_sha": "003a4cd5b8fa0c198506445c93519279d9064f35",
+      "source_sha": "003a4cd5b8fa0c198506445c93519279d9064f35"
+    },
+    {
+      "name": "dev/zhao/exec-server-execpolicy-draft",
+      "target_sha": "8832459f7f44ca7124d5c3a8658438f407e8b181",
+      "source_sha": "8832459f7f44ca7124d5c3a8658438f407e8b181"
+    },
+    {
+      "name": "dev/zhao/execpolicy2-tui-integration",
+      "target_sha": "e44facebde771800606433978c48d580fd97f16a",
+      "source_sha": "e44facebde771800606433978c48d580fd97f16a"
+    },
+    {
+      "name": "dev/zhao/fix-cmd-exec-1",
+      "target_sha": "7309b0f8e8cbef10a2354cfa8d517d54e7396561",
+      "source_sha": "7309b0f8e8cbef10a2354cfa8d517d54e7396561"
+    },
+    {
+      "name": "dev/zhao/hierarchical-directory",
+      "target_sha": "9df6dbcb0fbb262752a2a8c582ef74d521c9af20",
+      "source_sha": "9df6dbcb0fbb262752a2a8c582ef74d521c9af20"
+    },
+    {
+      "name": "dev/zhao/plan-type",
+      "target_sha": "c7d8c38d2f8b1172b9e72d07eadaf16b80f35b7d",
+      "source_sha": "c7d8c38d2f8b1172b9e72d07eadaf16b80f35b7d"
+    },
+    {
+      "name": "dev/zhao/revert-model-api-changes",
+      "target_sha": "e7d263dce2aba7cab895f286aca8b8f5d74605d1",
+      "source_sha": "e7d263dce2aba7cab895f286aca8b8f5d74605d1"
+    },
+    {
+      "name": "dev/zhao/temp",
+      "target_sha": "e35cbb7acfa049bd76ccc7881d4d17e420811d90",
+      "source_sha": "e35cbb7acfa049bd76ccc7881d4d17e420811d90"
+    },
+    {
+      "name": "dev/zhao/tui-integration-pass-2",
+      "target_sha": "dfa229b40e65224c75986e5bbd226f4eab21677a",
+      "source_sha": "dfa229b40e65224c75986e5bbd226f4eab21677a"
+    },
+    {
+      "name": "dev/zhao/update-rate-limit-header",
+      "target_sha": "31478880b041c02ba75ee6750ae6067c700b308f",
+      "source_sha": "31478880b041c02ba75ee6750ae6067c700b308f"
+    },
+    {
+      "name": "dev/zhao/user-cmd-shell-refactor-3",
+      "target_sha": "0c1c68fcd9f1da11c8989466beb6bb29a40b2d29",
+      "source_sha": "0c1c68fcd9f1da11c8989466beb6bb29a40b2d29"
+    },
+    {
+      "name": "dev/zhao/user-shell-cmd-refactor",
+      "target_sha": "b6104985502f2a226ede0b76177bd4506def8162",
+      "source_sha": "b6104985502f2a226ede0b76177bd4506def8162"
+    },
+    {
+      "name": "dev/zhao/user-shell-cmd-refactor-2",
+      "target_sha": "4e9a4163357592280326560a289e5a0a4bdb0832",
+      "source_sha": "4e9a4163357592280326560a289e5a0a4bdb0832"
+    },
+    {
+      "name": "dev/zm/codex/cua-subspan-observability",
+      "target_sha": "80649cfb9d9cf94b5def94f13a7ff2ca62b8ebb4",
+      "source_sha": "80649cfb9d9cf94b5def94f13a7ff2ca62b8ebb4"
+    }
+  ]
+}
