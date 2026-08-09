@@ -1,0 +1,40 @@
+{
+  "schema": "fleet-branch-prune/v1",
+  "repository": "jakyeamos/agent-eval-runtime",
+  "repository_path": "/Users/jakyeamos/projects/agent-eval-runtime",
+  "remote": "origin",
+  "target": {
+    "branch": "dev",
+    "sha": "23a567d58b743297108b4da64233d23ca70586e0",
+    "live_sha": "23a567d58b743297108b4da64233d23ca70586e0",
+    "local_live_relation": "in-sync"
+  },
+  "preconditions": {
+    "target_live_verified": true,
+    "target_local_live_exact": true,
+    "source_worktrees": [],
+    "open_prs": [],
+    "source_remote_state": "absent",
+    "protected_source_branches": "unknown: GitHub protection API returned HTTP 403",
+    "target_protection": "unknown: GitHub protection API returned HTTP 403",
+    "external_consumer_search": "no registered repository references"
+  },
+  "status": "preserved",
+  "created_at": "2026-08-09T01:37:24Z",
+  "verification": {
+    "live_dev_sha": "23a567d58b743297108b4da64233d23ca70586e0",
+    "live_pruned_ref": "already absent",
+    "local_source_ref": "retained",
+    "local_deletion": "not attempted",
+    "next_action": "retry protection verification with a provider capability that can inspect this private repository"
+  },
+  "refs": [
+    {
+      "name": "codex/aios-cutover-eval",
+      "source_sha": "23a567d58b743297108b4da64233d23ca70586e0",
+      "classification": "integrated",
+      "remote_state": "absent",
+      "action": "preserve-provider-check-blocked"
+    }
+  ]
+}

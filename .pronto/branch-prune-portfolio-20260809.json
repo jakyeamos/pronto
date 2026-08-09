@@ -1,0 +1,46 @@
+{
+  "schema": "fleet-branch-prune/v1",
+  "repository": "jakyeamos/portfolio",
+  "repository_path": "/Users/jakyeamos/projects/portfolio",
+  "remote": "origin",
+  "target": {
+    "branch": "dev",
+    "sha": "5c2e3bdd4eef3213c3d41a663568a0aac61d2c1c",
+    "live_sha": "5c2e3bdd4eef3213c3d41a663568a0aac61d2c1c",
+    "local_live_relation": "in-sync"
+  },
+  "preconditions": {
+    "target_live_verified": true,
+    "target_local_live_exact": true,
+    "source_worktrees": [],
+    "open_prs": [],
+    "source_remote_state": "absent",
+    "source_protection": "branch not found because source ref is remote-missing",
+    "target_protection": "unprotected",
+    "external_consumer_search": "no registered repository references",
+    "canonical_root_untracked_state": [
+      ".mac-control/",
+      ".project-compass/"
+    ]
+  },
+  "status": "completed",
+  "created_at": "2026-08-09T01:37:24Z",
+  "completed_at": "2026-08-09T01:39:00Z",
+  "verification": {
+    "live_dev_sha": "5c2e3bdd4eef3213c3d41a663568a0aac61d2c1c",
+    "live_pruned_ref": "already absent",
+    "local_dev_sha": "5c2e3bdd4eef3213c3d41a663568a0aac61d2c1c",
+    "local_tracking_dev_sha": "5c2e3bdd4eef3213c3d41a663568a0aac61d2c1c",
+    "local_pruned_refs": "absent",
+    "temporary_worktree_removed": true
+  },
+  "refs": [
+    {
+      "name": "codex/gpt56-modernization-audit",
+      "source_sha": "5c2e3bdd4eef3213c3d41a663568a0aac61d2c1c",
+      "classification": "integrated",
+      "remote_state": "absent",
+      "action": "delete-local-normal"
+    }
+  ]
+}
