@@ -1,6 +1,9 @@
 pub mod change_matrix;
 pub mod core;
+pub mod mac_control_maturity;
+pub mod papercuts;
 pub mod project_compass;
+pub mod promotion;
 pub mod quality;
 pub mod remediation;
 pub mod skills;
@@ -85,9 +88,12 @@ pub fn run() {
             core::open_skill_source,
             core::register_root,
             core::refresh,
+            core::refresh_quality,
+            core::refresh_repository_target_evidence,
             core::refresh_github,
             core::refresh_remediation,
             core::set_remediation_action_status,
+            core::check_remediation_handoff,
             core::export_remediation,
             core::set_maturity_audit_root,
             core::open_quality_report,
@@ -109,6 +115,11 @@ pub fn run() {
             core::delete_product,
             core::upsert_group,
             core::delete_group,
+            promotion::get_promotion_inbox,
+            promotion::decide_promotion,
+            papercuts::get_papercut_backlog,
+            papercuts::create_papercut,
+            papercuts::set_papercut_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

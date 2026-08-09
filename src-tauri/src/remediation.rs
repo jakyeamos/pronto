@@ -1,4 +1,5 @@
-use crate::core::RepositorySnapshot;
+use crate::core::{RemoteRepositorySnapshot, RepositorySnapshot};
+use crate::mac_control_maturity;
 use crate::quality;
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
@@ -14,9 +15,17 @@ pub const REMEDIATION_GOAL_PATH: &str = ".pronto/remediation-goal.json";
 pub const MATURITY_CLOSURE_TARGET: f64 = 3.0;
 pub const MATURITY_IDEAL_SCORE: f64 = 4.0;
 pub const EXCLUDED_REPOSITORY_NAMES: [&str; 0] = [];
+pub const GITHUB_ONLY_LOCALITY: &str = "GitHub only";
+pub const GITHUB_ONLY_REMEDIATION_TASK: &str = "GitHub only";
 const VERIFICATION_ACTION_KEY: &str = "verification:recheck-after-remediation";
+pub const GITHUB_ONLY_VERIFICATION_ACTION_KEY: &str = "verification:github-only";
 const RESOLVED_BY_REFRESH_LABEL: &str = "Resolved by remediation refresh";
 const PROJECT_COMPASS_OPEN_ITEMS_KEY: &str = "product_truth:project-compass-open-items";
+const DEBLOAT_GATE_ACTION_KEY: &str = "qr_findings:debloat-maturity-gate";
+const DEBLOAT_GROUP_CATEGORY_PREFIX: &str = "qr_findings:group:debloat|";
+const DEBLOAT_GROUP_KEY_PREFIX: &str = "qr_findings:group:debloat|debloat candidate review|";
+const LEGACY_DEBLOAT_GROUP_KEY_PREFIX: &str =
+    "qr_findings:group:simplify|simplification and shrink pass|";
 const FLEET_MATURITY_FINDING_PACK_PREFIX: &str = quality::FLEET_MATURITY_FINDING_SCHEMA_PREFIX;
 const LEGACY_PROJECT_COMPASS_OPEN_ITEM_KEYS: [&str; 2] = [
     "product_truth:project-compass-blockers",
@@ -40,6 +49,7 @@ const ALL_GATE_IDS: [&str; 9] = [
     "secrets_scan",
     "dependency_audit",
 ];
+const ALL_MATURITY_GATE_IDS: [&str; 1] = [mac_control_maturity::MAC_CONTROL_GATE_ID];
 
 const STAGE_ORDER: [&str; 11] = [
     "scope",
@@ -81,6 +91,10 @@ pub struct RemediationEvidence {
     pub status: String,
     pub freshness: String,
     pub observed_at: Option<String>,
+    #[serde(default)]
+    pub scanned_commit: Option<String>,
+    #[serde(default)]
+    pub scanned_branch: Option<String>,
     pub report_path: Option<String>,
     pub detail: String,
 }
@@ -140,6 +154,8 @@ pub struct RemediationMaturityPolicy {
     pub scoring_owner: String,
     pub improvement_rule: String,
     pub integrity_rule: String,
+    #[serde(default)]
+    pub ideal_gate_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -164,6 +180,8 @@ pub struct RemediationGoalProfile {
     pub contract_path: String,
     pub required_gate_ids: Vec<String>,
     pub optional_gate_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub maturity_gate_ids: Vec<String>,
     pub evidence_max_age_days: u64,
     pub closure_criteria: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -266,6 +284,19 @@ pub struct RemediationExclusion {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GitHubOnlyCandidate {
+    pub repository_id: String,
+    pub provider: String,
+    pub full_name: String,
+    pub html_url: String,
+    pub archived: bool,
+    pub label: String,
+    pub status: String,
+    pub last_remediation_task: String,
+    pub observed_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RemediationRefreshStep {
     pub id: String,
     pub label: String,
@@ -295,6 +326,8 @@ pub struct RemediationRun {
     pub excluded_repositories: Vec<RemediationExclusion>,
     #[serde(default)]
     pub closures: Vec<RemediationClosure>,
+    #[serde(default)]
+    pub github_only_candidates: Vec<GitHubOnlyCandidate>,
     pub plans: Vec<RemediationPlan>,
 }
 
@@ -310,6 +343,8 @@ struct QrRunEvidence {
     id: String,
     run_dir: PathBuf,
     observed_at: Option<String>,
+    scanned_branch: Option<String>,
+    scanned_commit: Option<String>,
     findings: Vec<ParsedFinding>,
 }
 
@@ -353,6 +388,8 @@ struct RepositoryGoalContract {
     additional_required_gate_ids: Vec<String>,
     #[serde(default)]
     optional_gate_ids: Vec<String>,
+    #[serde(default)]
+    additional_maturity_gate_ids: Vec<String>,
     evidence_max_age_days: Option<u64>,
     #[serde(default)]
     remediation_phases: Vec<RemediationPhaseDefinition>,
@@ -469,17 +506,34 @@ fn goal_definition(target_state: &str) -> Option<RemediationGoalProfile> {
                 "No active worktree, branch operation, or ambiguous unpublished work remains.",
             ],
         ),
+        "github_only" => (
+            "GitHub only",
+            Vec::new(),
+            Vec::new(),
+            30,
+            vec![
+                "The repository is intentionally retained on GitHub only because local storage is constrained.",
+                "A fresh provider snapshot confirms the GitHub repository and its remote identity.",
+                "The terminal remediation task is recorded as GitHub only.",
+            ],
+        ),
         _ => return None,
     };
+    let maturity_policy = maturity_policy_for_target(target_state);
+    let maturity_gate_ids = maturity_policy
+        .as_ref()
+        .map(|_| vec![mac_control_maturity::MAC_CONTROL_GATE_ID.to_string()])
+        .unwrap_or_default();
     Some(RemediationGoalProfile {
         schema_version: REMEDIATION_GOAL_SCHEMA.to_string(),
         target_state: target_state.to_string(),
         label: label.to_string(),
         required_gate_ids: required.into_iter().map(str::to_string).collect(),
         optional_gate_ids: optional.into_iter().map(str::to_string).collect(),
+        maturity_gate_ids,
         evidence_max_age_days,
         closure_criteria: closure_criteria.into_iter().map(str::to_string).collect(),
-        maturity_policy: maturity_policy_for_target(target_state),
+        maturity_policy,
         contract_path: REMEDIATION_GOAL_PATH.to_string(),
         ..RemediationGoalProfile::default()
     })
@@ -487,12 +541,12 @@ fn goal_definition(target_state: &str) -> Option<RemediationGoalProfile> {
 
 fn maturity_improvement_rule() -> String {
     format!(
-        "Reaching {MATURITY_CLOSURE_TARGET:.1}/4 clears blocking maturity remediation; continue material, evidence-backed improvements toward {MATURITY_IDEAL_SCORE:.1}/4 when applicable without keeping the repository in the active queue solely for stretch work."
+        "Reaching {MATURITY_CLOSURE_TARGET:.1}/4 clears blocking maturity remediation; a {MATURITY_IDEAL_SCORE:.1}/4 ideal claim additionally requires every configured maturity gate, including Mac Control where applicable, to be fresh and passing. Continue material, evidence-backed improvements toward the ideal without keeping the repository in the active queue solely for stretch work."
     )
 }
 
 fn maturity_integrity_rule() -> String {
-    "Do not add or accept superficial documentation, configuration, tests, or other artifacts solely to raise the score; each claimed improvement must close a real applicable gap and preserve structural evidence versus behavior-proof boundaries.".to_string()
+    "Do not add or accept superficial documentation, configuration, tests, tab stops, Accessibility-only routes, or visual evidence solely to raise the score; each claimed improvement must close a real applicable gap and preserve structural evidence versus behavior-proof boundaries.".to_string()
 }
 
 fn maturity_policy_for_target(target_state: &str) -> Option<RemediationMaturityPolicy> {
@@ -506,12 +560,22 @@ fn maturity_policy_for_target(target_state: &str) -> Option<RemediationMaturityP
         scoring_owner: "Quality Runner canonical maturity feed".to_string(),
         improvement_rule: maturity_improvement_rule(),
         integrity_rule: maturity_integrity_rule(),
+        ideal_gate_ids: vec![mac_control_maturity::MAC_CONTROL_GATE_ID.to_string()],
     })
 }
 
 fn inferred_goal(repository: &RepositorySnapshot) -> (&'static str, String) {
     let lifecycle = repository.lifecycle.to_ascii_lowercase();
     let candidate = repository.lifecycle_candidate.to_ascii_lowercase();
+    if is_github_only_label(&repository.lifecycle)
+        || is_github_only_label(&repository.lifecycle_candidate)
+    {
+        return (
+            "github_only",
+            "The repository lifecycle records a storage-preserving GitHub-only disposition."
+                .to_string(),
+        );
+    }
     if lifecycle.contains("archiv") || candidate.contains("archiv") {
         return (
             "archived",
@@ -550,12 +614,30 @@ fn inferred_goal(repository: &RepositorySnapshot) -> (&'static str, String) {
     )
 }
 
+fn is_github_only_label(value: &str) -> bool {
+    value.trim().to_ascii_lowercase().replace(['_', '-'], " ") == "github only"
+}
+
 fn normalized_gate_ids(values: &[String]) -> Result<Vec<String>, String> {
     let mut normalized = Vec::new();
     for value in values {
         let gate_id = value.trim().to_ascii_lowercase();
         if !ALL_GATE_IDS.contains(&gate_id.as_str()) {
             return Err(format!("Unknown remediation gate '{value}'."));
+        }
+        normalized.push(gate_id);
+    }
+    normalized.sort();
+    normalized.dedup();
+    Ok(normalized)
+}
+
+fn normalized_maturity_gate_ids(values: &[String]) -> Result<Vec<String>, String> {
+    let mut normalized = Vec::new();
+    for value in values {
+        let gate_id = value.trim().to_ascii_lowercase();
+        if !ALL_MATURITY_GATE_IDS.contains(&gate_id.as_str()) {
+            return Err(format!("Unknown remediation maturity gate '{value}'."));
         }
         normalized.push(gate_id);
     }
@@ -707,6 +789,11 @@ fn resolve_goal_profile(repository: &RepositorySnapshot) -> RemediationGoalProfi
         Ok(gates) => gates,
         Err(error) => return inferred_goal_profile(repository, Some(error)),
     };
+    let additional_maturity =
+        match normalized_maturity_gate_ids(&contract.additional_maturity_gate_ids) {
+            Ok(gates) => gates,
+            Err(error) => return inferred_goal_profile(repository, Some(error)),
+        };
     let remediation_phases = match normalized_remediation_phases(&contract.remediation_phases) {
         Ok(phases) => phases,
         Err(error) => return inferred_goal_profile(repository, Some(error)),
@@ -720,6 +807,9 @@ fn resolve_goal_profile(repository: &RepositorySnapshot) -> RemediationGoalProfi
     profile
         .optional_gate_ids
         .retain(|gate| !profile.required_gate_ids.contains(gate));
+    profile.maturity_gate_ids.extend(additional_maturity);
+    profile.maturity_gate_ids.sort();
+    profile.maturity_gate_ids.dedup();
     if let Some(days) = contract.evidence_max_age_days {
         if !(1..=90).contains(&days) {
             return inferred_goal_profile(
@@ -758,15 +848,26 @@ pub(crate) fn repository_requires_maturity(repository: &RepositorySnapshot) -> b
     goal_requires_maturity(&resolve_goal_profile(repository))
 }
 
+pub(crate) fn repository_requires_maturity_gate(
+    repository: &RepositorySnapshot,
+    gate_id: &str,
+) -> bool {
+    resolve_goal_profile(repository)
+        .maturity_gate_ids
+        .iter()
+        .any(|configured| configured == gate_id)
+}
+
 fn goal_queue_rank(target_state: &str) -> u8 {
     match target_state {
         "public_release" => 0,
         "deployed_product" => 1,
         "active_maintained" => 2,
-        "clean_only" => 3,
-        "prototype" => 4,
-        "archived" => 5,
-        _ => 6,
+        "github_only" => 3,
+        "clean_only" => 4,
+        "prototype" => 5,
+        "archived" => 6,
+        _ => 7,
     }
 }
 
@@ -776,6 +877,34 @@ pub fn empty_run() -> RemediationRun {
         status: "not_run".to_string(),
         ..RemediationRun::default()
     }
+}
+
+pub fn sync_github_only_candidates(
+    run: &mut RemediationRun,
+    remote_repositories: &[RemoteRepositorySnapshot],
+) {
+    let mut candidates = remote_repositories
+        .iter()
+        .filter(|repository| {
+            repository.provider.eq_ignore_ascii_case("github")
+                && repository
+                    .locality
+                    .eq_ignore_ascii_case(GITHUB_ONLY_LOCALITY)
+        })
+        .map(|repository| GitHubOnlyCandidate {
+            repository_id: repository.id.clone(),
+            provider: repository.provider.clone(),
+            full_name: repository.full_name.clone(),
+            html_url: repository.html_url.clone(),
+            archived: repository.archived,
+            label: GITHUB_ONLY_LOCALITY.to_string(),
+            status: "candidate".to_string(),
+            last_remediation_task: GITHUB_ONLY_REMEDIATION_TASK.to_string(),
+            observed_at: repository.last_refreshed_at.clone(),
+        })
+        .collect::<Vec<_>>();
+    candidates.sort_by(|left, right| left.full_name.cmp(&right.full_name));
+    run.github_only_candidates = candidates;
 }
 
 pub fn rebuild_run(
@@ -871,6 +1000,7 @@ pub fn rebuild_run_with_fleet_root(
         refresh_steps: previous.refresh_steps.clone(),
         excluded_repositories: exclusions,
         closures,
+        github_only_candidates: previous.github_only_candidates.clone(),
         plans,
     }
 }
@@ -1172,7 +1302,7 @@ fn build_plan(
     let goal = resolve_goal_profile(repository);
     let qr_run = latest_qr_run(Path::new(&repository.path), fleet_audit_root);
     let mut seeds = Vec::new();
-    add_scope_seed(repository, &mut seeds);
+    add_scope_seed(repository, &goal, &mut seeds);
     add_goal_seeds(repository, &goal, &mut seeds);
     add_release_evidence_seeds(repository, &goal, &mut seeds);
     add_project_compass_seeds(repository, &mut seeds);
@@ -1185,34 +1315,74 @@ fn build_plan(
     }
     add_ci_ideal_seeds(repository, &goal, &mut seeds);
     add_qr_finding_seeds(repository, qr_run.as_ref(), &goal, &mut seeds);
+    add_debloat_gate_seed(repository, qr_run.as_ref(), &mut seeds);
     add_branch_hygiene_seeds(repository, &mut seeds);
     add_submodule_seeds(repository, &mut seeds);
     if goal_requires_maturity(&goal) {
         add_maturity_seeds(repository, &mut seeds);
+        add_maturity_gate_seeds(repository, &goal, &mut seeds);
     }
 
-    if !seeds.is_empty() {
+    if !seeds.is_empty() || goal.target_state == "github_only" {
+        let github_only_terminal_task = goal.target_state == "github_only";
         seeds.push(ActionSeed {
-            stable_key: VERIFICATION_ACTION_KEY.to_string(),
+            stable_key: if github_only_terminal_task {
+                GITHUB_ONLY_VERIFICATION_ACTION_KEY.to_string()
+            } else {
+                VERIFICATION_ACTION_KEY.to_string()
+            },
             domain: "verification".to_string(),
-            title: "Verify the repository after remediation".to_string(),
-            summary: "Re-run the eligible evidence sources and confirm the plan is clear before closing it.".to_string(),
+            title: if github_only_terminal_task {
+                GITHUB_ONLY_REMEDIATION_TASK.to_string()
+            } else {
+                "Verify the repository after remediation".to_string()
+            },
+            summary: if github_only_terminal_task {
+                "Record the storage-preserving terminal disposition as GitHub only; no local checkout is required for this repository.".to_string()
+            } else {
+                "Re-run the eligible evidence sources and confirm the plan is clear before closing it.".to_string()
+            },
             severity: "verification".to_string(),
             priority: "P2".to_string(),
             weight: 1,
-            acceptance_criteria: vec![
-                "A fresh local snapshot is recorded.".to_string(),
-                "Project Compass, workspace, branch, submodule, condition, provider, quality, CI, and maturity evidence are rechecked where applicable.".to_string(),
-                "No unresolved blocking action remains.".to_string(),
-            ],
+            acceptance_criteria: if github_only_terminal_task {
+                vec![
+                    "A fresh provider snapshot confirms the GitHub repository and remote identity.".to_string(),
+                    "The local checkout is intentionally absent or no longer required because local storage is constrained.".to_string(),
+                    "The terminal remediation task is recorded as GitHub only.".to_string(),
+                ]
+            } else {
+                vec![
+                    "A fresh local snapshot is recorded.".to_string(),
+                    "Project Compass, workspace, branch, submodule, condition, provider, quality, CI, and maturity evidence are rechecked where applicable.".to_string(),
+                    "No unresolved blocking action remains.".to_string(),
+                ]
+            },
             evidence: vec![evidence(
-                "Pronto",
-                "Derived verification gate",
+                if github_only_terminal_task { "GitHub" } else { "Pronto" },
+                if github_only_terminal_task {
+                    "GitHub-only disposition"
+                } else {
+                    "Derived verification gate"
+                },
                 "Open",
-                "Unknown",
+                if github_only_terminal_task
+                    && repository.provider_state.contains("GitHub connected")
+                {
+                    "Fresh"
+                } else {
+                    "Unknown"
+                },
+                repository
+                    .last_fetch_at
+                    .as_deref()
+                    .or(Some(repository.last_scan_at.as_str())),
                 None,
-                None,
-                "Verification is required after the source gaps are addressed.",
+                if github_only_terminal_task {
+                    "The provider snapshot must support the intentional GitHub-only storage disposition."
+                } else {
+                    "Verification is required after the source gaps are addressed."
+                },
             )],
             related_finding_ids: Vec::new(),
             source_run_id: qr_run.as_ref().map(|run| run.id.clone()),
@@ -1377,10 +1547,19 @@ fn add_goal_seeds(
     }
 }
 
-fn add_scope_seed(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
+fn add_scope_seed(
+    repository: &RepositorySnapshot,
+    goal: &RemediationGoalProfile,
+    seeds: &mut Vec<ActionSeed>,
+) {
     let lifecycle = repository.lifecycle.to_ascii_lowercase();
     let candidate = repository.lifecycle_candidate.to_ascii_lowercase();
-    if lifecycle.contains("unconfirmed") || candidate != lifecycle && !candidate.is_empty() {
+    let github_only = goal.target_state == "github_only"
+        || is_github_only_label(&repository.lifecycle)
+        || is_github_only_label(&repository.lifecycle_candidate);
+    if !github_only
+        && (lifecycle.contains("unconfirmed") || candidate != lifecycle && !candidate.is_empty())
+    {
         seeds.push(ActionSeed {
             stable_key: "scope:confirm-lifecycle".to_string(),
             domain: "scope".to_string(),
@@ -1409,11 +1588,12 @@ fn add_scope_seed(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) 
             source_run_id: None,
         });
     }
-    if repository
-        .target_branch
-        .as_ref()
-        .or(repository.default_branch.as_ref())
-        .is_none()
+    if !github_only
+        && repository
+            .target_branch
+            .as_ref()
+            .or(repository.default_branch.as_ref())
+            .is_none()
     {
         seeds.push(ActionSeed {
             stable_key: "scope:confirm-target-branch".to_string(),
@@ -1781,7 +1961,7 @@ fn add_evidence_seed(
                 "A new full QR run is written for this repository.".to_string(),
                 "The run timestamp and commit match the current local snapshot.".to_string(),
             ],
-            evidence: vec![evidence(
+            evidence: vec![evidence_with_provenance(
                 "Quality Runner",
                 "Latest repository run",
                 "Present",
@@ -1789,6 +1969,8 @@ fn add_evidence_seed(
                 run.observed_at.as_deref(),
                 run.run_dir.to_str(),
                 "The repository has QR artifacts, but they are outside the fresh-evidence window.",
+                run.scanned_branch.as_deref(),
+                run.scanned_commit.as_deref(),
             )],
             related_finding_ids: Vec::new(),
             source_run_id: Some(run.id.clone()),
@@ -1811,7 +1993,7 @@ fn add_evidence_seed(
                 "Pronto ingests the latest QR run without changing source files.".to_string(),
                 "The finding report path and observed timestamp are present.".to_string(),
             ],
-            evidence: vec![evidence(
+            evidence: vec![evidence_with_provenance(
                 "Pronto",
                 "Imported QR findings",
                 "Stale",
@@ -1819,6 +2001,8 @@ fn add_evidence_seed(
                 repository.quality.findings.observed_at.as_deref(),
                 repository.quality.findings.report_path.as_deref(),
                 "The local quality projection is not fresh.",
+                repository.quality.findings.scanned_branch.as_deref(),
+                repository.quality.findings.scanned_commit.as_deref(),
             )],
             related_finding_ids: Vec::new(),
             source_run_id: Some(run.id.clone()),
@@ -1899,7 +2083,7 @@ fn add_ci_ideal_seeds(
                 "The gate is represented in Pronto with its source, status, and freshness."
                     .to_string(),
             ],
-            evidence: vec![evidence(
+            evidence: vec![evidence_with_provenance(
                 "Pronto quality",
                 &format!("Ideal CI gate · {label}"),
                 status,
@@ -1910,6 +2094,8 @@ fn add_ci_ideal_seeds(
                     "Required by the repository's '{}' remediation goal.",
                     goal.target_state
                 ),
+                gate_evidence.and_then(|item| item.scanned_branch.as_deref()),
+                gate_evidence.and_then(|item| item.scanned_commit.as_deref()),
             )],
             related_finding_ids: Vec::new(),
             source_run_id: None,
@@ -2017,7 +2203,7 @@ fn add_qr_finding_seeds(
                             .to_string(),
                     ]
                 }),
-            evidence: vec![evidence(
+            evidence: vec![evidence_with_provenance(
                 "Quality Runner",
                 &source_label,
                 &format!("{count} finding(s)"),
@@ -2025,6 +2211,8 @@ fn add_qr_finding_seeds(
                 run.observed_at.as_deref(),
                 Some(&source_path),
                 &detail,
+                run.scanned_branch.as_deref(),
+                run.scanned_commit.as_deref(),
             )],
             related_finding_ids: findings.iter().map(|finding| finding.id.clone()).collect(),
             source_run_id: Some(run.id.clone()),
@@ -2054,7 +2242,7 @@ fn add_qr_finding_seeds(
                 "The current QR report is reviewed and its findings are addressed.".to_string(),
                 "A fresh QR report is rerun to verify the result.".to_string(),
             ],
-            evidence: vec![evidence(
+            evidence: vec![evidence_with_provenance(
                 "Quality Runner",
                 "QR aggregate report",
                 &repository.quality.findings.actionable_total.to_string(),
@@ -2062,11 +2250,89 @@ fn add_qr_finding_seeds(
                 repository.quality.findings.observed_at.as_deref(),
                 repository.quality.findings.report_path.as_deref(),
                 "Leaf finding identities were not available in the current report.",
+                repository.quality.findings.scanned_branch.as_deref(),
+                repository.quality.findings.scanned_commit.as_deref(),
             )],
             related_finding_ids: Vec::new(),
             source_run_id: Some(run.id.clone()),
         });
     }
+}
+
+fn add_debloat_gate_seed(
+    repository: &RepositorySnapshot,
+    qr_run: Option<&QrRunEvidence>,
+    seeds: &mut Vec<ActionSeed>,
+) {
+    let Some(gate) = repository
+        .quality
+        .gates
+        .iter()
+        .find(|gate| gate.id == "debloat")
+    else {
+        return;
+    };
+    if gate.status == quality::QualityGateStatus::Passed
+        || seeds.iter().any(|seed| {
+            seed.stable_key.starts_with(DEBLOAT_GROUP_CATEGORY_PREFIX)
+                || seed.stable_key == "qr_findings:aggregate-report"
+        })
+    {
+        return;
+    }
+
+    let detected = repository
+        .quality
+        .findings
+        .category_counts
+        .get("debloat")
+        .copied()
+        .unwrap_or_default();
+    let actionable = repository
+        .quality
+        .findings
+        .actionable_category_counts
+        .get("debloat")
+        .copied()
+        .unwrap_or(detected);
+    let gate_evidence = gate.evidence.first();
+    seeds.push(ActionSeed {
+        stable_key: DEBLOAT_GATE_ACTION_KEY.to_string(),
+        domain: "qr_findings".to_string(),
+        title: "Review the repository debloat signals".to_string(),
+        summary: format!(
+            "The debloat review gate is {} with {detected} detected structural signal(s) and {actionable} unresolved signal(s). No leaf remediation action remains after finding dispositions, so this action preserves an explicit path to review or refresh the signals without claiming architectural maturity.",
+            gate.status.as_str()
+        ),
+        severity: "warning".to_string(),
+        priority: "P2".to_string(),
+        weight: severity_weight("warning"),
+        acceptance_criteria: vec![
+            "Each unresolved structural signal receives an ownership-pressure audit that checks duplicated engines, reusable helpers, parallel or legacy surfaces, and obsolete ownership paths."
+                .to_string(),
+            "Each audit finding records confidence independently from implementation or deletion readiness."
+                .to_string(),
+            "A fresh QR scan reports no unresolved structural debloat signals before the review gate passes."
+                .to_string(),
+            "Any deletion or structural rewrite is separately authorized and behavior-verified."
+                .to_string(),
+        ],
+        evidence: vec![evidence_with_provenance(
+            "Pronto quality",
+            "Repository debloat review",
+            gate.status.as_str(),
+            gate.freshness.as_str(),
+            gate_evidence.and_then(|item| item.observed_at.as_deref()),
+            gate_evidence.and_then(|item| item.report_path.as_deref()),
+            gate_evidence
+                .map(|item| item.detail.as_str())
+                .unwrap_or("The debloat review gate has no leaf evidence detail."),
+            gate_evidence.and_then(|item| item.scanned_branch.as_deref()),
+            gate_evidence.and_then(|item| item.scanned_commit.as_deref()),
+        )],
+        related_finding_ids: Vec::new(),
+        source_run_id: qr_run.map(|run| run.id.clone()),
+    });
 }
 
 fn is_fleet_maturity_finding(finding: &ParsedFinding) -> bool {
@@ -2150,18 +2416,54 @@ fn add_branch_hygiene_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<Act
                 source_run_id: None,
             });
         }
-        if workspace.dirty {
+        if !workspace.status_available {
+            let status_error = workspace.status_error.clone().unwrap_or_else(|| {
+                "Git status could not be established for this workspace.".to_string()
+            });
+            seeds.push(ActionSeed {
+                stable_key: format!("branch_hygiene:status-unavailable:{}", workspace.id),
+                domain: "branch_hygiene".to_string(),
+                title: format!("Restore Git status access · {}", workspace.branch),
+                summary: format!(
+                    "{} cannot be safely classified because Git status is unavailable: {status_error}",
+                    workspace.path
+                ),
+                severity: "status".to_string(),
+                priority: "P0".to_string(),
+                weight: 3,
+                acceptance_criteria: vec![
+                    "Restore readable local Git status for the workspace.".to_string(),
+                    "A scoped Pronto refresh records branch, cleanliness, upstream, and sync evidence again.".to_string(),
+                    "No integration, cleanup, or publication decision is made while status evidence is unavailable.".to_string(),
+                ],
+                evidence: vec![evidence(
+                    "Pronto",
+                    &format!("Git status · {}", workspace.branch),
+                    "Unavailable",
+                    "Fresh",
+                    workspace.last_activity_at.as_deref(),
+                    None,
+                    &status_error,
+                )],
+                related_finding_ids: Vec::new(),
+                source_run_id: None,
+            });
+        } else if workspace.dirty {
             seeds.push(ActionSeed {
                 stable_key: format!("branch_hygiene:dirty:{}", workspace.id),
                 domain: "branch_hygiene".to_string(),
                 title: format!("Resolve dirty workspace · {}", workspace.branch),
-                summary: format!("{} has uncommitted changes that must be reviewed before remediation can be verified.", workspace.path),
+                summary: format!(
+                    "{} has uncommitted changes that must be locally checkpointed and handoff-checked before remediation can be verified.",
+                    workspace.path
+                ),
                 severity: "workspace".to_string(),
                 priority: "P1".to_string(),
                 weight: 2,
                 acceptance_criteria: vec![
-                    "The changes are intentionally committed, stashed, or explicitly preserved.".to_string(),
-                    "No unreviewed local changes are hidden by the remediation run.".to_string(),
+                    "The intended scoped changes are committed on the isolated working branch before this action is verified.".to_string(),
+                    "Owner-ambiguous or unrelated changes remain preserved and explicitly reported; they are not stashed, overwritten, or silently folded.".to_string(),
+                    "A fresh `pronto remediation handoff-check` receipt reports `ready: true`.".to_string(),
                 ],
                 evidence: vec![evidence(
                     "Pronto",
@@ -2176,7 +2478,7 @@ fn add_branch_hygiene_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<Act
                 source_run_id: None,
             });
         }
-        if workspace.sync_state != "Synced" {
+        if workspace.status_available && workspace.sync_state != "Synced" {
             seeds.push(ActionSeed {
                 stable_key: format!("branch_hygiene:sync:{}", workspace.id),
                 domain: "branch_hygiene".to_string(),
@@ -2206,10 +2508,11 @@ fn add_branch_hygiene_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<Act
             });
         }
         let remote_freshness = workspace.remote_freshness.to_ascii_lowercase();
-        if remote_freshness.contains("not fetched")
-            || remote_freshness.contains("stale")
-            || remote_freshness.contains("unknown")
-            || remote_freshness.contains("unavailable")
+        if workspace.status_available
+            && (remote_freshness.contains("not fetched")
+                || remote_freshness.contains("stale")
+                || remote_freshness.contains("unknown")
+                || remote_freshness.contains("unavailable"))
         {
             seeds.push(ActionSeed {
                 stable_key: format!("branch_hygiene:remote-freshness:{}", workspace.id),
@@ -2438,6 +2741,8 @@ fn add_maturity_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
             &freshness,
             observed_at,
             report_path,
+            maturity.scanned_branch.as_deref(),
+            maturity.scanned_commit.as_deref(),
             2,
         )),
         Some(score) if freshness != "Fresh" => seeds.push(maturity_seed(
@@ -2448,6 +2753,8 @@ fn add_maturity_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
             &freshness,
             observed_at,
             report_path,
+            maturity.scanned_branch.as_deref(),
+            maturity.scanned_commit.as_deref(),
             2,
         )),
         Some(score) if score < MATURITY_CLOSURE_TARGET => seeds.push(maturity_seed(
@@ -2460,6 +2767,8 @@ fn add_maturity_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
             &freshness,
             observed_at,
             report_path,
+            maturity.scanned_branch.as_deref(),
+            maturity.scanned_commit.as_deref(),
             3,
         )),
         Some(_) => {}
@@ -2484,7 +2793,7 @@ fn add_maturity_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
                     maturity_improvement_rule(),
                     maturity_integrity_rule(),
                 ],
-                evidence: vec![evidence(
+                evidence: vec![evidence_with_provenance(
                     "Quality Runner maturity evidence",
                     &format!("Maturity dimension · {dimension}"),
                     &format!("{score:.3}/4"),
@@ -2492,12 +2801,79 @@ fn add_maturity_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
                     observed_at,
                     report_path,
                     "Dimension-level score imported from the latest QR maturity evidence.",
+                    maturity.scanned_branch.as_deref(),
+                    maturity.scanned_commit.as_deref(),
                 )],
                 related_finding_ids: Vec::new(),
                 source_run_id: maturity.audit_id.clone(),
             });
         }
     }
+}
+
+fn add_maturity_gate_seeds(
+    repository: &RepositorySnapshot,
+    goal: &RemediationGoalProfile,
+    seeds: &mut Vec<ActionSeed>,
+) {
+    if !goal
+        .maturity_gate_ids
+        .iter()
+        .any(|gate_id| gate_id == mac_control_maturity::MAC_CONTROL_GATE_ID)
+    {
+        return;
+    }
+    let gate = &repository.quality.mac_control_ideal_state;
+    if (gate.status == "Passed" && gate.freshness == "Fresh")
+        || (gate.status == "Not applicable" && gate.freshness == "Fresh")
+    {
+        return;
+    }
+    let summary = if gate.failure_reasons.is_empty() {
+        format!(
+            "The Mac Control ideal-state gate is {} with {} evidence; a fresh passing gate is required before Pronto can claim the 4.0/4.0 maturity ideal.",
+            gate.status, gate.freshness
+        )
+    } else {
+        format!(
+            "The Mac Control ideal-state gate is {} with {} evidence: {}",
+            gate.status,
+            gate.freshness,
+            gate.failure_reasons.join("; ")
+        )
+    };
+    seeds.push(ActionSeed {
+        stable_key: format!("maturity:gate:{}", mac_control_maturity::MAC_CONTROL_GATE_ID),
+        domain: "maturity".to_string(),
+        title: "Bring the Mac Control ideal-state gate to a fresh pass".to_string(),
+        summary: summary.clone(),
+        severity: "maturity".to_string(),
+        priority: if gate.status == "Blocked" || gate.status == "Not configured" {
+            "P1".to_string()
+        } else {
+            "P2".to_string()
+        },
+        weight: 3,
+        acceptance_criteria: vec![
+            "The canonical report accounts for every repository in Pronto's current maturity scope; no fixed repository count is assumed.".to_string(),
+            "Every applicable supported task exposes a stable target, direct semantic action, observable postcondition, meaningful hierarchy, required state observations, explicit change states, and a measured eligible route.".to_string(),
+            "The report is fresh and its observed commit matches each current repository commit before the 4.0/4.0 maturity ideal is claimed.".to_string(),
+            "Do not add tab stops, Accessibility-only routes, or visual evidence solely to raise the maturity score; route choice must remain evidence-backed and task-appropriate.".to_string(),
+            maturity_improvement_rule(),
+            maturity_integrity_rule(),
+        ],
+        evidence: vec![evidence(
+            "Mac Control",
+            mac_control_maturity::MAC_CONTROL_GATE_LABEL,
+            &gate.status,
+            &gate.freshness,
+            gate.observed_at.as_deref(),
+            gate.report_path.as_deref(),
+            &summary,
+        )],
+        related_finding_ids: Vec::new(),
+        source_run_id: None,
+    });
 }
 
 fn maturity_seed(
@@ -2508,6 +2884,8 @@ fn maturity_seed(
     freshness: &str,
     observed_at: Option<&str>,
     report_path: Option<&str>,
+    scanned_branch: Option<&str>,
+    scanned_commit: Option<&str>,
     weight: u64,
 ) -> ActionSeed {
     ActionSeed {
@@ -2526,7 +2904,7 @@ fn maturity_seed(
             maturity_improvement_rule(),
             maturity_integrity_rule(),
         ],
-        evidence: vec![evidence(
+        evidence: vec![evidence_with_provenance(
             "Quality Runner maturity evidence",
             "Repository maturity",
             status,
@@ -2534,6 +2912,8 @@ fn maturity_seed(
             observed_at,
             report_path,
             summary,
+            scanned_branch,
+            scanned_commit,
         )],
         related_finding_ids: Vec::new(),
         source_run_id: None,
@@ -2546,7 +2926,12 @@ fn materialize_action(
     previous: &HashMap<&str, &RemediationAction>,
     generated_at: &str,
 ) -> RemediationAction {
-    let previous_action = previous.get(seed.stable_key.as_str()).copied();
+    let legacy_key = legacy_action_key_for_current(&seed.stable_key);
+    let previous_action = previous.get(seed.stable_key.as_str()).copied().or_else(|| {
+        legacy_key
+            .as_deref()
+            .and_then(|key| previous.get(key).copied())
+    });
     let preserved_status = previous_action
         .filter(|action| {
             matches!(
@@ -2608,6 +2993,12 @@ fn is_fleet_maturity_qr_action_key(stable_key: &str) -> bool {
         && stable_key.contains(&format!("|{FLEET_MATURITY_FINDING_PACK_PREFIX}"))
 }
 
+fn legacy_action_key_for_current(stable_key: &str) -> Option<String> {
+    stable_key
+        .strip_prefix(DEBLOAT_GROUP_KEY_PREFIX)
+        .map(|pack| format!("{LEGACY_DEBLOAT_GROUP_KEY_PREFIX}{pack}"))
+}
+
 fn retain_resolved_action_history(
     actions: &mut Vec<RemediationAction>,
     previous: Option<&RemediationPlan>,
@@ -2620,6 +3011,10 @@ fn retain_resolved_action_history(
         .iter()
         .map(|action| action.stable_key.clone())
         .collect::<HashSet<_>>();
+    let superseded_legacy_keys = current_keys
+        .iter()
+        .filter_map(|stable_key| legacy_action_key_for_current(stable_key))
+        .collect::<HashSet<_>>();
     let compass_items_are_grouped = current_keys.contains(PROJECT_COMPASS_OPEN_ITEMS_KEY);
     let mut resolved = previous
         .actions
@@ -2627,6 +3022,7 @@ fn retain_resolved_action_history(
         .filter(|action| {
             action.stable_key != VERIFICATION_ACTION_KEY
                 && !current_keys.contains(&action.stable_key)
+                && !superseded_legacy_keys.contains(&action.stable_key)
                 && !is_fleet_maturity_qr_action_key(&action.stable_key)
                 && !(compass_items_are_grouped
                     && LEGACY_PROJECT_COMPASS_OPEN_ITEM_KEYS.contains(&action.stable_key.as_str()))
@@ -3182,9 +3578,17 @@ fn build_remediation_explanation(
         .collect::<Vec<_>>();
     let mut closure_requirements = goal.closure_criteria.clone();
     if let Some(policy) = &goal.maturity_policy {
+        let ideal_gate_summary = if policy.ideal_gate_ids.is_empty() {
+            "no additional maturity gates".to_string()
+        } else {
+            format!(
+                "configured maturity gates ({})",
+                policy.ideal_gate_ids.join(", ")
+            )
+        };
         closure_requirements.push(format!(
-            "Fresh applicable maturity evidence reaches at least {:.1}/4; {:.1}/4 remains the evidence-backed ideal, not a requirement for leaving remediation.",
-            policy.minimum_closure_score, policy.ideal_score
+            "Fresh applicable maturity evidence reaches at least {:.1}/4; {:.1}/4 remains the evidence-backed ideal, and the ideal additionally requires {} to be fresh and passing, not a requirement for leaving remediation.",
+            policy.minimum_closure_score, policy.ideal_score, ideal_gate_summary
         ));
     }
     closure_requirements.push(
@@ -3211,12 +3615,38 @@ fn evidence(
     report_path: Option<&str>,
     detail: &str,
 ) -> RemediationEvidence {
+    evidence_with_provenance(
+        source,
+        label,
+        status,
+        freshness,
+        observed_at,
+        report_path,
+        detail,
+        None,
+        None,
+    )
+}
+
+fn evidence_with_provenance(
+    source: &str,
+    label: &str,
+    status: &str,
+    freshness: &str,
+    observed_at: Option<&str>,
+    report_path: Option<&str>,
+    detail: &str,
+    scanned_branch: Option<&str>,
+    scanned_commit: Option<&str>,
+) -> RemediationEvidence {
     RemediationEvidence {
         source: source.to_string(),
         label: label.to_string(),
         status: status.to_string(),
         freshness: freshness.to_string(),
         observed_at: observed_at.map(str::to_string),
+        scanned_branch: scanned_branch.map(str::to_string),
+        scanned_commit: scanned_commit.map(str::to_string),
         report_path: report_path.map(str::to_string),
         detail: detail.to_string(),
     }
@@ -3471,12 +3901,32 @@ fn latest_local_qr_run(repository_path: &Path) -> Option<QrRunEvidence> {
                     &["as_of"],
                 ],
             );
+            let scanned_branch = first_string(
+                &manifest,
+                &[
+                    &["git", "branch"],
+                    &["git_provenance", "branch"],
+                    &["provenance", "branch"],
+                    &["branch"],
+                ],
+            );
+            let scanned_commit = first_string(
+                &manifest,
+                &[
+                    &["git", "head_sha"],
+                    &["git_provenance", "head_sha"],
+                    &["provenance", "head_sha"],
+                    &["head_sha"],
+                ],
+            );
             let id = first_string(&manifest, &[&["run_id"], &["id"]])
                 .unwrap_or_else(|| entry.file_name().to_string_lossy().to_string());
             Some(QrRunEvidence {
                 id,
                 run_dir: run_dir.clone(),
                 observed_at,
+                scanned_branch,
+                scanned_commit,
                 findings: parse_findings(&run_dir),
             })
         })
@@ -3520,6 +3970,25 @@ fn fleet_qr_run(repository_path: &Path, fleet_audit_root: Option<&Path>) -> Opti
             }
             let findings = parse_fleet_findings(&path, &payload);
             let observed_at = first_string(&payload, &[&["as_of"]]).or(summary_observed_at.clone());
+            let target_branch = repository_payload
+                .get("target_branch")
+                .and_then(|value| first_string(value, &[&["branch"]]));
+            let checkout = repository_payload
+                .get("checkouts")
+                .and_then(Value::as_array)
+                .and_then(|checkouts| {
+                    target_branch
+                        .as_deref()
+                        .and_then(|branch| {
+                            checkouts.iter().find(|checkout| {
+                                first_string(checkout, &[&["branch"]]).as_deref() == Some(branch)
+                            })
+                        })
+                        .or_else(|| checkouts.first())
+                });
+            let scanned_branch = checkout.and_then(|value| first_string(value, &[&["branch"]]));
+            let scanned_commit = checkout
+                .and_then(|value| first_string(value, &[&["head"], &["fingerprint", "head"]]));
             let id = first_string(&payload, &[&["audit_id"], &["id"]])
                 .or(summary_id.clone())
                 .unwrap_or_else(|| path.display().to_string());
@@ -3527,6 +3996,8 @@ fn fleet_qr_run(repository_path: &Path, fleet_audit_root: Option<&Path>) -> Opti
                 id,
                 run_dir: root.to_path_buf(),
                 observed_at,
+                scanned_branch,
+                scanned_commit,
                 findings,
             })
         })
@@ -3793,14 +4264,15 @@ and action priority before fleet leverage. Pronto, AIOS, and Quality Runner \
 receive explicit control-plane or evidence-provider precedence before the \
 intended repository goal and raw action weight are used as tie-breakers.\n\n\
 ## Active queue\n\n\
-Active repositories: **{}**. Retained closures: **{}**.\n\n\
+Active repositories: **{}**. Retained closures: **{}**. GitHub-only candidates: **{}**.\n\n\
 <!-- prettier-ignore -->\n\
 | Rank | Repository | Goal | Goal source | Status | Current stage | Remaining path | Leverage | Tracked gaps | Active actions | First safe action |\n\
 | ---: | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | --- |\n",
         run.schema_version,
         run.generated_at,
         run.plans.len(),
-        run.closures.len()
+        run.closures.len(),
+        run.github_only_candidates.len()
     );
     if run.plans.is_empty() {
         output.push_str("| — | _No active remediation remains_ | — | — | complete | complete | — | — | 0 | 0 | Refresh scoped evidence before treating this as current. |\n");
@@ -3840,6 +4312,28 @@ Active repositories: **{}**. Retained closures: **{}**.\n\n\
                 tracked_gap_count,
                 active_action_count,
                 markdown_cell(first_action),
+            ));
+        }
+    }
+    output.push_str("\n## GitHub-only candidates\n\n");
+    if run.github_only_candidates.is_empty() {
+        output
+            .push_str("No GitHub-only candidates are present in the current provider snapshot.\n");
+    } else {
+        output.push_str(
+            "These provider-backed repositories have no matching local checkout; they remain counted without creating synthetic local plans. The terminal remediation task is **GitHub only**.\n\n\
+<!-- prettier-ignore -->\n\
+| Candidate | Label | Status | Last remediation task | Observed at |\n\
+| --- | --- | --- | --- | --- |\n",
+        );
+        for candidate in &run.github_only_candidates {
+            output.push_str(&format!(
+                "| `{}` | {} | {} | {} | `{}` |\n",
+                markdown_cell(&candidate.full_name),
+                markdown_cell(&candidate.label),
+                markdown_cell(&candidate.status),
+                markdown_cell(&candidate.last_remediation_task),
+                markdown_cell(&candidate.observed_at),
             ));
         }
     }
@@ -3939,8 +4433,8 @@ fn safe_file_component(value: &str) -> String {
 mod tests {
     use super::*;
     use crate::core::{
-        ActivitySignal, BranchSummary, Condition, SubmoduleSummary, WorkspaceActivity,
-        WorkspaceSummary,
+        ActivitySignal, BranchSummary, Condition, RemoteRepositorySnapshot, SubmoduleSummary,
+        WorkspaceActivity, WorkspaceSummary,
     };
     use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -3965,6 +4459,8 @@ mod tests {
                 path: format!("/tmp/{name}"),
                 is_primary: true,
                 branch: "dev".to_string(),
+                status_available: true,
+                status_error: None,
                 dirty: false,
                 added: 0,
                 removed: 0,
@@ -4139,6 +4635,8 @@ mod tests {
             id: "qr-run".to_string(),
             run_dir: root.join(".quality-runner/runs/qr-run"),
             observed_at: Some("2026-07-29T12:00:00Z".to_string()),
+            scanned_branch: None,
+            scanned_commit: None,
             findings: vec![ParsedFinding {
                 id: "finding-reviewed".to_string(),
                 fingerprint: Some("fp-reviewed".to_string()),
@@ -4172,6 +4670,139 @@ mod tests {
     }
 
     #[test]
+    fn accepted_risk_debloat_gate_keeps_a_remediation_link() {
+        let fixture_id = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!("pronto-debloat-risk-{fixture_id}"));
+        let contract_dir = root.join(".pronto");
+        fs::create_dir_all(&contract_dir).expect("disposition fixture should be writable");
+        fs::write(
+            contract_dir.join("quality-finding-dispositions.json"),
+            r#"{
+  "schema_version": "pronto-quality-finding-dispositions/v1",
+  "updated_at": "2026-08-04T02:00:00Z",
+  "dispositions": [
+    {
+      "fingerprint": "fp-debloat-risk",
+      "status": "accepted_risk",
+      "reason": "The owner accepts the current size pending a later redesign.",
+      "reviewer": "fixture-reviewer",
+      "reviewed_at": "2026-08-04T02:00:00Z",
+      "evidence": ["src/router.rs:1"]
+    }
+  ]
+}"#,
+        )
+        .expect("disposition contract should be writable");
+
+        let mut repository = fixture_repository("debloat-risk");
+        repository.path = root.to_string_lossy().to_string();
+        repository.quality.findings.disposition_status = "Ready".to_string();
+        repository
+            .quality
+            .findings
+            .category_counts
+            .insert("debloat".to_string(), 1);
+        repository
+            .quality
+            .findings
+            .actionable_category_counts
+            .insert("debloat".to_string(), 1);
+        repository.quality.gates.push(quality::QualityGate {
+            id: "debloat".to_string(),
+            label: "Repository debloat review".to_string(),
+            status: quality::QualityGateStatus::Blocked,
+            freshness: quality::QualityFreshness::Fresh,
+            evidence: Vec::new(),
+        });
+        let run = QrRunEvidence {
+            id: "qr-run".to_string(),
+            run_dir: root.join(".quality-runner/runs/qr-run"),
+            observed_at: Some("2026-08-04T02:00:00Z".to_string()),
+            scanned_branch: None,
+            scanned_commit: None,
+            findings: vec![ParsedFinding {
+                id: "finding-debloat-risk".to_string(),
+                fingerprint: Some("fp-debloat-risk".to_string()),
+                group_key: "debloat|debloat candidate review|unknown".to_string(),
+                category: "debloat".to_string(),
+                pack: None,
+                severity: "warning".to_string(),
+                title: "Review oversized source files".to_string(),
+                summary: "A source file exceeds the debloat review threshold.".to_string(),
+                file: Some("src/router.rs".to_string()),
+                line: Some(1),
+                verification: None,
+                report_path: root
+                    .join(".quality-runner/runs/qr-run/findings.json")
+                    .to_string_lossy()
+                    .to_string(),
+            }],
+        };
+        let goal = goal_definition("active_maintained").expect("fixture goal should be supported");
+        let mut seeds = Vec::new();
+
+        add_qr_finding_seeds(&repository, Some(&run), &goal, &mut seeds);
+        assert!(
+            seeds.is_empty(),
+            "accepted risk should not remain a leaf action"
+        );
+        add_debloat_gate_seed(&repository, Some(&run), &mut seeds);
+
+        assert_eq!(seeds.len(), 1);
+        assert_eq!(seeds[0].stable_key, DEBLOAT_GATE_ACTION_KEY);
+        assert!(seeds[0].summary.contains("1 unresolved signal(s)"));
+        assert!(seeds[0]
+            .acceptance_criteria
+            .iter()
+            .any(|criterion| criterion.contains("separately authorized")));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn debloat_gate_does_not_duplicate_a_leaf_finding_action() {
+        let mut repository = fixture_repository("debloat-leaf");
+        repository.quality.findings.disposition_status = "Missing".to_string();
+        repository.quality.gates.push(quality::QualityGate {
+            id: "debloat".to_string(),
+            label: "Repository debloat review".to_string(),
+            status: quality::QualityGateStatus::Blocked,
+            freshness: quality::QualityFreshness::Fresh,
+            evidence: Vec::new(),
+        });
+        let run = QrRunEvidence {
+            id: "qr-run".to_string(),
+            run_dir: PathBuf::from("/tmp/qr-run"),
+            observed_at: Some("2026-08-04T02:00:00Z".to_string()),
+            scanned_branch: None,
+            scanned_commit: None,
+            findings: vec![ParsedFinding {
+                id: "finding-debloat".to_string(),
+                fingerprint: None,
+                group_key: "debloat|debloat candidate review|unknown".to_string(),
+                category: "debloat".to_string(),
+                pack: None,
+                severity: "warning".to_string(),
+                title: "Review oversized source files".to_string(),
+                summary: "A source file exceeds the debloat review threshold.".to_string(),
+                file: Some("src/router.rs".to_string()),
+                line: Some(1),
+                verification: None,
+                report_path: "/tmp/findings.json".to_string(),
+            }],
+        };
+        let goal = goal_definition("active_maintained").expect("fixture goal should be supported");
+        let mut seeds = Vec::new();
+
+        add_qr_finding_seeds(&repository, Some(&run), &goal, &mut seeds);
+        add_debloat_gate_seed(&repository, Some(&run), &mut seeds);
+
+        assert_eq!(seeds.len(), 1);
+        assert!(seeds[0]
+            .stable_key
+            .starts_with(DEBLOAT_GROUP_CATEGORY_PREFIX));
+    }
+
+    #[test]
     fn grouped_qr_occurrences_do_not_multiply_plan_weight() {
         let mut repository = fixture_repository("grouped-findings");
         repository.quality.findings.disposition_status = "Missing".to_string();
@@ -4196,6 +4827,8 @@ mod tests {
             id: "qr-run".to_string(),
             run_dir: PathBuf::from("/tmp/qr-run"),
             observed_at: Some("2026-07-29T12:00:00Z".to_string()),
+            scanned_branch: None,
+            scanned_commit: None,
             findings: vec![finding, second],
         };
         let goal = goal_definition("active_maintained").expect("fixture goal should be supported");
@@ -4541,7 +5174,18 @@ mod tests {
             policy.scoring_owner,
             "Quality Runner canonical maturity feed"
         );
-        assert!(policy.improvement_rule.contains("continue material"));
+        assert_eq!(
+            policy.ideal_gate_ids,
+            vec![mac_control_maturity::MAC_CONTROL_GATE_ID.to_string()]
+        );
+        assert_eq!(
+            goal.maturity_gate_ids,
+            vec![mac_control_maturity::MAC_CONTROL_GATE_ID.to_string()]
+        );
+        assert!(policy
+            .improvement_rule
+            .to_ascii_lowercase()
+            .contains("continue material"));
         assert!(policy.integrity_rule.contains("superficial documentation"));
 
         let seed = maturity_seed(
@@ -4552,6 +5196,8 @@ mod tests {
             "Fresh",
             Some("2026-07-29T12:00:00Z"),
             Some("/tmp/maturity.json"),
+            None,
+            None,
             3,
         );
         assert!(seed
@@ -4562,6 +5208,23 @@ mod tests {
             .acceptance_criteria
             .iter()
             .any(|criterion| criterion.contains("solely to raise the score")));
+
+        let repository = fixture_repository("mac-control-gate");
+        let mut gate_seeds = Vec::new();
+        add_maturity_gate_seeds(&repository, &goal, &mut gate_seeds);
+        assert_eq!(gate_seeds.len(), 1);
+        assert!(gate_seeds[0]
+            .acceptance_criteria
+            .iter()
+            .any(|criterion| criterion.contains("no fixed repository count")));
+        assert!(gate_seeds[0].summary.contains("4.0/4.0 maturity ideal"));
+
+        let mut passing_repository = repository;
+        passing_repository.quality.mac_control_ideal_state.status = "Passed".to_string();
+        passing_repository.quality.mac_control_ideal_state.freshness = "Fresh".to_string();
+        let mut passing_gate_seeds = Vec::new();
+        add_maturity_gate_seeds(&passing_repository, &goal, &mut passing_gate_seeds);
+        assert!(passing_gate_seeds.is_empty());
     }
 
     #[test]
@@ -4649,6 +5312,10 @@ mod tests {
             .closure_requirements
             .iter()
             .any(|requirement| requirement.contains("at least 3.0/4")));
+        assert!(explanation
+            .closure_requirements
+            .iter()
+            .any(|requirement| requirement.contains("configured maturity gates")));
         assert!(explanation.authority.contains("does not authorize Git"));
     }
 
@@ -4787,6 +5454,92 @@ mod tests {
             .actions
             .iter()
             .any(|action| action.stable_key == "scope:confirm-remediation-goal"));
+    }
+
+    #[test]
+    fn github_only_candidates_are_counted_with_a_terminal_task_label() {
+        let mut run = empty_run();
+        let remote_repositories = vec![
+            RemoteRepositorySnapshot {
+                id: "github:42".to_string(),
+                provider: "github".to_string(),
+                full_name: "example/kept-online".to_string(),
+                name: "kept-online".to_string(),
+                owner: "example".to_string(),
+                html_url: "https://github.com/example/kept-online".to_string(),
+                default_branch: Some("main".to_string()),
+                archived: false,
+                locality: GITHUB_ONLY_LOCALITY.to_string(),
+                identity_id: "github:jakyeamos".to_string(),
+                last_refreshed_at: "2026-08-04T12:00:00Z".to_string(),
+                pull_requests: Vec::new(),
+                releases: Vec::new(),
+                ci_checks: Vec::new(),
+                ci_branch: None,
+                ci_commit: None,
+            },
+            RemoteRepositorySnapshot {
+                id: "github:43".to_string(),
+                provider: "github".to_string(),
+                full_name: "example/local-match".to_string(),
+                name: "local-match".to_string(),
+                owner: "example".to_string(),
+                html_url: "https://github.com/example/local-match".to_string(),
+                default_branch: Some("main".to_string()),
+                archived: false,
+                locality: "Local and remote".to_string(),
+                identity_id: "github:jakyeamos".to_string(),
+                last_refreshed_at: "2026-08-04T12:00:00Z".to_string(),
+                pull_requests: Vec::new(),
+                releases: Vec::new(),
+                ci_checks: Vec::new(),
+                ci_branch: None,
+                ci_commit: None,
+            },
+        ];
+
+        sync_github_only_candidates(&mut run, &remote_repositories);
+
+        assert_eq!(run.github_only_candidates.len(), 1);
+        assert_eq!(
+            run.github_only_candidates[0].full_name,
+            "example/kept-online"
+        );
+        assert_eq!(run.github_only_candidates[0].label, GITHUB_ONLY_LOCALITY);
+        assert_eq!(
+            run.github_only_candidates[0].last_remediation_task,
+            GITHUB_ONLY_REMEDIATION_TASK
+        );
+        assert_eq!(run.github_only_candidates[0].status, "candidate");
+    }
+
+    #[test]
+    fn github_only_goal_ends_the_local_plan_with_the_github_only_task() {
+        let mut repository = fixture_repository("kept-online");
+        repository.lifecycle = GITHUB_ONLY_LOCALITY.to_string();
+        repository.lifecycle_candidate = GITHUB_ONLY_LOCALITY.to_string();
+
+        let plan = build_plan(
+            &repository,
+            None,
+            Some("refresh-github-only"),
+            "2026-08-04T12:00:00Z",
+            None,
+        );
+
+        assert_eq!(plan.goal.target_state, "github_only");
+        assert_eq!(
+            plan.actions.last().map(|action| action.title.as_str()),
+            Some(GITHUB_ONLY_REMEDIATION_TASK)
+        );
+        assert_eq!(
+            plan.actions.last().map(|action| action.stable_key.as_str()),
+            Some(GITHUB_ONLY_VERIFICATION_ACTION_KEY)
+        );
+        assert_eq!(
+            plan.actions.last().map(|action| action.domain.as_str()),
+            Some("verification")
+        );
     }
 
     #[test]
@@ -4956,6 +5709,8 @@ mod tests {
         assert!(markdown.contains("Preserve and reconcile repository work"));
         assert!(markdown
             .contains("| `closed-repo` | active_maintained | repository_contract | verified |"));
+        assert!(markdown.contains("GitHub-only candidates: **0**"));
+        assert!(markdown.contains("## GitHub-only candidates"));
         assert!(!markdown.contains("| 2 | `closed-repo` |"));
     }
 
@@ -5164,6 +5919,54 @@ mod tests {
         assert!(!actions.iter().any(|action| {
             LEGACY_PROJECT_COMPASS_OPEN_ITEM_KEYS.contains(&action.stable_key.as_str())
         }));
+    }
+
+    #[test]
+    fn debloat_group_migration_preserves_state_without_legacy_history_churn() {
+        let repository = fixture_repository("debloat-key-migration");
+        let legacy_key = format!("{LEGACY_DEBLOAT_GROUP_KEY_PREFIX}unknown");
+        let current_key = format!("{DEBLOAT_GROUP_KEY_PREFIX}unknown");
+        let mut legacy_action = fixture_action(
+            &legacy_key,
+            "qr_findings",
+            "P2",
+            severity_weight("warning"),
+            "in_progress",
+        );
+        legacy_action.notes = Some("Owner review has started.".to_string());
+        let previous = fixture_plan("debloat-key-migration", "open", vec![legacy_action.clone()]);
+        let previous_actions = HashMap::from([(legacy_action.stable_key.as_str(), &legacy_action)]);
+        let seed = ActionSeed {
+            stable_key: current_key.clone(),
+            domain: "qr_findings".to_string(),
+            title: "Review oversized source files".to_string(),
+            summary: "Review the current debloat candidates.".to_string(),
+            severity: "warning".to_string(),
+            priority: "P2".to_string(),
+            weight: severity_weight("warning"),
+            acceptance_criteria: Vec::new(),
+            evidence: Vec::new(),
+            related_finding_ids: vec!["finding-debloat".to_string()],
+            source_run_id: Some("qr-run".to_string()),
+        };
+        let mut actions = vec![materialize_action(
+            &repository,
+            seed,
+            &previous_actions,
+            "2026-08-04T03:00:00Z",
+        )];
+
+        assert_eq!(actions[0].stable_key, current_key);
+        assert_eq!(actions[0].status, "in_progress");
+        assert_eq!(
+            actions[0].notes.as_deref(),
+            Some("Owner review has started.")
+        );
+
+        retain_resolved_action_history(&mut actions, Some(&previous), "2026-08-04T03:00:00Z");
+
+        assert_eq!(actions.len(), 1);
+        assert!(!actions.iter().any(|action| action.stable_key == legacy_key));
     }
 
     #[test]

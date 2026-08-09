@@ -7,7 +7,11 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub const SCHEMA: &str = "pronto-skills/v2";
+pub const SCHEMA: &str = "pronto-skills/v3";
+const QUALITY_RUNNER_CAPABILITY_SCHEMA: &str = "quality-runner-skill-capability/v1";
+const QUALITY_RUNNER_CAPABILITY_FEED: &str =
+    ".quality-runner/skill-capabilities/current/capabilities.json";
+const BUILT_IN_PAPERCUTS_ID: &str = "papercuts";
 const RECENT_DAYS: i64 = 30;
 const MAX_FILES: usize = 3_000;
 const MAX_FILE_BYTES: u64 = 256 * 1024;
@@ -39,6 +43,55 @@ pub struct SkillSource {
     pub hosted_in_jakye_agent_setup: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct SkillFindingClass {
+    pub id: String,
+    pub label: String,
+    pub state: String,
+    pub evidence: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct SkillBackfillPhase {
+    pub id: String,
+    pub state: String,
+    pub evidence: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct SkillBackfillCapability {
+    pub mode: String,
+    pub phases: Vec<SkillBackfillPhase>,
+    pub safety: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct SkillQualityRunnerCoverage {
+    pub rule_count: u64,
+    pub finding_count: u64,
+    pub statuses: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct SkillQualityRunnerRepresentation {
+    pub status: String,
+    pub adapter: String,
+    pub finding_categories: Vec<String>,
+    pub coverage: SkillQualityRunnerCoverage,
+    pub evidence: Vec<String>,
+    pub gaps: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct SkillFindingCapability {
+    pub finding_expectation: String,
+    pub finding_expectation_reason: String,
+    pub finding_classes: Vec<SkillFindingClass>,
+    pub backfill: SkillBackfillCapability,
+    pub quality_runner: SkillQualityRunnerRepresentation,
+    pub gaps: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SkillRecord {
     pub id: String,
@@ -55,6 +108,8 @@ pub struct SkillRecord {
     pub parity_score: Option<f64>,
     pub parity_evidence: Vec<String>,
     pub usage: SkillUsage,
+    #[serde(default)]
+    pub finding_capability: SkillFindingCapability,
 }
 
 fn default_skill_category() -> String {
@@ -63,6 +118,320 @@ fn default_skill_category() -> String {
 
 fn default_skill_family() -> String {
     "Standalone".into()
+}
+
+fn backfill_phase(id: &str, state: &str, evidence: &str) -> SkillBackfillPhase {
+    SkillBackfillPhase {
+        id: id.into(),
+        state: state.into(),
+        evidence: evidence.into(),
+    }
+}
+
+fn report_only_backfill() -> SkillBackfillCapability {
+    SkillBackfillCapability {
+        mode: "report_and_plan".into(),
+        phases: vec![
+            backfill_phase(
+                "detect",
+                "native",
+                "Quality Runner evaluates the configured skill rules.",
+            ),
+            backfill_phase(
+                "report",
+                "native",
+                "Findings are emitted with evidence, risk, and expected improvement.",
+            ),
+            backfill_phase(
+                "plan",
+                "available",
+                "Findings can enter existing remediation and handoff projections.",
+            ),
+            backfill_phase(
+                "apply",
+                "unsupported",
+                "Quality Runner does not apply code changes from a skill finding.",
+            ),
+            backfill_phase(
+                "verify",
+                "required",
+                "A later gate or owner-controlled check must verify the remediation result.",
+            ),
+        ],
+        safety: "Report-only; no automatic code changes are authorized by this capability record."
+            .into(),
+    }
+}
+
+fn unknown_backfill() -> SkillBackfillCapability {
+    SkillBackfillCapability {
+        mode: "not_evidenced".into(),
+        phases: vec![
+            backfill_phase(
+                "detect",
+                "not_evidenced",
+                "No reviewed Quality Runner representation was found.",
+            ),
+            backfill_phase(
+                "report",
+                "not_evidenced",
+                "No finding-producing adapter was found.",
+            ),
+            backfill_phase(
+                "plan",
+                "not_evidenced",
+                "Backfill planning cannot be inferred from skill inventory alone.",
+            ),
+            backfill_phase(
+                "apply",
+                "unsupported",
+                "No automatic application path is implied.",
+            ),
+            backfill_phase(
+                "verify",
+                "not_evidenced",
+                "Verification evidence is unavailable.",
+            ),
+        ],
+        safety: "Inventory evidence only; review is required before treating this skill as a finding source."
+            .into(),
+    }
+}
+
+fn quality_runner_representation(
+    status: &str,
+    adapter: &str,
+    categories: &[&str],
+    evidence: &[&str],
+    gaps: &[&str],
+) -> SkillQualityRunnerRepresentation {
+    SkillQualityRunnerRepresentation {
+        status: status.into(),
+        adapter: adapter.into(),
+        finding_categories: categories.iter().map(|value| (*value).into()).collect(),
+        coverage: SkillQualityRunnerCoverage::default(),
+        evidence: evidence.iter().map(|value| (*value).into()).collect(),
+        gaps: gaps.iter().map(|value| (*value).into()).collect(),
+    }
+}
+
+fn papercuts_finding_capability() -> SkillFindingCapability {
+    SkillFindingCapability {
+        finding_expectation: "required".into(),
+        finding_expectation_reason:
+            "Papercuts is a native Pronto design-audit surface that turns durable friction into backlog findings."
+                .into(),
+        finding_classes: vec![SkillFindingClass {
+            id: "papercut".into(),
+            label: "Durable friction finding".into(),
+            state: "native".into(),
+            evidence: "Native Pronto Papercuts backlog record.".into(),
+        }],
+        backfill: SkillBackfillCapability {
+            mode: "capture_and_triage".into(),
+            phases: vec![
+                backfill_phase("detect", "native", "Design-audit friction can be captured."),
+                backfill_phase("report", "native", "Papercuts are persisted as reviewable backlog records."),
+                backfill_phase("plan", "available", "Status and notes support owner-controlled triage."),
+                backfill_phase("apply", "unsupported", "Papercuts do not apply code changes."),
+                backfill_phase("verify", "required", "Resolution must be checked against the original friction."),
+            ],
+            safety: "Backlog capture is owner-controlled and does not imply a code change.".into(),
+        },
+        quality_runner: quality_runner_representation(
+            "not_applicable",
+            "pronto_native_backlog",
+            &[],
+            &["Native Pronto finding surface; Quality Runner representation is not expected."],
+            &[],
+        ),
+        gaps: vec!["Quality Runner is not the owner of this native Pronto finding surface.".into()],
+    }
+}
+
+fn debloat_finding_capability() -> SkillFindingCapability {
+    SkillFindingCapability {
+        finding_expectation: "required".into(),
+        finding_expectation_reason:
+            "Debloat is an audit skill: it should produce reviewable structural candidate findings rather than silently deleting code."
+                .into(),
+        finding_classes: vec![
+            SkillFindingClass {
+                id: "large-source-file".into(),
+                label: "Large source file".into(),
+                state: "native".into(),
+                evidence: "Native Quality Runner debloat rule.".into(),
+            },
+            SkillFindingClass {
+                id: "fat-router".into(),
+                label: "Fat router".into(),
+                state: "native".into(),
+                evidence: "Native Quality Runner debloat rule.".into(),
+            },
+            SkillFindingClass {
+                id: "ownership-pressure-review".into(),
+                label: "Ownership-pressure review".into(),
+                state: "review_required".into(),
+                evidence: "Structural signals are candidate triggers; ownership and deletion decisions require review."
+                    .into(),
+            },
+        ],
+        backfill: report_only_backfill(),
+        quality_runner: quality_runner_representation(
+            "adapter_defined",
+            "native_debloat_category",
+            &["debloat"],
+            &["Quality Runner defines native debloat structural signals: large-source-file and fat-router."],
+            &["No current Quality Runner scan was supplied, so repository-specific coverage is unknown."],
+        ),
+        gaps: vec![
+            "File size and router size are triggers for a read-only audit, not proof of bloat or authorization to delete code."
+                .into(),
+            "Apply and final verification remain owner-controlled.".into(),
+        ],
+    }
+}
+
+fn unknown_finding_capability() -> SkillFindingCapability {
+    SkillFindingCapability {
+        finding_expectation: "review_required".into(),
+        finding_expectation_reason:
+            "No reviewed finding profile or Quality Runner capability evidence was found for this skill."
+                .into(),
+        finding_classes: Vec::new(),
+        backfill: unknown_backfill(),
+        quality_runner: quality_runner_representation(
+            "unknown",
+            "",
+            &[],
+            &[],
+            &["No Quality Runner capability feed or reviewed adapter was found."],
+        ),
+        gaps: vec![
+            "Review whether this skill should produce findings before adding it to the Quality Runner representation."
+                .into(),
+        ],
+    }
+}
+
+fn is_debloat_skill(id: &str, name: &str, description: &str) -> bool {
+    format!("{id} {name} {description}")
+        .to_ascii_lowercase()
+        .contains("debloat")
+}
+
+fn fallback_finding_capability(id: &str, name: &str, description: &str) -> SkillFindingCapability {
+    if id.eq_ignore_ascii_case(BUILT_IN_PAPERCUTS_ID) {
+        return papercuts_finding_capability();
+    }
+    if is_debloat_skill(id, name, description) {
+        return debloat_finding_capability();
+    }
+    unknown_finding_capability()
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct QualityRunnerCapabilityFeed {
+    schema: String,
+    #[serde(default)]
+    generated_at: Option<String>,
+    #[serde(default)]
+    run_id: Option<String>,
+    skills: Vec<QualityRunnerCapabilityRecord>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct QualityRunnerCapabilityRecord {
+    id: String,
+    #[serde(flatten)]
+    capability: SkillFindingCapability,
+}
+
+fn read_quality_runner_capability_feed() -> Option<QualityRunnerCapabilityFeed> {
+    let path = home().join(QUALITY_RUNNER_CAPABILITY_FEED);
+    let payload = fs::read_to_string(path).ok()?;
+    let feed = serde_json::from_str::<QualityRunnerCapabilityFeed>(&payload).ok()?;
+    (feed.schema == QUALITY_RUNNER_CAPABILITY_SCHEMA).then_some(feed)
+}
+
+fn apply_finding_capabilities(snapshot: &mut SkillsSnapshot) {
+    let feed = read_quality_runner_capability_feed();
+    for skill in &mut snapshot.skills {
+        let fallback = fallback_finding_capability(&skill.id, &skill.name, &skill.description);
+        skill.finding_capability = feed
+            .as_ref()
+            .and_then(|value| {
+                value
+                    .skills
+                    .iter()
+                    .find(|candidate| candidate.id.eq_ignore_ascii_case(&skill.id))
+            })
+            .map(|candidate| candidate.capability.clone())
+            .unwrap_or(fallback);
+        if let Some(value) = feed.as_ref() {
+            if let Some(generated_at) = value.generated_at.as_deref() {
+                skill
+                    .finding_capability
+                    .quality_runner
+                    .evidence
+                    .push(format!("Capability feed generated at {generated_at}."));
+            }
+            if let Some(run_id) = value.run_id.as_deref() {
+                skill
+                    .finding_capability
+                    .quality_runner
+                    .evidence
+                    .push(format!("Source Quality Runner run: {run_id}."));
+            }
+        }
+    }
+}
+
+fn built_in_papercuts_skill() -> SkillRecord {
+    let mut providers = BTreeMap::new();
+    providers.insert(
+        "pronto".into(),
+        SkillProviderState {
+            state: "native".into(),
+            reason: "Native Pronto design-audit backlog surface".into(),
+            source_path: None,
+        },
+    );
+
+    SkillRecord {
+        id: BUILT_IN_PAPERCUTS_ID.into(),
+        name: "Papercuts".into(),
+        description: "Capture and triage durable small hurts from the design-audit family.".into(),
+        category: "UI & Design".into(),
+        family: "Design Audit".into(),
+        lifecycle: "canonical".into(),
+        hosted_in_jakye_agent_setup: false,
+        sources: Vec::new(),
+        providers,
+        parity_score: None,
+        parity_evidence: vec![
+            "Native Pronto skill surface; provider parity is not applicable.".into(),
+        ],
+        usage: SkillUsage {
+            telemetry_source: "Pronto local backlog; invocation telemetry is not recorded.".into(),
+            ..SkillUsage::default()
+        },
+        finding_capability: papercuts_finding_capability(),
+    }
+}
+
+fn ensure_builtin_skills(snapshot: &mut SkillsSnapshot) {
+    if !snapshot.skills.iter().any(|skill| {
+        skill.id.eq_ignore_ascii_case(BUILT_IN_PAPERCUTS_ID)
+            || skill.name.eq_ignore_ascii_case("Papercuts")
+    }) {
+        snapshot.skills.push(built_in_papercuts_skill());
+    }
+    snapshot.skills.sort_by(|left, right| {
+        left.name
+            .to_ascii_lowercase()
+            .cmp(&right.name.to_ascii_lowercase())
+    });
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -603,12 +972,12 @@ fn build_snapshot() -> SkillsSnapshot {
                 "Behavioral trigger/output fixtures are not available in the local runtime".into(),
             ];
             SkillRecord {
-                id,
+                id: id.clone(),
                 name: candidates
                     .first()
                     .map(|candidate| candidate.name.clone())
                     .unwrap_or_default(),
-                description,
+                description: description.clone(),
                 category: classify_skill_category(
                     candidates
                         .first()
@@ -647,6 +1016,14 @@ fn build_snapshot() -> SkillsSnapshot {
                             .unwrap_or_default(),
                     )
                     .unwrap_or_default(),
+                finding_capability: fallback_finding_capability(
+                    &id,
+                    candidates
+                        .first()
+                        .map(|candidate| candidate.name.as_str())
+                        .unwrap_or_default(),
+                    description.as_str(),
+                ),
             }
         })
         .collect::<Vec<_>>();
@@ -655,10 +1032,24 @@ fn build_snapshot() -> SkillsSnapshot {
             .to_ascii_lowercase()
             .cmp(&right.name.to_ascii_lowercase())
     });
-    SkillsSnapshot { schema_version: SCHEMA.into(), generated_at: iso_now(), refreshed_at: Some(iso_now()), freshness: format!("Observed through {}", iso_now()), source: "Local skill roots and local session records".into(), recent_days: RECENT_DAYS, roots, skills, telemetry_gap: "Invocation evidence is best-effort: only recognizable local session records are counted; missing or provider-blocked telemetry remains unknown.".into() }
+    let mut snapshot = SkillsSnapshot {
+        schema_version: SCHEMA.into(),
+        generated_at: iso_now(),
+        refreshed_at: Some(iso_now()),
+        freshness: format!("Observed through {}", iso_now()),
+        source: "Local skill roots and local session records".into(),
+        recent_days: RECENT_DAYS,
+        roots,
+        skills,
+        telemetry_gap: "Invocation evidence is best-effort: only recognizable local session records are counted; missing or provider-blocked telemetry remains unknown.".into(),
+    };
+    ensure_builtin_skills(&mut snapshot);
+    apply_finding_capabilities(&mut snapshot);
+    snapshot
 }
 
 fn classify_snapshot(snapshot: &mut SkillsSnapshot) {
+    ensure_builtin_skills(snapshot);
     let mut family_counts = HashMap::new();
     for skill in &snapshot.skills {
         *family_counts
@@ -666,6 +1057,9 @@ fn classify_snapshot(snapshot: &mut SkillsSnapshot) {
             .or_insert(0usize) += 1;
     }
     for skill in &mut snapshot.skills {
+        if skill.id.eq_ignore_ascii_case(BUILT_IN_PAPERCUTS_ID) {
+            continue;
+        }
         let family_seed = skill_family_seed(&skill.name);
         skill.family = if family_counts.get(&family_seed).copied().unwrap_or(0) > 1 {
             skill_family_label(&family_seed)
@@ -675,6 +1069,7 @@ fn classify_snapshot(snapshot: &mut SkillsSnapshot) {
         skill.category = classify_skill_category(&skill.name, &skill.description);
     }
     snapshot.schema_version = SCHEMA.into();
+    apply_finding_capabilities(snapshot);
 }
 
 fn iso_now() -> String {
@@ -743,7 +1138,7 @@ pub fn load(path: &Path) -> Result<SkillsSnapshot, String> {
 }
 
 fn empty_snapshot() -> SkillsSnapshot {
-    SkillsSnapshot {
+    let mut snapshot = SkillsSnapshot {
         schema_version: SCHEMA.into(),
         generated_at: iso_now(),
         refreshed_at: None,
@@ -753,7 +1148,9 @@ fn empty_snapshot() -> SkillsSnapshot {
         roots: Vec::new(),
         skills: Vec::new(),
         telemetry_gap: "No skills refresh has been recorded.".into(),
-    }
+    };
+    ensure_builtin_skills(&mut snapshot);
+    snapshot
 }
 
 fn is_discovered_source(requested: &Path, candidates: &[Candidate]) -> bool {
@@ -905,6 +1302,26 @@ mod tests {
         assert_eq!(
             classify_skill_category("career-runner", "Prepare a job application"),
             "Career"
+        );
+    }
+
+    #[test]
+    fn built_in_papercuts_skill_is_available_without_a_skill_file() {
+        let skill = built_in_papercuts_skill();
+        assert_eq!(skill.id, "papercuts");
+        assert_eq!(skill.category, "UI & Design");
+        assert_eq!(skill.family, "Design Audit");
+        assert_eq!(skill.providers["pronto"].state, "native");
+
+        let mut snapshot = empty_snapshot();
+        ensure_builtin_skills(&mut snapshot);
+        assert_eq!(
+            snapshot
+                .skills
+                .iter()
+                .filter(|candidate| candidate.id == "papercuts")
+                .count(),
+            1
         );
     }
 }
