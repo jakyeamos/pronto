@@ -26,30 +26,33 @@ boundary. The change summary is advisory and recommends a read-only matrix
 inspection; it does not create a missing matrix. The fold preview uses the
 repository's persisted target branch when configured, falls back to the
 observed default branch, and remains advisory; use direct `fold preview` when a
-one-off explicit target is needed. A blocked route
+one-off explicit target is needed. The composed route leaves `merge_preview`
+empty and sets `live_verification_required: true`; direct `fold preview` is the
+explicit path for live merge checks. A blocked route
 intentionally withholds follow-up projections and exits non-zero; use its
 `next_safe_step` before refreshing or repairing evidence.
 
 ## Focused read and preview surfaces
 
-| Need                      | Command                                                                                                                                                       | Contract                       |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Agent routing envelope    | `route [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] [--limit <n>] --json`                                                        | `pronto-agent-route/v1`        |
-| Freshness/storage gate    | `doctor [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] --json`                                                                     | `pronto-agent-doctor/v1`       |
-| Daily orientation         | `next [<repository>] [--product <name> \| --group <name>] [--limit <n>] --json`                                                                               | `pronto-agent-next/v1`         |
-| Fold preparation          | `fold preview [<repository>] [--target <branch>] [--product <name> \| --group <name>] [--limit <n>] --json`                                                   | `pronto-agent-fold-preview/v1` |
-| Fleet orientation         | `summary [--product <name> \| --group <name>] --json`                                                                                                         | `pronto-agent-summary/v1`      |
-| One repository            | `repo <absolute-repo-path> --json`                                                                                                                            | `pronto-agent-repository/v1`   |
-| Quality evidence          | `quality [<repository>] --json`                                                                                                                               | `pronto-agent-quality/v1`      |
-| Finding adjudication      | `quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] --json` | repository-owned overlay       |
-| Skill topology            | `skills [<skill-id>] --json`                                                                                                                                  | `pronto-skills/v2`             |
-| Repository change matrix  | `change-matrix repo <repository> [--operation <add\|change\|remove>] --json`                                                                                  | `pronto-change-matrix/v1`      |
-| Skill change matrix       | `change-matrix skill <skill-id> [--operation <add\|change\|remove>] --json`                                                                                   | `pronto-change-matrix/v1`      |
-| Active remediation        | `remediation [<repository>] --json`                                                                                                                           | `pronto-remediation/v3`        |
-| Work requiring attention  | `attention --json`                                                                                                                                            | `pronto-agent-attention/v1`    |
-| Recent transitions/audits | `activity [<repository>] --limit <n> --json`                                                                                                                  | `pronto-agent-activity/v1`     |
-| Preparation preflight     | `prepare <repository> [--workspace <id>] --json`                                                                                                              | `pronto-agent-preparation/v1`  |
-| Release preflight         | `release preview <repository> [--workspace <id>] --json`                                                                                                      | `pronto-agent-release/v1`      |
+| Need                      | Command                                                                                                                                                       | Contract                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Agent routing envelope    | `route [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] [--limit <n>] [--fresh] --json`                                              | `pronto-agent-route/v1`          |
+| Freshness/storage gate    | `doctor [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] --json`                                                                     | `pronto-agent-doctor/v1`         |
+| Daily orientation         | `next [<repository>] [--product <name> \| --group <name>] [--limit <n>] --json`                                                                               | `pronto-agent-next/v1`           |
+| Fold preparation          | `fold preview [<repository>] [--target <branch>] [--product <name> \| --group <name>] [--limit <n>] --json`                                                   | `pronto-agent-fold-preview/v1`   |
+| Fleet orientation         | `summary [--product <name> \| --group <name>] --json`                                                                                                         | `pronto-agent-summary/v1`        |
+| One repository            | `repo <absolute-repo-path> [--fresh] --json`                                                                                                                  | `pronto-agent-repository/v1`     |
+| Quality evidence          | `quality [<repository>] --json`                                                                                                                               | `pronto-agent-quality/v1`        |
+| Quality import            | `quality refresh --json`                                                                                                                                      | persisted local quality snapshot |
+| Finding adjudication      | `quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] --json` | repository-owned overlay         |
+| Skill topology            | `skills [<skill-id>] --json`                                                                                                                                  | `pronto-skills/v2`               |
+| Repository change matrix  | `change-matrix repo <repository> [--operation <add\|change\|remove>] --json`                                                                                  | `pronto-change-matrix/v1`        |
+| Skill change matrix       | `change-matrix skill <skill-id> [--operation <add\|change\|remove>] --json`                                                                                   | `pronto-change-matrix/v1`        |
+| Active remediation        | `remediation [<repository>] --json`                                                                                                                           | `pronto-remediation/v3`          |
+| Work requiring attention  | `attention --json`                                                                                                                                            | `pronto-agent-attention/v1`      |
+| Recent transitions/audits | `activity [<repository>] --limit <n> --json`                                                                                                                  | `pronto-agent-activity/v1`       |
+| Preparation preflight     | `prepare <repository> [--workspace <id>] --json`                                                                                                              | `pronto-agent-preparation/v1`    |
+| Release preflight         | `release preview <repository> [--workspace <id>] --json`                                                                                                      | `pronto-agent-release/v1`        |
 
 Resolve a repository with `git rev-parse --show-toplevel` and pass the
 absolute path, repository name, ID, or an exact workspace path. Do not pass `.`
@@ -69,7 +72,9 @@ must not survive an installation.
 Repository and summary projections include a read-only `project_compass`
 summary derived from `.project-compass/contract.json`. `Ready` reports the
 current product identity, MVP and complete-product progress, confidence,
-blockers, and open drift. Open blockers preserve their outcome, kind, and
+target-scoped outcome counts, covered/total pillar counts, blockers, and open
+drift. Partial target coverage remains explicit; a progress score never implies
+that unmodeled pillars are complete. Open blockers preserve their outcome, kind, and
 summary; open drift preserves its kind, summary, and observation time so the UI
 and JSON explain the count rather than projecting only a number. `Missing`
 means the repository has not established a Compass contract; `Invalid`
@@ -116,7 +121,11 @@ the closure score removes blocking maturity work from the active queue, while
 the policy remains in retained closure evidence. Agents may continue material,
 applicable improvements toward the ideal, but must not create superficial
 documentation, configuration, tests, or other artifacts solely to raise the
-score.
+score. The 4.0/4 ideal additionally requires every configured maturity gate,
+including the fresh, commit-matched Mac Control ideal-state gate where
+applicable; this is a score condition, not a four-repository count. See
+`docs/mac-control-maturity-gate.md` for the report contract and explicit
+not-applicable handling.
 Unresolved coverage must link to action IDs; clear, informational, or
 goal-inapplicable surfaces remain explicit without manufacturing work. Terminal evidence-backed outcomes move to the retained
 `closures` ledger, including their target state, and may re-enter the queue
@@ -126,6 +135,28 @@ domain, and action priority before applying explicit fleet leverage for Pronto,
 AIOS, and Quality Runner; repository goal and raw action weight are later
 tie-breakers. `remediation export` writes the JSON contracts plus
 `repository-remediation-order.md`.
+
+The run also exposes `github_only_candidates`. These are authenticated GitHub
+repositories present in the provider snapshot without a matching local checkout;
+they remain counted as provider evidence rather than being discarded or turned
+into synthetic local plans. Their locality label is `GitHub only`, and their
+terminal remediation task is `GitHub only`. A locally retained repository whose
+goal is explicitly or inferentially labeled `GitHub only` receives the same
+disposition as its final verification action.
+
+Remediation handoffs use a provider-neutral checkpoint rule: work owned by an
+executor must be locally committed on its isolated branch before handoff or
+local action verification. `pronto remediation handoff-check <repository> --json`
+is a read-only live Git receipt with schema
+`pronto-remediation-handoff/v1`; `ready: false` is a hard stop. A dirty or
+owner-ambiguous workspace is preserved, not stashed, overwritten, or silently
+folded. After a checkpoint commit, run the scoped `pronto refresh` before
+rechecking so cached Pronto evidence agrees with live Git. `remediation
+set-status` repeats the same gate before marking a local action `verified`.
+The `GitHub only` terminal action is the deliberate exception because it does
+not require a local checkout. This is bounded Pronto enforcement, not a
+fleet-wide auto-commit service; nightly automation may report or recover only
+under its separately authorized ownership rules.
 
 `remediation refresh` closes its quality-import checkpoint only when the
 canonical QR feed is published and every eligible repository whose goal
@@ -144,10 +175,15 @@ canonical all-projects fallback.
 
 ## Refresh and state boundaries
 
-Use `refresh <repository> --json` when the persisted snapshot is stale or after
-a branch/workspace change that needs fresh evidence. It performs a local
-read-only Git scan but persists the resulting snapshot and audit record, so it
-is state-changing even though it does not modify a repository.
+Use `refresh <repository|group|product|repository-path> --json` when the
+persisted snapshot is stale or after a branch/workspace change that needs fresh
+evidence. It performs a local read-only Git scan but persists the resulting
+snapshot and audit record, so it is state-changing even though it does not
+modify a repository. An exact repository path under a registered discovery
+root may be scoped-refreshed even when it has not yet been admitted to the
+snapshot; the path must be a valid Git repository. An explicit path is allowed
+to override that root's automatic discovery exclusion for this refresh without
+changing the root configuration.
 
 Run `route --json` before routing across repositories. For repository-local
 work, pass the resolved repository path; this prevents unrelated fleet rows
@@ -155,6 +191,18 @@ from blocking the task. A non-zero exit or `ready: false` is a hard stop for
 the selected scope; refresh or repair only the evidence it identifies, then
 rerun route. Use direct `doctor` when a dedicated freshness/storage report is
 needed.
+
+Read-only projections (`route`, `status`, `repo`, `summary`, `next`, `fold
+preview`, `quality`, `attention`, `activity`, and `remediation`) use the
+persisted SQLite snapshot and do not ingest repository quality artifacts while
+serializing their response. This keeps follow-up reads observable even when a
+repository's quality tree is slow or unavailable. Add `--fresh` to `route`,
+`status`, or `repo` only when a bounded fresh quality projection is required;
+the projection has a 10-second deadline and returns an explicit error state on
+timeout. Use `quality refresh --json` when the imported quality state should be
+persisted for subsequent cached reads. Quality refreshes are single-flight per
+Pronto database, so concurrent writers receive a retryable error instead of
+interleaving state.
 
 The following commands can change local Pronto state or touch an external
 boundary and require explicit task scope: `root add`, `root exclude`, `refresh`,
@@ -164,6 +212,10 @@ repository's `.pronto/quality-finding-dispositions.json` review ledger and
 therefore also requires an exact repository, finding fingerprint, disposition,
 reason, and reviewer. These commands do not authorize Git branch cleanup,
 merging, pushing, deletion, provider mutation, or release publication.
+
+`remediation handoff-check` is read-only but is a live handoff gate rather than
+a cached projection. It exits non-zero when the selected workspace is dirty, has
+an interrupted operation, has stale dirty evidence, or cannot be checked.
 
 Use `refresh-github <repository|group|product> --json` when live provider
 evidence is needed for a bounded scope. Omitting the target refreshes the whole
@@ -202,12 +254,28 @@ branch is `Stale`; an exact commit match remains authoritative.
   `disposition_counts` are reconciled from the repository-owned
   `pronto-quality-finding-dispositions/v1` ledger. Missing, invalid, expired,
   absent, or scope-mismatched dispositions never suppress a finding.
+- QR category `debloat` is projected as the conditional
+  `Repository debloat review` gate. QR's deterministic findings are structural
+  triggers, not proof of architectural bloat or a complete ownership-pressure
+  audit. The gate is configured only when the QR report explicitly declares
+  category coverage. Unresolved signals block; stale evidence stays stale; and
+  a fresh clear scan passes only the candidate-review gate. It does not establish
+  repository-wide debloat maturity, deletion readiness, or deletion authority. A reviewed
+  false positive or intentional structure can clear its candidate, while
+  confirmed, deferred, or accepted-risk bloat remains open for this maturity
+  gate. Remediation refresh preserves in-progress state when the historical
+  `simplify|simplification and shrink pass` group migrates to the canonical
+  `debloat|debloat candidate review` group. When dispositions remove every leaf
+  action but the maturity gate remains blocked, Pronto emits one advisory
+  debloat-gate review action; it does not duplicate an existing debloat leaf or
+  aggregate QR action and does not affect CI-readiness scoring.
 - Supported finding dispositions are `confirmed`, `false_positive`,
   `accepted_intentional`, `accepted_risk`, `deferred`, `fixed`, and
   `superseded`. Confirmed and deferred findings remain actionable; false
-  positives, accepted intentional behavior, and accepted risk leave the active
-  remediation queue while their review evidence remains visible. Fixed or
-  superseded decisions attached to a current finding are treated as stale
-  rather than silently hiding a recurrence.
+  positives, accepted intentional behavior, and accepted risk leave the leaf
+  remediation queue while their review evidence remains visible. A blocked
+  debloat review gate can still retain its single advisory gate-review action.
+  Fixed or superseded decisions attached to a current finding are treated as
+  stale rather than silently hiding a recurrence.
 - Preserve `schema_version`, freshness, evidence, and uncertainty fields when
   handing JSON to another agent.

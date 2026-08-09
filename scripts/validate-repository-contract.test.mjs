@@ -11,11 +11,13 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fixtureFiles = [
   ".agents/change-surface-matrix.json",
   ".agents/context/README.md",
+  ".agents/context/branch-sensitive-quality-verification.md",
   ".agents/context/commands.md",
   ".agents/environment-legibility.json",
   ".github/workflows/quality.yml",
   "docs/implementation-examples.md",
   "docs/implementation-plan.md",
+  "docs/mac-control-maturity-gate.md",
   "docs/remediation-sequential-handoff.md",
   "docs/repository-contract.md",
   "scripts/validate-repository-contract.mjs",

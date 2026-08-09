@@ -70,6 +70,12 @@ and priority before giving the Pronto and AIOS control planes and the Quality
 Runner evidence provider explicit fleet leverage. Repository goal and raw
 action weight are used only after those safety and leverage decisions.
 
+The run also exposes `github_only_candidates`: authenticated GitHub repositories
+present in the provider snapshot without a matching local checkout. They remain
+counted as provider evidence, carry the `GitHub only` locality label, and record
+`GitHub only` as their terminal remediation task without creating a synthetic
+local plan.
+
 Active plans retain actions that disappear from a refreshed projection as
 verified history, so completed work continues to contribute to weighted
 progress while other actions remain. If the same stable action key appears

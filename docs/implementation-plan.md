@@ -59,7 +59,8 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 
 - Polish local navigation, freshness, settings, keyboard access, and empty states before expanding the data boundary.
 - Continue the versioned SQLite contract while preserving the domain contracts and CLI/renderer snapshot shapes; the initial JSON store has already been imported non-destructively.
-- Add GitHub identities, explicit per-repository mapping, refresh freshness, remote-only catalog, and clone preflight.
+- Add GitHub identities, explicit per-repository mapping, refresh freshness,
+  GitHub-only candidate quantification, and clone preflight.
 - Add process/terminal metadata adapters and structured agent manifests.
 - Extend the read-only action contract into authorized bounded workspace actions only after permission, target, failure, and review semantics are explicit; destructive/history-rewriting Git operations remain prohibited.
 
