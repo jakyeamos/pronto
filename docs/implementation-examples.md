@@ -40,6 +40,17 @@ A new rule must retain raw evidence, define stale and ambiguous behavior, keep
 the quality and remediation projections consistent, and test both suppression
 and fail-open recurrence.
 
+Agent usability is the reference for a supplemental maturity projection:
+
+- `.agents/agent-usability.json` owns the tool-to-documentation-to-skill
+  relationship without copying the canonical global skill into this repository.
+- Quality Runner owns the four lane assessments and growth-health counts in its
+  canonical feed.
+- `src-tauri/src/quality.rs` preserves that nested producer contract, and
+  `QualityMaturitySummary` renders it without recomputing coverage.
+- Missing behavior receipts remain visible even when documentation and static
+  mappings are healthy.
+
 ## Add or change a repository surface
 
 The remediation coverage ledger is the reference for cross-surface parity:

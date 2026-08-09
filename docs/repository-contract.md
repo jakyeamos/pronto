@@ -76,6 +76,12 @@ condition on the existing 4.0/4.0 maturity ideal. It applies to the current
 maturity scope and does not define a four-repository denominator or inferred
 cohort.
 
+The [agent usability maturity contract](agent-usability-maturity.md) supplements
+that aggregate with four explicit documentation, skill-coverage, behavior, and
+freshness/portability lanes plus orthogonal growth health. Repositories own the
+tool relationship in `.agents/agent-usability.json`; Pronto imports the QR
+projection and never infers passing coverage from file volume.
+
 Network refreshes, Git writes, provider mutations, application installation,
 and release publication are separate authority boundaries. Use the narrowest
 repository or provider scope and preserve the exact source commit and evidence

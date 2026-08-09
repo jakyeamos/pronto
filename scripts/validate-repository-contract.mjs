@@ -11,8 +11,10 @@ const requiredDocuments = [
   ".agents/context/commands.md",
   "docs/repository-contract.md",
   "docs/implementation-examples.md",
+  "docs/agent-usability-maturity.md",
 ];
 const evidenceContractPath = ".agents/environment-legibility.json";
+const agentUsabilityContractPath = ".agents/agent-usability.json";
 const automationFiles = new Set([
   ".circleci/config.yml",
   ".circleci/config.yaml",
@@ -309,6 +311,84 @@ if (evidenceContract) {
           }
         }
       }
+    }
+  }
+}
+
+let agentUsabilityContract;
+try {
+  agentUsabilityContract = JSON.parse(read(agentUsabilityContractPath));
+} catch (error) {
+  errors.push(`${agentUsabilityContractPath}: invalid JSON: ${error.message}`);
+}
+
+if (agentUsabilityContract) {
+  if (agentUsabilityContract.schema !== "agent-usability/v1") {
+    errors.push(`${agentUsabilityContractPath}: unsupported schema`);
+  }
+  const reviewed = Date.parse(agentUsabilityContract.reviewed_at);
+  const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+  if (
+    !Number.isFinite(reviewed) ||
+    reviewed > Date.now() ||
+    Date.now() - reviewed > ninetyDays
+  ) {
+    errors.push(
+      `${agentUsabilityContractPath}: reviewed_at is missing, future-dated, or stale`,
+    );
+  }
+  const skills = Array.isArray(agentUsabilityContract.skills)
+    ? agentUsabilityContract.skills
+    : [];
+  const skillIds = new Set();
+  for (const skill of skills) {
+    if (!skill?.id || skillIds.has(skill.id)) {
+      errors.push(`${agentUsabilityContractPath}: skill IDs must be unique`);
+      continue;
+    }
+    skillIds.add(skill.id);
+    if (!skill.family || !["hosted", "projected"].includes(skill.source)) {
+      errors.push(
+        `${skill.id}: family and hosted/projected source are required`,
+      );
+    }
+    if (skill.source === "hosted") {
+      readContractPath(skill.contract_path, `${skill.id}.contract_path`);
+    }
+  }
+  const tools = Array.isArray(agentUsabilityContract.tools)
+    ? agentUsabilityContract.tools
+    : [];
+  if (!tools.length) {
+    errors.push(`${agentUsabilityContractPath}: tools are required`);
+  }
+  const toolIds = new Set();
+  for (const tool of tools) {
+    if (!tool?.id || toolIds.has(tool.id)) {
+      errors.push(`${agentUsabilityContractPath}: tool IDs must be unique`);
+      continue;
+    }
+    toolIds.add(tool.id);
+    if (!Array.isArray(tool.documentation) || !tool.documentation.length) {
+      errors.push(`${tool.id}: documentation references are required`);
+    }
+    for (const documentPath of tool.documentation ?? []) {
+      readContractPath(documentPath, `${tool.id}.documentation`);
+    }
+    if (!Array.isArray(tool.skills) || !tool.skills.length) {
+      errors.push(`${tool.id}: skill references are required`);
+    }
+    for (const skillId of tool.skills ?? []) {
+      if (!skillIds.has(skillId)) {
+        errors.push(`${tool.id}: unknown skill reference: ${skillId}`);
+      }
+    }
+    if (!Array.isArray(tool.behavior_evidence)) {
+      errors.push(`${tool.id}: behavior_evidence must be an array`);
+    }
+    for (const item of tool.behavior_evidence ?? []) {
+      const evidencePath = typeof item === "string" ? item : item?.path;
+      readContractPath(evidencePath, `${tool.id}.behavior_evidence`);
     }
   }
 }

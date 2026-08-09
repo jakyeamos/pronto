@@ -21,6 +21,9 @@ Read the deeper file only when the task matches it:
 - [Implementation examples](../../docs/implementation-examples.md) — existing
   end-to-end patterns for projection, quality, remediation, and change-surface
   work.
+- [Agent usability maturity](../../docs/agent-usability-maturity.md) — the
+  tool-to-documentation-to-skill relationship, four evidence lanes, and
+  documentation/skill-family growth-health contract.
 - [Sequential remediation handoff](../../docs/remediation-sequential-handoff.md)
   — the Sol orchestrator, Luna Max executor, one-at-a-time dispatch, result,
   verification, and resume contract.
