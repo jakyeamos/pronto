@@ -9,6 +9,8 @@ import type { RemediationRun } from "./types/remediation";
 export * from "./types/quality";
 export * from "./types/remediation";
 export * from "./types/insights";
+export * from "./types/promotion";
+export * from "./types/papercuts";
 
 export interface RootConfig {
   id: string;
@@ -185,6 +187,8 @@ export interface WorkspaceSummary {
   path: string;
   is_primary: boolean;
   branch: string;
+  status_available?: boolean;
+  status_error?: string;
   dirty: boolean;
   added: number;
   removed: number;
@@ -252,8 +256,11 @@ export interface RepositorySnapshot {
   last_activity_at?: string;
 }
 
-interface ProjectCompassTargetSummary {
+export interface ProjectCompassTargetSummary {
   progress_percent: number | null;
+  scored_outcome_count: number;
+  covered_pillar_count: number;
+  total_pillar_count: number;
   confidence: string;
   confidence_percent: number;
 }
@@ -294,6 +301,8 @@ interface PullRequestPreparation {
   head_branch: string;
   base_branch?: string;
   commit_count: number;
+  status_available?: boolean;
+  status_error?: string;
   dirty: boolean;
   ahead: number;
   behind: number;

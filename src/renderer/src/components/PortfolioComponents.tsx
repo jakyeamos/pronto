@@ -21,6 +21,11 @@ import {
   QualityAttentionList,
   qualityAttentionItems,
 } from "./QualityComponents";
+import {
+  projectCompassCoverageIsIncomplete,
+  projectCompassCoverageLabel,
+  projectCompassProgressLabel,
+} from "../projectCompass";
 
 export function RepositoryRow({
   repository,
@@ -38,6 +43,11 @@ export function RepositoryRow({
     (condition) => condition.status === "Expected",
   ).length;
   const workspace = repository.workspace;
+  const gitStatusUnavailable = workspace.status_available === false;
+  const compassReady = repository.project_compass.status === "Ready";
+  const mvpCoverageIncomplete =
+    compassReady &&
+    projectCompassCoverageIsIncomplete(repository.project_compass.mvp);
   return (
     <article className="repository-row">
       <button className="repository-main" type="button" onClick={onOpen}>
@@ -60,28 +70,47 @@ export function RepositoryRow({
           <div className="repo-facts">
             <span>
               <GitBranch size={13} />
-              {workspace.branch}
-            </span>
-            <span className={workspace.dirty ? "fact-warn" : ""}>
-              {workspace.dirty
-                ? workspace.line_totals_partial
-                  ? "Dirty · totals partial"
-                  : `Dirty · +${workspace.added} / −${workspace.removed}`
-                : "Clean"}
-            </span>
-            <span
-              className={workspace.sync_state !== "Synced" ? "fact-warn" : ""}
-            >
-              {workspace.sync_state}
+              {gitStatusUnavailable
+                ? "Git status unavailable"
+                : workspace.branch}
             </span>
             <span
               className={
-                repository.project_compass.status === "Ready" ? "" : "fact-warn"
+                gitStatusUnavailable || workspace.dirty ? "fact-warn" : ""
+              }
+            >
+              {gitStatusUnavailable
+                ? "Git status unavailable"
+                : workspace.dirty
+                  ? workspace.line_totals_partial
+                    ? "Dirty · totals partial"
+                    : `Dirty · +${workspace.added} / −${workspace.removed}`
+                  : "Clean"}
+            </span>
+            <span
+              className={
+                gitStatusUnavailable || workspace.sync_state !== "Synced"
+                  ? "fact-warn"
+                  : ""
+              }
+            >
+              {gitStatusUnavailable
+                ? "Git status unavailable"
+                : workspace.sync_state}
+            </span>
+            <span
+              className={
+                !compassReady || mvpCoverageIncomplete ? "fact-warn" : ""
+              }
+              title={
+                compassReady
+                  ? projectCompassCoverageLabel(repository.project_compass.mvp)
+                  : undefined
               }
             >
               <Compass size={13} />
-              {repository.project_compass.status === "Ready"
-                ? `MVP ${repository.project_compass.mvp.progress_percent ?? "unknown"}%`
+              {compassReady
+                ? projectCompassProgressLabel(repository.project_compass.mvp)
                 : `Compass ${repository.project_compass.status.toLowerCase()}`}
             </span>
           </div>

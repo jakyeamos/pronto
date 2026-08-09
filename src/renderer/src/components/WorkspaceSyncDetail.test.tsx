@@ -59,4 +59,27 @@ describe("WorkspaceSyncDetailView", () => {
     );
     expect(markup).toContain("does not pull, push, merge, rebase");
   });
+
+  it("labels failed Git status as unavailable instead of inferring sync state", () => {
+    const markup = renderToStaticMarkup(
+      <WorkspaceSyncDetailView
+        workspace={{
+          ...unsyncedWorkspace,
+          branch: "Unknown",
+          status_available: false,
+          status_error: "Git status failed: fatal: not a git repository",
+          sync_state: "Git status unavailable",
+          sync_detail: {
+            ...unsyncedWorkspace.sync_detail!,
+            reason: "Git status failed: fatal: not a git repository",
+          },
+        }}
+        onClose={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain("Git status unavailable");
+    expect(markup).toContain("Why Git status is unavailable");
+    expect(markup).not.toContain("Why this workspace is unsynced");
+  });
 });

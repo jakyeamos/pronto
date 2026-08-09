@@ -4,6 +4,7 @@ import {
   ClipboardCheck,
   FolderGit2,
   GitBranch,
+  Inbox,
   LayoutDashboard,
   Settings2,
   Sparkles,
@@ -12,6 +13,7 @@ import {
 export type NavItem =
   | "portfolio"
   | "remediation"
+  | "promotions"
   | "analytics"
   | "skills"
   | "groups"
@@ -26,6 +28,7 @@ export const navItems: Array<{
 }> = [
   { id: "portfolio", label: "Portfolio", icon: LayoutDashboard },
   { id: "remediation", label: "Remediation", icon: ClipboardCheck },
+  { id: "promotions", label: "Promotion inbox", icon: Inbox },
   { id: "analytics", label: "Analytics", icon: ChartNoAxesCombined },
   { id: "skills", label: "Skills", icon: Sparkles },
   { id: "groups", label: "Groups", icon: FolderGit2 },
@@ -47,6 +50,11 @@ export const pageCopy: Record<
     eyebrow: "Fresh evidence → focused work",
     title: "Turn the latest scan into a plan.",
     body: "Review per-repository actions from current QR, maturity, CI ideal-state, provider, branch, and local evidence.",
+  },
+  promotions: {
+    eyebrow: "AWL → JAS handoff",
+    title: "Choose what earns a place in JAS.",
+    body: "Review evidence-backed candidates from ai-workflow-leverage before they enter the public base or private overlay.",
   },
   groups: {
     eyebrow: "Manual configuration",

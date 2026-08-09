@@ -2,6 +2,10 @@ import type { ReactElement } from "react";
 import { Compass } from "lucide-react";
 import type { RepositorySnapshot } from "../types";
 import { StatusPill } from "./ConsolePrimitives";
+import {
+  projectCompassCoverageIsIncomplete,
+  projectCompassCoverageLabel,
+} from "../projectCompass";
 
 function compassItemLabel(value: string): string {
   return value
@@ -77,6 +81,15 @@ export function ProjectCompassDetail({
                 {compass.mvp.progress_percent === null ? "" : "%"}
               </strong>
               <small>{compass.mvp.confidence} confidence</small>
+              <small
+                className={
+                  projectCompassCoverageIsIncomplete(compass.mvp)
+                    ? "compass-coverage-warning"
+                    : undefined
+                }
+              >
+                {projectCompassCoverageLabel(compass.mvp)}
+              </small>
             </div>
             <div>
               <span>Complete product</span>
@@ -85,6 +98,15 @@ export function ProjectCompassDetail({
                 {compass.complete_product.progress_percent === null ? "" : "%"}
               </strong>
               <small>{compass.complete_product.confidence} confidence</small>
+              <small
+                className={
+                  projectCompassCoverageIsIncomplete(compass.complete_product)
+                    ? "compass-coverage-warning"
+                    : undefined
+                }
+              >
+                {projectCompassCoverageLabel(compass.complete_product)}
+              </small>
             </div>
             <div>
               <span>Open blockers</span>

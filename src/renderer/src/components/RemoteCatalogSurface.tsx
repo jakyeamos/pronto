@@ -25,6 +25,10 @@ export function RemoteCatalogSurface({
   isRefreshing: boolean;
   onRefresh: () => Promise<void>;
 }): ReactElement {
+  const githubOnlyCount = repositories.filter(
+    (repository) => repository.locality === "GitHub only",
+  ).length;
+
   return (
     <div className="remote-catalog-layout">
       <section className="surface-panel">
@@ -33,8 +37,8 @@ export function RemoteCatalogSurface({
             <p className="eyebrow">Read-only provider boundary</p>
             <h2>GitHub remote catalog</h2>
             <p>
-              Only GitHub repositories connected to an in-scope local checkout
-              are shown here.
+              The snapshot includes connected local checkouts and GitHub-only
+              candidates retained so an absent local checkout remains visible.
             </p>
           </div>
           <button
@@ -87,10 +91,12 @@ export function RemoteCatalogSurface({
         <div className="surface-heading">
           <div>
             <p className="eyebrow">Provider snapshot</p>
-            <h2>{repositories.length} repositories</h2>
+            <h2>
+              {repositories.length} repositories · {githubOnlyCount} GitHub-only
+            </h2>
             <p>
-              Remote-only GitHub repositories are omitted until a matching local
-              checkout is discovered.
+              GitHub-only entries remain quantified in provider evidence and do
+              not create a synthetic local remediation plan.
             </p>
           </div>
         </div>
@@ -109,7 +115,13 @@ export function RemoteCatalogSurface({
                 <div>
                   <div className="remote-repository-heading">
                     <strong>{repository.full_name}</strong>
-                    <StatusPill tone="mint">{repository.locality}</StatusPill>
+                    <StatusPill
+                      tone={
+                        repository.locality === "GitHub only" ? "amber" : "mint"
+                      }
+                    >
+                      {repository.locality}
+                    </StatusPill>
                   </div>
                   <small>
                     {repository.archived ? "Archived" : "Active"} · default{" "}

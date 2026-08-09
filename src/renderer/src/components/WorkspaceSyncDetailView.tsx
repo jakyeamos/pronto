@@ -10,14 +10,19 @@ export function WorkspaceSyncDetailView({
   onClose: () => void;
 }): ReactElement {
   const detail = workspace.sync_detail;
+  const gitStatusUnavailable = workspace.status_available === false;
   return (
     <section
       className="workspace-sync-detail"
-      aria-label={`Unsynced workspace detail for ${workspace.branch}`}
+      aria-label={`${gitStatusUnavailable ? "Git status unavailable" : "Unsynced workspace detail"} for ${workspace.branch}`}
     >
       <div className="workspace-sync-detail-header">
         <div>
-          <p className="eyebrow">Unsynced workspace</p>
+          <p className="eyebrow">
+            {gitStatusUnavailable
+              ? "Git status unavailable"
+              : "Unsynced workspace"}
+          </p>
           <h4>Sync evidence detail</h4>
           <small>
             {workspace.branch} · {workspace.path}
@@ -46,7 +51,11 @@ export function WorkspaceSyncDetailView({
             </div>
           </div>
           <div className="workspace-sync-detail-copy">
-            <span>Why this workspace is unsynced</span>
+            <span>
+              {gitStatusUnavailable
+                ? "Why Git status is unavailable"
+                : "Why this workspace is unsynced"}
+            </span>
             <p>{detail.reason}</p>
           </div>
           <div className="workspace-sync-detail-copy">

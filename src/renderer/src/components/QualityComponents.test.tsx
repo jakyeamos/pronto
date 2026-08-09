@@ -1,5 +1,8 @@
+// @vitest-environment happy-dom
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { useState } from "react";
+import { afterEach, describe, expect, it } from "vitest";
 import type {
   AiPayloadPreview,
   AnalyticsSnapshot,
@@ -25,7 +28,7 @@ import { PreparationDrawer } from "./PreparationDrawer";
 import { qualityGateChoices } from "./ReleaseRuleEditor";
 import { CommandCenterSurface } from "./CommandCenterSurface";
 import { AppSidebar } from "./AppSidebar";
-import { AttentionQueue } from "./PortfolioComponents";
+import { AttentionQueue, RepositoryRow } from "./PortfolioComponents";
 import {
   QualityAttentionList,
   QualityEvidenceList,
@@ -53,6 +56,7 @@ const workspace: WorkspaceSummary = {
   path: "/tmp/pronto",
   is_primary: true,
   branch: "main",
+  last_commit: "abcdef1234567890",
   dirty: false,
   added: 0,
   removed: 0,
@@ -109,6 +113,8 @@ function makeFindings(
     disposition_status: "Missing",
     severity_counts: {},
     high_severity_total: 0,
+    scanned_commit: "abcdef1234567890",
+    scanned_branch: "main",
     freshness: "Unknown",
     ...overrides,
   };
@@ -119,6 +125,8 @@ function makeMaturity(
 ): QualityMaturity {
   return {
     freshness: "Unknown",
+    scanned_commit: "abcdef1234567890",
+    scanned_branch: "main",
     ...overrides,
   };
 }
@@ -193,11 +201,17 @@ function makeRepository(
       audience: null,
       mvp: {
         progress_percent: null,
+        scored_outcome_count: 0,
+        covered_pillar_count: 0,
+        total_pillar_count: 0,
         confidence: "unknown",
         confidence_percent: 0,
       },
       complete_product: {
         progress_percent: null,
+        scored_outcome_count: 0,
+        covered_pillar_count: 0,
+        total_pillar_count: 0,
         confidence: "unknown",
         confidence_percent: 0,
       },
@@ -281,6 +295,8 @@ const analyticsSnapshot: AnalyticsSnapshot = {
   repositories: [],
 };
 
+afterEach(cleanup);
+
 function preparation(): RepositoryPreparation {
   return {
     repository_id: "repo-1",
@@ -363,11 +379,17 @@ describe("quality evidence surfaces", () => {
         audience: "Developers with many active repositories",
         mvp: {
           progress_percent: 75,
+          scored_outcome_count: 3,
+          covered_pillar_count: 2,
+          total_pillar_count: 2,
           confidence: "high",
           confidence_percent: 100,
         },
         complete_product: {
           progress_percent: 50,
+          scored_outcome_count: 4,
+          covered_pillar_count: 2,
+          total_pillar_count: 2,
           confidence: "medium",
           confidence_percent: 60,
         },
@@ -489,6 +511,21 @@ describe("quality evidence surfaces", () => {
           ci_configuration_repository_count: 1,
           ci_evidence_fresh_passing_gate_count: 1,
           ci_evidence_ideal_gate_count: 6,
+          mac_control_ideal_state: {
+            status: "Failed",
+            freshness: "Fresh",
+            ideal_state: false,
+            applicable_repository_count: 1,
+            not_applicable_repository_count: 0,
+            evaluated_repository_count: 1,
+            implementation_status: "Failed",
+            implementation_criteria_passed_count: 7,
+            implementation_criteria_total: 8,
+            live_status: "Review required",
+            live_task_count: 3,
+            measured_task_count: 0,
+            failure_reasons: ["The report has an unresolved task contract."],
+          },
         })}
         repositories={[repository]}
         onOpenRepository={noopRepository}
@@ -501,12 +538,19 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("CI configuration");
     expect(markup).toContain("1/6");
     expect(markup).toContain("Fresh passing evidence: 1/6");
+    expect(markup).toContain("Mac Control ideal state");
+    expect(markup).toContain("Implementation: 7/8 criteria · Failed");
+    expect(markup).toContain("Live tasks: 0/3 measured · Review required");
+    expect(markup).toContain(
+      "Both lanes are required before claiming the 4.0/4.0 maturity ideal",
+    );
     expect(markup).toContain("Tests");
     expect(markup).toContain("8 canonical");
     expect(markup).toContain("Show 1 custom gate");
     expect(markup).not.toContain("Security Scan");
     expect(markup).toContain("4");
-    expect(markup).toContain("QR findings detected");
+    expect(markup).toContain("QR findings verified for target");
+    expect(markup).not.toContain("QR findings detected in scanned evidence");
     expect(markup).toContain("3</b> actionable");
     expect(markup).toContain("2</b> awaiting review");
     expect(markup).toContain("1</b> false positive");
@@ -518,6 +562,365 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain(
       "No repository-owned change-surface matrix was found.",
     );
+  });
+
+  it("shows exact target evidence provenance instead of implying branch-specific stats", () => {
+    const repository = makeRepository({
+      target_branch: "main",
+      target_branch_configured: true,
+      branches: [
+        {
+          name: "main",
+          role: "Production",
+          role_confidence: "High",
+          target_confidence: "High",
+          ahead: 0,
+          behind: 0,
+          integration_state: "Synced",
+          last_commit: "target-commit-1234567890",
+        },
+      ],
+      quality: makeQuality({
+        findings: makeFindings({
+          total: 4022,
+          source: "QR",
+          scanned_branch: "dev",
+          scanned_commit: "scanned-commit-1234567890",
+          freshness: "Stale",
+        }),
+      }),
+    });
+    const mismatch = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([repository])}
+        repositories={[repository]}
+        showOverview={false}
+        onOpenRepository={noopRepository}
+      />,
+    );
+    expect(mismatch).toContain("main @ target-c");
+    expect(mismatch).toContain("branch dev · commit scanned");
+    expect(mismatch).toContain(
+      "Target main is not verified; this scan is from dev.",
+    );
+    expect(mismatch).toContain("Target QR findings unavailable");
+    expect(mismatch).toContain("Raw scanned evidence");
+    expect(mismatch).toContain(
+      '<details class="quality-findings-raw-details">',
+    );
+    expect(mismatch).toContain("4,022");
+    expect(mismatch).toContain(
+      "Breakdown below is from the scanned evidence and is not a target result.",
+    );
+
+    const matchingRepository = {
+      ...repository,
+      branch: "main",
+      quality: makeQuality({
+        findings: makeFindings({
+          total: 2,
+          source: "QR",
+          scanned_branch: "main",
+          scanned_commit: "target-commit-1234567890",
+          freshness: "Fresh",
+        }),
+      }),
+    };
+    const matching = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([matchingRepository])}
+        repositories={[matchingRepository]}
+        showOverview={false}
+        onOpenRepository={noopRepository}
+      />,
+    );
+    expect(matching).toContain("Verified for target main @ target-c");
+    expect(matching).toContain("QR findings verified for target");
+    expect(matching).not.toContain("Target QR findings unavailable");
+    expect(matching).not.toContain("quality-findings-raw-details");
+
+    const staleCommitRepository = {
+      ...repository,
+      target_branch: "dev",
+      branches: [
+        {
+          name: "dev",
+          role: "Development",
+          role_confidence: "High",
+          target_confidence: "High",
+          ahead: 0,
+          behind: 0,
+          integration_state: "Synced",
+          last_commit: "a6d1dac112534b1d2722f92f3fb4e4e40170dd61",
+        },
+      ],
+      quality: makeQuality({
+        findings: makeFindings({
+          total: 4022,
+          source: "QR",
+          scanned_branch: "dev",
+          scanned_commit: "0b7ffd91f5d8e35896e3d517967cef3ee30468fd",
+          freshness: "Stale",
+        }),
+      }),
+    };
+    const staleCommit = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([staleCommitRepository])}
+        repositories={[staleCommitRepository]}
+        showOverview={false}
+        onOpenRepository={noopRepository}
+      />,
+    );
+    expect(staleCommit).toContain(
+      "Target dev is not verified; this scan is 0b7ffd91, target is a6d1dac1.",
+    );
+    expect(staleCommit).toContain("4,022");
+    expect(staleCommit).toContain("QR findings from stale branch evidence");
+    expect(staleCommit).toContain(
+      "Breakdown is from the selected branch at an older head",
+    );
+    expect(staleCommit).not.toContain("Target QR findings unavailable");
+  });
+
+  it("keeps Tenure dev evidence visible while marking its older head stale", () => {
+    const targetCommit = "a6d1dac112534b1d2722f92f3fb4e4e40170dd61";
+    const scannedCommit = "0b7ffd91f5d8e35896e3d517967cef3ee30468fd";
+    const staleEvidence = {
+      scanned_branch: "dev",
+      scanned_commit: scannedCommit,
+    };
+    const repository = makeRepository({
+      name: "tenure",
+      branch: "dev",
+      target_branch: "dev",
+      target_branch_configured: true,
+      workspace: { ...workspace, branch: "dev", last_commit: targetCommit },
+      workspaces: [{ ...workspace, branch: "dev", last_commit: targetCommit }],
+      branches: [
+        {
+          name: "dev",
+          role: "Development",
+          role_confidence: "High",
+          target_confidence: "High",
+          ahead: 0,
+          behind: 0,
+          integration_state: "Synced",
+          last_commit: targetCommit,
+        },
+      ],
+      quality: makeQuality({
+        gates: canonicalGateDefinitions.map(([id, label]) =>
+          makeGate(id, label, "Blocked", "Stale", [
+            makeEvidence({
+              ...staleEvidence,
+              status: "Blocked",
+              freshness: "Stale",
+            }),
+          ]),
+        ),
+        findings: makeFindings({
+          total: 4022,
+          scanned_branch: "dev",
+          scanned_commit: scannedCommit,
+          freshness: "Stale",
+        }),
+        maturity: makeMaturity({
+          score: 1.909,
+          score_display: "1.909",
+          audit_id: "audit-tenure",
+          freshness: "Fresh",
+          scanned_branch: undefined,
+          scanned_commit: undefined,
+        }),
+        ci_readiness: makeReadiness({
+          configuration_score: 4,
+          configuration_score_display: "4.0",
+          configured_gate_ids: canonicalGateDefinitions.map(([id]) => id),
+          covered_gate_ids: canonicalGateDefinitions.map(([id]) => id),
+          fresh_passing_gate_ids: [],
+          stale_gate_ids: canonicalGateDefinitions.map(([id]) => id),
+          blocked_gate_ids: canonicalGateDefinitions.map(([id]) => id),
+        }),
+      }),
+    });
+
+    const markup = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([repository])}
+        repositories={[repository]}
+        showOverview={false}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup).toContain("Target dev @ a6d1dac1");
+    expect(markup).toContain("1.909");
+    expect(markup).toContain("Unscoped maturity evidence");
+    expect(markup).toContain("4,022");
+    expect(markup).toContain("QR findings from stale branch evidence");
+    expect(markup).toContain("Stale branch evidence");
+    expect(markup).toContain("Blocked");
+    expect(markup).not.toContain("Target maturity unavailable");
+    expect(markup).not.toContain("Target readiness unavailable");
+    expect(markup).not.toContain("Target QR findings unavailable");
+  });
+
+  it("projects gate, maturity, and readiness evidence from the selected target", () => {
+    const targetCommit = "target-head-1234567890";
+    const targetBranch = "main";
+    const targetBranches = [
+      {
+        name: targetBranch,
+        role: "Production",
+        role_confidence: "High",
+        target_confidence: "High",
+        ahead: 0,
+        behind: 0,
+        integration_state: "Synced",
+        last_commit: targetCommit,
+      },
+    ];
+    const readiness = makeReadiness({
+      applicable_gate_ids: ["build"],
+      configured_gate_ids: ["build"],
+      configuration_score: 1,
+      configuration_score_display: "1",
+      covered_gate_ids: ["build"],
+      fresh_passing_gate_ids: ["build"],
+    });
+    const mismatchedEvidence = {
+      scanned_branch: "dev",
+      scanned_commit: "stale-head-1234567890",
+    };
+    const mismatchedRepository = makeRepository({
+      name: "tenure",
+      target_branch: targetBranch,
+      target_branch_configured: true,
+      branches: targetBranches,
+      quality: makeQuality({
+        gates: [
+          makeGate("build", "Build", "Passed", "Fresh", [
+            makeEvidence(mismatchedEvidence),
+          ]),
+        ],
+        findings: makeFindings(mismatchedEvidence),
+        maturity: makeMaturity({
+          score: 3.4,
+          score_display: "3.4",
+          audit_id: "audit-stale",
+          freshness: "Fresh",
+          ...mismatchedEvidence,
+        }),
+        ci_readiness: readiness,
+      }),
+    });
+    const mismatch = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([mismatchedRepository])}
+        repositories={[mismatchedRepository]}
+        showOverview={false}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(mismatch).toContain("Target maturity unavailable");
+    expect(mismatch).toContain(
+      "Target main is not verified; this scan is from dev.",
+    );
+    expect(mismatch).toContain("Target readiness unavailable");
+    expect(mismatch).toContain("Target evidence unavailable");
+    expect(mismatch).toContain("Raw maturity evidence");
+    expect(mismatch).toContain("Raw readiness evidence");
+    expect(mismatch).toContain("Raw scanned evidence");
+    expect(mismatch).toContain("Target QR findings unavailable");
+
+    const matchingEvidence = {
+      scanned_branch: targetBranch,
+      scanned_commit: targetCommit,
+    };
+    const matchingRepository = {
+      ...mismatchedRepository,
+      branch: targetBranch,
+      quality: makeQuality({
+        gates: [
+          makeGate("build", "Build", "Passed", "Fresh", [
+            makeEvidence(matchingEvidence),
+          ]),
+        ],
+        findings: makeFindings(matchingEvidence),
+        maturity: makeMaturity({
+          score: 3.4,
+          score_display: "3.4",
+          audit_id: "audit-target",
+          freshness: "Fresh",
+          ...matchingEvidence,
+        }),
+        ci_readiness: readiness,
+      }),
+    };
+    const matching = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([matchingRepository])}
+        repositories={[matchingRepository]}
+        showOverview={false}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(matching).toContain("Verified for target main @ target-h");
+    expect(matching).toContain("3.4");
+    expect(matching).toContain("Fresh passing evidence: 1/1");
+    expect(matching).toContain("Passed");
+    expect(matching).not.toContain("Target maturity unavailable");
+    expect(matching).not.toContain("Target readiness unavailable");
+    expect(matching).not.toContain("Target evidence unavailable");
+    expect(matching).not.toContain("Target QR findings unavailable");
+
+    const ambiguousRepository = {
+      ...mismatchedRepository,
+      quality: makeQuality({
+        gates: [
+          makeGate("build", "Build", "Passed", "Fresh", [
+            makeEvidence({
+              scanned_branch: undefined,
+              scanned_commit: undefined,
+            }),
+          ]),
+        ],
+        findings: makeFindings({
+          scanned_branch: undefined,
+          scanned_commit: undefined,
+        }),
+        maturity: makeMaturity({
+          score: 3.4,
+          score_display: "3.4",
+          audit_id: "audit-ambiguous",
+          freshness: "Fresh",
+          scanned_branch: undefined,
+          scanned_commit: undefined,
+        }),
+        ci_readiness: readiness,
+      }),
+    };
+    const ambiguous = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([ambiguousRepository])}
+        repositories={[ambiguousRepository]}
+        showOverview={false}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(ambiguous).toContain(
+      "Target main is not verified; branch/commit provenance is incomplete.",
+    );
+    expect(ambiguous).toContain("Unscoped maturity evidence");
+    expect(ambiguous).toContain("Unscoped evidence");
+    expect(ambiguous).toContain("0");
+    expect(ambiguous).not.toContain("Target maturity unavailable");
+    expect(ambiguous).not.toContain("Target readiness unavailable");
+    expect(ambiguous).not.toContain("Target QR findings unavailable");
   });
 
   it("renders empty and unconfigured repository states", () => {
@@ -818,6 +1221,9 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("Repositories");
     expect(markup).toContain("Find a repository");
     expect(markup).toContain("Local project");
+    expect(markup).toContain(
+      'aria-label="Open repository Local project, item 1"',
+    );
     expect(markup).not.toContain("/tmp/pronto");
     expect(markup).not.toContain("main");
     expect(markup).not.toContain("Quality gates");
@@ -1034,11 +1440,17 @@ describe("quality evidence surfaces", () => {
         audience: "Developers with many active repositories",
         mvp: {
           progress_percent: 75,
+          scored_outcome_count: 3,
+          covered_pillar_count: 2,
+          total_pillar_count: 2,
           confidence: "high",
           confidence_percent: 100,
         },
         complete_product: {
           progress_percent: 50,
+          scored_outcome_count: 4,
+          covered_pillar_count: 2,
+          total_pillar_count: 2,
           confidence: "medium",
           confidence_percent: 60,
         },
@@ -1109,6 +1521,7 @@ describe("quality evidence surfaces", () => {
       <RepositoryDetailSurface
         repository={repository}
         analytics={analyticsSnapshot}
+        isRefreshing={false}
         onBack={() => undefined}
         onOpenWorkspace={async () => undefined}
         onPrepareRepository={async () => undefined}
@@ -1120,6 +1533,9 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("Back to Portfolio");
     expect(markup).toContain("Target branch");
     expect(markup).toContain("Pronto override · Git default: main");
+    expect(markup).toContain(
+      "Selecting a branch checks existing target evidence first, then runs QR quality and fleet audits in a clean disposable worktree when the target head changed or matching evidence is unavailable; your active workspace is not switched.",
+    );
     expect(markup).toContain('aria-label="Target branch for pronto"');
     expect(markup).toContain(
       '<option value="develop" selected="">develop</option>',
@@ -1148,6 +1564,79 @@ describe("quality evidence surfaces", () => {
     expect(markup).not.toContain("drawer-scrim");
   });
 
+  it("shows a loading state and withholds old quality projections during a branch refresh", () => {
+    const repository = makeRepository({
+      target_branch: "main",
+      target_branch_configured: true,
+      branches: [
+        {
+          name: "main",
+          role: "Production",
+          role_confidence: "High",
+          target_confidence: "High",
+          ahead: 0,
+          behind: 0,
+          integration_state: "No unique commits",
+          last_commit: "main-commit",
+        },
+        {
+          name: "dev",
+          role: "Integration",
+          role_confidence: "High",
+          target_confidence: "High",
+          ahead: 0,
+          behind: 0,
+          integration_state: "No unique commits",
+          last_commit: "dev-commit",
+        },
+      ],
+      quality: makeQuality({
+        ingestion_status: "Available",
+        ingestion_message: "Existing main evidence",
+        gates: [makeGate("build", "Build", "Failed", "Fresh")],
+      }),
+    });
+
+    function Harness() {
+      const [isRefreshing, setIsRefreshing] = useState(false);
+      return (
+        <RepositoryDetailSurface
+          repository={repository}
+          analytics={analyticsSnapshot}
+          isRefreshing={isRefreshing}
+          onBack={() => undefined}
+          onOpenWorkspace={async () => undefined}
+          onPrepareRepository={async () => undefined}
+          onTargetBranchChange={async () => setIsRefreshing(true)}
+          onLifecycleChange={async () => undefined}
+          onCondition={() => undefined}
+          onOpenReport={noopReport}
+        />
+      );
+    }
+
+    render(<Harness />);
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Target branch for pronto" }),
+      { target: { value: "dev" } },
+    );
+
+    expect(screen.getByText("Refreshing evidence for dev…")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Resolving the target head and checking existing evidence. A QR audit runs only when the target head changed or matching evidence is unavailable. Existing evidence is held until the check completes.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("Ingesting dev evidence…")).toBeTruthy();
+    expect(
+      screen.getByText("Refreshing release remediation evidence…"),
+    ).toBeTruthy();
+    expect(screen.queryByText("Existing main evidence")).toBeNull();
+    expect(
+      screen.getByRole("combobox", { name: "Target branch for pronto" }),
+    ).toHaveProperty("disabled", true);
+  });
+
   it("makes missing Compass item details explicit for legacy snapshots", () => {
     const repository = makeRepository({
       project_compass: {
@@ -1160,11 +1649,17 @@ describe("quality evidence surfaces", () => {
         audience: "Developers with many active repositories",
         mvp: {
           progress_percent: 79,
+          scored_outcome_count: 4,
+          covered_pillar_count: 3,
+          total_pillar_count: 4,
           confidence: "high",
           confidence_percent: 100,
         },
         complete_product: {
           progress_percent: 75,
+          scored_outcome_count: 5,
+          covered_pillar_count: 4,
+          total_pillar_count: 4,
           confidence: "high",
           confidence_percent: 100,
         },
@@ -1190,5 +1685,60 @@ describe("quality evidence surfaces", () => {
     );
     expect(markup).toContain("Refresh the repository to load the details");
     expect(markup).toContain("Refresh the repository to load the detail");
+  });
+
+  it("shows Compass coverage beside progress instead of implying complete evidence", () => {
+    const repository = makeRepository({
+      project_compass: {
+        status: "Ready",
+        contract_path: ".project-compass/contract.json",
+        revision: 7,
+        updated_at: "2026-08-08T00:00:00Z",
+        project_name: "Pronto",
+        identity: "A local-first portfolio command center",
+        audience: "Developers with many active repositories",
+        mvp: {
+          progress_percent: 50,
+          scored_outcome_count: 1,
+          covered_pillar_count: 1,
+          total_pillar_count: 2,
+          confidence: "medium",
+          confidence_percent: 60,
+        },
+        complete_product: {
+          progress_percent: 75,
+          scored_outcome_count: 3,
+          covered_pillar_count: 2,
+          total_pillar_count: 2,
+          confidence: "high",
+          confidence_percent: 100,
+        },
+        open_blockers: 0,
+        open_drift: 0,
+        open_blocker_items: [],
+        open_drift_items: [],
+        error: null,
+      },
+    });
+
+    const row = renderToStaticMarkup(
+      <RepositoryRow
+        repository={repository}
+        onOpen={() => undefined}
+        onCondition={() => undefined}
+      />,
+    );
+    expect(row).toContain("MVP 50% · 1/2 pillars");
+    expect(row).toContain(
+      'title="Coverage incomplete · 1 scoped outcome · 1/2 pillars covered"',
+    );
+
+    const detail = renderToStaticMarkup(
+      <ProjectCompassDetail repository={repository} />,
+    );
+    expect(detail).toContain(
+      "Coverage incomplete · 1 scoped outcome · 1/2 pillars covered",
+    );
+    expect(detail).toContain("3 scoped outcomes · 2/2 pillars covered");
   });
 });

@@ -6,3 +6,5 @@ pnpm-lock.yaml
 docs/pronto-behavior-spec.xlsx
 .aios/**
 .pre-cr/**
+.pronto/**
+.pytest_cache/**
