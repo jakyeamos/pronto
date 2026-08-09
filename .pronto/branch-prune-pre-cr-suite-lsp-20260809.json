@@ -21,8 +21,19 @@
     "source_remote_state": "present-at-source-sha",
     "source_is_ancestor_of_target": true
   },
-  "status": "planned",
+  "status": "completed",
   "created_at": "2026-08-09T01:49:11Z",
+  "completed_at": "2026-08-09T01:53:32Z",
+  "verification": {
+    "live_dev_sha": "a670a839ac75fb099d9ac78df396e538ec7625d5",
+    "live_pruned_ref_absent": true,
+    "local_dev_sha": "a670a839ac75fb099d9ac78df396e538ec7625d5",
+    "local_tracking_dev_sha": "a670a839ac75fb099d9ac78df396e538ec7625d5",
+    "local_pruned_ref_absent": true,
+    "local_tracking_pruned_ref_absent": true,
+    "normal_delete_from_temporary_worktree": true,
+    "temporary_worktree_removed": true
+  },
   "refs": [
     {
       "name": "codex/full-audit-fold-pre-cr",
