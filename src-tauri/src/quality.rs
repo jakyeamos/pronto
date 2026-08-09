@@ -1,4 +1,5 @@
 use crate::core::{CheckSnapshot, RemoteRepositorySnapshot, RepositorySnapshot};
+use crate::mac_control_maturity::{MacControlPortfolioSnapshot, MacControlRepositoryState};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -6,7 +7,9 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::thread;
+use std::time::{Duration as StdDuration, Instant};
 
 pub const MAX_EVIDENCE_AGE_DAYS: i64 = 7;
 pub const FINDING_DISPOSITIONS_SCHEMA: &str = "pronto-quality-finding-dispositions/v1";
@@ -17,6 +20,7 @@ const MATURITY_FEED_SCHEMA: &str = "quality-runner-maturity-feed/v1";
 pub(crate) const FLEET_MATURITY_FINDING_SCHEMA_PREFIX: &str =
     "quality-runner-environment-legibility-finding-";
 const MATURITY_FEED_STATUS: [&str; 2] = ["completed", "complete_with_blockers"];
+const QUALITY_GIT_TIMEOUT: StdDuration = StdDuration::from_secs(2);
 const MATURITY_FEED_FORBIDDEN_KEYS: [&str; 15] = [
     "prompt",
     "prompts",
@@ -46,7 +50,10 @@ const CANONICAL_GATE_DEFINITIONS: [(&str, &str); 8] = [
     ("secrets_scan", "Secrets scan"),
 ];
 
-const CONDITIONAL_GATE_DEFINITIONS: [(&str, &str); 1] = [("dependency_audit", "Dependency audit")];
+const CONDITIONAL_GATE_DEFINITIONS: [(&str, &str); 2] = [
+    ("dependency_audit", "Dependency audit"),
+    ("debloat", "Repository debloat review"),
+];
 const CI_READINESS_BASELINE_GATE_IDS: [&str; 6] = [
     "build",
     "tests",
@@ -190,6 +197,10 @@ pub struct QualityGate {
 pub struct QualityFindings {
     pub total: u64,
     #[serde(default)]
+    pub category_counts: BTreeMap<String, u64>,
+    #[serde(default)]
+    pub actionable_category_counts: BTreeMap<String, u64>,
+    #[serde(default)]
     pub actionable_total: u64,
     #[serde(default)]
     pub reviewed_total: u64,
@@ -219,6 +230,8 @@ impl Default for QualityFindings {
     fn default() -> Self {
         Self {
             total: 0,
+            category_counts: BTreeMap::new(),
+            actionable_category_counts: BTreeMap::new(),
             actionable_total: 0,
             reviewed_total: 0,
             unreviewed_total: 0,
@@ -279,6 +292,10 @@ pub struct QualityMaturity {
     pub gaps: Vec<QualityMaturityGap>,
     pub audit_id: Option<String>,
     pub observed_at: Option<String>,
+    #[serde(default)]
+    pub scanned_commit: Option<String>,
+    #[serde(default)]
+    pub scanned_branch: Option<String>,
     pub freshness: QualityFreshness,
     pub report_path: Option<String>,
 }
@@ -293,6 +310,8 @@ impl Default for QualityMaturity {
             gaps: Vec::new(),
             audit_id: None,
             observed_at: None,
+            scanned_commit: None,
+            scanned_branch: None,
             freshness: QualityFreshness::Unknown,
             report_path: None,
         }
@@ -348,7 +367,11 @@ pub struct QualitySnapshot {
     pub findings: QualityFindings,
     pub maturity: QualityMaturity,
     #[serde(default)]
+    pub target_fleet_audit_root: Option<String>,
+    #[serde(default)]
     pub ci_readiness: QualityReadiness,
+    #[serde(default)]
+    pub mac_control_ideal_state: MacControlRepositoryState,
     pub last_ingested_at: Option<String>,
     pub ingestion_status: String,
     pub ingestion_message: Option<String>,
@@ -360,7 +383,9 @@ impl Default for QualitySnapshot {
             gates: default_quality_gates(),
             findings: QualityFindings::default(),
             maturity: QualityMaturity::default(),
+            target_fleet_audit_root: None,
             ci_readiness: QualityReadiness::default(),
+            mac_control_ideal_state: MacControlRepositoryState::default(),
             last_ingested_at: None,
             ingestion_status: "No evidence".to_string(),
             ingestion_message: None,
@@ -409,6 +434,8 @@ pub struct QualityPortfolioSnapshot {
     pub feed_schema: Option<String>,
     #[serde(default)]
     pub provenance_hash: Option<String>,
+    #[serde(default)]
+    pub mac_control_ideal_state: MacControlPortfolioSnapshot,
 }
 
 impl Default for QualityPortfolioSnapshot {
@@ -438,6 +465,7 @@ impl Default for QualityPortfolioSnapshot {
             ci_configuration_unscored_repository_count: 0,
             feed_schema: None,
             provenance_hash: None,
+            mac_control_ideal_state: MacControlPortfolioSnapshot::default(),
         }
     }
 }
@@ -454,6 +482,81 @@ pub struct FleetAuditEvidence {
     pub findings: QualityFindings,
 }
 
+pub fn target_provenance_matches(
+    scanned_branch: Option<&str>,
+    scanned_commit: Option<&str>,
+    target_branch: &str,
+    target_commit: &str,
+) -> bool {
+    scanned_branch == Some(target_branch) && scanned_commit == Some(target_commit)
+}
+
+pub fn evaluate_target_freshness(
+    scanned_branch: Option<&str>,
+    scanned_commit: Option<&str>,
+    target_branch: &str,
+    target_commit: &str,
+) -> QualityFreshness {
+    if target_provenance_matches(scanned_branch, scanned_commit, target_branch, target_commit) {
+        return QualityFreshness::Fresh;
+    }
+    if scanned_branch.is_none() || scanned_commit.is_none() {
+        QualityFreshness::Unknown
+    } else {
+        QualityFreshness::Stale
+    }
+}
+
+pub fn target_evidence_is_current(
+    snapshot: &QualitySnapshot,
+    target_branch: &str,
+    target_commit: &str,
+) -> bool {
+    snapshot.gates.iter().any(|gate| {
+        gate.evidence.iter().any(|evidence| {
+            target_provenance_matches(
+                evidence.scanned_branch.as_deref(),
+                evidence.scanned_commit.as_deref(),
+                target_branch,
+                target_commit,
+            )
+        })
+    }) || target_provenance_matches(
+        snapshot.findings.scanned_branch.as_deref(),
+        snapshot.findings.scanned_commit.as_deref(),
+        target_branch,
+        target_commit,
+    ) || target_provenance_matches(
+        snapshot.maturity.scanned_branch.as_deref(),
+        snapshot.maturity.scanned_commit.as_deref(),
+        target_branch,
+        target_commit,
+    )
+}
+
+pub fn scope_fleet_audit_evidence_to_target(
+    evidence: &mut FleetAuditEvidence,
+    target_branch: &str,
+    target_commit: &str,
+) {
+    evidence.maturity.scanned_branch = Some(target_branch.to_string());
+    evidence.maturity.scanned_commit = Some(target_commit.to_string());
+    evidence.maturity.freshness = evaluate_target_freshness(
+        evidence.maturity.scanned_branch.as_deref(),
+        evidence.maturity.scanned_commit.as_deref(),
+        target_branch,
+        target_commit,
+    );
+    evidence.findings.scanned_branch = Some(target_branch.to_string());
+    evidence.findings.scanned_commit = Some(target_commit.to_string());
+    evidence.findings.freshness = evaluate_target_freshness(
+        evidence.findings.scanned_branch.as_deref(),
+        evidence.findings.scanned_commit.as_deref(),
+        target_branch,
+        target_commit,
+    );
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct FleetAuditImport {
     pub audit_id: Option<String>,
@@ -463,6 +566,13 @@ pub struct FleetAuditImport {
 
 pub fn canonical_maturity_feed_path() -> Option<PathBuf> {
     dirs::home_dir().map(|home| home.join(CANONICAL_MATURITY_FEED_RELATIVE_PATH))
+}
+
+pub fn is_stable_detector_report(report_path: Option<&str>) -> bool {
+    report_path
+        .and_then(|path| Path::new(path).file_name())
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name == "code-quality-scan.json")
 }
 
 pub fn fleet_audit_import(
@@ -534,7 +644,19 @@ pub fn fleet_audit_import(
         let checkouts = repository_payload
             .and_then(|value| value.get("checkouts"))
             .and_then(Value::as_array);
-        let checkout = checkouts.and_then(|items| items.first());
+        let target_branch = repository_payload
+            .and_then(|value| value.get("target_branch"))
+            .and_then(|value| json_string_at(value, &["branch"]));
+        let checkout = checkouts.and_then(|items| {
+            target_branch
+                .as_deref()
+                .and_then(|branch| {
+                    items.iter().find(|checkout| {
+                        json_string_at(checkout, &["branch"]).as_deref() == Some(branch)
+                    })
+                })
+                .or_else(|| items.first())
+        });
         let scanned_commit = checkout
             .and_then(|value| json_string_at(value, &["head"]))
             .or_else(|| checkout.and_then(|value| json_string_at(value, &["fingerprint", "head"])));
@@ -557,6 +679,8 @@ pub fn fleet_audit_import(
             gaps: fleet_maturity_gaps(&findings),
             audit_id: Some(run_id.clone()),
             observed_at: run_observed_at.clone(),
+            scanned_commit: scanned_commit.clone(),
+            scanned_branch: scanned_branch.clone(),
             freshness: evaluate_audit_freshness_at(run_observed_at.as_deref(), Utc::now()),
             report_path: Some(path.to_string_lossy().to_string()),
         };
@@ -908,6 +1032,7 @@ pub fn normalize_gate_id(value: &str) -> String {
         | "security_secrets_scan"
         | "secret_scanning_gitleaks"
         | "gitleaks" => "secrets_scan".to_string(),
+        "debloat" | "repository_debloat" | "repository_debloat_maturity" => "debloat".to_string(),
         "dependency_audit"
         | "dependency_scan"
         | "dependency_check"
@@ -1072,6 +1197,10 @@ pub fn ingest_repository_quality(
         findings = run.findings(repository);
     }
     reconcile_finding_dispositions(Path::new(&repository.path), &mut findings);
+    if let Some(evidence) = debloat_maturity_evidence(&findings) {
+        configured_gate_ids.push(evidence.id.clone());
+        add_evidence(&mut gates, evidence);
+    }
 
     for evidence in ci_evidence(repository, remote) {
         configured_gate_ids.push(evidence.id.clone());
@@ -1099,7 +1228,9 @@ pub fn ingest_repository_quality(
         gates,
         findings,
         maturity: maturity.unwrap_or_default(),
+        target_fleet_audit_root: None,
         ci_readiness,
+        mac_control_ideal_state: MacControlRepositoryState::default(),
         last_ingested_at,
         ingestion_status: if evidence_available || maturity_available {
             "Available".to_string()
@@ -1112,6 +1243,91 @@ pub fn ingest_repository_quality(
             Some("No QR artifacts or CI check runs were found for this repository.".to_string())
         },
     }
+}
+
+pub fn project_quality_snapshot_for_target(
+    snapshot: &mut QualitySnapshot,
+    target_branch: &str,
+    target_commit: &str,
+) {
+    for gate in &mut snapshot.gates {
+        gate.evidence.retain(|evidence| {
+            target_provenance_matches(
+                evidence.scanned_branch.as_deref(),
+                evidence.scanned_commit.as_deref(),
+                target_branch,
+                target_commit,
+            )
+        });
+        for evidence in &mut gate.evidence {
+            evidence.freshness = evaluate_target_freshness(
+                evidence.scanned_branch.as_deref(),
+                evidence.scanned_commit.as_deref(),
+                target_branch,
+                target_commit,
+            );
+        }
+        let (status, freshness) = aggregate_gate_status(&gate.evidence);
+        gate.status = status;
+        gate.freshness = freshness;
+    }
+
+    let findings_match = target_provenance_matches(
+        snapshot.findings.scanned_branch.as_deref(),
+        snapshot.findings.scanned_commit.as_deref(),
+        target_branch,
+        target_commit,
+    );
+    if findings_match {
+        snapshot.findings.freshness = evaluate_target_freshness(
+            snapshot.findings.scanned_branch.as_deref(),
+            snapshot.findings.scanned_commit.as_deref(),
+            target_branch,
+            target_commit,
+        );
+    } else {
+        snapshot.findings = QualityFindings::default();
+    }
+
+    let maturity_match = target_provenance_matches(
+        snapshot.maturity.scanned_branch.as_deref(),
+        snapshot.maturity.scanned_commit.as_deref(),
+        target_branch,
+        target_commit,
+    );
+    if maturity_match {
+        snapshot.maturity.freshness = evaluate_target_freshness(
+            snapshot.maturity.scanned_branch.as_deref(),
+            snapshot.maturity.scanned_commit.as_deref(),
+            target_branch,
+            target_commit,
+        );
+    } else {
+        snapshot.maturity = QualityMaturity::default();
+    }
+
+    let configured_gate_ids = snapshot
+        .gates
+        .iter()
+        .filter(|gate| !gate.evidence.is_empty())
+        .map(|gate| gate.id.clone())
+        .collect::<Vec<_>>();
+    snapshot.ci_readiness = evaluate_ci_readiness_for_ideal_with_configuration(
+        &snapshot.gates,
+        &snapshot.ci_readiness.applicable_gate_ids,
+        &configured_gate_ids,
+    );
+    snapshot.ingestion_status = if snapshot.maturity.score.is_some()
+        || snapshot.findings.source.is_some()
+        || snapshot.gates.iter().any(|gate| !gate.evidence.is_empty())
+    {
+        "Available".to_string()
+    } else {
+        "No evidence".to_string()
+    };
+    snapshot.ingestion_message = (snapshot.ingestion_status == "No evidence").then(|| {
+        "No target-scoped QR or fleet evidence was found for this branch and commit.".to_string()
+    });
 }
 
 fn normalize_disposition_status(value: &str) -> Option<&'static str> {
@@ -1211,19 +1427,65 @@ fn load_finding_dispositions_contract(
     Ok(Some(contract))
 }
 
-fn report_finding_fingerprint_counts(report_path: Option<&str>) -> Option<HashMap<String, u64>> {
+struct ReportFindingInventory {
+    fingerprint_counts: HashMap<String, u64>,
+    fingerprint_category_counts: HashMap<String, BTreeMap<String, u64>>,
+    category_counts: BTreeMap<String, u64>,
+}
+
+fn report_finding_inventory(report_path: Option<&str>) -> Option<ReportFindingInventory> {
     let payload = report_path.and_then(|path| read_json(Path::new(path)))?;
     let findings = payload.get("findings")?.as_array()?;
-    let mut counts = HashMap::new();
-    for fingerprint in findings
-        .iter()
-        .filter_map(|finding| finding.get("fingerprint").and_then(Value::as_str))
-        .map(str::trim)
-        .filter(|fingerprint| !fingerprint.is_empty())
-    {
-        *counts.entry(fingerprint.to_string()).or_insert(0) += 1;
+    let mut fingerprint_counts = HashMap::new();
+    let mut fingerprint_category_counts: HashMap<String, BTreeMap<String, u64>> = HashMap::new();
+    let mut derived_category_counts = BTreeMap::new();
+    for finding in findings {
+        let category = finding
+            .get("category")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
+        if let Some(category) = category {
+            *derived_category_counts
+                .entry(category.to_string())
+                .or_insert(0) += 1;
+        }
+        let Some(fingerprint) = finding
+            .get("fingerprint")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        else {
+            continue;
+        };
+        *fingerprint_counts
+            .entry(fingerprint.to_string())
+            .or_insert(0) += 1;
+        if let Some(category) = category {
+            *fingerprint_category_counts
+                .entry(fingerprint.to_string())
+                .or_default()
+                .entry(category.to_string())
+                .or_insert(0) += 1;
+        }
     }
-    Some(counts)
+    let mut category_counts = derived_category_counts;
+    if let Some(declared) = payload
+        .get("summary")
+        .and_then(|summary| summary.get("findings_by_category"))
+        .and_then(Value::as_object)
+    {
+        for (category, count) in declared {
+            if let Some(count) = count.as_u64() {
+                category_counts.insert(category.clone(), count);
+            }
+        }
+    }
+    Some(ReportFindingInventory {
+        fingerprint_counts,
+        fingerprint_category_counts,
+        category_counts,
+    })
 }
 
 fn disposition_is_expired(disposition: &QualityFindingDisposition, now: DateTime<Utc>) -> bool {
@@ -1268,6 +1530,14 @@ pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut Qua
             .to_string(),
     );
     findings.disposition_message = None;
+    let report_inventory = report_finding_inventory(findings.report_path.as_deref());
+    if let Some(inventory) = report_inventory.as_ref() {
+        findings.category_counts = inventory.category_counts.clone();
+        findings.actionable_category_counts = inventory.category_counts.clone();
+    } else {
+        findings.category_counts.clear();
+        findings.actionable_category_counts.clear();
+    }
 
     let contract = match load_finding_dispositions_contract(repository_path) {
         Ok(Some(contract)) => contract,
@@ -1286,9 +1556,7 @@ pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut Qua
         }
     };
 
-    let Some(current_fingerprint_counts) =
-        report_finding_fingerprint_counts(findings.report_path.as_deref())
-    else {
+    let Some(report_inventory) = report_inventory else {
         findings.disposition_status = "Unreconcilable".to_string();
         findings.disposition_message = Some(
             "The current finding report does not expose stable fingerprints; saved dispositions were not applied."
@@ -1297,7 +1565,7 @@ pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut Qua
         findings.stale_disposition_total = contract.dispositions.len() as u64;
         return;
     };
-    let identified_total = current_fingerprint_counts.values().sum::<u64>();
+    let identified_total = report_inventory.fingerprint_counts.values().sum::<u64>();
     if identified_total != findings.total {
         findings.disposition_status = "Unreconcilable".to_string();
         findings.disposition_message = Some(format!(
@@ -1311,7 +1579,8 @@ pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut Qua
     let now = Utc::now();
     let mut actionable_reviewed = 0_u64;
     for disposition in &contract.dispositions {
-        let current_count = current_fingerprint_counts
+        let current_count = report_inventory
+            .fingerprint_counts
             .get(&disposition.fingerprint)
             .copied()
             .unwrap_or(0);
@@ -1331,10 +1600,69 @@ pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut Qua
         if matches!(disposition.status.as_str(), "confirmed" | "deferred") {
             actionable_reviewed += current_count;
         }
+        if matches!(
+            disposition.status.as_str(),
+            "false_positive" | "accepted_intentional"
+        ) {
+            if let Some(categories) = report_inventory
+                .fingerprint_category_counts
+                .get(&disposition.fingerprint)
+            {
+                for (category, count) in categories {
+                    if let Some(actionable) = findings.actionable_category_counts.get_mut(category)
+                    {
+                        *actionable = actionable.saturating_sub(*count);
+                    }
+                }
+            }
+        }
     }
     findings.unreviewed_total = findings.total.saturating_sub(findings.reviewed_total);
     findings.actionable_total = findings.unreviewed_total + actionable_reviewed;
     findings.disposition_status = "Ready".to_string();
+}
+
+fn debloat_maturity_evidence(findings: &QualityFindings) -> Option<QualityEvidence> {
+    let detected = findings.category_counts.get("debloat").copied()?;
+    let actionable = findings
+        .actionable_category_counts
+        .get("debloat")
+        .copied()
+        .unwrap_or(detected);
+    let status = if actionable == 0 && findings.freshness == QualityFreshness::Fresh {
+        QualityGateStatus::Passed
+    } else {
+        QualityGateStatus::Blocked
+    };
+    let detail = if actionable > 0 {
+        format!(
+            "QR's structural scan reported {detected} debloat signal(s), with {actionable} unresolved. Each signal requires a broader ownership-pressure audit with confidence assessed separately from implementation readiness; no signal authorizes deletion."
+        )
+    } else if findings.freshness != QualityFreshness::Fresh {
+        format!(
+            "QR reported no unresolved structural debloat signals, but the evidence is {}; refresh the QR scan before treating this review gate as passed.",
+            findings.freshness.as_str()
+        )
+    } else {
+        format!(
+            "QR's structural debloat review has no unresolved signals ({detected} detected). This clears the candidate-review gate only; it does not prove that an ownership-pressure audit found no architectural opportunity, establish deletion readiness, or authorize deletion."
+        )
+    };
+    Some(QualityEvidence {
+        id: "debloat".to_string(),
+        source: QualitySource::Qr,
+        status,
+        freshness: findings.freshness.clone(),
+        observed_at: findings.observed_at.clone(),
+        scanned_commit: findings.scanned_commit.clone(),
+        scanned_branch: findings.scanned_branch.clone(),
+        command: None,
+        source_label: "Quality Runner structural debloat signals".to_string(),
+        report_path: findings.report_path.clone(),
+        report_url: None,
+        report_kind: Some("code-quality-scan".to_string()),
+        detail,
+    })
 }
 
 pub fn set_finding_disposition(
@@ -1585,6 +1913,8 @@ pub fn audit_import(root: Option<&Path>, repositories: &[RepositorySnapshot]) ->
                 gaps: Vec::new(),
                 audit_id: run.audit_id.clone(),
                 observed_at: run.as_of.clone(),
+                scanned_commit: None,
+                scanned_branch: None,
                 freshness: evaluate_audit_freshness_at(run.as_of.as_deref(), Utc::now()),
                 report_path: Some(finding.path.to_string_lossy().to_string()),
             };
@@ -1748,6 +2078,14 @@ pub fn maturity_feed_import(
                 .unwrap_or_default(),
             audit_id: audit_id.map(str::to_string),
             observed_at: as_of.map(str::to_string),
+            scanned_commit: projection
+                .get("target_head")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+            scanned_branch: projection
+                .get("target_branch")
+                .and_then(Value::as_str)
+                .map(str::to_string),
             freshness: projection_freshness,
             report_path: Some(feed_path.to_string_lossy().to_string()),
         };
@@ -1954,15 +2292,37 @@ fn strip_git_suffix(value: &str) -> String {
 }
 
 fn common_git_dir(path: &Path) -> Option<String> {
-    let output = Command::new("git")
+    let mut child = Command::new("git")
         .current_dir(path)
         .env_remove("GIT_DIR")
         .env_remove("GIT_WORK_TREE")
         .env_remove("GIT_INDEX_FILE")
         .env_remove("GIT_COMMON_DIR")
         .args(["rev-parse", "--path-format=absolute", "--git-common-dir"])
-        .output()
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
         .ok()?;
+    let deadline = Instant::now() + QUALITY_GIT_TIMEOUT;
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) if Instant::now() < deadline => {
+                thread::sleep(StdDuration::from_millis(25));
+            }
+            Ok(None) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+            Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+        }
+    }
+    let output = child.wait_with_output().ok()?;
     if !output.status.success() {
         return None;
     }
@@ -2250,7 +2610,7 @@ impl QrRun {
                 }
                 let failure_type = json_string_at(&gate, &["failure_type"]);
                 let skip_type = json_string_at(&gate, &["skip_type"]);
-                if failure_type.is_some() || skip_type.is_some() {
+                if skip_type.is_some() {
                     status = QualityGateStatus::Blocked;
                 }
                 let gate_observed_at = json_string_at(&gate, &["completed_at"])
@@ -2925,7 +3285,7 @@ mod tests {
         let report_path = root.join("code-quality-scan.json");
         fs::write(
             &report_path,
-            r#"{"findings":[{"fingerprint":"fp-1"},{"fingerprint":"fp-1"},{"fingerprint":"fp-2"},{"fingerprint":"fp-3"}]}"#,
+            r#"{"summary":{"findings_by_category":{"debloat":3,"simplify":1}},"findings":[{"fingerprint":"fp-1","category":"debloat"},{"fingerprint":"fp-1","category":"debloat"},{"fingerprint":"fp-2","category":"debloat"},{"fingerprint":"fp-3","category":"simplify"}]}"#,
         )
         .expect("finding report should be writable");
         let contract_path = root.join(FINDING_DISPOSITIONS_RELATIVE_PATH);
@@ -2981,11 +3341,51 @@ mod tests {
         assert_eq!(findings.reviewed_total, 3);
         assert_eq!(findings.unreviewed_total, 1);
         assert_eq!(findings.actionable_total, 2);
+        assert_eq!(findings.category_counts.get("debloat"), Some(&3));
+        assert_eq!(findings.actionable_category_counts.get("debloat"), Some(&1));
+        assert_eq!(
+            findings.actionable_category_counts.get("simplify"),
+            Some(&1)
+        );
         assert_eq!(findings.disposition_counts.get("false_positive"), Some(&2));
         assert_eq!(findings.disposition_counts.get("confirmed"), Some(&1));
         assert_eq!(findings.stale_disposition_total, 1);
         assert_eq!(findings.disposition_status, "Ready");
         fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn debloat_review_gate_requires_explicit_fresh_category_evidence() {
+        let mut findings = QualityFindings::default();
+        assert!(debloat_maturity_evidence(&findings).is_none());
+
+        findings.category_counts.insert("debloat".to_string(), 0);
+        findings
+            .actionable_category_counts
+            .insert("debloat".to_string(), 0);
+        findings.freshness = QualityFreshness::Fresh;
+        let clear = debloat_maturity_evidence(&findings)
+            .expect("declared debloat coverage should create maturity evidence");
+        assert_eq!(clear.status, QualityGateStatus::Passed);
+        assert_eq!(clear.freshness, QualityFreshness::Fresh);
+
+        findings.category_counts.insert("debloat".to_string(), 1);
+        findings
+            .actionable_category_counts
+            .insert("debloat".to_string(), 1);
+        let unresolved = debloat_maturity_evidence(&findings)
+            .expect("an unresolved candidate should create maturity evidence");
+        assert_eq!(unresolved.status, QualityGateStatus::Blocked);
+        assert!(unresolved.detail.contains("ownership-pressure audit"));
+
+        findings
+            .actionable_category_counts
+            .insert("debloat".to_string(), 0);
+        findings.freshness = QualityFreshness::Stale;
+        let stale =
+            debloat_maturity_evidence(&findings).expect("stale coverage should remain visible");
+        assert_eq!(stale.status, QualityGateStatus::Blocked);
+        assert_eq!(stale.freshness, QualityFreshness::Stale);
     }
 
     #[test]
@@ -3493,6 +3893,125 @@ mod tests {
     }
 
     #[test]
+    fn target_freshness_is_commit_based_instead_of_time_based() {
+        assert_eq!(
+            evaluate_target_freshness(Some("dev"), Some("target-commit"), "dev", "target-commit"),
+            QualityFreshness::Fresh
+        );
+        assert_eq!(
+            evaluate_target_freshness(Some("dev"), Some("old-commit"), "dev", "target-commit"),
+            QualityFreshness::Stale
+        );
+        assert_eq!(
+            evaluate_target_freshness(Some("dev"), None, "dev", "target-commit"),
+            QualityFreshness::Unknown
+        );
+        assert_eq!(
+            evaluate_target_freshness(None, None, "dev", "target-commit"),
+            QualityFreshness::Unknown
+        );
+    }
+
+    #[test]
+    fn target_projection_keeps_exact_branch_failure_and_drops_mismatched_evidence() {
+        let observed_at = (Utc::now() - Duration::days(MAX_EVIDENCE_AGE_DAYS + 1)).to_rfc3339();
+        let mut snapshot = QualitySnapshot::default();
+        snapshot.ci_readiness.applicable_gate_ids = vec!["build".to_string(), "tests".to_string()];
+        let build = snapshot
+            .gates
+            .iter_mut()
+            .find(|gate| gate.id == "build")
+            .expect("build gate should exist");
+        build.evidence.push(QualityEvidence {
+            id: "build".to_string(),
+            source: QualitySource::Qr,
+            status: QualityGateStatus::Failed,
+            freshness: QualityFreshness::Stale,
+            observed_at: Some(observed_at.clone()),
+            scanned_commit: Some("target-commit".to_string()),
+            scanned_branch: Some("dev".to_string()),
+            command: Some("pnpm build".to_string()),
+            source_label: "target QR".to_string(),
+            report_path: None,
+            report_url: None,
+            report_kind: None,
+            detail: "fixture failure".to_string(),
+        });
+        let lint = snapshot
+            .gates
+            .iter_mut()
+            .find(|gate| gate.id == "lint")
+            .expect("lint gate should exist");
+        lint.evidence.push(QualityEvidence {
+            id: "lint".to_string(),
+            source: QualitySource::Qr,
+            status: QualityGateStatus::Passed,
+            freshness: QualityFreshness::Fresh,
+            observed_at: Some(observed_at.clone()),
+            scanned_commit: Some("old-commit".to_string()),
+            scanned_branch: Some("dev".to_string()),
+            command: Some("pnpm lint".to_string()),
+            source_label: "old QR".to_string(),
+            report_path: None,
+            report_url: None,
+            report_kind: None,
+            detail: "mismatched fixture".to_string(),
+        });
+        snapshot.findings = QualityFindings {
+            total: 3,
+            source: Some(QualitySource::Qr),
+            observed_at: Some(observed_at.clone()),
+            scanned_commit: Some("target-commit".to_string()),
+            scanned_branch: Some("dev".to_string()),
+            freshness: QualityFreshness::Stale,
+            ..QualityFindings::default()
+        };
+        snapshot.maturity = QualityMaturity {
+            score: Some(2.5),
+            score_display: Some("2.500".to_string()),
+            audit_id: Some("target-audit".to_string()),
+            observed_at: Some(observed_at),
+            scanned_commit: Some("target-commit".to_string()),
+            scanned_branch: Some("dev".to_string()),
+            freshness: QualityFreshness::Stale,
+            ..QualityMaturity::default()
+        };
+
+        project_quality_snapshot_for_target(&mut snapshot, "dev", "target-commit");
+
+        let build = snapshot
+            .gates
+            .iter()
+            .find(|gate| gate.id == "build")
+            .expect("build gate should remain configured");
+        assert_eq!(build.status, QualityGateStatus::Failed);
+        assert_eq!(build.evidence.len(), 1);
+        assert_eq!(build.evidence[0].freshness, QualityFreshness::Fresh);
+        assert_eq!(build.freshness, QualityFreshness::Unknown);
+        let lint = snapshot
+            .gates
+            .iter()
+            .find(|gate| gate.id == "lint")
+            .expect("lint gate should remain in the canonical list");
+        assert!(lint.evidence.is_empty());
+        assert_eq!(lint.status, QualityGateStatus::NotConfigured);
+        assert_eq!(snapshot.findings.total, 3);
+        assert_eq!(snapshot.findings.freshness, QualityFreshness::Fresh);
+        assert_eq!(snapshot.maturity.score, Some(2.5));
+        assert_eq!(snapshot.maturity.freshness, QualityFreshness::Fresh);
+        assert_eq!(snapshot.ingestion_status, "Available");
+        assert!(snapshot.ingestion_message.is_none());
+        assert!(snapshot
+            .ci_readiness
+            .failed_gate_ids
+            .contains(&"build".to_string()));
+        assert!(!snapshot
+            .ci_readiness
+            .configured_gate_ids
+            .contains(&"lint".to_string()));
+    }
+
+    #[test]
     fn ingests_qr_gates_and_severity_breakdown_without_running_commands() {
         let root = fixture_root();
         let repository_path = root.join("repo");
@@ -3526,6 +4045,7 @@ mod tests {
                         "id": "security scan",
                         "status": "failed",
                         "capability_kind": "qr",
+                        "failure_type": "command-failed",
                         "reason": "finding threshold exceeded"
                     },
                     {
@@ -3548,9 +4068,9 @@ mod tests {
         .expect("QR report should be writable");
         fs::write(
             run.join("code-quality-scan.json"),
-            r#"{"findings":[
-                {"fingerprint":"stable-1","severity":"warning"},
-                {"fingerprint":"stable-2","severity":"observation"}
+            r#"{"summary":{"findings_by_category":{"debloat":1,"simplify":1}},"findings":[
+                {"fingerprint":"stable-1","category":"debloat","severity":"warning"},
+                {"fingerprint":"stable-2","category":"simplify","severity":"observation"}
             ]}"#,
         )
         .expect("fingerprinted QR report should be writable");
@@ -3573,12 +4093,23 @@ mod tests {
             .expect("security gate should be imported");
         assert_eq!(security.label, "Security Scan");
         assert_eq!(security.status, QualityGateStatus::Failed);
-        assert_eq!(security.evidence[0].detail, "failed");
+        assert_eq!(security.evidence[0].detail, "command-failed");
         assert!(snapshot
             .gates
             .iter()
             .any(|gate| gate.id == "custom:review" && gate.status == QualityGateStatus::Blocked));
         assert_eq!(snapshot.findings.total, 2);
+        assert_eq!(snapshot.findings.category_counts.get("debloat"), Some(&1));
+        let debloat = snapshot
+            .gates
+            .iter()
+            .find(|gate| gate.id == "debloat")
+            .expect("debloat review gate should be imported");
+        assert_eq!(debloat.status, QualityGateStatus::Blocked);
+        assert_eq!(debloat.freshness, QualityFreshness::Unknown);
+        assert!(debloat.evidence[0]
+            .detail
+            .contains("no signal authorizes deletion"));
         assert_eq!(snapshot.findings.high_severity_total, 0);
         assert_eq!(snapshot.findings.severity_counts.get("medium"), Some(&1));
         assert!(snapshot
@@ -3727,6 +4258,67 @@ mod tests {
         assert_eq!(evidence.findings.high_severity_total, 1);
         assert_eq!(evidence.findings.severity_counts.get("high"), Some(&1));
         fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn fleet_import_uses_the_selected_target_checkout_for_branch_provenance() {
+        let root = fixture_root();
+        let repository_path = root.join("repo");
+        fs::create_dir_all(&repository_path).expect("repository should be writable");
+        let audit_root = root.join("audit");
+        fs::create_dir_all(audit_root.join("findings")).expect("audit should be writable");
+        fs::write(
+            audit_root.join("summary.json"),
+            r#"{"audit_id":"audit-target","as_of":"2026-08-08T12:00:00Z"}"#,
+        )
+        .expect("summary should be writable");
+        fs::write(
+            audit_root.join("findings").join("repo.json"),
+            serde_json::to_string(&serde_json::json!({
+                "audit_id": "audit-target-repo",
+                "as_of": "2026-08-08T12:00:00Z",
+                "repository": {
+                    "primary_path": repository_path.to_string_lossy(),
+                    "target_branch": {"branch": "dev"},
+                    "checkouts": [
+                        {"path": repository_path.to_string_lossy(), "head": "stale-main", "branch": "main"},
+                        {"path": "/private/tmp/target-worktree", "head": "target-dev", "branch": "dev"}
+                    ]
+                },
+                "findings": []
+            }))
+            .expect("target fleet finding should encode"),
+        )
+        .expect("target fleet finding should be writable");
+
+        let imported =
+            fleet_audit_import(Some(&audit_root), &[fixture_repository(&repository_path)]);
+        let evidence = imported
+            .evidence
+            .get("repo-1")
+            .expect("repository evidence should be imported");
+        assert_eq!(evidence.maturity.scanned_branch.as_deref(), Some("dev"));
+        assert_eq!(
+            evidence.maturity.scanned_commit.as_deref(),
+            Some("target-dev")
+        );
+        assert_eq!(evidence.findings.scanned_branch.as_deref(), Some("dev"));
+        assert_eq!(
+            evidence.findings.scanned_commit.as_deref(),
+            Some("target-dev")
+        );
+        fs::remove_dir_all(root).expect("target fleet fixture should be removable");
+    }
+
+    #[test]
+    fn stable_detector_reports_are_distinguished_from_aggregate_reports() {
+        assert!(is_stable_detector_report(Some(
+            "/tmp/pronto/.quality-runner/runs/run-1/code-quality-scan.json"
+        )));
+        assert!(!is_stable_detector_report(Some(
+            "/tmp/pronto/.quality-runner/fleet-audit/findings/repo.json"
+        )));
+        assert!(!is_stable_detector_report(None));
     }
 
     #[test]

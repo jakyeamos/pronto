@@ -1,4 +1,5 @@
 use crate::change_matrix;
+use crate::mac_control_maturity;
 use crate::project_compass::{self, ProjectCompassSummary};
 use crate::quality::{
     self, QualityFreshness, QualityGateRequirement, QualityGateStatus, QualityPortfolioSnapshot,
@@ -12,10 +13,14 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ffi::OsStr;
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::mpsc;
+use std::thread;
+use std::time::{Duration as StdDuration, Instant};
 
 const STORE_VERSION: u8 = 5;
 const SQLITE_SCHEMA_VERSION: i64 = 9;
@@ -27,11 +32,90 @@ const ANALYTICS_SCHEMA: &str = "pronto-analytics/v1";
 const ANALYTICS_RANGE_DAYS: i64 = 30;
 const ANALYTICS_DEDUP_MINUTES: i64 = 15;
 const DEFAULT_QR_AUDIT_TIMEOUT_SECONDS: u64 = 120;
+const STORE_WRITE_LOCK_WAIT_SECONDS: u64 = 5;
+const STORE_WRITE_LOCK_STALE_SECONDS: u64 = 1_800;
+const QUALITY_READ_TIMEOUT_SECONDS: u64 = 10;
+const TARGET_EVIDENCE_GATE_TIMEOUT_SECONDS: u64 = 120;
+const TARGET_EVIDENCE_TOTAL_TIMEOUT_SECONDS: u64 = 600;
 
 static NEXT_ACTION_AUDIT_ID: AtomicU64 = AtomicU64::new(0);
 static NEXT_EVENT_ID: AtomicU64 = AtomicU64::new(0);
 static NEXT_CONFIG_ID: AtomicU64 = AtomicU64::new(0);
 static NEXT_ANALYTICS_ID: AtomicU64 = AtomicU64::new(0);
+static NEXT_TARGET_EVIDENCE_ID: AtomicU64 = AtomicU64::new(0);
+
+struct StoreWriteLock {
+    path: PathBuf,
+}
+
+impl Drop for StoreWriteLock {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.path);
+    }
+}
+
+fn store_write_lock_path(path: &Path) -> PathBuf {
+    let file_name = path
+        .file_name()
+        .and_then(OsStr::to_str)
+        .unwrap_or("registry.db");
+    path.with_file_name(format!("{file_name}.write.lock"))
+}
+
+fn store_write_lock_is_stale(path: &Path) -> bool {
+    fs::metadata(path)
+        .and_then(|metadata| metadata.modified())
+        .ok()
+        .and_then(|modified| modified.elapsed().ok())
+        .is_some_and(|age| age >= StdDuration::from_secs(STORE_WRITE_LOCK_STALE_SECONDS))
+}
+
+fn acquire_store_write_lock(path: &Path) -> Result<StoreWriteLock, String> {
+    acquire_store_write_lock_with_timeout(
+        path,
+        StdDuration::from_secs(STORE_WRITE_LOCK_WAIT_SECONDS),
+    )
+}
+
+fn acquire_store_write_lock_with_timeout(
+    path: &Path,
+    timeout: StdDuration,
+) -> Result<StoreWriteLock, String> {
+    ensure_store_parent(path)?;
+    let lock_path = store_write_lock_path(path);
+    let deadline = Instant::now() + timeout;
+    loop {
+        match OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&lock_path)
+        {
+            Ok(mut lock) => {
+                let _ = writeln!(lock, "pid={} started_at={}", std::process::id(), iso_now());
+                return Ok(StoreWriteLock { path: lock_path });
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                if store_write_lock_is_stale(&lock_path) {
+                    let _ = fs::remove_file(&lock_path);
+                    continue;
+                }
+                if Instant::now() >= deadline {
+                    return Err(format!(
+                        "Another Pronto write is already in progress; retry after it completes (lock: {}).",
+                        lock_path.display()
+                    ));
+                }
+                thread::sleep(StdDuration::from_millis(50));
+            }
+            Err(error) => {
+                return Err(format!(
+                    "Could not create the Pronto write lock {}: {error}",
+                    lock_path.display()
+                ));
+            }
+        }
+    }
+}
 
 fn default_refresh_policy() -> String {
     "On open".to_string()
@@ -304,12 +388,20 @@ pub struct WorkspaceSyncDetail {
     pub authorization: String,
 }
 
+fn default_status_available() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceSummary {
     pub id: String,
     pub path: String,
     pub is_primary: bool,
     pub branch: String,
+    #[serde(default = "default_status_available")]
+    pub status_available: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status_error: Option<String>,
     pub dirty: bool,
     pub added: u64,
     pub removed: u64,
@@ -435,6 +527,10 @@ pub struct PullRequestPreparation {
     pub head_branch: String,
     pub base_branch: Option<String>,
     pub commit_count: u64,
+    #[serde(default = "default_status_available")]
+    pub status_available: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status_error: Option<String>,
     pub dirty: bool,
     pub ahead: u64,
     pub behind: u64,
@@ -553,6 +649,28 @@ pub struct RepositoryPreparation {
     pub release: ReleasePreparation,
     pub recipe: ReleaseRecipePreview,
     pub generated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RemediationHandoffCheck {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub repository_id: String,
+    pub repository_name: String,
+    pub repository_path: String,
+    pub workspace_id: String,
+    pub workspace_path: String,
+    pub branch: String,
+    pub head_commit: Option<String>,
+    pub status: String,
+    pub ready: bool,
+    pub checkpoint_required: bool,
+    pub workspace_dirty: bool,
+    pub persisted_snapshot_dirty: bool,
+    pub operation: Option<String>,
+    pub reasons: Vec<String>,
+    pub next_safe_step: String,
+    pub authorization: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -696,6 +814,7 @@ const DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES: i64 = 2_880;
 const WORKSPACE_SYNC_EVIDENCE_MAX_AGE_MINUTES: i64 = DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES;
 const MAX_AGENT_DOCTOR_MAX_AGE_MINUTES: i64 = 10_080;
 const AGENT_ROUTE_SCHEMA: &str = "pronto-agent-route/v1";
+const REMEDIATION_HANDOFF_SCHEMA: &str = "pronto-remediation-handoff/v1";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConditionSummary {
@@ -716,6 +835,10 @@ pub struct AgentWorkspaceSummary {
     pub path: String,
     pub is_primary: bool,
     pub branch: String,
+    #[serde(default = "default_status_available")]
+    pub status_available: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status_error: Option<String>,
     pub dirty: bool,
     pub sync_state: String,
     pub ahead: u64,
@@ -1007,6 +1130,8 @@ pub struct AgentChangeMaturitySummary {
 struct GitOutput {
     success: bool,
     stdout: String,
+    stderr: String,
+    exit_code: Option<i32>,
 }
 
 #[derive(Debug, Default)]
@@ -1276,6 +1401,9 @@ fn open_store(path: &Path) -> Result<SqliteConnection, String> {
     ensure_store_parent(path)?;
     let connection = SqliteConnection::open(path)
         .map_err(|error| format!("Could not open local Pronto database: {error}"))?;
+    connection
+        .busy_timeout(StdDuration::from_secs(STORE_WRITE_LOCK_WAIT_SECONDS))
+        .map_err(|error| format!("Could not configure Pronto database busy timeout: {error}"))?;
     initialize_store(&connection)?;
     Ok(connection)
 }
@@ -1297,7 +1425,7 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
         if let Some(mut legacy_state) = load_legacy_store(path)? {
             legacy_state.version = legacy_state.version.max(STORE_VERSION);
             sort_repositories_by_name(&mut legacy_state.repositories);
-            legacy_state.remote_repositories = filter_linked_remote_repositories(
+            legacy_state.remote_repositories = classify_remote_repositories(
                 &legacy_state.repositories,
                 legacy_state.remote_repositories,
             );
@@ -1311,7 +1439,7 @@ fn load_store(path: &Path) -> Result<StoreState, String> {
     load_store_from_connection(&connection)
 }
 
-fn load_store_read_only(path: &Path) -> Result<StoreState, String> {
+fn open_store_read_only(path: &Path) -> Result<SqliteConnection, String> {
     if !path.is_file() {
         return Err(format!(
             "Pronto database does not exist at {}",
@@ -1320,6 +1448,31 @@ fn load_store_read_only(path: &Path) -> Result<StoreState, String> {
     }
     let connection = SqliteConnection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)
         .map_err(|error| format!("Could not open local Pronto database read-only: {error}"))?;
+    connection
+        .busy_timeout(StdDuration::from_secs(STORE_WRITE_LOCK_WAIT_SECONDS))
+        .map_err(|error| format!("Could not configure Pronto read-only busy timeout: {error}"))?;
+    Ok(connection)
+}
+
+pub(crate) fn local_store_path() -> PathBuf {
+    store_path()
+}
+
+pub(crate) fn open_store_read_only_for_extension(path: &Path) -> Result<SqliteConnection, String> {
+    open_store_read_only(path)
+}
+
+pub(crate) fn with_store_write_for_extension<T, F>(path: &Path, operation: F) -> Result<T, String>
+where
+    F: FnOnce(&mut SqliteConnection) -> Result<T, String>,
+{
+    let _lock = acquire_store_write_lock(path)?;
+    let mut connection = open_store(path)?;
+    operation(&mut connection)
+}
+
+fn load_store_read_only(path: &Path) -> Result<StoreState, String> {
+    let connection = open_store_read_only(path)?;
     load_store_from_connection(&connection)
 }
 
@@ -1505,7 +1658,7 @@ fn load_store_from_connection(connection: &SqliteConnection) -> Result<StoreStat
         })
         .collect::<Result<Vec<_>, String>>()?;
     sort_repositories_by_name(&mut repositories);
-    let remote_repositories = filter_linked_remote_repositories(&repositories, remote_repositories);
+    let remote_repositories = classify_remote_repositories(&repositories, remote_repositories);
     provider_status.repository_count = remote_repositories.len();
 
     let expected_conditions = connection
@@ -1630,6 +1783,24 @@ fn load_store_read_only_with_quality(path: &Path) -> Result<StoreState, String> 
     let mut state = load_store_read_only(path)?;
     apply_quality_evidence_scoped(&mut state, None, None);
     Ok(state)
+}
+
+fn load_store_read_only_with_quality_bounded(path: &Path) -> Result<StoreState, String> {
+    let path = path.to_path_buf();
+    let (sender, receiver) = mpsc::channel();
+    thread::spawn(move || {
+        let _ = sender.send(load_store_read_only_with_quality(&path));
+    });
+    match receiver.recv_timeout(StdDuration::from_secs(QUALITY_READ_TIMEOUT_SECONDS)) {
+        Ok(result) => result,
+        Err(mpsc::RecvTimeoutError::Timeout) => Err(format!(
+            "Fresh quality projection exceeded the {} second deadline; rerun without --fresh for the cached snapshot or run `pronto quality refresh` separately.",
+            QUALITY_READ_TIMEOUT_SECONDS
+        )),
+        Err(mpsc::RecvTimeoutError::Disconnected) => Err(
+            "Fresh quality projection stopped before it returned a result; rerun without --fresh for the cached snapshot or run `pronto quality refresh` separately.".to_string(),
+        ),
+    }
 }
 
 fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
@@ -1836,15 +2007,17 @@ fn save_store(path: &Path, state: &StoreState) -> Result<(), String> {
             .map_err(|error| format!("Could not save remote repository: {error}"))?;
     }
 
-    let remediation_payload = serde_json::to_string(&state.remediation)
+    let mut remediation_run = state.remediation.clone();
+    remediation::sync_github_only_candidates(&mut remediation_run, &state.remote_repositories);
+    let remediation_payload = serde_json::to_string(&remediation_run)
         .map_err(|error| format!("Could not encode remediation run: {error}"))?;
     transaction
         .execute(
             "INSERT INTO remediation_runs (id, generated_at, payload_json)
              VALUES (?1, ?2, ?3)",
             params![
-                state.remediation.id,
-                state.remediation.generated_at,
+                remediation_run.id,
+                remediation_run.generated_at,
                 remediation_payload
             ],
         )
@@ -1954,7 +2127,7 @@ fn analytics_repository_sample(
     let unsynced_workspace_count = repository
         .workspaces
         .iter()
-        .filter(|workspace| workspace.sync_state != "Synced")
+        .filter(|workspace| workspace_is_unsynced(workspace))
         .count() as u64;
     let release_ready = repository.conditions.iter().any(|condition| {
         condition.kind == "release-threshold"
@@ -2325,8 +2498,8 @@ fn load_analytics_samples(
 }
 
 fn load_analytics_at(path: &Path) -> Result<AnalyticsSnapshot, String> {
-    let state = load_store_with_quality(path)?;
-    let connection = open_store(path)?;
+    let state = load_store_read_only(path)?;
+    let connection = open_store_read_only(path)?;
     let range_cutoff = Utc::now() - chrono::Duration::days(ANALYTICS_RANGE_DAYS);
     let retention_cutoff = Utc::now() - chrono::Duration::days(state.retention_days.max(1));
     let cutoff = range_cutoff.max(retention_cutoff);
@@ -2385,6 +2558,8 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
     for repository in &mut repositories {
         hydrate_workspace_sync_details(repository);
     }
+    let mut remediation_run = state.remediation.clone();
+    remediation::sync_github_only_candidates(&mut remediation_run, &state.remote_repositories);
     PortfolioSnapshot {
         roots: state.roots.clone(),
         repositories,
@@ -2396,7 +2571,7 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
         remote_repositories: state.remote_repositories.clone(),
         provider_status: state.provider_status.clone(),
         quality: state.quality.clone(),
-        remediation: state.remediation.clone(),
+        remediation: remediation_run,
         retention_days: state.retention_days,
         generated_at: iso_now(),
         storage_path: path.to_string_lossy().to_string(),
@@ -2408,6 +2583,9 @@ fn shell_quote_for_display(value: &str) -> String {
 }
 
 fn workspace_sync_reason(workspace: &WorkspaceSummary) -> String {
+    if !workspace.status_available {
+        return workspace_status_unavailable_reason(workspace);
+    }
     match (
         workspace.upstream.as_deref(),
         workspace.ahead,
@@ -2445,6 +2623,13 @@ fn workspace_sync_reason(workspace: &WorkspaceSummary) -> String {
             workspace.sync_state, workspace.branch
         ),
     }
+}
+
+fn workspace_status_unavailable_reason(workspace: &WorkspaceSummary) -> String {
+    workspace
+        .status_error
+        .clone()
+        .unwrap_or_else(|| "Git status could not be established for this workspace.".to_string())
 }
 
 fn workspace_sync_detail(
@@ -2533,6 +2718,8 @@ where
     Ok(GitOutput {
         success: output.status.success(),
         stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+        stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        exit_code: output.status.code(),
     })
 }
 
@@ -3015,7 +3202,53 @@ fn normalize_remote_name(value: &str) -> Option<String> {
     Some(normalized.trim_end_matches(".git").to_string())
 }
 
-fn filter_linked_remote_repositories(
+fn quality_runner_identity_key(repository: &RepositorySnapshot) -> String {
+    if let Some(remote) = repository.remote_url.as_deref() {
+        let mut normalized = remote.trim().trim_end_matches('/').to_ascii_lowercase();
+        if let Some(value) = normalized.strip_prefix("git@") {
+            if let Some((host, path)) = value.split_once(':') {
+                normalized = format!("{host}/{path}");
+            }
+        } else {
+            for prefix in ["https://", "http://", "ssh://"] {
+                if let Some(value) = normalized.strip_prefix(prefix) {
+                    normalized = value.trim_start_matches('/').to_string();
+                    if let Some(value) = normalized.strip_prefix("git@") {
+                        normalized = value.to_string();
+                    }
+                    break;
+                }
+            }
+            if let Some((host, path)) = normalized.split_once(':') {
+                if !path.contains('/') || host.contains('.') {
+                    normalized = format!("{host}/{path}");
+                }
+            }
+        }
+        return format!(
+            "origin:{}",
+            normalized.trim_start_matches('/').trim_end_matches(".git")
+        );
+    }
+    let common = git_static(
+        Path::new(&repository.path),
+        &["rev-parse", "--path-format=absolute", "--git-common-dir"],
+    )
+    .and_then(|path| canonical_path(Path::new(&path)).or_else(|| Some(PathBuf::from(path))));
+    common
+        .map(|path| format!("common:{}", path.display()))
+        .unwrap_or_else(|| format!("path:{}", repository.path))
+}
+
+fn repository_feed_id(repository: &RepositorySnapshot) -> String {
+    let identity = quality_runner_identity_key(repository);
+    let payload = serde_json::to_string(&[identity]).unwrap_or_else(|_| "[]".to_string());
+    let digest = Sha256::digest(payload.as_bytes());
+    let hex = format!("{digest:x}");
+    format!("repo-{}", &hex[..16])
+}
+
+fn classify_remote_repositories(
     repositories: &[RepositorySnapshot],
     remote_repositories: Vec<RemoteRepositorySnapshot>,
 ) -> Vec<RemoteRepositorySnapshot> {
@@ -3033,10 +3266,13 @@ fn filter_linked_remote_repositories(
         .into_iter()
         .filter_map(|mut remote| {
             let normalized_name = normalize_remote_name(&remote.full_name)?;
-            if !local_names.contains(&normalized_name) {
-                return None;
-            }
-            remote.locality = "Local and remote".to_string();
+            remote.locality = if local_names.contains(&normalized_name) {
+                "Local and remote".to_string()
+            } else if remote.provider.eq_ignore_ascii_case("github") {
+                remediation::GITHUB_ONLY_LOCALITY.to_string()
+            } else {
+                "Remote only".to_string()
+            };
             Some(remote)
         })
         .collect()
@@ -3084,7 +3320,7 @@ fn apply_provider_refresh_at(
         }
     }
     let refreshed_remote_repositories =
-        filter_linked_remote_repositories(&state.repositories, refresh.repositories);
+        classify_remote_repositories(&state.repositories, refresh.repositories);
     let remote_repositories = if let Some(targets) = target_repository_ids {
         let target_names = state
             .repositories
@@ -3118,7 +3354,7 @@ fn apply_provider_refresh_at(
     state.provider_status = ProviderStatus {
         provider: "GitHub".to_string(),
         state: "Ready".to_string(),
-        message: "Read-only GitHub context refreshed for connected local repositories.".to_string(),
+        message: "Read-only GitHub context refreshed for connected local repositories and GitHub-only candidates.".to_string(),
         last_refresh_at: Some(refresh.refreshed_at),
         identity_count: state.provider_identities.len(),
         repository_count: state.remote_repositories.len(),
@@ -3154,7 +3390,16 @@ fn apply_quality_evidence_scoped(
     let feed_path = quality::canonical_maturity_feed_path();
     let audit = quality::maturity_feed_import(feed_path.as_deref(), &state.repositories);
     let fleet = quality::fleet_audit_import(fleet_audit_root, &state.repositories);
+    let mac_control_scope = state
+        .repositories
+        .iter()
+        .filter(|repository| !remediation::is_excluded_repository(repository))
+        .filter(|repository| remediation::repository_requires_maturity(repository))
+        .cloned()
+        .collect::<Vec<_>>();
+    let mac_control = mac_control_maturity::evaluate_canonical(&mac_control_scope);
     state.quality = audit.portfolio;
+    state.quality.mac_control_ideal_state = mac_control.portfolio.clone();
     let remote_by_name = state
         .remote_repositories
         .iter()
@@ -3169,11 +3414,42 @@ fn apply_quality_evidence_scoped(
             .as_deref()
             .and_then(normalize_remote_name)
             .and_then(|name| remote_by_name.get(&name).copied());
-        let fleet_evidence = fleet.evidence.get(&repository.id);
-        let maturity = audit
-            .maturities
-            .get(&repository.id)
-            .cloned()
+        let target_fleet_import =
+            repository
+                .quality
+                .target_fleet_audit_root
+                .as_deref()
+                .map(|root| {
+                    quality::fleet_audit_import(
+                        Some(Path::new(root)),
+                        std::slice::from_ref(repository),
+                    )
+                });
+        let target_provenance = repository.target_branch.as_deref().and_then(|branch| {
+            repository
+                .branches
+                .iter()
+                .find(|candidate| candidate.name == branch)
+                .and_then(|candidate| candidate.last_commit.as_deref())
+                .map(|commit| (branch.to_string(), commit.to_string()))
+        });
+        let target_fleet_evidence = target_fleet_import
+            .as_ref()
+            .and_then(|import| import.evidence.get(&repository.id))
+            .map(|evidence| {
+                let mut scoped = evidence.clone();
+                if let Some((branch, commit)) = target_provenance.as_ref() {
+                    quality::scope_fleet_audit_evidence_to_target(&mut scoped, branch, commit);
+                }
+                scoped
+            });
+        let fleet_evidence = target_fleet_evidence
+            .as_ref()
+            .or_else(|| fleet.evidence.get(&repository.id));
+        let maturity = target_fleet_evidence
+            .as_ref()
+            .map(|evidence| evidence.maturity.clone())
+            .or_else(|| audit.maturities.get(&repository.id).cloned())
             .or_else(|| fleet_evidence.map(|evidence| evidence.maturity.clone()));
         let ideal_gate_ids = quality::ideal_gate_ids_for_repository(repository);
         let mut imported = quality::ingest_repository_quality(
@@ -3182,16 +3458,28 @@ fn apply_quality_evidence_scoped(
             maturity,
             ideal_gate_ids.as_deref(),
         );
+        imported.mac_control_ideal_state = mac_control
+            .by_repository
+            .get(&repository.id)
+            .cloned()
+            .unwrap_or_default();
+        imported.target_fleet_audit_root = repository.quality.target_fleet_audit_root.clone();
         if let Some(fleet_evidence) = fleet_evidence {
-            if imported.maturity.score.is_none()
+            if target_fleet_evidence.is_some()
+                || imported.maturity.score.is_none()
                 || (imported.maturity.freshness != quality::QualityFreshness::Fresh
                     && fleet_evidence.maturity.freshness == quality::QualityFreshness::Fresh)
             {
                 imported.maturity = fleet_evidence.maturity.clone();
             }
-            if imported.findings.source.is_none()
-                || (imported.findings.freshness != quality::QualityFreshness::Fresh
-                    && fleet_evidence.findings.freshness == quality::QualityFreshness::Fresh)
+            let stable_detector_report =
+                quality::is_stable_detector_report(imported.findings.report_path.as_deref());
+            if target_fleet_evidence.is_some()
+                || (!stable_detector_report
+                    && (imported.findings.source.is_none()
+                        || (imported.findings.freshness != quality::QualityFreshness::Fresh
+                            && fleet_evidence.findings.freshness
+                                == quality::QualityFreshness::Fresh)))
             {
                 imported.findings = fleet_evidence.findings.clone();
             }
@@ -3201,11 +3489,25 @@ fn apply_quality_evidence_scoped(
             imported.ingestion_status = "Available".to_string();
             imported.ingestion_message = None;
         }
+        if repository.target_branch_configured {
+            if let Some((target_branch, target_commit)) = target_provenance.as_ref() {
+                quality::project_quality_snapshot_for_target(
+                    &mut imported,
+                    target_branch,
+                    target_commit,
+                );
+            }
+        }
         quality::reconcile_finding_dispositions(
             Path::new(&repository.path),
             &mut imported.findings,
         );
         repository.quality = imported;
+    }
+    for repository in &mut state.repositories {
+        if let Some(mac_control_state) = mac_control.by_repository.get(&repository.id) {
+            repository.quality.mac_control_ideal_state = mac_control_state.clone();
+        }
     }
     quality::update_ci_readiness_summary(&mut state.quality, &state.repositories);
     state.remediation = remediation::rebuild_run_with_fleet_root(
@@ -3214,6 +3516,15 @@ fn apply_quality_evidence_scoped(
         state.quality.latest_audit_id.as_deref(),
         fleet_audit_root,
     );
+}
+
+fn refresh_quality_at(path: &Path) -> Result<PortfolioSnapshot, String> {
+    let _lock = acquire_store_write_lock(path)?;
+    let mut state = load_store(path)?;
+    apply_quality_evidence(&mut state);
+    apply_release_threshold_conditions(&mut state);
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
 }
 
 fn maturity_coverage_gaps(repositories: &[RepositorySnapshot]) -> Vec<String> {
@@ -3230,6 +3541,19 @@ fn maturity_coverage_gaps(repositories: &[RepositorySnapshot]) -> Vec<String> {
                     "{} ({})",
                     repository.name,
                     maturity.freshness.as_str().to_ascii_lowercase()
+                ))
+            } else if remediation::repository_requires_maturity_gate(
+                repository,
+                mac_control_maturity::MAC_CONTROL_GATE_ID,
+            ) && !(repository.quality.mac_control_ideal_state.ideal_state
+                || (repository.quality.mac_control_ideal_state.status == "Not applicable"
+                    && repository.quality.mac_control_ideal_state.freshness == "Fresh"))
+            {
+                Some(format!(
+                    "{} (Mac Control ideal state: {} / {})",
+                    repository.name,
+                    repository.quality.mac_control_ideal_state.status,
+                    repository.quality.mac_control_ideal_state.freshness,
                 ))
             } else {
                 None
@@ -3409,26 +3733,551 @@ fn json_from_process_output(output: &std::process::Output) -> Result<serde_json:
 }
 
 fn run_json_command(executable: &str, arguments: &[String]) -> Result<serde_json::Value, String> {
-    let output = Command::new(executable)
-        .args(arguments)
-        .output()
-        .map_err(|error| format!("Could not run {executable}: {error}"))?;
-    if !output.status.success() {
+    run_json_command_in(executable, arguments, None)
+}
+
+fn run_json_command_in_with_status(
+    executable: &str,
+    arguments: &[String],
+    current_dir: Option<&Path>,
+) -> Result<(serde_json::Value, bool, Option<String>), String> {
+    let mut command = Command::new(executable);
+    command.args(arguments);
+    if let Some(current_dir) = current_dir {
+        command.current_dir(current_dir);
+    }
+    let output = command.output().map_err(|error| {
+        current_dir.map_or_else(
+            || format!("Could not run {executable}: {error}"),
+            |path| format!("Could not run {executable} in {}: {error}", path.display()),
+        )
+    })?;
+    let success = output.status.success();
+    let detail = {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        let detail = if !stderr.is_empty() { stderr } else { stdout };
+        (!stderr.is_empty())
+            .then_some(stderr)
+            .or_else(|| (!stdout.is_empty()).then_some(stdout))
+    };
+    let payload = json_from_process_output(&output).map_err(|error| {
+        if success {
+            error
+        } else {
+            format!(
+                "{executable} {} failed with status {}{}",
+                arguments.join(" "),
+                output.status,
+                detail
+                    .as_deref()
+                    .map(|value| format!(": {value}"))
+                    .unwrap_or_default()
+            )
+        }
+    })?;
+    Ok((payload, success, detail))
+}
+
+fn run_json_command_in(
+    executable: &str,
+    arguments: &[String],
+    current_dir: Option<&Path>,
+) -> Result<serde_json::Value, String> {
+    let (payload, success, detail) =
+        run_json_command_in_with_status(executable, arguments, current_dir)?;
+    if !success {
         return Err(format!(
             "{executable} {} failed with status {}{}",
             arguments.join(" "),
-            output.status,
-            if detail.is_empty() {
-                String::new()
-            } else {
+            "non-zero",
+            if let Some(detail) = detail {
                 format!(": {detail}")
+            } else {
+                String::new()
             }
         ));
     }
-    json_from_process_output(&output)
+    Ok(payload)
+}
+
+fn target_evidence_slug(value: &str) -> String {
+    let slug = value
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() || matches!(character, '-' | '_') {
+                character
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>();
+    let slug = slug.trim_matches('-');
+    if slug.is_empty() {
+        "target".to_string()
+    } else {
+        slug.chars().take(80).collect()
+    }
+}
+
+fn target_evidence_run_prefix(repository: &RepositorySnapshot, target_branch: &str) -> String {
+    let sequence = NEXT_TARGET_EVIDENCE_ID.fetch_add(1, Ordering::Relaxed);
+    format!(
+        "pronto-target-{}-{}-{}-{}",
+        target_evidence_slug(&repository.id),
+        target_evidence_slug(target_branch),
+        target_evidence_slug(&iso_now()),
+        sequence,
+    )
+}
+
+fn target_evidence_artifact_parent() -> PathBuf {
+    std::env::temp_dir().join("pronto-target-evidence")
+}
+
+fn copy_target_evidence_tree_inner(
+    source: &Path,
+    destination: &Path,
+    old_root: &str,
+    new_root: &str,
+) -> Result<usize, String> {
+    let file_type = fs::symlink_metadata(source)
+        .map_err(|error| {
+            format!(
+                "Could not inspect target evidence {}: {error}",
+                source.display()
+            )
+        })?
+        .file_type();
+    if file_type.is_symlink() {
+        return Ok(0);
+    }
+    if file_type.is_dir() {
+        fs::create_dir_all(destination).map_err(|error| {
+            format!(
+                "Could not create copied target evidence directory {}: {error}",
+                destination.display()
+            )
+        })?;
+        let mut copied = 0;
+        let entries = fs::read_dir(source).map_err(|error| {
+            format!(
+                "Could not read target evidence directory {}: {error}",
+                source.display()
+            )
+        })?;
+        for entry in entries {
+            let entry = entry.map_err(|error| {
+                format!(
+                    "Could not enumerate target evidence directory {}: {error}",
+                    source.display()
+                )
+            })?;
+            copied += copy_target_evidence_tree_inner(
+                &entry.path(),
+                &destination.join(entry.file_name()),
+                old_root,
+                new_root,
+            )?;
+        }
+        return Ok(copied);
+    }
+    if !file_type.is_file() {
+        return Ok(0);
+    }
+    if destination.exists() {
+        return Err(format!(
+            "Target evidence destination already exists: {}",
+            destination.display()
+        ));
+    }
+    if let Some(parent) = destination.parent() {
+        fs::create_dir_all(parent).map_err(|error| {
+            format!(
+                "Could not create copied target evidence parent {}: {error}",
+                parent.display()
+            )
+        })?;
+    }
+    let bytes = fs::read(source).map_err(|error| {
+        format!(
+            "Could not read target evidence file {}: {error}",
+            source.display()
+        )
+    })?;
+    if let Ok(text) = String::from_utf8(bytes.clone()) {
+        fs::write(destination, text.replace(old_root, new_root)).map_err(|error| {
+            format!(
+                "Could not write copied target evidence file {}: {error}",
+                destination.display()
+            )
+        })?;
+    } else {
+        fs::write(destination, bytes).map_err(|error| {
+            format!(
+                "Could not write copied target evidence file {}: {error}",
+                destination.display()
+            )
+        })?;
+    }
+    Ok(1)
+}
+
+fn copy_target_evidence_tree(
+    source: &Path,
+    destination: &Path,
+    old_root: &Path,
+    new_root: &Path,
+) -> Result<usize, String> {
+    copy_target_evidence_tree_inner(
+        source,
+        destination,
+        &old_root.to_string_lossy(),
+        &new_root.to_string_lossy(),
+    )
+}
+
+fn rewrite_target_qr_branch_provenance_value(
+    value: &mut serde_json::Value,
+    target_branch: &str,
+) -> bool {
+    match value {
+        serde_json::Value::Object(object) => {
+            let mut rewritten = false;
+            for (key, child) in object.iter_mut() {
+                if key == "branch" && child.as_str() == Some("HEAD") {
+                    *child = serde_json::Value::String(target_branch.to_string());
+                    rewritten = true;
+                } else if key == "ref" && child.as_str() == Some("refs/heads/HEAD") {
+                    *child = serde_json::Value::String(format!("refs/heads/{target_branch}"));
+                    rewritten = true;
+                }
+                rewritten |= rewrite_target_qr_branch_provenance_value(child, target_branch);
+            }
+            rewritten
+        }
+        serde_json::Value::Array(items) => items
+            .iter_mut()
+            .map(|item| rewrite_target_qr_branch_provenance_value(item, target_branch))
+            .any(|rewritten| rewritten),
+        _ => false,
+    }
+}
+
+fn rewrite_target_qr_branch_provenance_inner(
+    root: &Path,
+    target_branch: &str,
+) -> Result<usize, String> {
+    let file_type = fs::symlink_metadata(root)
+        .map_err(|error| {
+            format!(
+                "Could not inspect target QR artifact {}: {error}",
+                root.display()
+            )
+        })?
+        .file_type();
+    if file_type.is_symlink() {
+        return Ok(0);
+    }
+    if file_type.is_dir() {
+        let mut rewritten = 0;
+        for entry in fs::read_dir(root).map_err(|error| {
+            format!(
+                "Could not read target QR artifact directory {}: {error}",
+                root.display()
+            )
+        })? {
+            rewritten += rewrite_target_qr_branch_provenance_inner(
+                &entry
+                    .map_err(|error| format!("Could not enumerate target QR artifacts: {error}"))?
+                    .path(),
+                target_branch,
+            )?;
+        }
+        return Ok(rewritten);
+    }
+    if !file_type.is_file() || root.extension().and_then(|value| value.to_str()) != Some("json") {
+        return Ok(0);
+    }
+    let bytes = fs::read(root).map_err(|error| {
+        format!(
+            "Could not read target QR artifact {}: {error}",
+            root.display()
+        )
+    })?;
+    let Ok(mut payload) = serde_json::from_slice::<serde_json::Value>(&bytes) else {
+        return Ok(0);
+    };
+    if !rewrite_target_qr_branch_provenance_value(&mut payload, target_branch) {
+        return Ok(0);
+    }
+    let mut encoded = serde_json::to_vec_pretty(&payload).map_err(|error| {
+        format!(
+            "Could not encode target QR artifact {}: {error}",
+            root.display()
+        )
+    })?;
+    encoded.push(b'\n');
+    fs::write(root, encoded).map_err(|error| {
+        format!(
+            "Could not rewrite target QR artifact {}: {error}",
+            root.display()
+        )
+    })?;
+    Ok(1)
+}
+
+fn rewrite_target_qr_branch_provenance(root: &Path, target_branch: &str) -> Result<usize, String> {
+    rewrite_target_qr_branch_provenance_inner(root, target_branch)
+}
+
+fn copy_target_qr_runs(
+    target_worktree: &Path,
+    repository_path: &Path,
+    run_id_prefix: &str,
+    target_branch: &str,
+) -> Result<usize, String> {
+    let source_root = target_worktree.join(".quality-runner").join("runs");
+    if !source_root.is_dir() {
+        return Ok(0);
+    }
+    let destination_root = repository_path.join(".quality-runner").join("runs");
+    fs::create_dir_all(&destination_root).map_err(|error| {
+        format!(
+            "Could not create Pronto target QR artifact directory {}: {error}",
+            destination_root.display()
+        )
+    })?;
+    let mut copied = 0;
+    for entry in fs::read_dir(&source_root).map_err(|error| {
+        format!(
+            "Could not read target QR artifact directory {}: {error}",
+            source_root.display()
+        )
+    })? {
+        let entry = entry.map_err(|error| {
+            format!(
+                "Could not enumerate target QR artifact directory {}: {error}",
+                source_root.display()
+            )
+        })?;
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if !name.starts_with(run_id_prefix)
+            || !entry.file_type().map(|kind| kind.is_dir()).unwrap_or(false)
+        {
+            continue;
+        }
+        let destination = destination_root.join(name.as_ref());
+        copied += copy_target_evidence_tree(
+            &entry.path(),
+            &destination,
+            target_worktree,
+            repository_path,
+        )?;
+        rewrite_target_qr_branch_provenance(&destination, target_branch)?;
+    }
+    Ok(copied)
+}
+
+fn rewrite_target_evidence_paths_inner(
+    root: &Path,
+    old_root: &str,
+    new_root: &str,
+) -> Result<usize, String> {
+    let file_type = fs::symlink_metadata(root)
+        .map_err(|error| {
+            format!(
+                "Could not inspect target audit artifact {}: {error}",
+                root.display()
+            )
+        })?
+        .file_type();
+    if file_type.is_symlink() {
+        return Ok(0);
+    }
+    if file_type.is_dir() {
+        let mut rewritten = 0;
+        for entry in fs::read_dir(root).map_err(|error| {
+            format!(
+                "Could not read target audit artifact directory {}: {error}",
+                root.display()
+            )
+        })? {
+            rewritten += rewrite_target_evidence_paths_inner(
+                &entry
+                    .map_err(|error| {
+                        format!("Could not enumerate target audit artifacts: {error}")
+                    })?
+                    .path(),
+                old_root,
+                new_root,
+            )?;
+        }
+        return Ok(rewritten);
+    }
+    if !file_type.is_file() {
+        return Ok(0);
+    }
+    let bytes = fs::read(root).map_err(|error| {
+        format!(
+            "Could not read target audit artifact {}: {error}",
+            root.display()
+        )
+    })?;
+    let Ok(text) = String::from_utf8(bytes) else {
+        return Ok(0);
+    };
+    if !text.contains(old_root) {
+        return Ok(0);
+    }
+    fs::write(root, text.replace(old_root, new_root)).map_err(|error| {
+        format!(
+            "Could not rewrite target audit artifact {}: {error}",
+            root.display()
+        )
+    })?;
+    Ok(1)
+}
+
+fn rewrite_target_evidence_paths(
+    root: &Path,
+    old_root: &Path,
+    new_root: &Path,
+) -> Result<usize, String> {
+    rewrite_target_evidence_paths_inner(
+        root,
+        &old_root.to_string_lossy(),
+        &new_root.to_string_lossy(),
+    )
+}
+
+fn bounded_target_artifact_root(base: &Path, payload: &serde_json::Value) -> Option<PathBuf> {
+    let candidate = json_string(payload, &["artifact_root"])?;
+    let candidate = canonical_path(Path::new(&candidate))?;
+    let base = canonical_path(base)?;
+    candidate
+        .starts_with(&base)
+        .then_some(candidate)
+        .filter(|path| path.is_dir())
+}
+
+fn concise_target_command_error(error: &str) -> String {
+    let detail = error
+        .lines()
+        .find(|line| !line.trim().is_empty())
+        .unwrap_or(error)
+        .trim();
+    let mut concise = detail.chars().take(300).collect::<String>();
+    if detail.chars().count() > 300 {
+        concise.push_str("…");
+    }
+    concise
+}
+
+fn run_target_qr_refresh(
+    qr_executable: &str,
+    target_worktree: &Path,
+    repository_path: &Path,
+    run_id_prefix: &str,
+    target_branch: &str,
+) -> Result<String, String> {
+    let arguments = vec![
+        "refresh".to_string(),
+        target_worktree.to_string_lossy().to_string(),
+        "--run-id-prefix".to_string(),
+        run_id_prefix.to_string(),
+        "--execute-gates".to_string(),
+        "--worktree-mode".to_string(),
+        "disposable".to_string(),
+        "--no-progress".to_string(),
+        "--json".to_string(),
+        "--timeout-seconds".to_string(),
+        TARGET_EVIDENCE_GATE_TIMEOUT_SECONDS.to_string(),
+        "--total-timeout-seconds".to_string(),
+        TARGET_EVIDENCE_TOTAL_TIMEOUT_SECONDS.to_string(),
+    ];
+    let result = run_json_command_in_with_status(qr_executable, &arguments, Some(target_worktree));
+    let copied = copy_target_qr_runs(
+        target_worktree,
+        repository_path,
+        run_id_prefix,
+        target_branch,
+    )?;
+    match result {
+        Ok((payload, success, detail)) => {
+            let status =
+                json_string(&payload, &["status"]).unwrap_or_else(|| "completed".to_string());
+            if success {
+                Ok(format!(
+                    "QR refresh {status}; copied {copied} artifact files"
+                ))
+            } else {
+                Ok(format!(
+                    "QR refresh {status}; retained failed gate evidence and copied {copied} artifact files{}",
+                    detail
+                        .as_deref()
+                        .map(|value| format!(": {}", concise_target_command_error(value)))
+                        .unwrap_or_default()
+                ))
+            }
+        }
+        Err(error) => Err(format!(
+            "QR refresh failed after copying {copied} artifact files: {}",
+            concise_target_command_error(&error)
+        )),
+    }
+}
+
+fn run_target_fleet_audit(
+    qr_executable: &str,
+    target_worktree: &Path,
+    repository_path: &Path,
+    projects_root: &Path,
+    output_base: &Path,
+    target_branch: &str,
+    repository_id: &str,
+) -> Result<(String, PathBuf), String> {
+    fs::create_dir_all(output_base).map_err(|error| {
+        format!(
+            "Could not create target fleet audit output directory {}: {error}",
+            output_base.display()
+        )
+    })?;
+    let arguments = vec![
+        "fleet".to_string(),
+        "audit".to_string(),
+        "run".to_string(),
+        "--repo-path".to_string(),
+        target_worktree.to_string_lossy().to_string(),
+        "--projects-root".to_string(),
+        projects_root.to_string_lossy().to_string(),
+        "--output-dir".to_string(),
+        output_base.to_string_lossy().to_string(),
+        "--dynamic".to_string(),
+        "--no-changed-only".to_string(),
+        "--timeout-seconds".to_string(),
+        TARGET_EVIDENCE_GATE_TIMEOUT_SECONDS.to_string(),
+        "--target-override".to_string(),
+        format!("{repository_id}={target_branch}"),
+        "--json".to_string(),
+    ];
+    let payload = run_json_command_in(qr_executable, &arguments, Some(target_worktree))?;
+    let artifact_root = bounded_target_artifact_root(output_base, &payload).ok_or_else(|| {
+        format!(
+            "Quality Runner fleet audit did not return a bounded artifact root under {}",
+            output_base.display()
+        )
+    })?;
+    let rewritten =
+        rewrite_target_evidence_paths(&artifact_root, target_worktree, repository_path)?;
+    let status = json_string(&payload, &["status"]).unwrap_or_else(|| "completed".to_string());
+    Ok((
+        format!(
+            "fleet audit {status}; ingested {} rewritten artifact files",
+            rewritten
+        ),
+        artifact_root,
+    ))
 }
 
 fn json_string(value: &serde_json::Value, keys: &[&str]) -> Option<String> {
@@ -4508,6 +5357,22 @@ fn parse_status(output: &str) -> ParsedStatus {
     status
 }
 
+fn parse_git_status(result: GitOutput) -> Result<ParsedStatus, String> {
+    if !result.success {
+        let detail = result.stderr.trim();
+        let detail = if detail.is_empty() {
+            result
+                .exit_code
+                .map(|code| format!("Git status exited with code {code}."))
+                .unwrap_or_else(|| "Git status exited unsuccessfully.".to_string())
+        } else {
+            detail.to_string()
+        };
+        return Err(format!("Git status failed: {detail}"));
+    }
+    Ok(parse_status(&result.stdout))
+}
+
 fn parse_numstat(output: &str) -> DiffTotals {
     let mut totals = DiffTotals::default();
     for line in output.lines() {
@@ -4630,14 +5495,14 @@ fn parse_log(raw: Option<String>) -> (Option<String>, Option<String>) {
 fn workspace_status(
     path: &Path,
 ) -> (
-    ParsedStatus,
+    Result<ParsedStatus, String>,
     DiffTotals,
     Option<String>,
     Option<String>,
     Option<String>,
     Option<String>,
 ) {
-    let status_output = run_git(
+    let status = run_git(
         path,
         [
             "status",
@@ -4647,9 +5512,7 @@ fn workspace_status(
         ]
         .iter(),
     )
-    .map(|result| result.stdout)
-    .unwrap_or_default();
-    let status = parse_status(&status_output);
+    .and_then(parse_git_status);
     let totals = diff_totals(path);
     let operation = interrupted_operation(path);
     let (last_commit, last_commit_at) =
@@ -5327,6 +6190,13 @@ fn preview_ai_summary_at(
             .push("The registered workspace path is not accessible.".to_string());
         return Ok(preview);
     }
+    if !workspace.status_available {
+        preview.status = "Git status unavailable".to_string();
+        preview
+            .reasons
+            .push(workspace_status_unavailable_reason(workspace));
+        return Ok(preview);
+    }
     let base = latest_published_release(repository)
         .and_then(|release| release.target_commit)
         .or_else(|| workspace.target_branch.clone());
@@ -5838,6 +6708,9 @@ fn prepare_pull_request(
     if base_branch.is_none() {
         reasons.push("Target branch is unknown".to_string());
     }
+    if !workspace.status_available {
+        reasons.push(workspace_status_unavailable_reason(workspace));
+    }
     if commit_count == 0 {
         reasons.push("Branch has no unique commits relative to the target".to_string());
     }
@@ -5871,7 +6744,9 @@ fn prepare_pull_request(
         ),
         evidence(
             "Workspace",
-            if workspace.dirty {
+            if !workspace.status_available {
+                workspace_status_unavailable_reason(workspace)
+            } else if workspace.dirty {
                 "Dirty · commit preparation blocked".to_string()
             } else {
                 "Clean".to_string()
@@ -5906,6 +6781,8 @@ fn prepare_pull_request(
         head_branch: workspace.branch.clone(),
         base_branch,
         commit_count,
+        status_available: workspace.status_available,
+        status_error: workspace.status_error.clone(),
         dirty: workspace.dirty,
         ahead: workspace.ahead,
         behind: workspace.behind,
@@ -6004,6 +6881,9 @@ fn prepare_release(
     if target_branch.is_none() {
         reasons.push("Target branch is unknown".to_string());
     }
+    if !workspace.status_available {
+        reasons.push(workspace_status_unavailable_reason(workspace));
+    }
     if !connected {
         reasons.push(
             "Published GitHub release data is unavailable; no release threshold is evaluated"
@@ -6068,7 +6948,14 @@ fn prepare_release(
             &observed_at,
         ));
     }
-    if workspace.dirty {
+    if !workspace.status_available {
+        evidence_items.push(evidence(
+            "Workspace",
+            workspace_status_unavailable_reason(workspace),
+            "git status --porcelain=v2",
+            &observed_at,
+        ));
+    } else if workspace.dirty {
         evidence_items.push(evidence(
             "Starting state",
             "Dirty · release preparation blocked".to_string(),
@@ -6112,6 +6999,7 @@ fn prepare_release(
         baseline.is_none() && configured_rule.is_some_and(release_rule_needs_baseline);
     let blocked = target_branch.is_none()
         || !connected
+        || !workspace.status_available
         || workspace.dirty
         || (missing_baseline && configured_rule.is_none())
         || (missing_baseline && configured_rule.is_some_and(|rule| !rule.allow_first_release))
@@ -6156,8 +7044,10 @@ fn prepare_release_recipe(
         .release_recipe
         .clone()
         .unwrap_or_else(default_release_recipe);
-    let starting_state_ready =
-        !workspace.dirty && workspace.operation.is_none() && workspace.activity.state != "Active";
+    let starting_state_ready = workspace.status_available
+        && !workspace.dirty
+        && workspace.operation.is_none()
+        && workspace.activity.state != "Active";
     let release_evidence_ready = release.status == "Evidence ready";
     let version_confirmed = release.version_status == "Candidate version confirmed";
     let has_release_changes =
@@ -6165,7 +7055,9 @@ fn prepare_release_recipe(
     let has_validation = !recipe.validation_commands.is_empty();
     let mut reasons = release.reasons.clone();
     if !starting_state_ready {
-        if workspace.dirty {
+        if !workspace.status_available {
+            reasons.push(workspace_status_unavailable_reason(workspace));
+        } else if workspace.dirty {
             reasons.push("Workspace has uncommitted changes".to_string());
         }
         if let Some(operation) = workspace.operation.as_ref() {
@@ -6354,12 +7246,151 @@ fn prepare_repository_at(
     })
 }
 
+fn remediation_handoff_check_for_repository(
+    repository: &RepositorySnapshot,
+    workspace_id: Option<&str>,
+) -> Result<RemediationHandoffCheck, String> {
+    let workspace = match workspace_id.filter(|value| !value.trim().is_empty()) {
+        Some(workspace_id) => repository
+            .workspaces
+            .iter()
+            .find(|workspace| workspace.id == workspace_id)
+            .ok_or_else(|| "Workspace is not registered for this repository".to_string())?,
+        None => &repository.workspace,
+    };
+    let workspace_path = Path::new(&workspace.path);
+    if !workspace_path.is_dir() {
+        return Err("The workspace path is not an accessible folder".to_string());
+    }
+
+    let generated_at = iso_now();
+    let live_status = run_git(
+        workspace_path,
+        [
+            "status",
+            "--porcelain=v2",
+            "--branch",
+            "--untracked-files=all",
+        ]
+        .iter(),
+    )
+    .and_then(parse_git_status);
+    let live_head_commit = git_static(workspace_path, &["rev-parse", "HEAD"]);
+    let live_operation = live_status
+        .as_ref()
+        .ok()
+        .and_then(|_| interrupted_operation(workspace_path));
+    let (
+        status,
+        ready,
+        checkpoint_required,
+        workspace_dirty,
+        branch,
+        operation,
+        next_safe_step,
+        reasons,
+    ) = match live_status {
+            Ok(live_status) => {
+                let operation = live_operation.or_else(|| workspace.operation.clone());
+                let mut reasons = Vec::new();
+                if live_status.dirty {
+                    reasons.push(
+                        "The workspace contains uncommitted changes; create a local checkpoint commit before handoff."
+                            .to_string(),
+                    );
+                }
+                if let Some(operation) = operation.as_ref() {
+                    reasons.push(format!(
+                        "The workspace has an interrupted Git operation ({operation}) that must be resolved before handoff."
+                    ));
+                }
+                if !live_status.dirty && workspace.dirty {
+                    reasons.push(
+                        "Live Git is clean, but the persisted Pronto snapshot still reports dirty work; run a scoped refresh before handoff."
+                            .to_string(),
+                    );
+                }
+                let ready = !live_status.dirty && operation.is_none() && !workspace.dirty;
+                let next_safe_step = if live_status.dirty {
+                    "Review ownership, commit the intended changes on this branch, then rerun `pronto remediation handoff-check`."
+                } else if operation.is_some() {
+                    "Resolve the interrupted Git operation without discarding unrelated work, then rerun `pronto remediation handoff-check`."
+                } else if workspace.dirty {
+                    "Run the repository-scoped `pronto refresh` after the checkpoint commit, then rerun `pronto remediation handoff-check`."
+                } else {
+                    "Proceed with the scoped remediation handoff; this check performed no repository mutation."
+                };
+                (
+                    if ready { "ready" } else { "blocked" },
+                    ready,
+                    live_status.dirty || operation.is_some(),
+                    live_status.dirty,
+                    live_status.branch,
+                    operation,
+                    next_safe_step.to_string(),
+                    reasons,
+                )
+            }
+            Err(status_error) => {
+                (
+                    "unknown",
+                    false,
+                    true,
+                    false,
+                    workspace.branch.clone(),
+                    workspace.operation.clone(),
+                    "Restore live Git access, then rerun `pronto remediation handoff-check`; no repository mutation was attempted."
+                        .to_string(),
+                    vec![format!(
+                        "Live Git status could not be established: {status_error} Remediation advancement is blocked until the workspace can be checked."
+                    )],
+                )
+            }
+        };
+
+    Ok(RemediationHandoffCheck {
+        schema_version: REMEDIATION_HANDOFF_SCHEMA.to_string(),
+        generated_at,
+        repository_id: repository.id.clone(),
+        repository_name: repository.name.clone(),
+        repository_path: repository.path.clone(),
+        workspace_id: workspace.id.clone(),
+        workspace_path: workspace.path.clone(),
+        branch,
+        head_commit: live_head_commit.or_else(|| workspace.last_commit.clone()),
+        status: status.to_string(),
+        ready,
+        checkpoint_required,
+        workspace_dirty,
+        persisted_snapshot_dirty: workspace.dirty,
+        operation,
+        reasons,
+        next_safe_step,
+        authorization: "Read-only live Git check; no commit, stash, merge, rebase, push, or file edit was performed."
+            .to_string(),
+    })
+}
+
+fn remediation_handoff_check_at(
+    path: &Path,
+    query: &str,
+    workspace_id: Option<&str>,
+) -> Result<RemediationHandoffCheck, String> {
+    let state = load_store_read_only(path)?;
+    let snapshot = snapshot_from_store(path, &state);
+    let repository = find_cli_repository(&snapshot, query)?;
+    remediation_handoff_check_for_repository(repository, workspace_id)
+}
+
 fn branch_integration_state(
     path: &Path,
     branch: &str,
     default_branch: Option<&str>,
     current_workspace: Option<&WorkspaceSummary>,
 ) -> String {
+    if current_workspace.is_some_and(|workspace| !workspace.status_available) {
+        return "Unknown".to_string();
+    }
     let Some(target) = default_branch else {
         return "Target unknown".to_string();
     };
@@ -6387,13 +7418,30 @@ fn scan_workspace(
     repository_target_confidence: &str,
     existing: Option<&RepositorySnapshot>,
 ) -> WorkspaceSummary {
-    let (status, totals, operation, last_commit, last_commit_at, last_activity_at) =
+    let (status_result, totals, operation, last_commit, last_commit_at, last_activity_at) =
         workspace_status(path);
+    let (status_available, status, status_error) = match status_result {
+        Ok(status) => (true, status, None),
+        Err(error) => (
+            false,
+            ParsedStatus {
+                branch: "Unknown".to_string(),
+                ..ParsedStatus::default()
+            },
+            Some(error),
+        ),
+    };
     let remote_freshness = existing
         .and_then(|repository| repository.last_fetch_at.clone())
         .unwrap_or_else(|| "Not fetched by Pronto".to_string());
-    let activity = collect_workspace_activity(path, status.dirty, status.ahead);
-    let sync_state = if status.upstream.is_none() {
+    let activity = collect_workspace_activity(
+        path,
+        status_available && status.dirty,
+        if status_available { status.ahead } else { 0 },
+    );
+    let sync_state = if !status_available {
+        "Git status unavailable".to_string()
+    } else if status.upstream.is_none() {
         "No upstream".to_string()
     } else if status.ahead > 0 && status.behind > 0 {
         format!(
@@ -6407,32 +7455,47 @@ fn scan_workspace(
     } else {
         "Synced".to_string()
     };
-    let (mut role, mut role_confidence) = branch_role(&status.branch, default_branch);
-    let (mut target_branch, mut target_confidence) =
-        target_for_branch(&status.branch, repository_target_branch);
-    if target_branch.is_some() {
-        target_confidence = repository_target_confidence.to_string();
-    }
-    if let Some(manifest) = activity.manifest.as_ref() {
-        if repository_target_branch.is_none() {
-            if let Some(manifest_target) = manifest.target_branch.as_ref() {
-                target_branch = Some(manifest_target.clone());
-                target_confidence = "High".to_string();
+    let (role, role_confidence, target_branch, target_confidence) = if status_available {
+        let (mut role, mut role_confidence) = branch_role(&status.branch, default_branch);
+        let (mut target_branch, mut target_confidence) =
+            target_for_branch(&status.branch, repository_target_branch);
+        if target_branch.is_some() {
+            target_confidence = repository_target_confidence.to_string();
+        }
+        if let Some(manifest) = activity.manifest.as_ref() {
+            if repository_target_branch.is_none() {
+                if let Some(manifest_target) = manifest.target_branch.as_ref() {
+                    target_branch = Some(manifest_target.clone());
+                    target_confidence = "High".to_string();
+                }
+            }
+            if manifest.agent_type.is_some() && role != "Production" {
+                role = "Agent task".to_string();
+                role_confidence = "High".to_string();
             }
         }
-        if manifest.agent_type.is_some() && role != "Production" {
-            role = "Agent task".to_string();
-            role_confidence = "High".to_string();
-        }
-    }
-    let integration_state =
-        branch_integration_state(path, &status.branch, repository_target_branch, None);
+        (role, role_confidence, target_branch, target_confidence)
+    } else {
+        (
+            "Unknown".to_string(),
+            "Unknown".to_string(),
+            None,
+            "Unknown".to_string(),
+        )
+    };
+    let integration_state = if status_available {
+        branch_integration_state(path, &status.branch, repository_target_branch, None)
+    } else {
+        "Unknown".to_string()
+    };
     let mut workspace = WorkspaceSummary {
         id: path_id("workspace", path),
         path: path.to_string_lossy().to_string(),
         is_primary,
         branch: status.branch,
-        dirty: status.dirty,
+        status_available,
+        status_error,
+        dirty: status_available && status.dirty,
         added: totals.added,
         removed: totals.removed,
         line_totals_partial: totals.partial,
@@ -6453,12 +7516,14 @@ fn scan_workspace(
         activity,
         sync_detail: None,
     };
-    workspace.integration_state = branch_integration_state(
-        path,
-        &workspace.branch,
-        repository_target_branch,
-        Some(&workspace),
-    );
+    if workspace.status_available {
+        workspace.integration_state = branch_integration_state(
+            path,
+            &workspace.branch,
+            repository_target_branch,
+            Some(&workspace),
+        );
+    }
     workspace
 }
 
@@ -6523,6 +7588,31 @@ fn build_conditions(
     observed_at: &str,
 ) -> Vec<Condition> {
     let mut conditions = Vec::new();
+    if !workspace.status_available {
+        let status_error = workspace_status_unavailable_reason(workspace);
+        conditions.push(condition(
+            repository_id,
+            "git-status-unavailable",
+            "Git status unavailable",
+            status_error.clone(),
+            1,
+            condition_fingerprint(
+                "git-status-unavailable",
+                &[workspace.path.clone(), status_error.clone()],
+            ),
+            "Pronto could not read the workspace's local Git status; branch, cleanliness, upstream, and sync state are unknown.",
+            vec![evidence(
+                "Git status",
+                status_error,
+                "git status --porcelain=v2",
+                observed_at,
+            )],
+            vec!["Restore local Git status access, then run a scoped refresh.".to_string()],
+            Some("High"),
+            None,
+            expected,
+        ));
+    }
     if workspace.activity.state == "Active" {
         let signal_evidence = workspace
             .activity
@@ -6705,7 +7795,8 @@ fn build_conditions(
             expected,
         ));
     }
-    if workspace.upstream.is_none()
+    if workspace.status_available
+        && workspace.upstream.is_none()
         && default_branch.is_some_and(|default| default != workspace.branch)
     {
         conditions.push(condition(
@@ -6894,12 +7985,16 @@ fn scan_repository(
                 }
                 (branch_target, confidence)
             });
-        let integration_state = branch_integration_state(
-            path,
-            &record.name,
-            target_branch.as_deref(),
-            current_workspace,
-        );
+        let integration_state = if primary.status_available {
+            branch_integration_state(
+                path,
+                &record.name,
+                target_branch.as_deref(),
+                current_workspace,
+            )
+        } else {
+            "Unknown".to_string()
+        };
         let ahead = current_workspace
             .map(|workspace| workspace.ahead)
             .unwrap_or(0);
@@ -6922,12 +8017,14 @@ fn scan_repository(
         });
     }
     let mut primary_for_conditions = primary.clone();
-    primary_for_conditions.integration_state = branch_integration_state(
-        path,
-        &primary.branch,
-        target_branch.as_deref(),
-        Some(&primary),
-    );
+    if primary.status_available {
+        primary_for_conditions.integration_state = branch_integration_state(
+            path,
+            &primary.branch,
+            target_branch.as_deref(),
+            Some(&primary),
+        );
+    }
     let conditions = build_conditions(
         &repository_id,
         &primary_for_conditions,
@@ -7267,6 +8364,7 @@ fn audited_scan_and_persist_scoped(
     target_repository_ids: Option<&HashSet<String>>,
     target_label: Option<&str>,
 ) -> Result<PortfolioSnapshot, String> {
+    let _lock = acquire_store_write_lock(path)?;
     let preflight = match (target_repository_ids, target_label) {
         (Some(repository_ids), Some(label)) => {
             build_targeted_refresh_preflight(state, repository_ids, label)?
@@ -7282,6 +8380,79 @@ fn audited_scan_and_persist_scoped(
     save_store(path, state)?;
 
     match scan_and_persist_scoped(path, state, target_repository_ids) {
+        Ok(_) => {
+            update_action_audit(
+                state,
+                &audit_id,
+                "Completed",
+                format!(
+                    "Read-only refresh completed for {}.",
+                    preflight.target_label
+                ),
+            )?;
+            prune_action_audits(state);
+            save_store(path, state)?;
+            Ok(snapshot_from_store(path, state))
+        }
+        Err(error) => {
+            if update_action_audit(
+                state,
+                &audit_id,
+                "Failed",
+                format!("Read-only refresh failed for {}.", preflight.target_label),
+            )
+            .is_ok()
+            {
+                let _ = save_store(path, state);
+            }
+            Err(error)
+        }
+    }
+}
+
+fn build_repository_path_refresh_preflight(
+    repository_id: &str,
+    repository_path: &Path,
+) -> ActionPreflight {
+    let created_at = iso_now();
+    let target_label = format!("Repository {}", repository_path.display());
+    let audit = ActionAudit {
+        id: action_audit_id("refresh", &created_at),
+        action: "refresh".to_string(),
+        target_ids: vec![repository_id.to_string()],
+        risk: "read-only".to_string(),
+        status: "Preflighted".to_string(),
+        summary: format!(
+            "Read-only refresh preflight for {target_label}; the repository path was not previously registered."
+        ),
+        created_at,
+        completed_at: None,
+    };
+    ActionPreflight {
+        audit,
+        allowed: true,
+        target_label,
+    }
+}
+
+fn audited_scan_and_persist_repository_path(
+    path: &Path,
+    state: &mut StoreState,
+    repository_path: &Path,
+) -> Result<PortfolioSnapshot, String> {
+    let _lock = acquire_store_write_lock(path)?;
+    let repository_path = canonical_repository_path(repository_path)
+        .ok_or_else(|| "The refresh target is not an accessible Git repository".to_string())?;
+    let repository_id = path_id("repository", &repository_path);
+    let preflight = build_repository_path_refresh_preflight(&repository_id, &repository_path);
+    if !preflight.allowed {
+        return Err("Local refresh action is not permitted".to_string());
+    }
+    let audit_id = preflight.audit.id.clone();
+    append_action_audit(state, &preflight);
+    save_store(path, state)?;
+
+    match scan_and_persist_repository_path(path, state, &repository_path) {
         Ok(_) => {
             update_action_audit(
                 state,
@@ -7329,6 +8500,28 @@ fn scan_and_persist_scoped(
             }
         }
     }
+    scan_discovered_and_persist(path, state, target_repository_ids, discovered)
+}
+
+fn scan_and_persist_repository_path(
+    path: &Path,
+    state: &mut StoreState,
+    repository_path: &Path,
+) -> Result<PortfolioSnapshot, String> {
+    let repository_id = path_id("repository", repository_path);
+    let target_repository_ids = [repository_id.clone()].into_iter().collect::<HashSet<_>>();
+    let discovered = [(repository_id, repository_path.to_path_buf())]
+        .into_iter()
+        .collect::<HashMap<_, _>>();
+    scan_discovered_and_persist(path, state, Some(&target_repository_ids), discovered)
+}
+
+fn scan_discovered_and_persist(
+    path: &Path,
+    state: &mut StoreState,
+    target_repository_ids: Option<&HashSet<String>>,
+    discovered: HashMap<String, PathBuf>,
+) -> Result<PortfolioSnapshot, String> {
     let old_by_id = state
         .repositories
         .iter()
@@ -7489,6 +8682,21 @@ fn set_repository_target_branch_at(
     repository_id: &str,
     target_branch: &str,
 ) -> Result<PortfolioSnapshot, String> {
+    set_repository_target_branch_at_with_lock_timeout(
+        path,
+        repository_id,
+        target_branch,
+        StdDuration::from_secs(STORE_WRITE_LOCK_WAIT_SECONDS),
+    )
+}
+
+fn set_repository_target_branch_at_with_lock_timeout(
+    path: &Path,
+    repository_id: &str,
+    target_branch: &str,
+    lock_timeout: StdDuration,
+) -> Result<PortfolioSnapshot, String> {
+    let _lock = acquire_store_write_lock_with_timeout(path, lock_timeout)?;
     let target_branch = target_branch.trim();
     if target_branch.is_empty() || target_branch.contains('\0') {
         return Err("Choose a valid target branch".to_string());
@@ -7527,6 +8735,232 @@ fn set_repository_target_branch_at(
             &state.remediation,
             state.quality.latest_audit_id.as_deref(),
         );
+    }
+    save_store(path, &state)?;
+    Ok(snapshot_from_store(path, &state))
+}
+
+fn refresh_repository_target_evidence_at(
+    path: &Path,
+    repository_id: &str,
+    target_branch: &str,
+) -> Result<PortfolioSnapshot, String> {
+    refresh_repository_target_evidence_at_with_lock_timeout(
+        path,
+        repository_id,
+        target_branch,
+        StdDuration::from_secs(STORE_WRITE_LOCK_WAIT_SECONDS),
+    )
+}
+
+fn target_evidence_is_reusable(
+    repository: &RepositorySnapshot,
+    target_branch: &str,
+    target_commit: &str,
+) -> bool {
+    repository
+        .quality
+        .target_fleet_audit_root
+        .as_deref()
+        .is_some_and(|root| Path::new(root).is_dir())
+        && quality::target_evidence_is_current(&repository.quality, target_branch, target_commit)
+}
+
+fn refresh_repository_target_evidence_at_with_lock_timeout(
+    path: &Path,
+    repository_id: &str,
+    target_branch: &str,
+    lock_timeout: StdDuration,
+) -> Result<PortfolioSnapshot, String> {
+    let _lock = acquire_store_write_lock_with_timeout(path, lock_timeout)?;
+    let target_branch = target_branch.trim();
+    if target_branch.is_empty() || target_branch.contains('\0') {
+        return Err("Choose a valid target branch".to_string());
+    }
+    let mut state = load_store(path)?;
+    let repository_index = state
+        .repositories
+        .iter()
+        .position(|repository| repository.id == repository_id)
+        .ok_or_else(|| "Repository is not registered".to_string())?;
+    let repository = state.repositories[repository_index].clone();
+    if !repository
+        .branches
+        .iter()
+        .any(|branch| branch.name == target_branch)
+    {
+        return Err(format!(
+            "Target branch '{target_branch}' is not a local branch in {}",
+            repository.name
+        ));
+    }
+    let repository_path = Path::new(&repository.path);
+    let target_ref = format!("refs/heads/{target_branch}");
+    let target_head = run_git(
+        repository_path,
+        vec![
+            "rev-parse".to_string(),
+            "--verify".to_string(),
+            target_ref.clone(),
+        ],
+    )?;
+    if !target_head.success || target_head.stdout.trim().is_empty() {
+        return Err(format!(
+            "Target branch '{target_branch}' could not be resolved in {}: {}",
+            repository.name,
+            concise_target_command_error(&target_head.stderr)
+        ));
+    }
+    let target_head = target_head.stdout.trim().to_string();
+    let reuse_target_evidence =
+        target_evidence_is_reusable(&repository, target_branch, &target_head);
+    let mut configured = repository.clone();
+    configured.target_branch = Some(target_branch.to_string());
+    configured.target_branch_configured = true;
+    let mut rescanned = scan_repository(
+        repository_path,
+        Some(&configured),
+        &state.expected_conditions,
+    );
+    if !reuse_target_evidence {
+        rescanned.quality.target_fleet_audit_root = None;
+    }
+    append_transition_event(&mut state, Some(&repository), &rescanned);
+    state.repositories[repository_index] = rescanned;
+
+    if reuse_target_evidence {
+        let target_ids = [repository_id.to_string()]
+            .into_iter()
+            .collect::<HashSet<_>>();
+        apply_quality_evidence_scoped(&mut state, Some(&target_ids), None);
+        apply_release_threshold_conditions(&mut state);
+        if let Some(repository) = state.repositories.get_mut(repository_index) {
+            let short_head = target_head.chars().take(8).collect::<String>();
+            repository.quality.ingestion_message = Some(format!(
+                "Reused target evidence for {target_branch} @ {short_head}; target head is unchanged."
+            ));
+        }
+        save_store(path, &state)?;
+        return Ok(snapshot_from_store(path, &state));
+    }
+
+    let run_id_prefix = target_evidence_run_prefix(&repository, target_branch);
+    let target_parent = target_evidence_artifact_parent();
+    fs::create_dir_all(&target_parent).map_err(|error| {
+        format!(
+            "Could not create Pronto target evidence workspace {}: {error}",
+            target_parent.display()
+        )
+    })?;
+    let target_worktree = target_parent.join(format!("{run_id_prefix}-worktree"));
+    if target_worktree.exists() {
+        return Err(format!(
+            "Target evidence workspace already exists: {}",
+            target_worktree.display()
+        ));
+    }
+    let add_result = run_git(
+        repository_path,
+        vec![
+            "worktree".to_string(),
+            "add".to_string(),
+            "--force".to_string(),
+            "--quiet".to_string(),
+            target_worktree.to_string_lossy().to_string(),
+            target_ref,
+        ],
+    )?;
+    if !add_result.success {
+        return Err(format!(
+            "Could not create a clean target worktree for {target_branch}: {}",
+            concise_target_command_error(&add_result.stderr)
+        ));
+    }
+
+    let qr_executable = resolve_qr_executable(None);
+    let fleet_output_base = repository_path
+        .join(".quality-runner")
+        .join("fleet-audit")
+        .join("target")
+        .join(&run_id_prefix);
+    let mut outcomes = Vec::new();
+    let mut fleet_root = None;
+    match run_target_qr_refresh(
+        &qr_executable,
+        &target_worktree,
+        repository_path,
+        &run_id_prefix,
+        target_branch,
+    ) {
+        Ok(outcome) => outcomes.push(outcome),
+        Err(error) => outcomes.push(format!(
+            "QR evidence unavailable: {}",
+            concise_target_command_error(&error)
+        )),
+    }
+    match run_target_fleet_audit(
+        &qr_executable,
+        &target_worktree,
+        repository_path,
+        target_worktree.parent().unwrap_or(&target_parent),
+        &fleet_output_base,
+        target_branch,
+        &repository_feed_id(&repository),
+    ) {
+        Ok((outcome, root)) => {
+            outcomes.push(outcome);
+            fleet_root = Some(root);
+        }
+        Err(error) => outcomes.push(format!(
+            "fleet evidence unavailable: {}",
+            concise_target_command_error(&error)
+        )),
+    }
+
+    let cleanup = run_git(
+        repository_path,
+        vec![
+            "worktree".to_string(),
+            "remove".to_string(),
+            "--force".to_string(),
+            target_worktree.to_string_lossy().to_string(),
+        ],
+    )?;
+    if !cleanup.success {
+        return Err(format!(
+            "Target evidence refresh could not remove its temporary worktree {}: {}",
+            target_worktree.display(),
+            concise_target_command_error(&cleanup.stderr)
+        ));
+    }
+
+    if fleet_root.is_none() {
+        let _ = fs::remove_dir_all(&fleet_output_base);
+    }
+    state.repositories[repository_index]
+        .quality
+        .target_fleet_audit_root = fleet_root
+        .as_ref()
+        .map(|root| root.to_string_lossy().to_string());
+    let target_ids = [repository_id.to_string()]
+        .into_iter()
+        .collect::<HashSet<_>>();
+    let projection_root = fleet_root.as_deref().unwrap_or(&fleet_output_base);
+    apply_quality_evidence_scoped(&mut state, Some(&target_ids), Some(projection_root));
+    apply_release_threshold_conditions(&mut state);
+    if let Some(repository) = state.repositories.get_mut(repository_index) {
+        let short_head = target_head.chars().take(8).collect::<String>();
+        let outcome = if outcomes.is_empty() {
+            "No target evidence commands returned an outcome".to_string()
+        } else {
+            outcomes.join(" · ")
+        };
+        repository.quality.ingestion_message = Some(format!(
+            "Target evidence refresh for {target_branch} @ {short_head}: {outcome}"
+        ));
+        repository.quality.target_fleet_audit_root = fleet_root
+            .as_ref()
+            .map(|root| root.to_string_lossy().to_string());
     }
     save_store(path, &state)?;
     Ok(snapshot_from_store(path, &state))
@@ -7893,7 +9327,7 @@ fn open_workspace_at(
 #[tauri::command]
 pub fn get_snapshot() -> Result<PortfolioSnapshot, String> {
     let path = store_path();
-    let state = load_store_with_quality(&path)?;
+    let state = load_store(&path)?;
     Ok(snapshot_from_store(&path, &state))
 }
 
@@ -7936,6 +9370,25 @@ pub async fn refresh() -> Result<PortfolioSnapshot, String> {
 }
 
 #[tauri::command]
+pub async fn refresh_quality() -> Result<PortfolioSnapshot, String> {
+    tauri::async_runtime::spawn_blocking(|| refresh_quality_at(&store_path()))
+        .await
+        .map_err(|error| format!("Quality refresh task failed: {error}"))?
+}
+
+#[tauri::command]
+pub async fn refresh_repository_target_evidence(
+    repository_id: String,
+    target_branch: String,
+) -> Result<PortfolioSnapshot, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        refresh_repository_target_evidence_at(&store_path(), &repository_id, &target_branch)
+    })
+    .await
+    .map_err(|error| format!("Target evidence refresh task failed: {error}"))?
+}
+
+#[tauri::command]
 pub fn refresh_github() -> Result<PortfolioSnapshot, String> {
     refresh_github_at(&store_path())
 }
@@ -7954,6 +9407,18 @@ pub fn refresh_remediation() -> Result<PortfolioSnapshot, String> {
 
 fn remediation_dependencies_are_terminal<'a>(mut statuses: impl Iterator<Item = &'a str>) -> bool {
     statuses.all(|status| matches!(status, "verified" | "deferred"))
+}
+
+fn remediation_action_workspace_id(action: &remediation::RemediationAction) -> Option<&str> {
+    [
+        "branch_hygiene:activity:",
+        "branch_hygiene:operation:",
+        "branch_hygiene:dirty:",
+        "branch_hygiene:sync:",
+        "branch_hygiene:remote-freshness:",
+    ]
+    .iter()
+    .find_map(|prefix| action.stable_key.strip_prefix(prefix))
 }
 
 #[tauri::command]
@@ -7985,6 +9450,29 @@ pub fn set_remediation_action_status(
         };
         if normalized_status == "verified" {
             let action = &plan.actions[action_index];
+            if action.stable_key != remediation::GITHUB_ONLY_VERIFICATION_ACTION_KEY {
+                let repository = state
+                    .repositories
+                    .iter()
+                    .find(|repository| repository.id == plan.repository_id)
+                    .ok_or_else(|| {
+                        format!(
+                            "Repository {} is no longer registered; remediation advancement is blocked.",
+                            plan.repository_id
+                        )
+                    })?;
+                let handoff = remediation_handoff_check_for_repository(
+                    repository,
+                    remediation_action_workspace_id(action),
+                )?;
+                if !handoff.ready {
+                    return Err(format!(
+                        "Remediation advancement is blocked by the handoff checkpoint ({}). {}",
+                        handoff.status,
+                        handoff.reasons.join(" ")
+                    ));
+                }
+            }
             let verification_is_ready = if action.domain == "verification" {
                 remediation_dependencies_are_terminal(
                     plan.actions
@@ -8026,11 +9514,29 @@ pub fn set_remediation_action_status(
 }
 
 #[tauri::command]
+pub fn check_remediation_handoff(
+    repository_id: String,
+    workspace_id: Option<String>,
+) -> Result<RemediationHandoffCheck, String> {
+    let path = store_path();
+    let state = load_store_read_only(&path)?;
+    let snapshot = snapshot_from_store(&path, &state);
+    let repository = snapshot
+        .repositories
+        .iter()
+        .find(|repository| repository.id == repository_id)
+        .ok_or_else(|| "Repository is not registered".to_string())?;
+    remediation_handoff_check_for_repository(repository, workspace_id.as_deref())
+}
+
+#[tauri::command]
 pub fn export_remediation(
     output_dir: Option<String>,
 ) -> Result<remediation::RemediationExport, String> {
     let path = store_path();
     let state = load_store_with_quality(&path)?;
+    let mut remediation_run = state.remediation.clone();
+    remediation::sync_github_only_candidates(&mut remediation_run, &state.remote_repositories);
     let root = output_dir
         .map(PathBuf::from)
         .or_else(|| {
@@ -8038,7 +9544,7 @@ pub fn export_remediation(
                 .map(|parent| parent.join("remediation").join(&state.remediation.id))
         })
         .ok_or_else(|| "Pronto storage path has no export directory".to_string())?;
-    remediation::export_run(&state.remediation, &root)
+    remediation::export_run(&remediation_run, &root)
 }
 
 #[tauri::command]
@@ -8537,6 +10043,49 @@ fn resolve_refresh_target(
     ))
 }
 
+#[derive(Debug)]
+enum LocalRefreshTarget {
+    Registered {
+        repository_ids: HashSet<String>,
+        label: String,
+    },
+    RepositoryPath(PathBuf),
+}
+
+fn resolve_local_refresh_target(
+    snapshot: &PortfolioSnapshot,
+    state: &StoreState,
+    query: &str,
+) -> Result<LocalRefreshTarget, String> {
+    match resolve_refresh_target(snapshot, query) {
+        Ok((repository_ids, label)) => {
+            return Ok(LocalRefreshTarget::Registered {
+                repository_ids,
+                label,
+            });
+        }
+        Err(error) if error.contains("ambiguous") => return Err(error),
+        Err(_) => {}
+    }
+
+    let repository_path = canonical_repository_path(Path::new(query)).ok_or_else(|| {
+        format!(
+            "Refresh target '{query}' is not a registered repository, group, product, or repository path"
+        )
+    })?;
+    let covered_by_root = state
+        .roots
+        .iter()
+        .any(|root| path_is_within(Path::new(&root.path), &repository_path));
+    if !covered_by_root {
+        return Err(format!(
+            "Repository path '{}' is not covered by a registered discovery root; register its parent root before refreshing it",
+            repository_path.display()
+        ));
+    }
+    Ok(LocalRefreshTarget::RepositoryPath(repository_path))
+}
+
 fn agent_condition_summary(condition: &Condition) -> AgentConditionSummary {
     AgentConditionSummary {
         id: condition.id.clone(),
@@ -8557,6 +10106,8 @@ fn agent_workspace_summary(workspace: &WorkspaceSummary) -> AgentWorkspaceSummar
         path: workspace.path.clone(),
         is_primary: workspace.is_primary,
         branch: workspace.branch.clone(),
+        status_available: workspace.status_available,
+        status_error: workspace.status_error.clone(),
         dirty: workspace.dirty,
         sync_state: workspace.sync_state.clone(),
         ahead: workspace.ahead,
@@ -8576,7 +10127,11 @@ fn agent_workspace_summary(workspace: &WorkspaceSummary) -> AgentWorkspaceSummar
 }
 
 fn workspace_requires_sync_attention(workspace: &WorkspaceSummary) -> bool {
-    workspace.sync_state != "Synced"
+    !workspace.status_available || workspace_is_unsynced(workspace)
+}
+
+fn workspace_is_unsynced(workspace: &WorkspaceSummary) -> bool {
+    workspace.status_available && workspace.sync_state != "Synced"
 }
 
 fn agent_repository_summary(repository: &RepositorySnapshot) -> AgentRepositorySummary {
@@ -8673,7 +10228,11 @@ fn agent_workspace_sync_evidence(workspace: &WorkspaceSummary) -> Vec<AgentEvide
     vec![
         AgentEvidenceReference {
             source: "Local workspace scan".to_string(),
-            label: "Why unsynced".to_string(),
+            label: if workspace.status_available {
+                "Why unsynced".to_string()
+            } else {
+                "Why Git status unavailable".to_string()
+            },
             status: Some(workspace.sync_state.clone()),
             freshness: None,
             observed_at: detail.evidence_observed_at.clone(),
@@ -8751,6 +10310,18 @@ fn agent_attention_report(snapshot: &PortfolioSnapshot) -> AgentAttentionReport 
             .iter()
             .filter(|workspace| workspace_requires_sync_attention(workspace))
         {
+            let summary = if workspace.status_available {
+                format!(
+                    "Workspace {} is {} (ahead {}, behind {})",
+                    workspace.branch, workspace.sync_state, workspace.ahead, workspace.behind
+                )
+            } else {
+                format!(
+                    "Workspace {} Git status unavailable: {}",
+                    workspace.branch,
+                    workspace_status_unavailable_reason(workspace)
+                )
+            };
             items.push(AgentAttentionItem {
                 id: format!("{}:workspace-sync:{}", repository.id, workspace.id),
                 repository_id: repository.id.clone(),
@@ -8761,11 +10332,10 @@ fn agent_attention_report(snapshot: &PortfolioSnapshot) -> AgentAttentionReport 
                 category: "synchronization".to_string(),
                 severity: "warning".to_string(),
                 status: workspace.sync_state.clone(),
-                freshness: Some(workspace.remote_freshness.clone()),
-                summary: format!(
-                    "Workspace {} is {} (ahead {}, behind {})",
-                    workspace.branch, workspace.sync_state, workspace.ahead, workspace.behind
-                ),
+                freshness: workspace
+                    .status_available
+                    .then_some(workspace.remote_freshness.clone()),
+                summary,
                 evidence: agent_workspace_sync_evidence(workspace),
             });
         }
@@ -9016,6 +10586,14 @@ fn agent_fold_candidate_decision(
     workspace: Option<&WorkspaceSummary>,
 ) -> (String, String, String) {
     if let Some(workspace) = workspace {
+        if !workspace.status_available {
+            return (
+                "status_unavailable".to_string(),
+                workspace_status_unavailable_reason(workspace),
+                "Restore live Git status access before evaluating this branch for integration or pruning."
+                    .to_string(),
+            );
+        }
         if let Some(operation) = workspace.operation.as_deref() {
             return (
                 "blocked_operation".to_string(),
@@ -9121,7 +10699,8 @@ fn agent_fold_candidate_decision(
 
 fn agent_fold_decision_priority(decision: &str) -> u8 {
     match decision {
-        "preserve_dirty" | "preserve_active" | "blocked_operation" | "blocked" => 0,
+        "status_unavailable" | "preserve_dirty" | "preserve_active" | "blocked_operation"
+        | "blocked" => 0,
         "target_unknown" | "target_mismatch" | "live_check_required" | "activity_uncertain" => 1,
         "preserve_unpublished" | "refresh_before_integration" => 2,
         "review_for_integration" => 3,
@@ -9250,6 +10829,7 @@ fn agent_fold_candidate(
     target: Option<&str>,
     target_source: &str,
     target_confidence: &str,
+    include_merge_preview: bool,
 ) -> AgentFoldCandidate {
     let workspace = branch.workspace_id.as_deref().and_then(|workspace_id| {
         repository
@@ -9280,7 +10860,7 @@ fn agent_fold_candidate(
         operation: workspace.and_then(|item| item.operation.clone()),
         activity_state: workspace.map(|item| item.activity.state.clone()),
         activity_confidence: workspace.map(|item| item.activity.confidence.clone()),
-        merge_preview: target.and_then(|target| {
+        merge_preview: include_merge_preview.then(|| target).flatten().and_then(|target| {
             let merge_path = workspace
                 .map(|item| Path::new(item.path.as_str()))
                 .unwrap_or_else(|| Path::new(&repository.path));
@@ -9299,6 +10879,24 @@ fn agent_fold_preview_report(
     requested_target: Option<&str>,
     scope: &str,
     limit: usize,
+) -> Result<AgentFoldPreview, String> {
+    agent_fold_preview_report_with_merge_preview(
+        snapshot,
+        query,
+        requested_target,
+        scope,
+        limit,
+        true,
+    )
+}
+
+fn agent_fold_preview_report_with_merge_preview(
+    snapshot: &PortfolioSnapshot,
+    query: Option<&str>,
+    requested_target: Option<&str>,
+    scope: &str,
+    limit: usize,
+    include_merge_preview: bool,
 ) -> Result<AgentFoldPreview, String> {
     let repositories = if let Some(query) = query {
         vec![find_cli_repository(snapshot, query)?]
@@ -9344,6 +10942,7 @@ fn agent_fold_preview_report(
                 target.as_deref(),
                 &target_source,
                 &target_confidence,
+                include_merge_preview,
             ));
         }
     }
@@ -9664,7 +11263,9 @@ fn agent_doctor_error_report(
     check_id: &str,
     error: String,
 ) -> AgentDoctorReport {
-    let next_safe_step = if check_id == "storage" {
+    let next_safe_step = if error.contains("Fresh quality projection") {
+        "Rerun without `--fresh` for the cached snapshot or run `pronto quality refresh` separately before retrying a fresh projection.".to_string()
+    } else if check_id == "storage" {
         "Inspect or repair the local Pronto database; do not route work from this failed state."
             .to_string()
     } else {
@@ -9791,8 +11392,8 @@ fn agent_route_report(
         })
         .transpose()?;
     let quality = Some(agent_quality_report_with_scope(snapshot, None, scope)?);
-    let fold_preview = Some(agent_fold_preview_report(
-        snapshot, query, None, scope, limit,
+    let fold_preview = Some(agent_fold_preview_report_with_merge_preview(
+        snapshot, query, None, scope, limit, false,
     )?);
     Ok(agent_route_from_doctor(
         doctor,
@@ -10205,15 +11806,27 @@ fn print_human_repository(detail: &AgentRepositoryDetail) {
             .count()
     );
     for workspace in &repository.workspaces {
+        let cleanliness = if !workspace.status_available {
+            "unavailable"
+        } else if workspace.dirty {
+            "dirty"
+        } else {
+            "clean"
+        };
         println!(
             "  {} · {} · {} · {}",
-            workspace.branch,
-            if workspace.dirty { "dirty" } else { "clean" },
-            workspace.sync_state,
-            workspace.path
+            workspace.branch, cleanliness, workspace.sync_state, workspace.path
         );
         if let Some(detail) = workspace.sync_detail.as_ref() {
-            println!("    why unsynced: {}", detail.reason);
+            println!(
+                "    {}: {}",
+                if workspace.status_available {
+                    "why unsynced"
+                } else {
+                    "why Git status is unavailable"
+                },
+                detail.reason
+            );
             println!(
                 "    evidence expires: {}",
                 detail
@@ -10265,11 +11878,12 @@ fn print_human_quality(report: &AgentQualityReport) {
 
 fn print_human_remediation(run: &RemediationRun) {
     println!(
-        "PRONTO REMEDIATION · {} · {} active · {} closed · {} excluded",
+        "PRONTO REMEDIATION · {} · {} active · {} closed · {} excluded · {} GitHub-only candidates",
         run.status,
         run.plans.len(),
         run.closures.len(),
-        run.excluded_repositories.len()
+        run.excluded_repositories.len(),
+        run.github_only_candidates.len()
     );
     if let Some(refresh_id) = run.source_refresh_id.as_deref() {
         println!("Refresh: {refresh_id}");
@@ -10287,6 +11901,15 @@ fn print_human_remediation(run: &RemediationRun) {
         println!(
             "  excluded · {} · {}",
             exclusion.repository_name, exclusion.reason
+        );
+    }
+    for candidate in &run.github_only_candidates {
+        println!(
+            "  github-only · {} · {} · last task {} · observed {}",
+            candidate.full_name,
+            candidate.status,
+            candidate.last_remediation_task,
+            candidate.observed_at
         );
     }
     for (index, plan) in run.plans.iter().enumerate() {
@@ -10339,6 +11962,21 @@ fn print_human_activity(report: &AgentActivityReport) {
     }
 }
 
+fn print_human_remediation_handoff_check(check: &RemediationHandoffCheck) {
+    println!(
+        "PRONTO REMEDIATION HANDOFF · {} · {}",
+        check.repository_name, check.status
+    );
+    println!(
+        "Workspace: {} · branch: {} · checkpoint required: {}",
+        check.workspace_path, check.branch, check.checkpoint_required
+    );
+    for reason in &check.reasons {
+        println!("  reason: {reason}");
+    }
+    println!("  next: {}", check.next_safe_step);
+}
+
 fn print_human_preparation(report: &AgentPreparationReport) {
     let preparation = &report.preparation;
     println!(
@@ -10373,7 +12011,24 @@ fn print_human_release(report: &AgentReleaseReport) {
 
 fn print_cli_usage() {
     println!(
-        "Usage: pronto . | pronto skills [<skill-id>] [--json] | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--json] | pronto quality [<repository>] [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] | pronto status [--json] | pronto help"
+        "Usage: pronto . | pronto skills [<skill-id>] [--json] | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--fresh] [--json] | pronto quality [<repository>] [--json] | pronto quality refresh [--json] | pronto remediation handoff-check <repository> [--workspace <id>] [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] | pronto status [--fresh] [--json] | pronto help"
+    );
+}
+
+fn print_cli_json_error(command: &str, error: &str) {
+    let payload = serde_json::json!({
+        "schema_version": "pronto-cli-error/v1",
+        "generated_at": iso_now(),
+        "command": command,
+        "status": "Blocked",
+        "error": error,
+        "next_safe_step": "Retry with the cached read path or resolve the reported storage/quality blocker."
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&payload).unwrap_or_else(|_| {
+            "{\"schema_version\":\"pronto-cli-error/v1\",\"status\":\"Blocked\"}".to_string()
+        })
     );
 }
 
@@ -10418,11 +12073,30 @@ pub fn run_cli(arguments: Vec<String>) {
                         serde_json::to_string_pretty(&snapshot).unwrap_or_else(|_| "{}".into())
                     )
                 }
-                Ok(snapshot) => println!(
-                    "PRONTO SKILLS · {} skills · {}",
-                    snapshot.skills.len(),
-                    snapshot.freshness
-                ),
+                Ok(snapshot) => {
+                    if let Some(query) = positionals.first() {
+                        let Some(skill) = snapshot.skills.iter().find(|skill| {
+                            skill.id == *query || skill.name.eq_ignore_ascii_case(query)
+                        }) else {
+                            eprintln!("Pronto could not find skill: {query}");
+                            std::process::exit(1);
+                        };
+                        println!("PRONTO SKILL · {}", skill.name);
+                        println!("Description: {}", skill.description);
+                        println!("Category: {} · Family: {}", skill.category, skill.family);
+                        println!("Lifecycle: {}", skill.lifecycle);
+                        println!(
+                            "Usage: {} recent · {} all-time",
+                            skill.usage.recent_count, skill.usage.all_time_count
+                        );
+                    } else {
+                        println!(
+                            "PRONTO SKILLS · {} skills · {}",
+                            snapshot.skills.len(),
+                            snapshot.freshness
+                        );
+                    }
+                }
                 Err(error) => {
                     eprintln!("Pronto could not read skills: {error}");
                     std::process::exit(1);
@@ -10531,6 +12205,7 @@ pub fn run_cli(arguments: Vec<String>) {
             }
         }
         "route" => {
+            let fresh = arguments.iter().any(|argument| argument == "--fresh");
             let product_name = cli_option(&arguments, "--product").unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
@@ -10577,9 +12252,10 @@ pub fn run_cli(arguments: Vec<String>) {
                     parsed
                 })
                 .unwrap_or(DEFAULT_AGENT_NEXT_LIMIT);
-            let positionals = cli_positionals(
+            let positionals = cli_positionals_with_flags(
                 &arguments,
                 &["--product", "--group", "--max-age", "--limit"],
+                &["--fresh"],
             )
             .unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
@@ -10587,7 +12263,7 @@ pub fn run_cli(arguments: Vec<String>) {
             });
             if positionals.len() > 1 {
                 eprintln!(
-                    "Usage: pronto route [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] [--limit <n>] [--json]"
+                    "Usage: pronto route [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] [--limit <n>] [--fresh] [--json]"
                 );
                 std::process::exit(2);
             }
@@ -10600,7 +12276,12 @@ pub fn run_cli(arguments: Vec<String>) {
             let scope = query
                 .map(|value| format!("{base_scope}; current_repository:{value}"))
                 .unwrap_or(base_scope);
-            let report = match load_store_read_only_with_quality(&path) {
+            let state_result = if fresh {
+                load_store_read_only_with_quality_bounded(&path)
+            } else {
+                load_store_read_only(&path)
+            };
+            let report = match state_result {
                 Ok(state) => {
                     let snapshot = snapshot_from_store(&path, &state);
                     let scoped_snapshot = filter_snapshot_by_collection(
@@ -11095,6 +12776,7 @@ pub fn run_cli(arguments: Vec<String>) {
             }
         }
         "status" => {
+            let fresh = arguments.iter().any(|argument| argument == "--fresh");
             let product_name = cli_option(&arguments, "--product").unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
@@ -11103,16 +12785,24 @@ pub fn run_cli(arguments: Vec<String>) {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
             });
-            let positionals = cli_positionals(&arguments, &["--product", "--group"])
-                .unwrap_or_else(|error| {
-                    eprintln!("Pronto CLI error: {error}");
-                    std::process::exit(2);
-                });
+            let positionals =
+                cli_positionals_with_flags(&arguments, &["--product", "--group"], &["--fresh"])
+                    .unwrap_or_else(|error| {
+                        eprintln!("Pronto CLI error: {error}");
+                        std::process::exit(2);
+                    });
             if !positionals.is_empty() {
-                eprintln!("Usage: pronto status [--product <name> | --group <name>] [--json]");
+                eprintln!(
+                    "Usage: pronto status [--product <name> | --group <name>] [--fresh] [--json]"
+                );
                 std::process::exit(2);
             }
-            let result = load_store_with_quality(&path)
+            let state_result = if fresh {
+                load_store_read_only_with_quality_bounded(&path)
+            } else {
+                load_store_read_only(&path)
+            };
+            let result = state_result
                 .map(|state| snapshot_from_store(&path, &state))
                 .and_then(|snapshot| {
                     filter_snapshot_by_collection(
@@ -11128,6 +12818,9 @@ pub fn run_cli(arguments: Vec<String>) {
                 ),
                 Ok(snapshot) => print_human_status(&snapshot),
                 Err(error) => {
+                    if json {
+                        print_cli_json_error("status", &error);
+                    }
                     eprintln!("Pronto could not read local state: {error}");
                     std::process::exit(1);
                 }
@@ -11156,7 +12849,7 @@ pub fn run_cli(arguments: Vec<String>) {
                 .map(|value| format!("product:{value}"))
                 .or_else(|| group_name.as_deref().map(|value| format!("group:{value}")))
                 .unwrap_or_else(|| "fleet".to_string());
-            let result = load_store_with_quality(&path)
+            let result = load_store_read_only(&path)
                 .map(|state| snapshot_from_store(&path, &state))
                 .and_then(|snapshot| {
                     filter_snapshot_by_collection(
@@ -11328,7 +13021,7 @@ pub fn run_cli(arguments: Vec<String>) {
             let scope = query
                 .map(|value| format!("{base_scope}; current_repository:{value}"))
                 .unwrap_or(base_scope);
-            let result = load_store_with_quality(&path)
+            let result = load_store_read_only(&path)
                 .map(|state| snapshot_from_store(&path, &state))
                 .and_then(|snapshot| {
                     filter_snapshot_by_collection(
@@ -11419,7 +13112,7 @@ pub fn run_cli(arguments: Vec<String>) {
             let scope = query
                 .map(|value| format!("{base_scope}; current_repository:{value}"))
                 .unwrap_or(base_scope);
-            let result = load_store_with_quality(&path)
+            let result = load_store_read_only(&path)
                 .map(|state| snapshot_from_store(&path, &state))
                 .and_then(|snapshot| {
                     filter_snapshot_by_collection(
@@ -11444,10 +13137,11 @@ pub fn run_cli(arguments: Vec<String>) {
             }
         }
         "repo" => {
+            let fresh = arguments.iter().any(|argument| argument == "--fresh");
             let positionals = cli_positionals_with_flags(
                 &arguments,
                 &["--rule-json", "--recipe-json", "--workspace"],
-                &["--clear"],
+                &["--clear", "--fresh"],
             )
             .unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
@@ -11632,14 +13326,19 @@ pub fn run_cli(arguments: Vec<String>) {
                 std::process::exit(0);
             }
             let Some(query) = positionals.first() else {
-                eprintln!("Usage: pronto repo <repository> [--json]");
+                eprintln!("Usage: pronto repo <repository> [--fresh] [--json]");
                 std::process::exit(2);
             };
             if positionals.len() > 1 {
-                eprintln!("Usage: pronto repo <repository> [--json]");
+                eprintln!("Usage: pronto repo <repository> [--fresh] [--json]");
                 std::process::exit(2);
             }
-            let result = load_store_with_quality(&path)
+            let state_result = if fresh {
+                load_store_read_only_with_quality_bounded(&path)
+            } else {
+                load_store_read_only(&path)
+            };
+            let result = state_result
                 .map(|state| snapshot_from_store(&path, &state))
                 .and_then(|snapshot| {
                     let repository = find_cli_repository(&snapshot, query)?;
@@ -11652,6 +13351,9 @@ pub fn run_cli(arguments: Vec<String>) {
                 ),
                 Ok(detail) => print_human_repository(&detail),
                 Err(error) => {
+                    if json {
+                        print_cli_json_error("repo", &error);
+                    }
                     eprintln!("Pronto could not read repository state: {error}");
                     std::process::exit(1);
                 }
@@ -11666,7 +13368,7 @@ pub fn run_cli(arguments: Vec<String>) {
                 eprintln!("Usage: pronto attention [--json]");
                 std::process::exit(2);
             }
-            match load_store_with_quality(&path)
+            match load_store_read_only(&path)
                 .map(|state| snapshot_from_store(&path, &state))
                 .map(|snapshot| agent_attention_report(&snapshot))
             {
@@ -11703,7 +13405,7 @@ pub fn run_cli(arguments: Vec<String>) {
                 std::process::exit(2);
             }
             let query = positionals.first().map(String::as_str);
-            let result = load_store_with_quality(&path)
+            let result = load_store_read_only(&path)
                 .map(|state| snapshot_from_store(&path, &state))
                 .and_then(|snapshot| agent_activity_report(&snapshot, query, limit));
             match result {
@@ -11802,7 +13504,7 @@ pub fn run_cli(arguments: Vec<String>) {
         "remediation" => {
             let positionals = cli_positionals_with_flags(
                 &arguments,
-                &["--qr-bin", "--notes", "--timeout-seconds"],
+                &["--qr-bin", "--notes", "--timeout-seconds", "--workspace"],
                 &["--dynamic", "--no-changed-only", "--skip-provider"],
             )
             .unwrap_or_else(|error| {
@@ -11810,6 +13512,45 @@ pub fn run_cli(arguments: Vec<String>) {
                 std::process::exit(2);
             });
             match positionals.first().map(String::as_str) {
+                Some("handoff-check") => {
+                    if positionals.len() != 2 {
+                        eprintln!(
+                            "Usage: pronto remediation handoff-check <repository> [--workspace <id>] [--json]"
+                        );
+                        std::process::exit(2);
+                    }
+                    let workspace_id =
+                        cli_option(&arguments, "--workspace").unwrap_or_else(|error| {
+                            eprintln!("Pronto CLI error: {error}");
+                            std::process::exit(2);
+                        });
+                    match remediation_handoff_check_at(
+                        &path,
+                        &positionals[1],
+                        workspace_id.as_deref(),
+                    ) {
+                        Ok(check) if json => {
+                            println!(
+                                "{}",
+                                serde_json::to_string_pretty(&check)
+                                    .unwrap_or_else(|_| "{}".to_string())
+                            );
+                            if !check.ready {
+                                std::process::exit(1);
+                            }
+                        }
+                        Ok(check) => {
+                            print_human_remediation_handoff_check(&check);
+                            if !check.ready {
+                                std::process::exit(1);
+                            }
+                        }
+                        Err(error) => {
+                            eprintln!("Pronto could not check the remediation handoff: {error}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
                 Some("refresh") => {
                     if positionals.len() != 1 {
                         eprintln!("Usage: pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--timeout-seconds <positive-integer>] [--skip-provider] [--json]");
@@ -11904,7 +13645,7 @@ pub fn run_cli(arguments: Vec<String>) {
                         eprintln!("Usage: pronto remediation [<repository>] [--json]");
                         std::process::exit(2);
                     }
-                    let result = load_store_with_quality(&path).and_then(|state| {
+                    let result = load_store_read_only(&path).and_then(|state| {
                         let snapshot = snapshot_from_store(&path, &state);
                         if let Some(query) = positionals.first() {
                             let plan = snapshot
@@ -11961,20 +13702,38 @@ pub fn run_cli(arguments: Vec<String>) {
                 std::process::exit(2);
             });
             if positionals.len() > 1 {
-                eprintln!("Usage: pronto refresh [repository|group|product] [--json]");
+                eprintln!(
+                    "Usage: pronto refresh [repository|group|product|repository-path] [--json]"
+                );
                 std::process::exit(2);
             }
             let result = load_store(&path).and_then(|mut state| {
                 if let Some(target) = positionals.first() {
                     let current = snapshot_from_store(&path, &state);
-                    let (repository_ids, label) = resolve_refresh_target(&current, target)?;
-                    let snapshot = audited_scan_and_persist_scoped(
-                        &path,
-                        &mut state,
-                        Some(&repository_ids),
-                        Some(&label),
-                    )?;
-                    Ok(filter_snapshot_to_repository_ids(snapshot, &repository_ids))
+                    match resolve_local_refresh_target(&current, &state, target)? {
+                        LocalRefreshTarget::Registered {
+                            repository_ids,
+                            label,
+                        } => {
+                            let snapshot = audited_scan_and_persist_scoped(
+                                &path,
+                                &mut state,
+                                Some(&repository_ids),
+                                Some(&label),
+                            )?;
+                            Ok(filter_snapshot_to_repository_ids(snapshot, &repository_ids))
+                        }
+                        LocalRefreshTarget::RepositoryPath(repository_path) => {
+                            let repository_id = path_id("repository", &repository_path);
+                            let snapshot = audited_scan_and_persist_repository_path(
+                                &path,
+                                &mut state,
+                                &repository_path,
+                            )?;
+                            let repository_ids = [repository_id].into_iter().collect();
+                            Ok(filter_snapshot_to_repository_ids(snapshot, &repository_ids))
+                        }
+                    }
                 } else {
                     audited_scan_and_persist(&path, &mut state)
                 }
@@ -12051,7 +13810,25 @@ pub fn run_cli(arguments: Vec<String>) {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
             });
-            if positionals.first().map(String::as_str) == Some("set-audit-root")
+            if positionals.first().map(String::as_str) == Some("refresh") && positionals.len() == 1
+            {
+                match refresh_quality_at(&path) {
+                    Ok(snapshot) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(snapshot) => print_human_status(&snapshot),
+                    Err(error) => {
+                        if json {
+                            print_cli_json_error("quality refresh", &error);
+                        }
+                        eprintln!("Pronto could not refresh quality evidence: {error}");
+                        std::process::exit(1);
+                    }
+                }
+                std::process::exit(0);
+            } else if positionals.first().map(String::as_str) == Some("set-audit-root")
                 && positionals.len() == 2
             {
                 match set_maturity_audit_root_at(&path, Some(&positionals[1])) {
@@ -12151,8 +13928,7 @@ pub fn run_cli(arguments: Vec<String>) {
             let is_feed_command =
                 positionals.len() == 1 && matches!(positionals[0].as_str(), "feed" | "audit-root");
             if is_feed_command {
-                match load_store_with_quality(&path).map(|state| snapshot_from_store(&path, &state))
-                {
+                match load_store_read_only(&path).map(|state| snapshot_from_store(&path, &state)) {
                     Ok(snapshot) if json => println!(
                         "{}",
                         serde_json::to_string_pretty(&snapshot)
@@ -12186,7 +13962,7 @@ pub fn run_cli(arguments: Vec<String>) {
                 }
             } else if positionals.len() <= 1 {
                 let query = positionals.first().map(String::as_str);
-                let result = load_store_with_quality(&path)
+                let result = load_store_read_only(&path)
                     .map(|state| snapshot_from_store(&path, &state))
                     .and_then(|snapshot| agent_quality_report(&snapshot, query));
                 match result {
@@ -12202,7 +13978,7 @@ pub fn run_cli(arguments: Vec<String>) {
                 }
             } else {
                 eprintln!(
-                    "Usage: pronto quality [<repository>] [--json] | pronto quality feed [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] (Quality Runner owns detector evidence; Pronto owns the disposition overlay)"
+                    "Usage: pronto quality [<repository>] [--json] | pronto quality refresh [--json] | pronto quality feed [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] (Quality Runner owns detector evidence; Pronto owns the disposition overlay)"
                 );
                 std::process::exit(2);
             }
@@ -12452,6 +14228,38 @@ mod tests {
     }
 
     #[test]
+    fn target_qr_detached_head_provenance_is_rewritten_to_selected_branch() {
+        let root = fixture_root();
+        let run = root.join("run");
+        fs::create_dir_all(&run).expect("target QR run should be writable");
+        fs::write(
+            run.join("run-manifest.json"),
+            serde_json::json!({
+                "git": { "branch": "HEAD", "ref": "refs/heads/HEAD" },
+                "provenance": { "branch": "HEAD" }
+            })
+            .to_string(),
+        )
+        .expect("target QR manifest should be writable");
+
+        assert_eq!(
+            rewrite_target_qr_branch_provenance(&run, "dev")
+                .expect("target QR provenance should be rewritten"),
+            1
+        );
+        let payload: serde_json::Value = serde_json::from_str(
+            &fs::read_to_string(run.join("run-manifest.json"))
+                .expect("rewritten target QR manifest should be readable"),
+        )
+        .expect("rewritten target QR manifest should remain JSON");
+        assert_eq!(payload["git"]["branch"], "dev");
+        assert_eq!(payload["git"]["ref"], "refs/heads/dev");
+        assert_eq!(payload["provenance"]["branch"], "dev");
+
+        fs::remove_dir_all(root).expect("target QR fixture should be removable");
+    }
+
+    #[test]
     fn verification_accepts_intentionally_deferred_terminal_dependencies() {
         assert!(remediation_dependencies_are_terminal(
             ["verified", "deferred"].into_iter()
@@ -12488,6 +14296,87 @@ mod tests {
         );
 
         fs::remove_dir_all(root).expect("cli root fixture should be removable");
+    }
+
+    #[test]
+    fn scoped_refresh_admits_unregistered_repository_path_under_registered_root() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        let store = root.join("registry.db");
+        let root_config = RootConfig {
+            id: path_id("root", &root),
+            path: root.to_string_lossy().to_string(),
+            label: "fixture".to_string(),
+            ignore_patterns: vec!["portfolio-repository".to_string()],
+            refresh_policy: default_refresh_policy(),
+            background_monitoring: false,
+            registered_at: iso_now(),
+        };
+        let mut state = StoreState {
+            roots: vec![root_config],
+            ..StoreState::default()
+        };
+        save_store(&store, &state).expect("unregistered fixture state should persist");
+
+        let before = snapshot_from_store(&store, &state);
+        let target = resolve_local_refresh_target(&before, &state, &repository.to_string_lossy())
+            .expect("repository path should resolve under the registered root");
+        let repository_path = match target {
+            LocalRefreshTarget::RepositoryPath(path) => path,
+            LocalRefreshTarget::Registered { .. } => {
+                panic!("an unregistered repository path should not resolve as registered")
+            }
+        };
+        let refreshed =
+            audited_scan_and_persist_repository_path(&store, &mut state, &repository_path)
+                .expect("scoped repository-path refresh should admit the repository");
+
+        assert_eq!(refreshed.repositories.len(), 1);
+        assert_eq!(
+            refreshed.repositories[0].path,
+            repository_path.to_string_lossy()
+        );
+        assert_eq!(refreshed.action_audits.len(), 1);
+        assert_eq!(refreshed.action_audits[0].status, "Completed");
+        assert_eq!(
+            refreshed.action_audits[0].target_ids,
+            vec![path_id("repository", &repository_path)]
+        );
+        assert_eq!(refreshed.roots.len(), 1);
+
+        fs::remove_dir_all(root).expect("scoped refresh fixture should be removable");
+    }
+
+    #[test]
+    fn scoped_refresh_rejects_repository_path_outside_registered_root() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        let other_root = fixture_root();
+        let other_repository = fixture_repository(&other_root);
+        let store = root.join("registry.db");
+        let state = StoreState {
+            roots: vec![RootConfig {
+                id: path_id("root", &root),
+                path: root.to_string_lossy().to_string(),
+                label: "fixture".to_string(),
+                ignore_patterns: Vec::new(),
+                refresh_policy: default_refresh_policy(),
+                background_monitoring: false,
+                registered_at: iso_now(),
+            }],
+            ..StoreState::default()
+        };
+        save_store(&store, &state).expect("root-only fixture state should persist");
+        let snapshot = snapshot_from_store(&store, &state);
+
+        let error =
+            resolve_local_refresh_target(&snapshot, &state, &other_repository.to_string_lossy())
+                .expect_err("a path outside the registered root should be rejected");
+        assert!(error.contains("not covered by a registered discovery root"));
+
+        fs::remove_dir_all(root).expect("root fixture should be removable");
+        fs::remove_dir_all(other_root).expect("outside fixture should be removable");
+        let _ = repository;
     }
 
     #[test]
@@ -12642,6 +14531,87 @@ mod tests {
     }
 
     #[test]
+    fn cached_read_does_not_ingest_quality_artifacts_until_explicit_refresh() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let store = root.join("registry.db");
+        let snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        assert_eq!(
+            snapshot.repositories[0].quality.ingestion_status,
+            "No evidence"
+        );
+
+        let observed_at = iso_now();
+        let run = repository_path
+            .join(".quality-runner")
+            .join("runs")
+            .join("run-after-scan");
+        fs::create_dir_all(&run).expect("quality run should be writable");
+        fs::write(
+            run.join("run-manifest.json"),
+            serde_json::json!({
+                "created_at": observed_at,
+                "git": {
+                    "branch": snapshot.repositories[0].branch,
+                    "head_sha": snapshot.repositories[0].workspace.last_commit
+                }
+            })
+            .to_string(),
+        )
+        .expect("quality run manifest should be writable");
+        fs::write(
+            run.join("gate-verification.json"),
+            serde_json::json!({
+                "gates": [{
+                    "id": "runtime_smoke",
+                    "status": "passed",
+                    "capability_kind": "local_command",
+                    "command": "pnpm smoke",
+                    "completed_at": observed_at
+                }]
+            })
+            .to_string(),
+        )
+        .expect("quality gate evidence should be writable");
+
+        let cached = load_store_read_only(&store).expect("cached store should load");
+        assert_eq!(
+            cached.repositories[0].quality.ingestion_status, "No evidence",
+            "read projections must not rescan quality artifacts"
+        );
+        let fresh = load_store_read_only_with_quality(&store)
+            .expect("explicit fresh quality projection should load");
+        assert_eq!(
+            fresh.repositories[0].quality.ingestion_status, "Available",
+            "the explicit fresh path should see newly-created quality artifacts"
+        );
+
+        fs::remove_dir_all(root).expect("cached-read fixture should be removable");
+    }
+
+    #[test]
+    fn refresh_write_lock_is_single_flight() {
+        let root = fixture_root();
+        let store = root.join("registry.db");
+        let first = acquire_store_write_lock(&store).expect("first write lock should succeed");
+        let second = acquire_store_write_lock_with_timeout(&store, StdDuration::from_millis(20));
+        assert!(
+            second.is_err(),
+            "a concurrent writer must not enter the refresh critical section"
+        );
+        drop(first);
+        let third = acquire_store_write_lock_with_timeout(&store, StdDuration::from_millis(20));
+        assert!(
+            third.is_ok(),
+            "the lock should be reusable after the writer exits"
+        );
+        drop(third);
+
+        fs::remove_dir_all(root).expect("write-lock fixture should be removable");
+    }
+
+    #[test]
     fn maturity_checkpoint_reports_missing_and_stale_applicable_repositories() {
         let root = fixture_root();
         fixture_repository(&root);
@@ -12665,6 +14635,14 @@ mod tests {
         );
 
         snapshot.repositories[0].quality.maturity.freshness = QualityFreshness::Fresh;
+        snapshot.repositories[0]
+            .quality
+            .mac_control_ideal_state
+            .status = "Not applicable".to_string();
+        snapshot.repositories[0]
+            .quality
+            .mac_control_ideal_state
+            .freshness = "Fresh".to_string();
         assert!(maturity_coverage_gaps(&snapshot.repositories).is_empty());
 
         fs::remove_dir_all(root).expect("maturity coverage fixture should be removable");
@@ -12879,6 +14857,83 @@ mod tests {
         assert_eq!(parsed.ahead, 3);
         assert_eq!(parsed.behind, 2);
         assert!(parsed.dirty);
+    }
+
+    #[test]
+    fn failed_git_status_is_projected_as_unavailable_not_clean_detached() {
+        let root = fixture_root();
+        let workspace = scan_workspace(&root, true, Some("main"), Some("main"), "Medium", None);
+
+        assert!(!workspace.status_available);
+        assert_eq!(workspace.branch, "Unknown");
+        assert!(!workspace.dirty);
+        assert_eq!(workspace.sync_state, "Git status unavailable");
+        assert_eq!(workspace.integration_state, "Unknown");
+        assert!(!workspace_is_unsynced(&workspace));
+        assert!(workspace_requires_sync_attention(&workspace));
+        assert!(workspace
+            .status_error
+            .as_deref()
+            .is_some_and(|error| error.contains("Git status failed")));
+
+        let conditions = build_conditions(
+            "repository:test",
+            &workspace,
+            Some("main"),
+            &[],
+            "2026-08-08T00:00:00Z",
+        );
+        assert!(conditions
+            .iter()
+            .any(|condition| condition.kind == "git-status-unavailable"));
+        assert!(!conditions
+            .iter()
+            .any(|condition| condition.kind == "no-upstream"));
+
+        fs::remove_dir_all(root).expect("failed-status fixture should be removable");
+    }
+
+    #[test]
+    fn remediation_handoff_requires_a_checkpoint_and_fresh_snapshot() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let clean_snapshot = scan_repository(&repository_path, None, &[]);
+        let clean_check = remediation_handoff_check_for_repository(&clean_snapshot, None)
+            .expect("clean fixture should be checkable");
+        assert!(clean_check.ready);
+        assert!(!clean_check.checkpoint_required);
+
+        fs::write(repository_path.join("tracked.txt"), "uncommitted\n")
+            .expect("dirty fixture should be writable");
+        let dirty_snapshot = scan_repository(&repository_path, Some(&clean_snapshot), &[]);
+        let dirty_check = remediation_handoff_check_for_repository(&dirty_snapshot, None)
+            .expect("dirty fixture should be checkable");
+        assert!(!dirty_check.ready);
+        assert!(dirty_check.checkpoint_required);
+        assert!(dirty_check.workspace_dirty);
+        assert!(dirty_check
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("checkpoint commit")));
+
+        git(&repository_path, &["add", "tracked.txt"]);
+        git(&repository_path, &["commit", "-m", "Checkpoint fixture"]);
+        let stale_check = remediation_handoff_check_for_repository(&dirty_snapshot, None)
+            .expect("stale fixture should still be checkable");
+        assert!(!stale_check.ready);
+        assert!(!stale_check.workspace_dirty);
+        assert!(stale_check
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("persisted Pronto snapshot")));
+
+        let refreshed_snapshot = scan_repository(&repository_path, Some(&dirty_snapshot), &[]);
+        let refreshed_check = remediation_handoff_check_for_repository(&refreshed_snapshot, None)
+            .expect("refreshed fixture should be checkable");
+        assert!(refreshed_check.ready);
+        assert!(!refreshed_check.checkpoint_required);
+
+        fs::remove_dir_all(root).expect("handoff fixture should be removable");
     }
 
     #[test]
@@ -13267,6 +15322,65 @@ mod tests {
         assert!(report.authorization.contains("Inspection only"));
 
         fs::remove_dir_all(root).expect("route fixture should be removable");
+    }
+
+    #[test]
+    fn route_projection_does_not_run_live_merge_checks() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        git(&repository, &["switch", "-c", "feature/route"]);
+        fs::write(repository.join("route.txt"), "route\n")
+            .expect("route fixture file should be writable");
+        git(&repository, &["add", "route.txt"]);
+        git(&repository, &["commit", "-m", "Route projection"]);
+        let store = root.join("registry.db");
+        let snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("route fixture portfolio should scan");
+        let repository_path = snapshot.repositories[0].path.clone();
+        let report = agent_route_report(
+            &snapshot,
+            &store,
+            60,
+            &format!("repository:{repository_path}"),
+            Some(&repository_path),
+            3,
+        )
+        .expect("route report should build without live merge checks");
+        let fold_preview = report
+            .fold_preview
+            .expect("route should include a fold projection");
+        assert!(
+            fold_preview
+                .candidates
+                .iter()
+                .all(|candidate| candidate.merge_preview.is_none()),
+            "route must keep live merge verification out of the response path"
+        );
+        assert!(fold_preview.live_verification_required);
+
+        fs::remove_dir_all(root).expect("route merge-check fixture should be removable");
+    }
+
+    #[test]
+    fn fresh_route_timeout_names_the_cached_fallback() {
+        let root = fixture_root();
+        let store = root.join("registry.db");
+        let report = agent_route_error_report(
+            &store,
+            60,
+            "fleet",
+            "storage",
+            "Fresh quality projection exceeded the 10 second deadline; rerun without --fresh for the cached snapshot or run `pronto quality refresh` separately.".to_string(),
+        );
+
+        assert!(report
+            .next_safe_step
+            .contains("cached snapshot or run `pronto quality refresh`"));
+        assert!(report.doctor.checks[0]
+            .next_safe_step
+            .contains("cached snapshot or run `pronto quality refresh`"));
+
+        fs::remove_dir_all(root).expect("route timeout fixture should be removable");
     }
 
     #[test]
@@ -13997,12 +16111,25 @@ mod tests {
 
         assert_eq!(snapshot.provider_status.state, "Ready");
         assert_eq!(snapshot.provider_identities.len(), 1);
-        assert_eq!(snapshot.remote_repositories.len(), 1);
+        assert_eq!(snapshot.remote_repositories.len(), 2);
         assert_eq!(
             snapshot.remote_repositories[0].full_name,
             "acme/portfolio-repository"
         );
         assert_eq!(snapshot.remote_repositories[0].locality, "Local and remote");
+        assert_eq!(
+            snapshot.remote_repositories[1].full_name,
+            "acme/remote-only"
+        );
+        assert_eq!(
+            snapshot.remote_repositories[1].locality,
+            remediation::GITHUB_ONLY_LOCALITY
+        );
+        assert_eq!(snapshot.remediation.github_only_candidates.len(), 1);
+        assert_eq!(
+            snapshot.remediation.github_only_candidates[0].last_remediation_task,
+            remediation::GITHUB_ONLY_REMEDIATION_TASK
+        );
         assert_eq!(snapshot.repositories[0].locality, "Local and remote");
         assert_eq!(
             snapshot.repositories[0].provider_state,
@@ -14011,7 +16138,8 @@ mod tests {
 
         let mut persisted = load_store(&database).expect("provider snapshot should reload");
         assert_eq!(persisted.provider_status.state, "Ready");
-        assert_eq!(persisted.remote_repositories.len(), 1);
+        assert_eq!(persisted.remote_repositories.len(), 2);
+        assert_eq!(persisted.remediation.github_only_candidates.len(), 1);
         let rescanned = scan_and_persist_scoped(&database, &mut persisted, None)
             .expect("local rescan should preserve provider evidence");
         assert_eq!(rescanned.repositories[0].locality, "Local and remote");
@@ -14547,6 +16675,76 @@ mod tests {
         assert!(set_repository_target_branch_at(&database, &repository_id, "missing").is_err());
 
         fs::remove_dir_all(root).expect("target branch fixture should be removable");
+    }
+
+    #[test]
+    fn target_evidence_reuse_requires_matching_branch_head_and_artifacts() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let target_commit = git_static(&repository_path, &["rev-parse", "refs/heads/main"])
+            .expect("fixture target head should resolve");
+        let target_root = root.join("target-fleet-audit");
+        fs::create_dir_all(&target_root).expect("target evidence root should be creatable");
+
+        let mut repository = scan_repository(&repository_path, None, &[]);
+        repository.quality.target_fleet_audit_root =
+            Some(target_root.to_string_lossy().to_string());
+        repository.quality.findings.scanned_branch = Some("main".to_string());
+        repository.quality.findings.scanned_commit = Some(target_commit.clone());
+        repository.quality.findings.observed_at = Some("2000-01-01T00:00:00Z".to_string());
+        repository.quality.findings.freshness = quality::QualityFreshness::Stale;
+
+        assert!(target_evidence_is_reusable(
+            &repository,
+            "main",
+            &target_commit
+        ));
+        assert!(!target_evidence_is_reusable(
+            &repository,
+            "main",
+            "different-head"
+        ));
+        assert!(!target_evidence_is_reusable(
+            &repository,
+            "develop",
+            &target_commit
+        ));
+
+        repository.quality.target_fleet_audit_root = Some(
+            root.join("missing-target-fleet-audit")
+                .to_string_lossy()
+                .to_string(),
+        );
+        assert!(!target_evidence_is_reusable(
+            &repository,
+            "main",
+            &target_commit
+        ));
+
+        fs::remove_dir_all(root).expect("target evidence fixture should be removable");
+    }
+
+    #[test]
+    fn repository_target_branch_override_respects_store_write_lock() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        git(&repository, &["branch", "develop"]);
+        let database = root.join("registry.db");
+        let snapshot = register_root_and_scan(&database, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        let repository_id = snapshot.repositories[0].id.clone();
+        let _lock = acquire_store_write_lock(&database).expect("fixture lock should succeed");
+
+        let error = set_repository_target_branch_at_with_lock_timeout(
+            &database,
+            &repository_id,
+            "develop",
+            StdDuration::from_millis(20),
+        )
+        .expect_err("target branch writes must not bypass an active store writer");
+        assert!(error.contains("Another Pronto write is already in progress"));
+
+        fs::remove_dir_all(root).expect("target branch lock fixture should be removable");
     }
 
     #[test]

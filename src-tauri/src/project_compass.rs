@@ -9,6 +9,12 @@ const MAX_CONTRACT_BYTES: u64 = 1024 * 1024;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProjectCompassTargetSummary {
     pub progress_percent: Option<u8>,
+    #[serde(default)]
+    pub scored_outcome_count: usize,
+    #[serde(default)]
+    pub covered_pillar_count: usize,
+    #[serde(default)]
+    pub total_pillar_count: usize,
     pub confidence: String,
     pub confidence_percent: u8,
 }
@@ -32,6 +38,9 @@ impl Default for ProjectCompassTargetSummary {
     fn default() -> Self {
         Self {
             progress_percent: None,
+            scored_outcome_count: 0,
+            covered_pillar_count: 0,
+            total_pillar_count: 0,
             confidence: "unknown".to_string(),
             confidence_percent: 0,
         }
@@ -179,8 +188,11 @@ fn target_summary(contract: &Value, target: &str) -> Result<ProjectCompassTarget
         .and_then(Value::as_array)
         .filter(|pillars| !pillars.is_empty())
         .ok_or_else(|| "pillars must be a non-empty array".to_string())?;
+    let total_pillar_count = pillars.len();
     let mut pillar_scores = Vec::new();
     let mut confidence_values = Vec::new();
+    let mut scored_outcome_count = 0;
+    let mut covered_pillar_count = 0;
 
     for (pillar_index, pillar) in pillars.iter().enumerate() {
         let outcomes = pillar
@@ -232,14 +244,21 @@ fn target_summary(contract: &Value, target: &str) -> Result<ProjectCompassTarget
             };
             maturity_values.push(maturity as f64);
             confidence_values.push(confidence);
+            scored_outcome_count += 1;
         }
         if !maturity_values.is_empty() {
+            covered_pillar_count += 1;
             pillar_scores.push(maturity_values.iter().sum::<f64>() / maturity_values.len() as f64);
         }
     }
 
     if pillar_scores.is_empty() {
-        return Ok(ProjectCompassTargetSummary::default());
+        return Ok(ProjectCompassTargetSummary {
+            scored_outcome_count,
+            covered_pillar_count,
+            total_pillar_count,
+            ..ProjectCompassTargetSummary::default()
+        });
     }
     let progress = rounded_percent(pillar_scores.iter().sum::<f64>() / pillar_scores.len() as f64);
     let confidence_percent = rounded_percent(
@@ -255,6 +274,9 @@ fn target_summary(contract: &Value, target: &str) -> Result<ProjectCompassTarget
 
     Ok(ProjectCompassTargetSummary {
         progress_percent: Some(progress),
+        scored_outcome_count,
+        covered_pillar_count,
+        total_pillar_count,
         confidence: confidence.to_string(),
         confidence_percent,
     })
@@ -474,7 +496,13 @@ mod tests {
         let summary = inspect(&root);
         assert_eq!(summary.status, "Ready");
         assert_eq!(summary.mvp.progress_percent, Some(75));
+        assert_eq!(summary.mvp.scored_outcome_count, 3);
+        assert_eq!(summary.mvp.covered_pillar_count, 2);
+        assert_eq!(summary.mvp.total_pillar_count, 2);
         assert_eq!(summary.complete_product.progress_percent, Some(88));
+        assert_eq!(summary.complete_product.scored_outcome_count, 2);
+        assert_eq!(summary.complete_product.covered_pillar_count, 2);
+        assert_eq!(summary.complete_product.total_pillar_count, 2);
         assert_eq!(summary.mvp.confidence_percent, 87);
         assert_eq!(summary.open_blockers, 1);
         assert_eq!(summary.open_drift, 1);
