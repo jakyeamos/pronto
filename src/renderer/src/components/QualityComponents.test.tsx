@@ -470,6 +470,69 @@ describe("quality evidence surfaces", () => {
               message: "No repository-owned change-surface matrix was found.",
             },
           ],
+          agent_usability: {
+            schema: "quality-runner-agent-usability/v1",
+            status: "attention",
+            manifest_status: "present",
+            manifest_path: ".agents/agent-usability.json",
+            applicable_lane_count: 4,
+            covered_lane_count: 3,
+            lanes: [
+              {
+                id: "documentation_contract",
+                label: "Documentation contract",
+                applicable: true,
+                score: 4,
+                status: "maintained",
+                message: "Every declared tool has fresh, routed documentation.",
+              },
+              {
+                id: "tool_skill_coverage",
+                label: "Tool-to-skill coverage",
+                applicable: true,
+                score: 3,
+                status: "static_validated",
+                message: "Every declared tool maps to a known skill.",
+              },
+              {
+                id: "behavior_evidence",
+                label: "Behavior evidence",
+                applicable: true,
+                score: 2,
+                status: "partial",
+                message: "Fresh passing receipts are incomplete.",
+              },
+              {
+                id: "freshness_portability",
+                label: "Freshness and portability",
+                applicable: true,
+                score: 3,
+                status: "static_validated",
+                message: "Repository-relative references passed validation.",
+              },
+            ],
+            growth_health: {
+              status: "healthy",
+              message:
+                "Documentation and skill structure remains proportionate and routed.",
+              document_count: 12,
+              agent_document_count: 3,
+              routed_agent_document_count: 3,
+              unrouted_agent_document_count: 0,
+              oversized_document_count: 0,
+              skill_count: 4,
+              family_count: 2,
+              largest_family_size: 2,
+              unclassified_skill_count: 0,
+              oversized_skill_count: 0,
+              tool_count: 2,
+              documented_tool_count: 2,
+              skill_covered_tool_count: 2,
+              behavior_declared_tool_count: 1,
+              behavior_verified_tool_count: 0,
+              inventory_truncated: false,
+            },
+          },
         }),
         ci_readiness: makeReadiness({
           score: 2.67,
@@ -562,6 +625,11 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain(
       "No repository-owned change-surface matrix was found.",
     );
+    expect(markup).toContain("Agent usability");
+    expect(markup).toContain("3/4 lanes");
+    expect(markup).toContain("Documentation contract");
+    expect(markup).toContain("3/3 agent docs routed");
+    expect(markup).toContain("4 skills in 2 families");
   });
 
   it("shows exact target evidence provenance instead of implying branch-specific stats", () => {
