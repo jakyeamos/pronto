@@ -177,7 +177,10 @@
         "pnpm cli refresh-batch --parallelism 2 --json",
         "pnpm cli route \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm cli remediation gate \"$(git rev-parse --show-toplevel)\" --json",
-        "pnpm cli release preview \"$(git rev-parse --show-toplevel)\" --json and inspect pronto-agent-release/v2 recommendation"
+        "pnpm cli release preview \"$(git rev-parse --show-toplevel)\" --json and inspect pronto-agent-release/v2 recommendation",
+        "node bin/pronto.mjs help",
+        "node bin/pronto.mjs route \"$(git rev-parse --show-toplevel)\" --json",
+        "node --test scripts/pronto-cli-entrypoint.test.mjs"
       ],
       "status": "applicable"
     },
@@ -189,7 +192,7 @@
       "condition": "Agent-visible commands, workspace lifecycle classification, documentation and skill relationships, freshness semantics, authorization boundaries, or routing behavior changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
-        "Validate every documented command against pnpm cli help.",
+        "Validate every documented command against node bin/pronto.mjs help.",
         "Verify refresh-batch documents its parallel scan, serialized merge, and conflict-retry boundary.",
         "Verify release preview documents the v2 advisory recommendation dispositions and no-publication boundary.",
         "Verify repo and scoped route document the pronto-task-lanes/v1 read-only custody projection and its no-mutation authorization boundary.",

@@ -32,10 +32,12 @@ unavailable until it is regenerated from the exact `dev` commit.
   performs Git, provider, branch, worktree, or ref-protection mutations.
 - `src/renderer/src/` renders shared projection contracts. It may format state
   but must not invent freshness, passing evidence, authorization, or closure.
-- `bin/pronto.mjs` is a thin launcher for the native CLI. It invokes bare
-  `cargo` so Codex storage controls remain in the command path; operators may
-  explicitly set `PRONTO_CARGO` outside Codex when needed. The desktop and CLI
-  consume the same Rust-owned truth rather than maintaining parallel domain
+- `bin/pronto.mjs` is the checkout-direct, zero-dependency Node launcher for
+  the native CLI. It resolves its own project root and must remain independent
+  of the calling repository's package-manager shim. It invokes bare `cargo` so
+  Codex storage controls remain in the command path; operators may explicitly
+  set `PRONTO_CARGO` outside Codex when needed. The desktop and CLI consume the
+  same Rust-owned truth rather than maintaining parallel domain
   implementations.
 - `refresh-batch` is the fleet refresh path for bounded parallel Git/filesystem
   scans. It performs one deterministic merge under the normal store lock,
@@ -231,6 +233,7 @@ The full state model, incomplete-work fold gate, and failure behavior are in
 | Findings are unavailable despite fleet audits                   | Repository-local full detector report                                 | Run `pronto quality detector-refresh --json`; inspect every published, blocked, unsupported, ingested, or rejected result. Pronto refreshes target refs before import, excludes exact QR `unsupported` results from the applicable coverage denominator, and exits nonzero if QR says `published` but exact-target evidence is not selected. |
 | Installed daemon lags source, package, or install               | Repository-owned runtime parity manifests                             | Read the reported stage, then rebuild, reinstall, or restart only that target with the required lifecycle authority. Never infer parity from daemon health.                                                                                                                                                                                  |
 | Installed app differs from the promoted checkpoint              | `/Applications/Pronto.app` deployment boundary                        | Run `pnpm app:update` only with installation authority, restart the app, and run `pnpm app:check`.                                                                                                                                                                                                                                           |
+| Agent route stops on another repository's `pnpm` version             | Caller toolchain resolution before Pronto starts                      | Invoke `node /Users/jakyeamos/Documents/pronto/bin/pronto.mjs route ... --json`; retain Pronto's exact package-manager pin for installs, tests, and builds. |
 
 ## Definition of done
 

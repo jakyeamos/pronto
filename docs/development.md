@@ -5,6 +5,17 @@ Repository CI applicability is owned by
 [Repository CI gate profiles](ci-gate-profiles.md). The static recommendation
 matrix is compatibility-only when that contract is absent.
 
+Use the current checkout's CLI directly when inspecting Pronto state:
+
+```sh
+node ./bin/pronto.mjs route --json
+```
+
+The launcher uses only Node built-ins before handing off to the native CLI, so
+it is independent of any `pnpm` shim selected by the calling repository. The
+exact `packageManager` pin in `package.json` remains required for dependency
+installation and the development, test, and build commands below.
+
 Use the live desktop development command while changing code:
 
 ```sh

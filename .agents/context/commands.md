@@ -17,13 +17,20 @@ with the static matrix or a fixed gate-count fallback.
 
 ## Invocation
 
-Run the current checkout's CLI through `pnpm`; do not rely on an unverified
-standalone binary:
+Run the current checkout's zero-dependency Node launcher directly. Do not route
+through the caller's `pnpm` shim or rely on an unverified standalone binary:
 
 ```sh
 PRONTO_ROOT="$(git rev-parse --show-toplevel)"
-pnpm --silent --dir "$PRONTO_ROOT" run cli route --json
+node "$PRONTO_ROOT/bin/pronto.mjs" route --json
 ```
+
+The launcher resolves the Pronto checkout from its own file location, changes
+the native CLI's working directory to that checkout, and adds Cargo's quiet
+flag for JSON commands. Its behavior therefore does not depend on the calling
+repository's package-manager version. Pronto's exact `packageManager` pin still
+governs dependency installation, development, tests, and builds; weakening or
+bypassing that pin is not a route recovery mechanism.
 
 The CLI reads and writes Pronto's local SQLite-backed snapshot. JSON is the
 preferred agent interface. `doctor --json` is the read-only freshness and
@@ -245,7 +252,7 @@ contract digest is unchanged and no committed or dirty path matches that
 behavior's declared change triggers. `release preview` applies the same Tier-0
 gate. See `docs/behavior-assurance.md` for the artifact contract.
 
-The Node adapter normally resolves `cargo` from the documented Homebrew paths
+The Node launcher normally resolves `cargo` from the documented Homebrew paths
 and then `PATH`. Set `PRONTO_CARGO` to an explicit Cargo executable only when a
 different verified Rust toolchain is required.
 
