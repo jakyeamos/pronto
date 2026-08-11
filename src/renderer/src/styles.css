@@ -6209,6 +6209,42 @@ h1 {
   display: grid;
   gap: var(--space-lg);
 }
+.papercut-tabs,
+.papercut-scope-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.papercut-tabs button,
+.papercut-scope-filter button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  background: rgba(13, 24, 41, 0.38);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.papercut-tabs button:hover,
+.papercut-tabs button.is-active,
+.papercut-scope-filter button:hover,
+.papercut-scope-filter button.is-active {
+  border-color: rgba(154, 129, 255, 0.34);
+  color: #d9d1ff;
+  background: rgba(119, 94, 210, 0.15);
+}
+.papercut-scope-filter {
+  justify-content: flex-end;
+}
+.papercut-scope-filter button {
+  padding: 6px 10px;
+  text-transform: capitalize;
+}
 .papercut-boundary {
   overflow: hidden;
 }
@@ -6260,9 +6296,147 @@ h1 {
 }
 .papercut-capture-panel,
 .papercut-list-panel,
-.papercut-detail-panel {
+.papercut-detail-panel,
+.papercut-corpus-panel,
+.papercut-digest-panel,
+.papercut-proposal-panel {
   min-width: 0;
   overflow: hidden;
+}
+.papercut-observation-list,
+.papercut-proposal-list {
+  display: grid;
+}
+.papercut-observation-list article,
+.papercut-proposal-list article {
+  display: grid;
+  gap: 9px;
+  padding: 15px 20px;
+  border-top: 1px solid var(--border);
+}
+.papercut-observation-list article > div,
+.papercut-proposal-list header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.papercut-observation-list article > div > strong,
+.papercut-proposal-list header strong {
+  color: #d2deed;
+  font-size: 11px;
+}
+.papercut-observation-list article > div > small {
+  color: var(--faint);
+  font-size: 9px;
+}
+.papercut-observation-list p,
+.papercut-proposal-list p,
+.papercut-digest-body p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.papercut-observation-list p.is-expired {
+  color: var(--faint);
+  font-style: italic;
+}
+.papercut-observation-list footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--faint);
+  font-size: 9px;
+}
+.papercut-digest-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 1fr);
+  gap: var(--space-lg);
+  align-items: start;
+}
+.papercut-digest-body {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-top: 1px solid var(--border);
+}
+.papercut-digest-body h3 {
+  margin: 0;
+  color: #cbd8ea;
+  font-size: 11px;
+}
+.papercut-digest-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.papercut-digest-metrics strong {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #d8e4f3;
+  font-size: 20px;
+}
+.papercut-digest-metrics small {
+  color: var(--faint);
+  font-size: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.papercut-digest-body ol {
+  display: grid;
+  gap: 8px;
+  padding-left: 20px;
+  margin: 0;
+}
+.papercut-digest-body li {
+  color: var(--violet);
+  font-size: 10px;
+}
+.papercut-digest-body li span,
+.papercut-digest-body li small {
+  display: block;
+}
+.papercut-digest-body li span {
+  color: #cad7e9;
+}
+.papercut-digest-body li small {
+  margin-top: 3px;
+  color: var(--faint);
+  font-size: 9px;
+}
+.papercut-proposal-list dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.papercut-proposal-list dl > div {
+  display: grid;
+  gap: 3px;
+}
+.papercut-proposal-list dt {
+  color: var(--faint);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.papercut-proposal-list dd {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+.papercut-proposal-list footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.papercut-proposal-list footer .button {
+  padding: 6px 9px;
+  font-size: 9px;
 }
 .papercut-capture-panel > .surface-heading > svg {
   flex: 0 0 auto;
@@ -6448,13 +6622,17 @@ h1 {
   .papercut-capture-layout {
     grid-template-columns: minmax(0, 1fr);
   }
+  .papercut-digest-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 700px) {
   .papercut-overview-grid,
   .papercut-form-grid,
   .papercut-detail-grid,
-  .papercut-detail-sections {
+  .papercut-detail-sections,
+  .papercut-digest-metrics {
     grid-template-columns: minmax(0, 1fr);
   }
   .papercut-boundary-status,

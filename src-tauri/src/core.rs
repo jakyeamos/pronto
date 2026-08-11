@@ -1,5 +1,6 @@
 use crate::change_matrix;
 use crate::mac_control_maturity;
+use crate::papercuts;
 use crate::project_compass::{self, ProjectCompassSummary};
 use crate::quality::{
     self, QualityFreshness, QualityGateRequirement, QualityGateStatus, QualityPortfolioSnapshot,
@@ -1456,10 +1457,6 @@ fn open_store_read_only(path: &Path) -> Result<SqliteConnection, String> {
 
 pub(crate) fn local_store_path() -> PathBuf {
     store_path()
-}
-
-pub(crate) fn open_store_read_only_for_extension(path: &Path) -> Result<SqliteConnection, String> {
-    open_store_read_only(path)
 }
 
 pub(crate) fn with_store_write_for_extension<T, F>(path: &Path, operation: F) -> Result<T, String>
@@ -12011,7 +12008,7 @@ fn print_human_release(report: &AgentReleaseReport) {
 
 fn print_cli_usage() {
     println!(
-        "Usage: pronto . | pronto skills [<skill-id>] [--json] | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--fresh] [--json] | pronto quality [<repository>] [--json] | pronto quality refresh [--json] | pronto remediation handoff-check <repository> [--workspace <id>] [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] | pronto status [--fresh] [--json] | pronto help"
+        "Usage: pronto . | pronto skills [<skill-id>] [--json] | pronto papercuts list --json | pronto papercuts observe --stdin --json [--dry-run] | pronto papercuts digest --week current --json | pronto papercuts propose --stdin --json | pronto papercuts proposal set-status <id> <status> --json | pronto papercuts health --json | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--fresh] [--json] | pronto quality [<repository>] [--json] | pronto quality refresh [--json] | pronto remediation handoff-check <repository> [--workspace <id>] [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] | pronto status [--fresh] [--json] | pronto help"
     );
 }
 
@@ -12103,6 +12100,17 @@ pub fn run_cli(arguments: Vec<String>) {
                 }
             }
         }
+        "papercuts" => match papercuts::run_cli(&arguments) {
+            Ok(output) => println!("{output}"),
+            Err(error) => {
+                if json {
+                    print_cli_json_error("papercuts", &error);
+                } else {
+                    eprintln!("Pronto Papercuts error: {error}");
+                }
+                std::process::exit(1);
+            }
+        },
         "change-matrix" => {
             let operation = cli_option(&arguments, "--operation").unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");

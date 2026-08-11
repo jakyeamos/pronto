@@ -17,6 +17,8 @@ import type {
   CreatePapercutInput,
   PapercutBacklog,
   PapercutStatus,
+  MultiplierProposal,
+  MultiplierProposalStatus,
 } from "./types";
 
 export const emptySnapshot: PortfolioSnapshot = {
@@ -109,7 +111,7 @@ export const emptyPromotionInbox: PromotionInbox = {
 };
 
 export const emptyPapercutBacklog: PapercutBacklog = {
-  schema_version: "pronto-papercuts/v1",
+  schema_version: "pronto-papercuts/v2",
   family: "design-audit",
   generated_at: new Date().toISOString(),
   papercuts: [],
@@ -119,6 +121,24 @@ export const emptyPapercutBacklog: PapercutBacklog = {
     in_progress: 0,
     deferred: 0,
     resolved: 0,
+    observations: 0,
+    local_patterns: 0,
+    cross_scope_patterns: 0,
+    draft_proposals: 0,
+  },
+  observations: [],
+  patterns: [],
+  proposals: [],
+  digests: [],
+  health: {
+    status: "healthy",
+    database_writable: true,
+    consecutive_failures: 0,
+    spooled_events: 0,
+    oldest_spool_at: null,
+    last_success_at: null,
+    warning: null,
+    excerpt_retention_days: 90,
   },
 };
 
@@ -221,6 +241,21 @@ export async function setPapercutStatus(
   });
 }
 
+export async function setMultiplierProposalStatus(
+  proposalId: string,
+  status: MultiplierProposalStatus,
+): Promise<MultiplierProposal> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error(
+      "Multiplier proposal review is available in the Pronto desktop app.",
+    );
+  }
+  return invoke<MultiplierProposal>("set_multiplier_proposal_status", {
+    proposalId,
+    status,
+  });
+}
+
 export async function refreshSkills(): Promise<SkillsSnapshot> {
   if (!isDesktopBridgeAvailable()) {
     throw new Error("Skills refresh is available in the Pronto desktop app.");
@@ -242,13 +277,6 @@ export async function refresh(): Promise<PortfolioSnapshot> {
     throw new Error("Open Pronto as a desktop app to scan local repositories.");
   }
   return invoke<PortfolioSnapshot>("refresh");
-}
-
-export async function refreshQuality(): Promise<PortfolioSnapshot> {
-  if (!isDesktopBridgeAvailable()) {
-    throw new Error("Quality refresh is available in the Pronto desktop app.");
-  }
-  return invoke<PortfolioSnapshot>("refresh_quality");
 }
 
 export async function refreshGithub(): Promise<PortfolioSnapshot> {

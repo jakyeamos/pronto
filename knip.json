@@ -12,5 +12,9 @@
     "bin/*.mjs",
     "vite.config.ts",
     "eslint.config.js"
-  ]
+  ],
+  "ignoreExportsUsedInFile": {
+    "interface": true,
+    "type": true
+  }
 }

@@ -11,6 +11,7 @@ import type {
   CreatePapercutInput,
   PapercutBacklog,
   PapercutStatus,
+  MultiplierProposalStatus,
   SkillRecord,
   SkillsSnapshot,
 } from "../types";
@@ -154,6 +155,10 @@ type SkillsSurfaceProps = {
     papercutId: string,
     status: PapercutStatus,
   ) => Promise<void>;
+  onMultiplierProposalStatusChange: (
+    proposalId: string,
+    status: MultiplierProposalStatus,
+  ) => Promise<void>;
 };
 
 function SkillsTable({
@@ -269,6 +274,7 @@ function SkillsSurfaceContent({
   onRefreshPapercutBacklog,
   onCreatePapercut,
   onPapercutStatusChange,
+  onMultiplierProposalStatusChange,
 }: SkillsSurfaceProps): ReactElement {
   const normalizedSnapshot = useMemo(
     () => normalizeSkillsSnapshot(snapshot),
@@ -409,6 +415,7 @@ function SkillsSurfaceContent({
             onRefresh={onRefreshPapercutBacklog}
             onCreate={onCreatePapercut}
             onStatusChange={onPapercutStatusChange}
+            onProposalStatusChange={onMultiplierProposalStatusChange}
           />
         </div>
       ) : (

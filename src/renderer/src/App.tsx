@@ -69,6 +69,7 @@ export function App(): ReactElement {
     handleRefreshPapercutBacklog,
     handleCreatePapercut,
     handlePapercutStatus,
+    handleMultiplierProposalStatus,
     handleOpenSkillSource,
     handleAddRoot,
     handleSaveRoot,
@@ -446,6 +447,7 @@ export function App(): ReactElement {
               onRefreshPapercutBacklog={handleRefreshPapercutBacklog}
               onCreatePapercut={handleCreatePapercut}
               onPapercutStatusChange={handlePapercutStatus}
+              onMultiplierProposalStatusChange={handleMultiplierProposalStatus}
             />
           ) : activeNav === "activity" ? (
             <ActivitySurface

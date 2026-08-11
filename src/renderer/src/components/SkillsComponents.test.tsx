@@ -58,15 +58,40 @@ function makeSnapshot(skills: SkillRecord[] = [makeSkill()]): SkillsSnapshot {
 
 const papercutProps = {
   papercutBacklog: {
-    schema_version: "pronto-papercuts/v1",
+    schema_version: "pronto-papercuts/v2",
     family: "design-audit",
     generated_at: "2026-07-27T12:00:00Z",
     papercuts: [],
-    counts: { total: 0, open: 0, in_progress: 0, deferred: 0, resolved: 0 },
+    counts: {
+      total: 0,
+      open: 0,
+      in_progress: 0,
+      deferred: 0,
+      resolved: 0,
+      observations: 0,
+      local_patterns: 0,
+      cross_scope_patterns: 0,
+      draft_proposals: 0,
+    },
+    observations: [],
+    patterns: [],
+    proposals: [],
+    digests: [],
+    health: {
+      status: "healthy",
+      database_writable: true,
+      consecutive_failures: 0,
+      spooled_events: 0,
+      oldest_spool_at: null,
+      last_success_at: null,
+      warning: null,
+      excerpt_retention_days: 90,
+    },
   } satisfies PapercutBacklog,
   onRefreshPapercutBacklog: async () => undefined,
   onCreatePapercut: async () => undefined,
   onPapercutStatusChange: async () => undefined,
+  onMultiplierProposalStatusChange: async () => undefined,
 };
 
 afterEach(() => {
@@ -192,7 +217,9 @@ describe("skills surface", () => {
     ).toBeTruthy();
     expect(screen.getByText("Skill detail · Design audit")).toBeTruthy();
     expect(
-      screen.getByText("Turn small friction into a visible backlog."),
+      screen.getByText(
+        "Turn friction into evidence, patterns, and multipliers.",
+      ),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "All skills" })).toBeTruthy();
   });

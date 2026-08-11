@@ -8,6 +8,7 @@ import {
   refreshRepositoryTargetEvidence,
   setRepositoryTargetBranch,
   setPapercutStatus,
+  setMultiplierProposalStatus,
 } from "./api";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -107,5 +108,23 @@ describe("papercut commands", () => {
       papercutId: "papercut-1",
       status: "resolved",
     });
+  });
+
+  it("records proposal review without invoking implementation", async () => {
+    Object.defineProperty(window, "__TAURI_INTERNALS__", {
+      configurable: true,
+      value: {},
+    });
+    vi.mocked(invoke).mockResolvedValue({
+      id: "proposal-1",
+      status: "accepted",
+    });
+
+    await setMultiplierProposalStatus("proposal-1", "accepted");
+
+    expect(invoke).toHaveBeenCalledExactlyOnceWith(
+      "set_multiplier_proposal_status",
+      { proposalId: "proposal-1", status: "accepted" },
+    );
   });
 });

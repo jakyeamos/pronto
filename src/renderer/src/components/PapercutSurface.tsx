@@ -1,99 +1,23 @@
-import { useEffect, useState, type FormEvent, type ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import {
-  Check,
-  CircleDot,
-  ListTodo,
-  Plus,
+  ClipboardList,
+  Layers3,
+  Lightbulb,
   RefreshCw,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import type {
   CreatePapercutInput,
-  Papercut,
+  MultiplierProposalStatus,
   PapercutBacklog,
-  PapercutPriority,
-  PapercutSource,
   PapercutStatus,
 } from "../types";
 import { formatExactTime, formatTime, StatusPill } from "./ConsolePrimitives";
+import { PapercutPatternView } from "./PapercutPatternView";
+import { papercutLabel, papercutStatusTone } from "./papercutPresentation";
 
-const statusOptions: PapercutStatus[] = [
-  "open",
-  "in_progress",
-  "deferred",
-  "resolved",
-];
-
-const priorityOptions: PapercutPriority[] = ["P0", "P1", "P2", "P3"];
-
-const sourceOptions: Array<{ value: PapercutSource; label: string }> = [
-  { value: "manual", label: "Manual capture" },
-  { value: "design-friction", label: "Design-friction audit" },
-];
-
-const emptyDraft: CreatePapercutInput = {
-  title: "",
-  detail: "",
-  surface: "Pronto UI",
-  source: "manual",
-  priority: "P2",
-  evidenceRefs: [],
-  impact: "",
-  nextAction: "",
-};
-
-function statusLabel(status: string): string {
-  return status.replaceAll("_", " ");
-}
-
-function statusTone(status: string): string {
-  if (status === "resolved") return "mint";
-  if (status === "in_progress") return "blue";
-  if (status === "deferred") return "amber";
-  return "coral";
-}
-
-function sourceLabel(source: string): string {
-  return source === "design-friction"
-    ? "Design-friction audit"
-    : "Manual capture";
-}
-
-function PapercutRow({
-  papercut,
-  selected,
-  onSelect,
-}: {
-  papercut: Papercut;
-  selected: boolean;
-  onSelect: () => void;
-}): ReactElement {
-  return (
-    <button
-      className={`papercut-row ${selected ? "is-selected" : ""}`}
-      type="button"
-      onClick={onSelect}
-      aria-label={`Open papercut ${papercut.title}`}
-    >
-      <span className="papercut-row-icon">
-        {papercut.status === "resolved" ? (
-          <Check size={14} />
-        ) : (
-          <CircleDot size={14} />
-        )}
-      </span>
-      <span className="papercut-row-main">
-        <strong>{papercut.title}</strong>
-        <small>
-          {papercut.surface} · {sourceLabel(papercut.source)}
-        </small>
-      </span>
-      <StatusPill tone={statusTone(papercut.status)}>
-        {statusLabel(papercut.status)}
-      </StatusPill>
-    </button>
-  );
-}
+type PapercutTab = "observations" | "patterns" | "digest";
 
 export function PapercutSurface({
   backlog,
@@ -101,52 +25,32 @@ export function PapercutSurface({
   onRefresh,
   onCreate,
   onStatusChange,
+  onProposalStatusChange,
 }: {
   backlog: PapercutBacklog;
   isRefreshing: boolean;
   onRefresh: () => Promise<void>;
   onCreate: (input: CreatePapercutInput) => Promise<void>;
   onStatusChange: (papercutId: string, status: PapercutStatus) => Promise<void>;
+  onProposalStatusChange: (
+    proposalId: string,
+    status: MultiplierProposalStatus,
+  ) => Promise<void>;
 }): ReactElement {
-  const [draft, setDraft] = useState<CreatePapercutInput>(emptyDraft);
-  const [evidenceText, setEvidenceText] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected =
-    backlog.papercuts.find((item) => item.id === selectedId) ?? null;
-
-  useEffect(() => {
-    if (!selected || selected.id !== selectedId) {
-      setSelectedId(backlog.papercuts[0]?.id ?? null);
-    }
-  }, [backlog.papercuts, selected, selectedId]);
-
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ): Promise<void> {
-    event.preventDefault();
-    if (!draft.title.trim() || !draft.detail.trim() || isRefreshing) return;
-    await onCreate({
-      ...draft,
-      evidenceRefs: evidenceText
-        .split("\n")
-        .map((value) => value.trim())
-        .filter(Boolean),
-    });
-    setDraft(emptyDraft);
-    setEvidenceText("");
-  }
+  const [activeTab, setActiveTab] = useState<PapercutTab>("patterns");
+  const latestDigest = backlog.digests[0] ?? null;
 
   return (
     <div className="papercut-surface">
       <section className="surface-panel papercut-boundary">
         <div className="surface-heading">
           <div>
-            <p className="eyebrow">Design audit family</p>
-            <h2>Turn small friction into a visible backlog.</h2>
+            <p className="eyebrow">Universal signal corpus</p>
+            <h2>Turn friction into evidence, patterns, and multipliers.</h2>
             <p>
-              Design-friction audit stays an ephemeral per-turn sensor. This
-              skill is the durable capture point: nothing enters the backlog
-              unless you explicitly record it here.
+              Explicit corrections, dissatisfaction, failures, and
+              evidence-backed suggestions enter as scoped observations.
+              Recurrence—not sentiment—promotes them.
             </p>
           </div>
           <button
@@ -156,287 +60,267 @@ export function PapercutSurface({
             disabled={isRefreshing}
           >
             <RefreshCw className={isRefreshing ? "spin" : ""} size={15} />
-            {isRefreshing ? "Refreshing…" : "Refresh backlog"}
+            {isRefreshing ? "Refreshing…" : "Refresh corpus"}
           </button>
         </div>
         <div className="papercut-boundary-status">
-          <StatusPill tone="violet" icon={<Sparkles size={12} />}>
-            Shared family: design audit
-          </StatusPill>
-          <span>Local only · generated {formatTime(backlog.generated_at)}</span>
-        </div>
-      </section>
-
-      <section className="papercut-overview-grid" aria-label="Papercut counts">
-        <div className="papercut-card">
-          <span>Open</span>
-          <strong>{backlog.counts.open}</strong>
-          <small>Needs triage or a next step</small>
-        </div>
-        <div className="papercut-card">
-          <span>In progress</span>
-          <strong>{backlog.counts.in_progress}</strong>
-          <small>Being worked</small>
-        </div>
-        <div className="papercut-card">
-          <span>Deferred</span>
-          <strong>{backlog.counts.deferred}</strong>
-          <small>Kept visible with a pause</small>
-        </div>
-        <div className="papercut-card">
-          <span>Resolved</span>
-          <strong>{backlog.counts.resolved}</strong>
-          <small>Retained as audit history</small>
-        </div>
-      </section>
-
-      <div className="papercut-capture-layout">
-        <section className="surface-panel papercut-capture-panel">
-          <div className="surface-heading">
-            <div>
-              <p className="eyebrow">Explicit capture</p>
-              <h2>Capture a papercut</h2>
-              <p>
-                Record the symptom and the next validation step—not a prompt
-                transcript.
-              </p>
-            </div>
-            <Plus size={18} aria-hidden="true" />
-          </div>
-          <form
-            className="papercut-form"
-            onSubmit={(event) => void handleSubmit(event)}
+          <StatusPill
+            tone={backlog.health.status === "healthy" ? "mint" : "amber"}
+            icon={<ShieldCheck size={12} />}
           >
-            <label className="field-label">
-              Title
-              <input
-                className="text-input"
-                value={draft.title}
-                placeholder="e.g. The empty state hides the next action"
-                onChange={(event) =>
-                  setDraft({ ...draft, title: event.target.value })
-                }
-                required
-              />
-            </label>
-            <label className="field-label">
-              What feels harder than it should?
-              <textarea
-                className="text-input papercut-textarea"
-                value={draft.detail}
-                placeholder="Describe the observed friction and where it occurs."
-                onChange={(event) =>
-                  setDraft({ ...draft, detail: event.target.value })
-                }
-                required
-              />
-            </label>
-            <div className="papercut-form-grid">
-              <label className="field-label">
-                Surface
-                <input
-                  className="text-input"
-                  value={draft.surface}
-                  onChange={(event) =>
-                    setDraft({ ...draft, surface: event.target.value })
-                  }
-                />
-              </label>
-              <label className="field-label">
-                Source
-                <select
-                  className="text-input"
-                  value={draft.source}
-                  onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      source: event.target.value as PapercutSource,
-                    })
-                  }
-                >
-                  {sourceOptions.map((option) => (
-                    <option value={option.value} key={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field-label">
-                Priority
-                <select
-                  className="text-input"
-                  value={draft.priority}
-                  onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      priority: event.target.value as PapercutPriority,
-                    })
-                  }
-                >
-                  {priorityOptions.map((priority) => (
-                    <option value={priority} key={priority}>
-                      {priority}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <label className="field-label">
-              Evidence references
-              <textarea
-                className="text-input papercut-textarea papercut-textarea-short"
-                value={evidenceText}
-                placeholder="One screen, route, file, or observation per line"
-                onChange={(event) => setEvidenceText(event.target.value)}
-              />
-            </label>
-            <label className="field-label">
-              Impact
-              <input
-                className="text-input"
-                value={draft.impact}
-                placeholder="Who loses time or confidence?"
-                onChange={(event) =>
-                  setDraft({ ...draft, impact: event.target.value })
-                }
-              />
-            </label>
-            <label className="field-label">
-              Next validation step
-              <input
-                className="text-input"
-                value={draft.nextAction}
-                placeholder="What would make this ready to resolve?"
-                onChange={(event) =>
-                  setDraft({ ...draft, nextAction: event.target.value })
-                }
-              />
-            </label>
-            <button
-              className="button button-primary"
-              type="submit"
-              disabled={isRefreshing}
-            >
-              <Plus size={15} />
-              Capture papercut
-            </button>
-          </form>
-        </section>
+            Capture {backlog.health.status}
+          </StatusPill>
+          <span>
+            Local only · excerpts expire after{" "}
+            {backlog.health.excerpt_retention_days} days
+          </span>
+          {backlog.health.spooled_events > 0 ? (
+            <span>{backlog.health.spooled_events} signals awaiting flush</span>
+          ) : null}
+          <span>Generated {formatTime(backlog.generated_at)}</span>
+        </div>
+      </section>
 
-        <section className="surface-panel papercut-list-panel">
+      <nav className="papercut-tabs" aria-label="Papercuts corpus views">
+        {(
+          [
+            ["observations", "Observations", ClipboardList],
+            ["patterns", "Patterns", Layers3],
+            ["digest", "Weekly digest", Lightbulb],
+          ] as const
+        ).map(([value, text, Icon]) => (
+          <button
+            className={activeTab === value ? "is-active" : ""}
+            type="button"
+            key={value}
+            onClick={() => setActiveTab(value)}
+          >
+            <Icon size={14} />
+            {text}
+          </button>
+        ))}
+      </nav>
+
+      <section
+        className="papercut-overview-grid"
+        aria-label="Papercut corpus counts"
+      >
+        <div className="papercut-card">
+          <span>Observations</span>
+          <strong>{backlog.counts.observations}</strong>
+          <small>Explicit signals retained</small>
+        </div>
+        <div className="papercut-card">
+          <span>Local patterns</span>
+          <strong>{backlog.counts.local_patterns}</strong>
+          <small>Recurring within one scope</small>
+        </div>
+        <div className="papercut-card">
+          <span>Cross-scope</span>
+          <strong>{backlog.counts.cross_scope_patterns}</strong>
+          <small>Three signals across two scopes</small>
+        </div>
+        <div className="papercut-card">
+          <span>Draft multipliers</span>
+          <strong>{backlog.counts.draft_proposals}</strong>
+          <small>Waiting for human review</small>
+        </div>
+      </section>
+
+      {activeTab === "observations" ? (
+        <section className="surface-panel papercut-corpus-panel">
           <div className="surface-heading">
             <div>
-              <p className="eyebrow">Durable backlog</p>
-              <h2>
-                {backlog.counts.total} papercut
-                {backlog.counts.total === 1 ? "" : "s"}
-              </h2>
+              <p className="eyebrow">Raw evidence</p>
+              <h2>Scoped observations</h2>
               <p>
-                Review, defer, or resolve without changing the audit sensor.
+                Short excerpts expire; summaries and hashes remain for
+                recurrence analysis.
               </p>
             </div>
-            <ListTodo size={18} aria-hidden="true" />
+            <ClipboardList size={18} aria-hidden="true" />
           </div>
-          {backlog.papercuts.length === 0 ? (
+          {backlog.observations.length === 0 ? (
             <div className="papercut-empty">
-              <ListTodo size={22} />
-              <strong>No papercuts captured yet.</strong>
+              <ClipboardList size={22} />
+              <strong>No observations captured yet.</strong>
               <span>
-                When a design audit finds a repeatable small hurt, capture it
-                here explicitly.
+                The passive route records only explicit interaction-quality
+                signals.
               </span>
             </div>
           ) : (
-            <div className="papercut-list">
-              {backlog.papercuts.map((papercut) => (
-                <PapercutRow
-                  key={papercut.id}
-                  papercut={papercut}
-                  selected={papercut.id === selectedId}
-                  onSelect={() => setSelectedId(papercut.id)}
-                />
+            <div className="papercut-observation-list">
+              {backlog.observations.map((observation) => (
+                <article key={observation.id}>
+                  <div>
+                    <strong>{observation.summary}</strong>
+                    <small>
+                      {papercutLabel(observation.signal_kind)} ·{" "}
+                      {papercutLabel(observation.target_kind)} ·{" "}
+                      {observation.scope_id}
+                    </small>
+                  </div>
+                  <StatusPill tone={observation.urgent ? "coral" : "violet"}>
+                    {observation.priority}
+                  </StatusPill>
+                  {observation.excerpt ? (
+                    <p>“{observation.excerpt}”</p>
+                  ) : (
+                    <p className="is-expired">
+                      Excerpt expired; structured evidence retained.
+                    </p>
+                  )}
+                  <footer>
+                    <span>{formatExactTime(observation.observed_at)}</span>
+                    <span>{observation.domain}</span>
+                    <span>{observation.source}</span>
+                  </footer>
+                </article>
               ))}
             </div>
           )}
         </section>
-      </div>
+      ) : null}
 
-      {selected && (
-        <section className="surface-panel papercut-detail-panel">
-          <div className="papercut-detail-heading">
-            <div>
-              <p className="eyebrow">
-                {sourceLabel(selected.source)} · {selected.priority}
-              </p>
-              <h2>{selected.title}</h2>
-              <p>{selected.detail}</p>
+      {activeTab === "patterns" ? (
+        <PapercutPatternView
+          backlog={backlog}
+          isRefreshing={isRefreshing}
+          onCreate={onCreate}
+          onStatusChange={onStatusChange}
+        />
+      ) : null}
+
+      {activeTab === "digest" ? (
+        <div className="papercut-digest-layout">
+          <section className="surface-panel papercut-digest-panel">
+            <div className="surface-heading">
+              <div>
+                <p className="eyebrow">Sunday · 6 PM ET</p>
+                <h2>Weekly digest</h2>
+                <p>Deterministic evidence first; AI hypotheses second.</p>
+              </div>
+              <Sparkles size={18} />
             </div>
-            <label className="field-label papercut-status-field">
-              Status
-              <select
-                className="text-input"
-                aria-label={`Status for ${selected.title}`}
-                value={selected.status}
-                disabled={isRefreshing}
-                onChange={(event) =>
-                  void onStatusChange(
-                    selected.id,
-                    event.target.value as PapercutStatus,
-                  )
-                }
-              >
-                {statusOptions.map((status) => (
-                  <option value={status} key={status}>
-                    {statusLabel(status)}
-                  </option>
+            {latestDigest ? (
+              <div className="papercut-digest-body">
+                <p>
+                  {formatExactTime(latestDigest.week_start)} through{" "}
+                  {formatExactTime(latestDigest.week_end)}
+                </p>
+                <div className="papercut-digest-metrics">
+                  <strong>
+                    {latestDigest.observation_count}
+                    <small>observations</small>
+                  </strong>
+                  <strong>
+                    {latestDigest.local_pattern_count}
+                    <small>local patterns</small>
+                  </strong>
+                  <strong>
+                    {latestDigest.cross_scope_pattern_count}
+                    <small>cross-scope</small>
+                  </strong>
+                </div>
+                <h3>Leading patterns</h3>
+                {latestDigest.top_patterns.length === 0 ? (
+                  <p>No patterns qualified this week.</p>
+                ) : (
+                  <ol>
+                    {latestDigest.top_patterns.map((pattern) => (
+                      <li key={pattern.id}>
+                        <span>{pattern.title}</span>
+                        <small>
+                          {pattern.occurrence_count} occurrences ·{" "}
+                          {pattern.scope_count} scopes
+                        </small>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            ) : (
+              <div className="papercut-empty">
+                <Sparkles size={22} />
+                <strong>No weekly digest yet.</strong>
+                <span>
+                  The configured Codex automation will generate the first digest
+                  Sunday at 6 PM ET.
+                </span>
+              </div>
+            )}
+          </section>
+          <section className="surface-panel papercut-proposal-panel">
+            <div className="surface-heading">
+              <div>
+                <p className="eyebrow">Human review required</p>
+                <h2>Multiplier proposals</h2>
+                <p>
+                  Accepting records your judgment; it never starts
+                  implementation.
+                </p>
+              </div>
+              <Lightbulb size={18} />
+            </div>
+            {backlog.proposals.length === 0 ? (
+              <div className="papercut-empty">
+                <Lightbulb size={22} />
+                <strong>No multiplier drafts yet.</strong>
+                <span>
+                  AI may draft causes and reusable prevention only from
+                  sanitized digest evidence.
+                </span>
+              </div>
+            ) : (
+              <div className="papercut-proposal-list">
+                {backlog.proposals.map((proposal) => (
+                  <article key={proposal.id}>
+                    <header>
+                      <strong>{proposal.title}</strong>
+                      <StatusPill tone={papercutStatusTone(proposal.status)}>
+                        {papercutLabel(proposal.status)}
+                      </StatusPill>
+                    </header>
+                    <p>{proposal.hypothesis}</p>
+                    <dl>
+                      <div>
+                        <dt>Root cause</dt>
+                        <dd>{proposal.root_cause}</dd>
+                      </div>
+                      <div>
+                        <dt>Multiplier</dt>
+                        <dd>{proposal.multiplier}</dd>
+                      </div>
+                    </dl>
+                    <footer>
+                      {(
+                        [
+                          "accepted",
+                          "deferred",
+                          "rejected",
+                        ] as MultiplierProposalStatus[]
+                      ).map((status) => (
+                        <button
+                          className="button button-secondary"
+                          type="button"
+                          key={status}
+                          disabled={isRefreshing || proposal.status === status}
+                          onClick={() =>
+                            void onProposalStatusChange(proposal.id, status)
+                          }
+                        >
+                          {papercutLabel(status)}
+                        </button>
+                      ))}
+                    </footer>
+                  </article>
                 ))}
-              </select>
-            </label>
-          </div>
-          <div className="papercut-detail-grid">
-            <div>
-              <span>Surface</span>
-              <strong>{selected.surface}</strong>
-            </div>
-            <div>
-              <span>Captured</span>
-              <strong>{formatExactTime(selected.created_at)}</strong>
-            </div>
-            <div>
-              <span>Updated</span>
-              <strong>{formatTime(selected.updated_at)}</strong>
-            </div>
-            <div>
-              <span>Family</span>
-              <strong>{selected.family}</strong>
-            </div>
-          </div>
-          <div className="papercut-detail-sections">
-            <div>
-              <span>Impact</span>
-              <p>{selected.impact || "Not recorded."}</p>
-            </div>
-            <div>
-              <span>Next validation step</span>
-              <p>{selected.next_action}</p>
-            </div>
-            <div>
-              <span>Evidence references</span>
-              {selected.evidence_refs.length === 0 ? (
-                <p>None recorded.</p>
-              ) : (
-                <ul className="papercut-evidence-list">
-                  {selected.evidence_refs.map((reference) => (
-                    <li key={reference}>
-                      <code>{reference}</code>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
+              </div>
+            )}
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

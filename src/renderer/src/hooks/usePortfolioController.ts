@@ -6,6 +6,7 @@ import type {
   CreatePapercutInput,
   PapercutBacklog,
   PapercutStatus,
+  MultiplierProposalStatus,
   PortfolioSnapshot,
   PromotionDecision,
   PromotionInbox,
@@ -256,6 +257,34 @@ export function usePortfolioController() {
     [],
   );
 
+  const handleMultiplierProposalStatus = useCallback(
+    async (
+      proposalId: string,
+      status: MultiplierProposalStatus,
+    ): Promise<void> => {
+      setIsRefreshing(true);
+      setError(null);
+      setNotice(null);
+      try {
+        await api.setMultiplierProposalStatus(proposalId, status);
+        setPapercutBacklog(await api.refreshPapercutBacklog());
+        setNotice(
+          "Multiplier proposal review recorded. No implementation was started.",
+        );
+      } catch (caught) {
+        setError(
+          messageFromCaught(
+            caught,
+            "Pronto could not update that multiplier proposal.",
+          ),
+        );
+      } finally {
+        setIsRefreshing(false);
+      }
+    },
+    [],
+  );
+
   const handleOpenSkillSource = useCallback(
     async (path: string): Promise<void> => {
       try {
@@ -412,6 +441,7 @@ export function usePortfolioController() {
     handleRefreshPapercutBacklog,
     handleCreatePapercut,
     handlePapercutStatus,
+    handleMultiplierProposalStatus,
     handleOpenSkillSource,
     handleAddRoot,
     handleSaveRoot,

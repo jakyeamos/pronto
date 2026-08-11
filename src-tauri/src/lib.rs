@@ -119,6 +119,10 @@ pub fn run() {
             promotion::decide_promotion,
             papercuts::get_papercut_backlog,
             papercuts::create_papercut,
+            papercuts::observe_papercut,
+            papercuts::generate_papercut_digest,
+            papercuts::create_multiplier_proposal,
+            papercuts::set_multiplier_proposal_status,
             papercuts::set_papercut_status,
         ])
         .run(tauri::generate_context!())
