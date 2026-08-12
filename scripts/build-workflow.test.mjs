@@ -46,6 +46,14 @@ test("preserves the existing build and app compatibility aliases", () => {
   assert.doesNotMatch(installer, /Run pnpm app to build/);
 });
 
+test("restarts the collector around replacement and force-launches the exact app", () => {
+  assert.match(installer, /"bootout", collectorService/);
+  assert.match(installer, /"bootstrap",/);
+  assert.match(installer, /"kickstart", "-k", collectorService/);
+  assert.match(installer, /"-n", targetApp/);
+  assert.doesNotMatch(installer, /osascript/);
+});
+
 for (const relative of [
   "docs/development.md",
   "docs/repository-contract.md",

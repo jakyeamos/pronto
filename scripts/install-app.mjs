@@ -2,11 +2,13 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   digestBundle,
   digestFile,
+  findExecutableProcessIds,
   replaceAppBundle,
 } from "./install-app-lib.mjs";
 
@@ -24,7 +26,18 @@ const targetApp = "/Applications/Pronto.app";
 const sourceExecutable = join(sourceApp, "Contents", "MacOS", "pronto");
 const targetExecutable = join(targetApp, "Contents", "MacOS", "pronto");
 const checkOnly = globalThis.process.argv.includes("--check");
-const appBundleIdentifier = "com.pronto.desktop";
+const collectorArgument = "--skill-usage-collector";
+const collectorLabel = "com.pronto.skill-usage-collector";
+const userId = globalThis.process.getuid?.();
+const launchDomain = userId == null ? null : `gui/${userId}`;
+const collectorService =
+  launchDomain == null ? null : `${launchDomain}/${collectorLabel}`;
+const collectorPlistPath = join(
+  homedir(),
+  "Library",
+  "LaunchAgents",
+  `${collectorLabel}.plist`,
+);
 
 function fail(message) {
   globalThis.console.error(
@@ -47,25 +60,37 @@ function assertBundle(path, label) {
   return true;
 }
 
-function installedAppIsRunning() {
-  const processList = execFileSync("/bin/ps", ["-ax", "-o", "command="], {
+function installedAppProcessIds({ includeCollector = true } = {}) {
+  const processList = execFileSync("/bin/ps", ["-ax", "-o", "pid=,command="], {
     encoding: "utf8",
   });
-  const collectorCommand = `${targetExecutable} --skill-usage-collector`;
-  return processList
-    .split("\n")
-    .some(
-      (command) =>
-        !command.startsWith(collectorCommand) &&
-        (command === targetExecutable ||
-          command.startsWith(`${targetExecutable} `)),
-    );
+  return findExecutableProcessIds(
+    processList,
+    targetExecutable,
+    includeCollector ? [] : [collectorArgument],
+  );
+}
+
+function terminateInstalledApp(processIds) {
+  for (const processId of processIds) {
+    try {
+      globalThis.process.kill(processId, "SIGTERM");
+    } catch (error) {
+      if (!(
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ESRCH"
+      )) {
+        throw error;
+      }
+    }
+  }
 }
 
 function waitForInstalledAppToQuit(timeoutMilliseconds = 10_000) {
   const deadline = Date.now() + timeoutMilliseconds;
   const waitState = new Int32Array(new SharedArrayBuffer(4));
-  while (installedAppIsRunning()) {
+  while (installedAppProcessIds().length > 0) {
     if (Date.now() >= deadline) {
       throw new Error(
         "Pronto did not quit within 10 seconds; the installed bundle was not replaced.",
@@ -75,8 +100,57 @@ function waitForInstalledAppToQuit(timeoutMilliseconds = 10_000) {
   }
 }
 
+function waitForInstalledAppToStart(timeoutMilliseconds = 10_000) {
+  const deadline = Date.now() + timeoutMilliseconds;
+  const waitState = new Int32Array(new SharedArrayBuffer(4));
+  while (installedAppProcessIds({ includeCollector: false }).length === 0) {
+    if (Date.now() >= deadline) {
+      throw new Error("Pronto did not start within 10 seconds.");
+    }
+    Atomics.wait(waitState, 0, 0, 100);
+  }
+}
+
+function collectorServiceIsLoaded() {
+  if (collectorService == null) return false;
+  try {
+    execFileSync("/bin/launchctl", ["print", collectorService], {
+      stdio: "ignore",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function stopCollectorService() {
+  if (collectorService == null) {
+    throw new Error(
+      "A macOS user ID is required to stop the Pronto collector.",
+    );
+  }
+  execFileSync("/bin/launchctl", ["bootout", collectorService]);
+}
+
+function startCollectorService() {
+  if (launchDomain == null || collectorService == null) {
+    throw new Error(
+      "A macOS user ID is required to start the Pronto collector.",
+    );
+  }
+  if (!collectorServiceIsLoaded()) {
+    execFileSync("/bin/launchctl", [
+      "bootstrap",
+      launchDomain,
+      collectorPlistPath,
+    ]);
+  }
+  execFileSync("/bin/launchctl", ["kickstart", "-k", collectorService]);
+}
+
 function launchInstalledApp() {
-  execFileSync("/usr/bin/open", ["-b", appBundleIdentifier]);
+  execFileSync("/usr/bin/open", ["-n", targetApp]);
+  waitForInstalledAppToStart();
 }
 
 if (!assertBundle(sourceApp, "The local release bundle"))
@@ -129,18 +203,32 @@ if (existsSync(targetApp) && lstatSync(targetApp).isSymbolicLink()) {
 }
 
 let installedAppWasRunning = false;
+let collectorWasLoaded = false;
 try {
-  installedAppWasRunning = installedAppIsRunning();
-  if (installedAppWasRunning) {
-    execFileSync("/usr/bin/osascript", [
-      "-e",
-      `tell application id "${appBundleIdentifier}" to quit`,
-    ]);
+  const allInstalledProcessIdsBeforeUpdate = installedAppProcessIds();
+  installedAppWasRunning =
+    installedAppProcessIds({ includeCollector: false }).length > 0;
+  collectorWasLoaded = collectorServiceIsLoaded();
+  if (collectorWasLoaded) stopCollectorService();
+  if (allInstalledProcessIdsBeforeUpdate.length > 0) {
+    terminateInstalledApp(allInstalledProcessIdsBeforeUpdate);
     waitForInstalledAppToQuit();
   }
   replaceAppBundle(sourceApp, targetApp);
+  if (collectorWasLoaded) startCollectorService();
 } catch (error) {
-  if (installedAppWasRunning && existsSync(targetApp)) {
+  if (collectorWasLoaded && existsSync(targetApp)) {
+    try {
+      startCollectorService();
+    } catch {
+      // Preserve the original installation failure as the actionable error.
+    }
+  }
+  if (
+    installedAppWasRunning &&
+    existsSync(targetApp) &&
+    installedAppProcessIds({ includeCollector: false }).length === 0
+  ) {
     try {
       launchInstalledApp();
     } catch {
