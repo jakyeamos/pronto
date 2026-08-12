@@ -23,8 +23,9 @@ function inboxFixture(overrides: Partial<PromotionInbox> = {}): PromotionInbox {
         status: "candidate",
         review_status: "pending",
         maturity: "experimental",
-        package_status: "ready_for_projection",
+        package_status: "ready_for_jas_apply",
         candidate_kind: "complete",
+        jas_projection_status: "ready",
         candidate_source: "promotion-candidates",
         candidate_artifact: "artifacts/promotion-candidates/candidate.json",
         candidate_provenance_hash: "abc123456789",
@@ -161,6 +162,36 @@ describe("PromotionSurface", () => {
     expect(markup).toContain("JAS admission/install completed");
     expect(markup).toContain("JAS applied");
     expect(markup).not.toContain("Apply to JAS");
+  });
+
+  it("disables promotion choices until a sanitized JAS projection is ready", () => {
+    const base = inboxFixture();
+    const markup = renderToStaticMarkup(
+      <PromotionSurface
+        inbox={{
+          ...base,
+          candidates: [
+            {
+              ...base.candidates[0],
+              package_status: "needs_jas_projection",
+              jas_projection_status: "missing",
+            },
+          ],
+        }}
+        isRefreshing={false}
+        onRefresh={vi.fn(async () => undefined)}
+        onDecide={vi.fn(async () => undefined)}
+      />,
+    );
+
+    expect(markup).toContain(
+      "Promotion choices are disabled until this complete candidate includes a sanitized JAS projection.",
+    );
+    expect(markup).toContain('data-decision="public" disabled=""');
+    expect(markup).toContain('data-decision="private" disabled=""');
+    expect(markup).toContain('data-decision="both" disabled=""');
+    expect(markup).not.toContain('data-decision="defer" disabled=""');
+    expect(markup).not.toContain('data-decision="reject" disabled=""');
   });
 
   it("keeps a candidate-level admission result visible after inbox refresh", () => {

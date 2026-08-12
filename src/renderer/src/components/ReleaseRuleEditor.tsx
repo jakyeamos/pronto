@@ -4,7 +4,9 @@ import { Plus, Save, Trash2 } from "lucide-react";
 import type {
   QualityGate,
   QualityGateRequirement,
+  QualityRequirementPolicy,
   QualitySource,
+  QualityVerificationLevel,
   ReleaseRuleConfig,
 } from "../types";
 
@@ -68,6 +70,13 @@ const canonicalQualityGates: QualityGate[] = [
   {
     id: "dependency_audit",
     label: "Dependency audit",
+    status: "Not configured",
+    freshness: "Unknown",
+    evidence: [],
+  },
+  {
+    id: "web_readiness",
+    label: "Web readiness",
     status: "Not configured",
     freshness: "Unknown",
     evidence: [],
@@ -140,7 +149,15 @@ export function ReleaseRuleEditor({
     if (!firstAvailable) return;
     setQualityGates((current) => [
       ...current,
-      { gate_id: firstAvailable.id, source: "CI" },
+      {
+        gate_id: firstAvailable.id,
+        source: firstAvailable.id === "web_readiness" ? "QR" : "CI",
+        minimum_verification_level:
+          firstAvailable.id === "web_readiness"
+            ? "deployment_verified"
+            : undefined,
+        policy: "block",
+      },
     ]);
   };
 
@@ -248,8 +265,9 @@ export function ReleaseRuleEditor({
           <div>
             <strong>Required quality gates</strong>
             <small>
-              Select one source per gate. Release eligibility requires a fresh
-              pass; failed, stale, missing, and conflicting evidence blocks it.
+              Select one source and minimum evidence level per gate. Blocking
+              clauses require a fresh pass; warning clauses remain visible in
+              the trace without withholding release eligibility.
             </small>
           </div>
           <button
@@ -280,7 +298,17 @@ export function ReleaseRuleEditor({
                     setQualityGates((current) =>
                       current.map((item, itemIndex) =>
                         itemIndex === index
-                          ? { ...item, gate_id: gateId }
+                          ? {
+                              ...item,
+                              gate_id: gateId,
+                              ...(gateId === "web_readiness"
+                                ? {
+                                    source: "QR" as const,
+                                    minimum_verification_level:
+                                      "deployment_verified" as const,
+                                  }
+                                : {}),
+                            }
                           : item,
                       ),
                     );
@@ -298,6 +326,51 @@ export function ReleaseRuleEditor({
                       {gate.label}
                     </option>
                   ))}
+                </select>
+                <select
+                  className="text-input"
+                  aria-label={`Minimum verification for quality gate ${index + 1}`}
+                  value={requirement.minimum_verification_level ?? ""}
+                  onChange={(event) => {
+                    const minimumVerificationLevel = event.target.value as
+                      QualityVerificationLevel | "";
+                    setQualityGates((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? {
+                              ...item,
+                              minimum_verification_level:
+                                minimumVerificationLevel || undefined,
+                            }
+                          : item,
+                      ),
+                    );
+                  }}
+                >
+                  <option value="">Any evidence level</option>
+                  <option value="source_inferred">Source inferred</option>
+                  <option value="artifact_inspected">Artifact inspected</option>
+                  <option value="browser_rendered">Browser rendered</option>
+                  <option value="deployment_verified">
+                    Deployment verified
+                  </option>
+                </select>
+                <select
+                  className="text-input"
+                  aria-label={`Policy for quality gate ${index + 1}`}
+                  value={requirement.policy ?? "block"}
+                  onChange={(event) => {
+                    const policy = event.target
+                      .value as QualityRequirementPolicy;
+                    setQualityGates((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, policy } : item,
+                      ),
+                    );
+                  }}
+                >
+                  <option value="block">Block release</option>
+                  <option value="warn">Warn only</option>
                 </select>
                 <select
                   className="text-input"

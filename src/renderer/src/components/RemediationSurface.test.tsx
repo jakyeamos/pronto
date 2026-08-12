@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// quality-gate: allow static-ui-test: verifies verified closures leave the ranked active queue while retained evidence and coverage remain visible.
+// quality-gate: allow static-ui-test: verifies resolved action history does not masquerade as terminal repository state while active evidence and coverage remain visible.
 import {
   cleanup,
   fireEvent,
@@ -242,7 +242,7 @@ function runWithEvidence(
 }
 
 describe("remediation active queue", () => {
-  it("renders ranked active work separately from retained closures", () => {
+  it("renders ranked work without presenting resolved history as repository closure", () => {
     const markup = renderToStaticMarkup(
       <RemediationSurface
         run={run()}
@@ -265,7 +265,7 @@ describe("remediation active queue", () => {
     expect(markup).toContain("#1 · active-repo");
     expect(markup).toContain("Public release");
     expect(markup).toContain("repository contract");
-    expect(markup).toContain("Goal-specific closure contract");
+    expect(markup).toContain("Goal-specific completion criteria");
     expect(markup).toContain("Maturity 3.0/4 minimum");
     expect(markup).toContain("4.0/4 evidence-backed ideal");
     expect(markup).toContain("Do not add or accept superficial documentation");
@@ -277,14 +277,38 @@ describe("remediation active queue", () => {
     expect(markup).toContain("What done means");
     expect(markup).toContain("Already healthy ·");
     expect(markup).toContain("Required evidence is fresh");
-    expect(markup).toContain("What closes this plan");
+    expect(markup).toContain("What clears this queue for this refresh");
     expect(markup).toContain("does not authorize Git");
     expect(markup).toContain("Project Compass");
     expect(markup).toContain("attention");
-    expect(markup).toContain("Repositories removed from the active queue");
-    expect(markup).toContain("maturity 3.0/4 minimum · 4.0/4 ideal");
-    expect(markup).toContain("closed-repo");
-    expect(markup).toContain("active maintained");
+    expect(markup).not.toContain("Closure ledger");
+    expect(markup).not.toContain("Repositories removed from the active queue");
+    expect(markup).not.toContain("Retained closures");
+    expect(markup).not.toContain("closed-repo");
+  });
+
+  it("keeps an empty queue explicitly re-openable after new evidence", () => {
+    const emptyRun = run();
+    emptyRun.plans = [];
+
+    const markup = renderToStaticMarkup(
+      <RemediationSurface
+        run={emptyRun}
+        repositories={[]}
+        isRefreshing={false}
+        onRefresh={noop}
+        onExport={noop}
+        onUpdateStatus={noop}
+        onOpenRepository={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain("No remediation is currently queued");
+    expect(markup).toContain(
+      "New findings, commits, or workspace changes may create work on the next refresh.",
+    );
+    expect(markup).not.toContain("Closure ledger");
+    expect(markup).not.toContain("Repositories removed from the active queue");
   });
 
   it("renders the backend weighted percentage without replacing it with zero", () => {

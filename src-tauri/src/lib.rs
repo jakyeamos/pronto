@@ -1,12 +1,20 @@
 pub mod change_matrix;
 pub mod core;
+pub mod evidence_contract;
+#[cfg(target_os = "macos")]
+mod mac_accessibility;
 pub mod mac_control_maturity;
 pub mod papercuts;
 pub mod project_compass;
 pub mod promotion;
+
 pub mod quality;
+pub mod release_boundary;
 pub mod remediation;
+pub mod skill_usage_collector;
 pub mod skills;
+
+use tauri::Manager;
 
 #[cfg(desktop)]
 const WINDOW_EDGE_SNAP_THRESHOLD: i32 = 16;
@@ -62,14 +70,25 @@ fn snap_window_to_work_area(window: &tauri::Window, position: tauri::PhysicalPos
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .on_window_event(|window, event| {
             #[cfg(desktop)]
             if let tauri::WindowEvent::Moved(position) = event {
                 snap_window_to_work_area(window, *position);
             }
-        })
+        });
+
+    #[cfg(target_os = "macos")]
+    let builder = builder.on_page_load(|webview, payload| {
+        if payload.event() == tauri::webview::PageLoadEvent::Finished {
+            if let Err(error) = mac_accessibility::install(webview.clone()) {
+                log::error!("failed to install Mac Control accessibility targets: {error}");
+            }
+        }
+    });
+
+    builder
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -78,6 +97,14 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            #[cfg(target_os = "macos")]
+            if let Some(window) = app.get_webview_window("main") {
+                for webview in window.as_ref().window().webviews() {
+                    mac_accessibility::install(webview)?;
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

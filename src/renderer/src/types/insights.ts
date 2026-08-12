@@ -44,11 +44,13 @@ export interface AnalyticsSnapshot {
 }
 
 export interface SkillUsage {
+  state: "observed" | "unavailable";
   recent_count: number;
   all_time_count: number;
   by_provider: Record<string, number>;
   last_seen_at?: string;
   telemetry_source: string;
+  reason: string;
 }
 
 export interface SkillProviderState {

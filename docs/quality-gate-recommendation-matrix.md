@@ -29,6 +29,12 @@ provenance, but remove them from the gate list and release-rule choices. This
 includes labels such as `pre_cr`, `pre_pr`, version/platform matrix jobs,
 `truth_file`, `deploy`, `validate`, and `workflow_timeout`.
 
+Web readiness is a separate conditional gate rather than a universal matrix
+column. Pronto adds it only when the versioned Quality Runner report declares a
+`public_web` or `internal_web` surface. `not_applicable` requires an explicit
+reason; missing or invalid policy remains `unknown`. Bundle budgets and browser
+or deployment evidence retain their distinct verification levels.
+
 ### Matrix key
 
 | Code       | Meaning                                                                                 |
@@ -48,7 +54,9 @@ not delete the underlying CI report or QR artifact.
 
 For each available repository row, Pronto treats every `K`, `N`, `A`, and `C`
 marker as part of that repository's ideal CI profile. `C` is already scoped by
-the matrix's repository-specific capability assessment. The repository
+the matrix's repository-specific capability assessment. A registered
+repository with no non-empty, unique matrix profile receives the six-gate
+baseline instead of disappearing from the denominator. The repository
 configuration count is displayed as `configured ideal gates / ideal gates`.
 Configuration is discovered from QR capability and repository-scan artifacts,
 plus imported CI check names; it does not claim that a gate has passed.
@@ -59,8 +67,21 @@ release-relevant count of fresh passing results, while the latter counts ideal
 gates with any imported result. Each gate retains its source, status, and
 freshness. Failed, blocked, and stale evidence remains visible as an evidence
 update and does not become a passing result. Release rules independently
-require a fresh pass. `PENDING`, `FIXTURE?`, and rows with no recommended gates
-are shown as not scored rather than as zero.
+require a fresh pass. Configuration, covered evidence, and fresh passing
+evidence are independently scored from 0–4 and contribute as
+`ci.configuration`, `ci.evidence_coverage`, and `ci.fresh_passing` maturity
+dimensions. The historical `ci_readiness.score` field now has one stable
+meaning everywhere: fresh passing applicable gates divided by applicable
+gates. Covered-but-failed, blocked, or stale evidence can raise evidence
+coverage but cannot raise fresh passing readiness. `PENDING`, `FIXTURE?`, and
+rows with no recommended gates receive the baseline until an explicit
+specialized profile replaces it.
+
+Project Compass's audited MVP and complete-product progress scores also feed the
+consolidated repository maturity score as `project_compass.mvp_progress` and
+`project_compass.complete_product_progress`. Their 0–100 percentages map
+linearly to 0–4. A missing or invalid contract scores zero; its confidence
+percentage remains provenance about the assessment, not additional maturity.
 
 ## Project matrix
 

@@ -17,7 +17,7 @@ import {
 import { AppOverlays } from "./components/AppOverlays";
 import { AppSidebar } from "./components/AppSidebar";
 import { AppTopbar } from "./components/AppTopbar";
-import { formatTime, StatusPill } from "./components/ConsolePrimitives";
+import { LiveRelativeTime, StatusPill } from "./components/ConsolePrimitives";
 import { RepositoryDetailSurface } from "./components/Drawers";
 import { PortfolioCollectionsSurface } from "./components/PortfolioCollectionsSurface";
 import { PromotionSurface } from "./components/PromotionSurface";
@@ -82,6 +82,7 @@ export function App(): ReactElement {
     handleExportRemediation,
     handleRemediationStatus,
     handleConfirmRefresh,
+    handleRefreshQuality,
     handleOpenQualityReport,
   } = usePortfolioController();
   const [activeNav, setActiveNav] = useState<NavItem>("portfolio");
@@ -316,7 +317,7 @@ export function App(): ReactElement {
               <div className="intro-actions">
                 {isPortfolio && (
                   <span className="snapshot-freshness">
-                    Snapshot {formatTime(snapshot.generated_at)}
+                    Snapshot <LiveRelativeTime value={snapshot.generated_at} />
                   </span>
                 )}
                 <StatusPill tone="mint" icon={<ShieldCheck size={12} />}>
@@ -387,6 +388,8 @@ export function App(): ReactElement {
                 repositoryCount={snapshot.repositories.length}
                 rootCount={snapshot.roots.length}
                 quality={snapshot.quality}
+                snapshotGeneratedAt={snapshot.generated_at}
+                isRefreshing={isRefreshing}
                 analytics={analytics}
                 repositories={repositories}
                 allRepositories={snapshot.repositories}
@@ -400,6 +403,7 @@ export function App(): ReactElement {
                 onAddRoot={handleAddRoot}
                 onOpenRepository={handleOpenRepository}
                 onCondition={handleCondition}
+                onRefreshQuality={handleRefreshQuality}
                 onOpenQualityReport={(reportPath) =>
                   void handleOpenQualityReport(reportPath)
                 }

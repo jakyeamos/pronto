@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   GitBranch,
   MoveHorizontal,
+  ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
 import type { PortfolioSnapshot, RepositorySnapshot } from "../types";
@@ -12,10 +13,12 @@ import {
   QualityFindingsSummary,
   QualityGateCell,
   QualityMaturitySummary,
+  QualityOutcomeSummary,
   projectQualityReadinessForTarget,
   qualityConfigurationSummary,
   qualityEvidenceSummary,
   qualityGateDisplayLabel,
+  macControlFreshnessLabel,
 } from "./QualityComponents";
 import { targetScopeForRepository } from "../branchEvidence";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
@@ -31,7 +34,7 @@ const CANONICAL_GATE_IDS = [
   "secrets_scan",
 ] as const;
 
-const CONDITIONAL_GATE_IDS = ["dependency_audit"] as const;
+const CONDITIONAL_GATE_IDS = ["dependency_audit", "web_readiness"] as const;
 
 function customGateColumns(repositories: RepositorySnapshot[]): string[] {
   const knownGateIds = new Set<string>([
@@ -128,8 +131,44 @@ export function QualityGatesSurface({
   const configuration = qualityConfigurationSummary(portfolioQuality);
   const evidence = qualityEvidenceSummary(portfolioQuality);
   const macControl = portfolioQuality.mac_control_ideal_state;
+  const staleEvidenceContracts = (
+    portfolioQuality.evidence_contracts ?? []
+  ).filter((contract) => contract.status !== "current");
   return (
     <>
+      {showOverview && staleEvidenceContracts.length > 0 && (
+        <section
+          className="quality-contract-alerts"
+          aria-label="Evidence contract audits required"
+        >
+          {staleEvidenceContracts.map((contract) => (
+            <article
+              className="quality-contract-alert"
+              key={contract.contract_id}
+            >
+              <ShieldAlert size={20} />
+              <div>
+                <p className="eyebrow">Evidence contract changed</p>
+                <h2>Full fleet audit required</h2>
+                <strong>{contract.label}</strong>
+                <p>{contract.message}</p>
+                <small>{contract.next_safe_step}</small>
+              </div>
+              <div className="quality-contract-coverage">
+                <strong>
+                  {contract.current_repository_count}/
+                  {contract.repository_count}
+                </strong>
+                <span>current</span>
+                <small>
+                  {contract.legacy_repository_count} legacy ·{" "}
+                  {contract.missing_repository_count} missing
+                </small>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
       {showOverview && (
         <section className="quality-overview-grid">
           <div className="quality-overview-card quality-overview-card-accent">
@@ -144,6 +183,13 @@ export function QualityGatesSurface({
                 : ""}
               {portfolioQuality.audit_status}
             </small>
+            {portfolioQuality.source_maturity_score_display && (
+              <small>
+                QR base {portfolioQuality.source_maturity_score_display}/4 ·
+                seven operational lanes consolidated
+              </small>
+            )}
+            <QualityOutcomeSummary quality={portfolioQuality} />
             <div className="quality-overview-secondary">
               <span>CI configuration</span>
               <strong>
@@ -171,7 +217,7 @@ export function QualityGatesSurface({
             </strong>
             <small>
               {macControl
-                ? `${macControl.applicable_repository_count} applicable repositories · ${macControl.freshness}`
+                ? `${macControl.applicable_repository_count} applicable repositories · ${macControlFreshnessLabel(macControl.freshness)}`
                 : "Not configured"}
             </small>
             <small>
@@ -179,14 +225,24 @@ export function QualityGatesSurface({
               typeof macControl.implementation_criteria_passed_count ===
                 "number" &&
               typeof macControl.implementation_criteria_total === "number"
-                ? "Implementation: " +
+                ? "Semantic source evidence: " +
                   macControl.implementation_criteria_passed_count +
                   "/" +
                   macControl.implementation_criteria_total +
-                  " criteria · " +
+                  " dimensions · " +
+                  (macControl.implementation_score_display ?? "—") +
+                  "/4 · " +
                   (macControl.implementation_status ?? "—")
-                : "Implementation lane not reported"}
+                : "Semantic source-evidence lane not reported"}
             </small>
+            {macControl &&
+            (macControl.implementation_declaration_criteria_count ?? 0) > 0 ? (
+              <small>
+                Legacy declarations:{" "}
+                {macControl.implementation_declaration_criteria_count} recorded
+                · non-scoring until v4 source evidence is established
+              </small>
+            ) : null}
             <small>
               {macControl &&
               typeof macControl.measured_task_count === "number" &&
@@ -196,11 +252,14 @@ export function QualityGatesSurface({
                   "/" +
                   macControl.live_task_count +
                   " measured · " +
+                  (macControl.live_score_display ?? "—") +
+                  "/4 · " +
                   (macControl.live_status ?? "—")
                 : "Live task lane not reported"}
             </small>
             <small>
-              Both lanes are required before claiming the 4.0/4.0 maturity ideal
+              Source-grounded semantics and live task evidence are both required
+              for the 4.0/4.0 maturity ideal
             </small>
             <ShieldCheck size={18} />
           </div>

@@ -91,7 +91,7 @@ export function RemediationExplanation({
           </div>
         </details>
         <details>
-          <summary>What closes this plan</summary>
+          <summary>What clears this queue for this refresh</summary>
           <ul>
             {explanation.closure_requirements.map((requirement) => (
               <li key={requirement}>{requirement}</li>

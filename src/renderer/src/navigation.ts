@@ -69,7 +69,7 @@ export const pageCopy: Record<
   skills: {
     eyebrow: "Provider-neutral corpus",
     title: "Know what your skills are doing.",
-    body: "Inspect sources, provider compatibility, hosting, and observed local usage without retaining prompts or skill bodies.",
+    body: "Inspect sources, provider compatibility, hosting, and verified usage availability without treating prompts or skill catalogs as telemetry.",
   },
   remote: {
     eyebrow: "Read-only provider boundary",

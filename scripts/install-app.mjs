@@ -36,7 +36,7 @@ function fail(message) {
 function assertBundle(path, label) {
   if (!existsSync(path)) {
     fail(
-      `${label} is missing at ${path}. Run ${checkOnly ? "pnpm build first" : "pnpm build before installing"}.`,
+      `${label} is missing at ${path}. Run pnpm build:bundle ${checkOnly ? "before checking the installed app" : "before installing"}.`,
     );
     return false;
   }
@@ -51,12 +51,14 @@ function installedAppIsRunning() {
   const processList = execFileSync("/bin/ps", ["-ax", "-o", "command="], {
     encoding: "utf8",
   });
+  const collectorCommand = `${targetExecutable} --skill-usage-collector`;
   return processList
     .split("\n")
     .some(
       (command) =>
-        command === targetExecutable ||
-        command.startsWith(`${targetExecutable} `),
+        !command.startsWith(collectorCommand) &&
+        (command === targetExecutable ||
+          command.startsWith(`${targetExecutable} `)),
     );
 }
 
@@ -109,7 +111,7 @@ if (checkOnly) {
   );
   if (sourceBundleDigest !== targetBundleDigest) {
     fail(
-      "Applications is stale. Run pnpm app to build and install the current checkout.",
+      "Applications is stale. Run pnpm app:update to promote the current checkout.",
     );
     globalThis.process.exit(1);
   }

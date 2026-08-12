@@ -349,6 +349,7 @@ interface ReleasePreparation {
   candidate_bump?: string;
   candidate_version?: string;
   version_status: string;
+  release_boundary_status?: string;
   notes: ReleaseNoteSection[];
   status: string;
   reasons: string[];

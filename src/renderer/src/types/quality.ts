@@ -12,10 +12,19 @@ export type QualityGateStatus =
   "Passed" | "Failed" | "Blocked" | "Not configured";
 export type QualitySource = "CI" | "Local" | "QR";
 export type QualityFreshness = "Fresh" | "Stale" | "Unknown" | "Conflicted";
+export type QualityVerificationLevel =
+  | "unknown"
+  | "source_inferred"
+  | "artifact_inspected"
+  | "browser_rendered"
+  | "deployment_verified";
+export type QualityRequirementPolicy = "block" | "warn";
 
 export interface QualityGateRequirement {
   gate_id: string;
   source: QualitySource;
+  minimum_verification_level?: QualityVerificationLevel;
+  policy?: QualityRequirementPolicy;
 }
 
 export interface QualityEvidence {
@@ -31,6 +40,80 @@ export interface QualityEvidence {
   report_path?: string;
   report_url?: string;
   report_kind?: string;
+  detail: string;
+  verification_level?: QualityVerificationLevel;
+  target_kind?: string;
+  target_url?: string;
+  target_provider?: string;
+  deployment_id?: string;
+}
+
+interface WebReadinessCheck {
+  id: string;
+  label: string;
+  category: string;
+  policy: QualityRequirementPolicy | string;
+  status: string;
+  verification_level: QualityVerificationLevel;
+  detail: string;
+  routes: string[];
+}
+
+interface WebReadinessTarget {
+  kind: string;
+  commit?: string;
+  url?: string;
+  provider?: string;
+  deployment_id?: string;
+  artifact_digest?: string;
+}
+
+export interface WebReadinessSnapshot {
+  status:
+    "Ready" | "Warnings" | "Blocked" | "Unknown" | "Not applicable" | string;
+  applicability: string;
+  applicability_reason?: string;
+  freshness: QualityFreshness;
+  observed_at?: string;
+  scanned_commit?: string;
+  scanned_branch?: string;
+  report_path?: string;
+  target: WebReadinessTarget;
+  checks: WebReadinessCheck[];
+  passed_count: number;
+  failed_count: number;
+  blocked_count: number;
+  unknown_count: number;
+  warning_count: number;
+}
+
+interface ReleaseBoundaryArtifact {
+  kind: string;
+  path: string;
+  sha256: string;
+  size_bytes: number;
+}
+
+interface ReleaseBoundaryCheck {
+  id: string;
+  status: string;
+  reason?: string;
+}
+
+interface ReleaseBoundarySnapshot {
+  schema?: string;
+  status: string;
+  freshness: string;
+  generated_at?: string;
+  scanned_commit?: string;
+  scanned_branch?: string;
+  producer_version?: string;
+  report_path?: string;
+  matrix_path?: string;
+  matrix_sha256?: string;
+  artifacts: ReleaseBoundaryArtifact[];
+  checks: ReleaseBoundaryCheck[];
+  blocking_check_ids: string[];
   detail: string;
 }
 
@@ -75,6 +158,7 @@ export interface QualityMaturity {
     score?: number;
     message: string;
   }>;
+  quality_outcome?: QualityRepositoryOutcome;
   agent_usability?: AgentUsabilityMaturity;
   audit_id?: string;
   observed_at?: string;
@@ -84,7 +168,14 @@ export interface QualityMaturity {
   report_path?: string;
 }
 
-export interface AgentUsabilityLane {
+export interface QualityRepositoryOutcome {
+  state: string;
+  label: string;
+  disposition?: string;
+  next_step?: string;
+}
+
+interface AgentUsabilityLane {
   id: string;
   label: string;
   applicable: boolean;
@@ -93,8 +184,9 @@ export interface AgentUsabilityLane {
   message: string;
 }
 
-export interface AgentUsabilityGrowthHealth {
+interface AgentUsabilityGrowthHealth {
   status: string;
+  score?: number;
   message: string;
   document_count: number;
   agent_document_count: number;
@@ -114,9 +206,10 @@ export interface AgentUsabilityGrowthHealth {
   inventory_truncated: boolean;
 }
 
-export interface AgentUsabilityMaturity {
+interface AgentUsabilityMaturity {
   schema: string;
   status: string;
+  applicability?: "applicable" | "not_applicable";
   manifest_status: string;
   manifest_path: string;
   applicable_lane_count: number;
@@ -128,6 +221,8 @@ export interface AgentUsabilityMaturity {
 export interface QualityReadiness {
   score?: number;
   score_display?: string;
+  evidence_coverage_score?: number;
+  evidence_coverage_score_display?: string;
   configuration_score?: number;
   configuration_score_display?: string;
   applicable_gate_ids: string[];
@@ -141,7 +236,33 @@ export interface QualityReadiness {
   blocked_gate_ids: string[];
 }
 
-export interface MacControlRepositoryState {
+interface EvidenceContractRepositoryStatus {
+  contract_id: string;
+  label: string;
+  target_schema: string;
+  observed_schema?: string;
+  status: "current" | "audit_required" | "missing" | string;
+  repository_id: string;
+  repository_name: string;
+  message: string;
+}
+
+interface EvidenceContractFleetCoverage {
+  contract_id: string;
+  label: string;
+  target_schema: string;
+  status: "current" | "audit_required" | string;
+  repository_count: number;
+  current_repository_count: number;
+  legacy_repository_count: number;
+  missing_repository_count: number;
+  observed_schema_counts?: Record<string, number>;
+  affected_repository_ids?: string[];
+  message: string;
+  next_safe_step: string;
+}
+
+interface MacControlRepositoryState {
   repository_id: string;
   repository_name: string;
   applicability: string;
@@ -153,18 +274,23 @@ export interface MacControlRepositoryState {
   implementation_status?: string;
   implementation_criteria_passed_count?: number;
   implementation_criteria_total?: number;
+  implementation_declaration_criteria_count?: number;
+  implementation_evidence_level?: string;
+  source_provenance_status?: string;
+  source_provenance_dirty_paths?: string[];
   live_status?: string;
   live_task_count?: number;
   live_attempt_count?: number;
   live_success_count?: number;
   criteria?: Record<string, boolean>;
   failure_reasons?: string[];
+  evidence_contract?: EvidenceContractRepositoryStatus;
   observed_at?: string;
   observed_commit?: string;
   report_path?: string;
 }
 
-export interface MacControlPortfolioSnapshot {
+interface MacControlPortfolioSnapshot {
   status: string;
   freshness: string;
   ideal_state: boolean;
@@ -172,15 +298,21 @@ export interface MacControlPortfolioSnapshot {
   not_applicable_repository_count: number;
   evaluated_repository_count: number;
   implementation_status?: string;
+  implementation_score?: number;
+  implementation_score_display?: string;
   implementation_criteria_passed_count?: number;
   implementation_criteria_total?: number;
+  implementation_declaration_criteria_count?: number;
   live_status?: string;
+  live_score?: number;
+  live_score_display?: string;
   live_task_count?: number;
   measured_task_count?: number;
   live_attempt_count?: number;
   live_success_count?: number;
   repository_states?: MacControlRepositoryState[];
   failure_reasons?: string[];
+  evidence_contract?: EvidenceContractFleetCoverage;
   observed_at?: string;
   report_path?: string;
   run_id?: string;
@@ -193,6 +325,9 @@ export interface QualitySnapshot {
   target_fleet_audit_root?: string;
   ci_readiness: QualityReadiness;
   mac_control_ideal_state?: MacControlRepositoryState;
+  evidence_contracts?: EvidenceContractRepositoryStatus[];
+  web_readiness?: WebReadinessSnapshot;
+  release_boundary?: ReleaseBoundarySnapshot;
   last_ingested_at?: string;
   ingestion_status: string;
   ingestion_message?: string;
@@ -207,9 +342,16 @@ export interface QualityPortfolioSnapshot {
   maturity_score?: number;
   maturity_score_display?: string;
   scored_dimension_count?: number;
+  source_maturity_score?: number;
+  source_maturity_score_display?: string;
+  source_scored_dimension_count?: number;
   audit_status: string;
   ci_readiness_score?: number;
   ci_readiness_score_display?: string;
+  ci_evidence_coverage_score?: number;
+  ci_evidence_coverage_score_display?: string;
+  ci_configuration_score?: number;
+  ci_configuration_score_display?: string;
   ci_readiness_full_repository_count?: number;
   ci_readiness_repository_count?: number;
   ci_readiness_unscored_repository_count?: number;
@@ -223,7 +365,13 @@ export interface QualityPortfolioSnapshot {
   ci_configuration_unscored_repository_count?: number;
   feed_schema?: string;
   provenance_hash?: string;
+  quality_outcome_counts?: Record<string, number>;
+  quality_outcome_taxonomy?: Record<
+    string,
+    { label: string; meaning: string; next_step?: string }
+  >;
   mac_control_ideal_state?: MacControlPortfolioSnapshot;
+  evidence_contracts?: EvidenceContractFleetCoverage[];
 }
 
 export interface ReleaseRecipeConfig {

@@ -23,6 +23,7 @@ import {
   QualityGateCell,
   QualityGateStatusPill,
   QualityMaturitySummary,
+  WebReadinessSummary,
   projectQualityGateForTarget,
   projectQualityReadinessForTarget,
   qualityGateDisplayLabel,
@@ -288,6 +289,10 @@ export function RepositoryDetailSurface({
                 targetCommit={selectedTargetCommit}
                 onOpenReport={onOpenReport}
               />
+              <WebReadinessSummary
+                webReadiness={repository.quality.web_readiness}
+                onOpenReport={onOpenReport}
+              />
             </div>
             <div className="quality-detail-gates">
               {detailQualityGates.map((gate) => (
@@ -379,7 +384,13 @@ export function RepositoryDetailSurface({
                       >
                         <span>
                           <strong>{gate?.label ?? requirement.gate_id}</strong>
-                          <small>{requirement.source} evidence</small>
+                          <small>
+                            {requirement.source} evidence ·{" "}
+                            {requirement.policy ?? "block"}
+                            {requirement.minimum_verification_level
+                              ? ` · ${requirement.minimum_verification_level.replaceAll("_", " ")}`
+                              : " · any level"}
+                          </small>
                         </span>
                         {gateProjection &&
                         gateProjection.state === "unavailable" &&

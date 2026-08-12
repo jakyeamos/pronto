@@ -2,8 +2,9 @@
 
 Last reviewed: 2026-08-09.
 
-Pronto consumes a Quality Runner projection that keeps agent usability separate
-from the aggregate environment-legibility score. The projection has four
+Pronto consumes a Quality Runner projection that keeps agent usability
+diagnostically distinct while including every applicable audited score in the
+aggregate repository and fleet maturity result. The projection has four
 independent evidence lanes:
 
 1. **Documentation contract** — every declared agent-facing tool has an existing,
@@ -15,10 +16,11 @@ independent evidence lanes:
 4. **Freshness and portability** — the relationship manifest is current and uses
    repository-relative references.
 
-These lanes supplement the existing maturity dimensions. Documentation and
-conditional hosted-skill quality continue to contribute to the Quality Runner
-maturity score; the dedicated projection prevents their relationship and
-behavior state from being hidden inside an average.
+Each applicable lane contributes under a stable `agent_usability.*` dimension
+ID. The dedicated projection still exposes the underlying relationship and
+behavior state, but it no longer removes their consequence from the average. A
+4/4 repository therefore requires 4/4 in every ordinary and applicable
+agent-usability dimension.
 
 ## Repository contract
 
@@ -44,7 +46,7 @@ documentation or a test filename into behavior proof.
 
 ## Growth health
 
-Growth health is orthogonal to the four maturity lanes. It reports:
+Growth health reports:
 
 - total and agent-facing document counts, routed and unrouted agent documents,
   oversized documents, and bounded-inventory truncation;
@@ -53,8 +55,9 @@ Growth health is orthogonal to the four maturity lanes. It reports:
 - tool count and documentation, skill, declared-behavior, and verified-behavior
   coverage.
 
-The status is based on proportional structure and resolvable references. Adding
-more prose or more skills cannot improve it by itself. Unrouted documents,
+Its blocked, attention, and healthy states score 0, 2, and 4 respectively under
+`agent_usability.growth_health` and contribute to repository and fleet maturity.
+Adding more prose or more skills cannot improve the score by itself. Unrouted documents,
 unclassified skills, oversized required surfaces, unresolved references, or a
 bounded inventory limit create explicit pressure instead.
 
@@ -66,6 +69,7 @@ passing repository-owned receipt. Source files and tests may be declared as
 candidate evidence, but they do not become execution proof without a passing
 status and observation date.
 
-Pronto renders the four lane scores and growth-health counts from the canonical
-QR feed. It does not recompute coverage or turn missing evidence into zero or a
-passing state.
+Explicit `not_applicable` lanes and growth health carry no score and remain
+outside the repository and fleet denominators. Pronto renders the canonical QR
+score, four lane scores, and growth-health score and counts. It does not infer
+coverage or turn missing evidence into zero or a passing state.

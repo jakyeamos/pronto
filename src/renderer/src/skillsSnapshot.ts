@@ -34,6 +34,19 @@ function countValue(value: unknown): number {
     : 0;
 }
 
+function exactCount(value: unknown): number | null {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : null;
+}
+
+function validTimestamp(value: unknown): string | undefined {
+  const timestamp = optionalString(value);
+  return timestamp && !Number.isNaN(Date.parse(timestamp))
+    ? timestamp
+    : undefined;
+}
+
 function stringList(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter(
@@ -173,22 +186,69 @@ function normalizeSource(value: unknown): SkillSource | null {
 
 function normalizeUsage(value: unknown): SkillUsage {
   const usage = asRecord(value);
+  const state = usage.state === "observed" ? "observed" : "unavailable";
+  const unavailable = (reason?: string): SkillUsage => {
+    return {
+      state: "unavailable",
+      recent_count: 0,
+      all_time_count: 0,
+      by_provider: {},
+      telemetry_source:
+        "Unavailable; catalog, prompt, and transcript text are never counted as invocations.",
+      reason: stringValue(
+        reason ?? usage.reason,
+        "No installed provider exposes a structured local skill-invocation feed that Pronto can verify.",
+      ),
+    };
+  };
+  if (state === "unavailable") {
+    return unavailable();
+  }
+  const telemetrySource = optionalString(usage.telemetry_source);
+  const recentCount = exactCount(usage.recent_count);
+  const allTimeCount = exactCount(usage.all_time_count);
+  const providerEntries = Object.entries(asRecord(usage.by_provider));
+  const validProviderEntries = providerEntries.every(
+    ([provider, count]) =>
+      provider.trim().length > 0 && exactCount(count) !== null,
+  );
   const byProvider = Object.fromEntries(
-    Object.entries(asRecord(usage.by_provider)).map(([provider, count]) => [
+    providerEntries.map(([provider, count]) => [
       provider,
-      countValue(count),
+      exactCount(count) ?? 0,
     ]),
   );
-  const lastSeenAt = optionalString(usage.last_seen_at);
+  const providerTotal = Object.values(byProvider).reduce(
+    (total, count) => total + count,
+    0,
+  );
+  const lastSeenAt = validTimestamp(usage.last_seen_at);
+  const timestampIsConsistent =
+    allTimeCount === 0
+      ? usage.last_seen_at === undefined || usage.last_seen_at === null
+      : lastSeenAt !== undefined;
+  if (
+    !telemetrySource ||
+    recentCount === null ||
+    allTimeCount === null ||
+    recentCount > allTimeCount ||
+    providerEntries.length === 0 ||
+    !validProviderEntries ||
+    providerTotal !== allTimeCount ||
+    !timestampIsConsistent
+  ) {
+    return unavailable(
+      "Structured usage evidence was malformed or internally inconsistent, so Pronto discarded its counts.",
+    );
+  }
   return {
-    recent_count: countValue(usage.recent_count),
-    all_time_count: countValue(usage.all_time_count),
+    state,
+    recent_count: recentCount,
+    all_time_count: allTimeCount,
     by_provider: byProvider,
     ...(lastSeenAt ? { last_seen_at: lastSeenAt } : {}),
-    telemetry_source: stringValue(
-      usage.telemetry_source,
-      "No local telemetry observed.",
-    ),
+    telemetry_source: telemetrySource,
+    reason: stringValue(usage.reason, "Structured usage evidence observed."),
   };
 }
 
@@ -248,7 +308,7 @@ export function normalizeSkillsSnapshot(value: unknown): SkillsSnapshot {
   const refreshedAt = optionalString(snapshot.refreshed_at);
 
   return {
-    schema_version: stringValue(snapshot.schema_version, "pronto-skills/v3"),
+    schema_version: stringValue(snapshot.schema_version, "pronto-skills/v4"),
     generated_at: generatedAt,
     ...(refreshedAt ? { refreshed_at: refreshedAt } : {}),
     freshness: stringValue(

@@ -33,10 +33,13 @@ function makeSkill(overrides: Partial<SkillRecord> = {}): SkillRecord {
     },
     parity_evidence: ["Behavioral fixtures unavailable"],
     usage: {
+      state: "observed",
       recent_count: 3,
       all_time_count: 7,
-      by_provider: { codex: 3 },
-      telemetry_source: "Local session records",
+      by_provider: { codex: 7 },
+      last_seen_at: "2026-07-27T12:00:00Z",
+      telemetry_source: "Structured Codex invocation feed",
+      reason: "Structured usage evidence observed.",
     },
     ...overrides,
   };
@@ -44,7 +47,7 @@ function makeSkill(overrides: Partial<SkillRecord> = {}): SkillRecord {
 
 function makeSnapshot(skills: SkillRecord[] = [makeSkill()]): SkillsSnapshot {
   return {
-    schema_version: "pronto-skills/v2",
+    schema_version: "pronto-skills/v4",
     generated_at: "2026-07-27T12:00:00Z",
     refreshed_at: "2026-07-27T12:00:00Z",
     freshness: "Observed through 2026-07-27T12:00:00Z",
@@ -52,7 +55,7 @@ function makeSnapshot(skills: SkillRecord[] = [makeSkill()]): SkillsSnapshot {
     recent_days: 30,
     roots: ["canonical"],
     skills,
-    telemetry_gap: "Best-effort local telemetry",
+    telemetry_gap: "Structured usage telemetry",
   };
 }
 
@@ -88,7 +91,7 @@ describe("skills surface", () => {
     expect(markup).toContain("codex: projected");
     expect(markup).toContain("claude: divergent");
     expect(markup).toContain("Unknown");
-    expect(markup).toContain("7 all-time");
+    expect(markup).toContain("7 recorded");
     expect(markup).toContain("UI &amp; Design");
     expect(markup).not.toContain("Browser");
     expect(markup).not.toContain("Standalone");
@@ -144,6 +147,107 @@ describe("skills surface", () => {
     expect(markup).toContain("Other");
     expect(markup).not.toContain("Standalone");
     expect(markup).toContain("Parity evidence is unavailable.");
+    expect(markup).toContain("Unavailable");
+  });
+
+  it("invalidates legacy text-derived usage instead of presenting false counts", () => {
+    const snapshot = normalizeSkillsSnapshot({
+      schema_version: "pronto-skills/v2",
+      skills: [
+        {
+          name: "legacy-skill",
+          description: "Old record",
+          usage: {
+            recent_count: 2,
+            all_time_count: 2,
+            by_provider: { claude: 2 },
+            last_seen_at: "2026-07-08T03:52:57.943Z",
+            telemetry_source: "Local session records",
+          },
+        },
+      ],
+    });
+
+    expect(snapshot.skills[0]?.usage).toMatchObject({
+      state: "unavailable",
+      recent_count: 0,
+      all_time_count: 0,
+      by_provider: {},
+    });
+
+    const markup = renderToStaticMarkup(
+      <SkillsSurface
+        snapshot={snapshot}
+        isRefreshing={false}
+        onRefresh={() => undefined}
+        onOpenSource={() => undefined}
+        {...papercutProps}
+      />,
+    );
+    expect(markup).toContain("Usage evidence");
+    expect(markup).toContain("Unavailable");
+    expect(markup).not.toContain("2 recorded");
+    expect(markup).not.toContain("Recent usage");
+  });
+
+  it("shows the structured usage provenance in skill detail", () => {
+    render(
+      <SkillsSurface
+        snapshot={makeSnapshot()}
+        isRefreshing={false}
+        onRefresh={() => undefined}
+        onOpenSource={() => undefined}
+        {...papercutProps}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("example"));
+
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === "DD" &&
+          element.textContent?.includes("7 recorded") === true,
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("Structured Codex invocation feed")).toBeTruthy();
+    expect(
+      screen.getByText("Structured usage evidence observed."),
+    ).toBeTruthy();
+  });
+
+  it.each([
+    ["missing provenance", { telemetry_source: "" }],
+    ["impossible aggregate", { recent_count: 8, all_time_count: 7 }],
+    ["provider mismatch", { by_provider: { codex: 6 } }],
+    ["missing observation time", { last_seen_at: undefined }],
+    ["invalid observation time", { last_seen_at: "34 days ago" }],
+  ])("fails closed for observed usage with %s", (_label, usageOverride) => {
+    const snapshot = normalizeSkillsSnapshot({
+      skills: [
+        {
+          name: "malformed-skill",
+          usage: {
+            state: "observed",
+            recent_count: 3,
+            all_time_count: 7,
+            by_provider: { codex: 7 },
+            last_seen_at: "2026-08-10T20:00:00Z",
+            telemetry_source: "Structured Codex invocation feed",
+            ...usageOverride,
+          },
+        },
+      ],
+    });
+
+    expect(snapshot.skills[0]?.usage).toMatchObject({
+      state: "unavailable",
+      recent_count: 0,
+      all_time_count: 0,
+      by_provider: {},
+      reason:
+        "Structured usage evidence was malformed or internally inconsistent, so Pronto discarded its counts.",
+    });
   });
 
   it("keeps a missing top-level bridge payload in a usable empty state", () => {
@@ -175,6 +279,15 @@ describe("skills surface", () => {
                 state: "native",
                 reason: "Native Pronto design-audit backlog surface",
               },
+            },
+            usage: {
+              state: "unavailable",
+              recent_count: 0,
+              all_time_count: 0,
+              by_provider: {},
+              telemetry_source:
+                "Unavailable; catalog, prompt, and transcript text are never counted as invocations.",
+              reason: "Papercuts invocation telemetry is not recorded.",
             },
           }),
         ])}

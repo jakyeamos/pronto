@@ -23,6 +23,7 @@ import type {
   RepositoryPreparation,
   RepositorySnapshot,
   WorkspaceSummary,
+  WebReadinessSnapshot,
 } from "../types";
 import { PreparationDrawer } from "./PreparationDrawer";
 import { qualityGateChoices } from "./ReleaseRuleEditor";
@@ -32,6 +33,7 @@ import { AttentionQueue, RepositoryRow } from "./PortfolioComponents";
 import {
   QualityAttentionList,
   QualityEvidenceList,
+  QualityOutcomeSummary,
   qualityAttentionItems,
 } from "./QualityComponents";
 import { QualityGatesSurface } from "./QualityGatesSurface";
@@ -39,6 +41,7 @@ import { RepositoryDetailSurface } from "./Drawers";
 import { PortfolioCollectionsSurface } from "./PortfolioCollectionsSurface";
 import { navItems } from "../navigation";
 import { ProjectCompassDetail } from "./ProjectCompassDetail";
+import { WebReadinessSummary } from "./WebReadinessSummary";
 
 const canonicalGateDefinitions = [
   ["build", "Build"],
@@ -105,6 +108,8 @@ function makeFindings(
 ): QualityFindings {
   return {
     total: 0,
+    category_counts: {},
+    actionable_category_counts: {},
     actionable_total: 0,
     reviewed_total: 0,
     unreviewed_total: 0,
@@ -513,6 +518,7 @@ describe("quality evidence surfaces", () => {
             ],
             growth_health: {
               status: "healthy",
+              score: 4,
               message:
                 "Documentation and skill structure remains proportionate and routed.",
               document_count: 12,
@@ -564,6 +570,33 @@ describe("quality evidence surfaces", () => {
           scored_dimension_count: 10,
           matched_repository_count: 1,
           latest_audit_at: "2026-07-26T11:00:00Z",
+          quality_outcome_counts: {
+            checks_failing: 2,
+            verification_blocked: 1,
+            review_needed: 3,
+            evidence_unknown: 1,
+          },
+          quality_outcome_taxonomy: {
+            checks_failing: {
+              label: "Quality checks failing",
+              meaning: "Observed quality checks or blocker findings failed.",
+            },
+            verification_blocked: {
+              label: "Quality verification blocked",
+              meaning:
+                "Setup, execution, timeout, or target provenance prevented a trustworthy verdict.",
+            },
+            review_needed: {
+              label: "Quality review needed",
+              meaning:
+                "No blocker is known, but applicable evidence remains below ideal or unverified.",
+            },
+            evidence_unknown: {
+              label: "Quality evidence unknown",
+              meaning:
+                "Required evidence is unavailable, stale, or explicitly unknown.",
+            },
+          },
           ci_readiness_score: 2.67,
           ci_readiness_score_display: "2.67",
           ci_readiness_full_repository_count: 0,
@@ -576,15 +609,20 @@ describe("quality evidence surfaces", () => {
           ci_evidence_ideal_gate_count: 6,
           mac_control_ideal_state: {
             status: "Failed",
-            freshness: "Fresh",
+            freshness: "Unknown",
             ideal_state: false,
             applicable_repository_count: 1,
             not_applicable_repository_count: 0,
             evaluated_repository_count: 1,
             implementation_status: "Failed",
+            implementation_score: 3.5,
+            implementation_score_display: "3.5",
             implementation_criteria_passed_count: 7,
             implementation_criteria_total: 8,
+            implementation_declaration_criteria_count: 0,
             live_status: "Review required",
+            live_score: 0,
+            live_score_display: "0.0",
             live_task_count: 3,
             measured_task_count: 0,
             failure_reasons: ["The report has an unresolved task contract."],
@@ -595,6 +633,11 @@ describe("quality evidence surfaces", () => {
         onOpenReport={noopReport}
       />,
     );
+    expect(markup).toContain("Quality checks failing");
+    expect(markup).toContain("Quality verification blocked");
+    expect(markup).toContain("Quality review needed");
+    expect(markup).toContain("Evidence review required");
+    expect(markup).not.toContain("Quality evidence unknown");
 
     expect(markup).toContain("Quality gate matrix");
     expect(markup).toContain("1.933");
@@ -602,10 +645,17 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("1/6");
     expect(markup).toContain("Fresh passing evidence: 1/6");
     expect(markup).toContain("Mac Control ideal state");
-    expect(markup).toContain("Implementation: 7/8 criteria · Failed");
-    expect(markup).toContain("Live tasks: 0/3 measured · Review required");
     expect(markup).toContain(
-      "Both lanes are required before claiming the 4.0/4.0 maturity ideal",
+      "1 applicable repositories · Fleet freshness incomplete—inspect repository blockers",
+    );
+    expect(markup).toContain(
+      "Semantic source evidence: 7/8 dimensions · 3.5/4 · Failed",
+    );
+    expect(markup).toContain(
+      "Live tasks: 0/3 measured · 0.0/4 · Review required",
+    );
+    expect(markup).toContain(
+      "Source-grounded semantics and live task evidence are both required for the 4.0/4.0 maturity ideal",
     );
     expect(markup).toContain("Tests");
     expect(markup).toContain("8 canonical");
@@ -630,6 +680,24 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("Documentation contract");
     expect(markup).toContain("3/3 agent docs routed");
     expect(markup).toContain("4 skills in 2 families");
+    expect(markup).toContain("4/4");
+  });
+
+  it("uses the evidence-review disposition when an older feed omits taxonomy", () => {
+    const markup = renderToStaticMarkup(
+      <QualityOutcomeSummary
+        quality={{
+          matched_repository_count: 1,
+          audit_status: "Ready",
+          quality_outcome_counts: { evidence_unknown: 1 },
+        }}
+      />,
+    );
+
+    expect(markup).toContain("Evidence review required");
+    expect(markup).toContain("Required evidence is not current or confirmed");
+    expect(markup).not.toContain("evidence_unknown");
+    expect(markup).not.toContain("unknown");
   });
 
   it("shows exact target evidence provenance instead of implying branch-specific stats", () => {
@@ -749,6 +817,79 @@ describe("quality evidence surfaces", () => {
       "Breakdown is from the selected branch at an older head",
     );
     expect(staleCommit).not.toContain("Target QR findings unavailable");
+  });
+
+  it("exposes native, skill, and future QR finding categories without a consumer whitelist", () => {
+    const repository = makeRepository({
+      quality: makeQuality({
+        findings: makeFindings({
+          total: 7,
+          actionable_total: 5,
+          unreviewed_total: 7,
+          freshness: "Fresh",
+          category_counts: {
+            "maintenance-surface": 3,
+            speed: 2,
+            "skill:performance-readiness": 1,
+            "future-category": 1,
+          },
+          actionable_category_counts: {
+            "maintenance-surface": 1,
+            speed: 2,
+            "skill:performance-readiness": 1,
+            "future-category": 1,
+          },
+        }),
+      }),
+    });
+    const markup = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([repository])}
+        repositories={[repository]}
+        showOverview={false}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup).toContain("4 finding categories");
+    expect(markup).toContain('aria-label="QR finding categories"');
+    expect(markup).toContain("maintenance surface");
+    expect(markup).toContain("skill performance readiness");
+    expect(markup).toContain("future category");
+    expect(markup).toContain("1</b> actionable · 3 detected");
+  });
+
+  it("exposes every imported fleet finding dimension without a consumer whitelist", () => {
+    const repository = makeRepository({
+      quality: makeQuality({
+        maturity: makeMaturity({
+          score: 2,
+          score_display: "2.000",
+          scored_dimension_count: 4,
+          freshness: "Fresh",
+          dimension_scores: {
+            "agent_usability.behavior_evidence": 1,
+            change_surface_coverage: 2,
+            dynamic_verification: 1,
+            future_dimension: 4,
+          },
+        }),
+      }),
+    });
+    const markup = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([repository])}
+        repositories={[repository]}
+        showOverview={false}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup).toContain("4 scored dimensions");
+    expect(markup).toContain('aria-label="Maturity dimension scores"');
+    expect(markup).toContain("agent usability behavior evidence");
+    expect(markup).toContain("dynamic verification");
+    expect(markup).toContain("future dimension");
   });
 
   it("keeps Tenure dev evidence visible while marking its older head stale", () => {
@@ -1083,6 +1224,8 @@ describe("quality evidence surfaces", () => {
         unsyncedCount={0}
         repositoryCount={1}
         rootCount={1}
+        snapshotGeneratedAt="2026-08-11T17:00:00Z"
+        isRefreshing={false}
         quality={
           makePortfolio([repository], {
             maturity_score_display: "1.933",
@@ -1097,6 +1240,34 @@ describe("quality evidence surfaces", () => {
             ci_evidence_fresh_passing_gate_count: 0,
             ci_evidence_ideal_gate_count: 6,
             ci_readiness_open_gate_counts: { tests: 1 },
+            mac_control_ideal_state: {
+              status: "Blocked",
+              freshness: "Unknown",
+              ideal_state: false,
+              applicable_repository_count: 1,
+              not_applicable_repository_count: 0,
+              evaluated_repository_count: 1,
+              implementation_status: "Blocked",
+              implementation_score: 0,
+              implementation_score_display: "0.0",
+              implementation_criteria_passed_count: 0,
+              implementation_criteria_total: 8,
+              implementation_declaration_criteria_count: 8,
+              live_status: "Blocked",
+              live_score: 0,
+              live_score_display: "0.0",
+              live_task_count: 5,
+              measured_task_count: 0,
+              failure_reasons: [],
+            },
+            quality_outcome_counts: { verification_blocked: 1 },
+            quality_outcome_taxonomy: {
+              verification_blocked: {
+                label: "Quality verification blocked",
+                meaning:
+                  "Setup, execution, timeout, or target provenance prevented a trustworthy verdict.",
+              },
+            },
           }).quality
         }
         analytics={analyticsSnapshot}
@@ -1109,6 +1280,7 @@ describe("quality evidence surfaces", () => {
         onAddRoot={() => undefined}
         onOpenRepository={noopRepository}
         onCondition={() => undefined}
+        onRefreshQuality={() => undefined}
       />,
     );
 
@@ -1118,6 +1290,75 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("Fresh passing evidence");
     expect(markup).toContain("0/6");
     expect(markup).toContain("Tests (1)");
+    expect(markup).toContain("Mac Control semantic evidence");
+    expect(markup).toContain("0/8");
+    expect(markup).toContain(
+      "Legacy declarations: 8 recorded · non-scoring until v4 source evidence is established",
+    );
+    expect(markup).toContain(
+      "Fleet freshness incomplete—inspect repository blockers",
+    );
+    expect(markup).toContain("Live tasks: 0/5 measured · Blocked");
+    expect(markup).toContain("Repository quality outcomes");
+    expect(markup).toContain("Quality verification blocked");
+    expect(markup).toContain("Quality audit");
+    expect(markup).toContain("No audit imported");
+    expect(markup).toContain("Pronto snapshot");
+  });
+
+  it("shows generic fleet and repository audit requirements when an evidence contract changes", () => {
+    const repositoryContract = {
+      contract_id: "example-task-manifest",
+      label: "Example task evidence",
+      target_schema: "example-task-manifest/v3",
+      observed_schema: "example-task-manifest/v2",
+      status: "audit_required",
+      repository_id: "repo-1",
+      repository_name: "pronto",
+      message:
+        "Example task evidence was assessed against v2; re-audit against v3.",
+    };
+    const repository = makeRepository({
+      quality: makeQuality({ evidence_contracts: [repositoryContract] }),
+    });
+    const snapshot = makePortfolio([repository], {
+      evidence_contracts: [
+        {
+          contract_id: "example-task-manifest",
+          label: "Example task evidence",
+          target_schema: "example-task-manifest/v3",
+          status: "audit_required",
+          repository_count: 4,
+          current_repository_count: 1,
+          legacy_repository_count: 2,
+          missing_repository_count: 1,
+          message:
+            "Full fleet audit required: 1/4 repositories are assessed against v3.",
+          next_safe_step:
+            "Run the owning producer's fleet audit, then refresh Pronto.",
+        },
+      ],
+    });
+
+    const markup = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={snapshot}
+        repositories={[repository]}
+        onOpenRepository={noopRepository}
+      />,
+    );
+    expect(markup).toContain("Full fleet audit required");
+    expect(markup).toContain("Example task evidence");
+    expect(markup).toContain("1/4");
+    expect(markup).toContain("2 legacy");
+    expect(qualityAttentionItems(repository)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "contract",
+          label: "Example task evidence · re-audit required",
+        }),
+      ]),
+    );
   });
 
   it("filters attention to failed, stale, high-severity, and required missing evidence", () => {
@@ -1189,6 +1430,82 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("CI checks");
     expect(markup).toContain("Local command");
     expect(markup).toContain("QR report");
+    expect(markup).toContain("Deployment verified");
+    expect(markup).toContain("Warn only");
+  });
+
+  it("shows the enforced public-release boundary in preparation preview", () => {
+    const preview = preparation();
+    preview.release.release_boundary_status = "Blocked · Stale";
+    preview.release.reasons = [
+      "Public-release boundary evidence is blocked and stale; regenerate the v2 receipt for this exact target",
+    ];
+    const markup = renderToStaticMarkup(
+      <PreparationDrawer
+        repository={makeRepository()}
+        preparation={preview}
+        onClose={() => undefined}
+        onSaveReleaseRule={noop}
+        onSaveReleaseRecipe={noop}
+        onConfirmReleaseVersion={noop}
+        onSaveAiPermission={noop}
+        onPreviewAiSummary={async () => aiPreview()}
+      />,
+    );
+
+    expect(markup).toContain("Public boundary");
+    expect(markup).toContain("Blocked · Stale");
+    expect(markup).toContain("regenerate the v2 receipt for this exact target");
+  });
+
+  it("renders categorical web readiness with target identity and route drilldown", () => {
+    const webReadiness: WebReadinessSnapshot = {
+      status: "Warnings",
+      applicability: "public_web",
+      applicability_reason: "Public product",
+      freshness: "Fresh",
+      observed_at: "2026-08-10T20:00:00Z",
+      scanned_commit: "abcdef1234567890",
+      scanned_branch: "main",
+      report_path: "/tmp/report.json",
+      target: {
+        kind: "deployment",
+        commit: "abcdef1234567890",
+        url: "https://preview.example.test",
+        provider: "fixture",
+        deployment_id: "dep-123",
+      },
+      checks: [
+        {
+          id: "route_titles",
+          label: "Route titles",
+          category: "baseline",
+          policy: "block",
+          status: "passed",
+          verification_level: "deployment_verified",
+          detail: "Every route has a unique title.",
+          routes: ["/", "/about"],
+        },
+      ],
+      passed_count: 1,
+      failed_count: 0,
+      blocked_count: 0,
+      unknown_count: 0,
+      warning_count: 1,
+    };
+
+    const markup = renderToStaticMarkup(
+      <WebReadinessSummary
+        webReadiness={webReadiness}
+        onOpenReport={() => undefined}
+      />,
+    );
+    expect(markup).toContain("Warnings");
+    expect(markup).toContain("public web");
+    expect(markup).toContain("fixture · dep-123");
+    expect(markup).toContain("https://preview.example.test");
+    expect(markup).toContain("deployment verified");
+    expect(markup).toContain("/about");
   });
 
   it("renders source expansion without exposing command output or file contents", () => {
@@ -1605,9 +1922,7 @@ describe("quality evidence surfaces", () => {
       "Selecting a branch or refreshing evidence checks existing target evidence first, then runs QR quality and fleet audits in a clean disposable worktree when the target head changed or matching evidence is unavailable; your active workspace is not switched.",
     );
     expect(markup).toContain('aria-label="Target branch for pronto"');
-    expect(markup).toContain(
-      'aria-label="Refresh target evidence for pronto"',
-    );
+    expect(markup).toContain('aria-label="Refresh target evidence for pronto"');
     expect(markup).toContain(
       '<option value="develop" selected="">develop</option>',
     );

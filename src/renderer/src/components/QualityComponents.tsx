@@ -8,6 +8,7 @@ import type {
   QualityMaturity,
   QualityPortfolioSnapshot,
   QualityReadiness,
+  QualityRepositoryOutcome,
   RepositorySnapshot,
 } from "../types";
 import {
@@ -23,6 +24,125 @@ import {
 import { formatTime, StatusPill } from "./ConsolePrimitives";
 
 export { QualityFindingsSummary } from "./QualityFindingsSummary";
+export { WebReadinessSummary } from "./WebReadinessSummary";
+
+const QUALITY_OUTCOME_ORDER = [
+  "checks_failing",
+  "verification_blocked",
+  "review_needed",
+  "evidence_unknown",
+  "healthy",
+] as const;
+
+const EVIDENCE_REVIEW_PRESENTATION = {
+  label: "Evidence review required",
+  meaning:
+    "Required evidence is not current or confirmed. This is an evidence gap, not a failed-test result.",
+  next_step:
+    "Identify the listed evidence gaps, reconcile the target branch and commit, then rerun the audit.",
+} as const;
+
+function readableQualityEvidenceText(value: string): string {
+  return value.replace(/\bunknown\b/gi, "not confirmed");
+}
+
+function qualityFreshnessLabel(freshness: QualityFreshness): string {
+  return freshness === "Unknown" ? "Evidence not confirmed" : freshness;
+}
+
+export function macControlFreshnessLabel(
+  freshness: string | undefined,
+): string {
+  switch (freshness?.trim().toLowerCase()) {
+    case "fresh":
+      return "Fresh evidence";
+    case "stale":
+      return "Stale evidence—rerun the fleet audit";
+    case "unknown":
+      return "Fleet freshness incomplete—inspect repository blockers";
+    case "not configured":
+      return "No fleet evidence has been configured";
+    default:
+      return freshness?.trim() || "No fleet freshness evidence is available";
+  }
+}
+
+function qualityOutcomeDefinition(
+  state: string,
+  definition?: {
+    label: string;
+    meaning: string;
+    next_step?: string;
+  },
+): { label: string; meaning: string; next_step?: string } | undefined {
+  const presentation =
+    state === "evidence_unknown" ? EVIDENCE_REVIEW_PRESENTATION : definition;
+  if (!presentation) return undefined;
+  return {
+    ...presentation,
+    label: readableQualityEvidenceText(presentation.label),
+    meaning: readableQualityEvidenceText(presentation.meaning),
+    next_step: presentation.next_step
+      ? readableQualityEvidenceText(presentation.next_step)
+      : undefined,
+  };
+}
+
+function qualityRepositoryOutcome(
+  outcome: QualityRepositoryOutcome,
+): QualityRepositoryOutcome {
+  const evidenceReview = outcome.state === "evidence_unknown";
+  return {
+    ...outcome,
+    label: evidenceReview
+      ? EVIDENCE_REVIEW_PRESENTATION.label
+      : readableQualityEvidenceText(outcome.label),
+    disposition: outcome.disposition
+      ? readableQualityEvidenceText(outcome.disposition)
+      : evidenceReview
+        ? EVIDENCE_REVIEW_PRESENTATION.meaning
+        : undefined,
+    next_step: evidenceReview
+      ? EVIDENCE_REVIEW_PRESENTATION.next_step
+      : outcome.next_step
+        ? readableQualityEvidenceText(outcome.next_step)
+        : undefined,
+  };
+}
+
+export function QualityOutcomeSummary({
+  quality,
+}: {
+  quality: QualityPortfolioSnapshot;
+}): ReactElement {
+  const outcomes = QUALITY_OUTCOME_ORDER.flatMap((state) => {
+    const count = quality.quality_outcome_counts?.[state] ?? 0;
+    const definition = qualityOutcomeDefinition(
+      state,
+      quality.quality_outcome_taxonomy?.[state],
+    );
+    return count > 0 && definition ? [{ state, count, ...definition }] : [];
+  });
+
+  if (outcomes.length === 0) return <></>;
+  return (
+    <details className="quality-outcome-summary" open>
+      <summary>Repository quality outcomes</summary>
+      <ul>
+        {outcomes.map((outcome) => (
+          <li key={outcome.state} title={outcome.meaning}>
+            <strong>{outcome.count}</strong>
+            <span>{outcome.label}</span>
+            <small>{outcome.meaning}</small>
+            {outcome.next_step ? (
+              <small>Next: {outcome.next_step}</small>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
 
 function qualityStatusTone(status: QualityGateStatus): string {
   if (status === "Passed") return "mint";
@@ -192,9 +312,9 @@ export function QualityGateStatusPill({
   return (
     <span className="quality-status-stack">
       <StatusPill tone={qualityStatusTone(status)}>{status}</StatusPill>
-      {freshness && freshness !== "Unknown" && (
+      {freshness && (
         <StatusPill tone={qualityFreshnessTone(freshness)}>
-          {freshness}
+          {qualityFreshnessLabel(freshness)}
         </StatusPill>
       )}
     </span>
@@ -214,7 +334,7 @@ export function QualityTraceStatusPill({
   if (!status) {
     return (
       <StatusPill tone={value === "Unknown" ? "slate" : "amber"}>
-        {value}
+        {value === "Unknown" ? "Evidence not confirmed" : value}
       </StatusPill>
     );
   }
@@ -297,6 +417,10 @@ export function QualityEvidenceList({
           <span>{item.detail || "No additional result detail"}</span>
           <small>
             {item.command ? `${item.command} · ` : ""}
+            {item.verification_level
+              ? `${item.verification_level.replaceAll("_", " ")} · `
+              : ""}
+            {item.target_kind ? `target ${item.target_kind} · ` : ""}
             {item.scanned_commit
               ? `commit ${item.scanned_commit.slice(0, 8)}`
               : item.scanned_branch
@@ -611,6 +735,10 @@ export function QualityMaturitySummary({
   targetCommit?: string;
   targetReadinessState?: TargetEvidenceState;
 }): ReactElement {
+  const dimensions = Object.entries(maturity.dimension_scores ?? {}).sort(
+    ([leftDimension, leftScore], [rightDimension, rightScore]) =>
+      leftScore - rightScore || leftDimension.localeCompare(rightDimension),
+  );
   const targetMode = hasTargetScope(targetBranch, targetCommit);
   const maturityState = targetMode
     ? targetEvidenceState({
@@ -620,6 +748,9 @@ export function QualityMaturitySummary({
         scannedCommit: maturity.scanned_commit,
       })
     : "verified";
+  const qualityOutcome = maturity.quality_outcome
+    ? qualityRepositoryOutcome(maturity.quality_outcome)
+    : undefined;
   return (
     <div
       className={`quality-maturity${compact ? " quality-maturity-compact" : ""}`}
@@ -640,7 +771,8 @@ export function QualityMaturitySummary({
             <summary>Raw maturity evidence</summary>
             <span>
               Raw score: {maturity.score_display ?? "Not scored"} ·{" "}
-              {maturity.audit_id ?? "No audit run"} · {maturity.freshness}
+              {maturity.audit_id ?? "No audit run"} ·{" "}
+              {qualityFreshnessLabel(maturity.freshness)}
             </span>
             {(maturity.gaps ?? []).length > 0 && (
               <ul
@@ -650,7 +782,7 @@ export function QualityMaturitySummary({
                 {(maturity.gaps ?? []).slice(0, compact ? 2 : 4).map((gap) => (
                   <li key={`${gap.dimension}-${gap.status}`}>
                     <strong>{gap.dimension.replaceAll("_", " ")}</strong>
-                    <span>{gap.message}</span>
+                    <span>{readableQualityEvidenceText(gap.message)}</span>
                   </li>
                 ))}
               </ul>
@@ -673,7 +805,8 @@ export function QualityMaturitySummary({
             {maturity.scored_dimension_count
               ? `${maturity.scored_dimension_count} dimensions · `
               : ""}
-            {maturity.audit_id ?? "No audit run"} · {maturity.freshness}
+            {maturity.audit_id ?? "No audit run"} ·{" "}
+            {qualityFreshnessLabel(maturity.freshness)}
           </small>
           {targetMode && maturityState !== "verified" && (
             <small>
@@ -694,12 +827,41 @@ export function QualityMaturitySummary({
               <li key={`${gap.dimension}-${gap.status}`}>
                 <strong>{gap.dimension.replaceAll("_", " ")}</strong>
                 <span>
-                  {gap.score === undefined ? "unknown" : `${gap.score}/4`} ·{" "}
-                  {gap.message}
+                  {gap.score === undefined ? "not scored" : `${gap.score}/4`} ·{" "}
+                  {readableQualityEvidenceText(gap.message)}
                 </span>
               </li>
             ))}
           </ul>
+        )}
+      {qualityOutcome?.disposition && (
+        <div
+          className="quality-maturity-outcome"
+          aria-label="Quality outcome disposition"
+        >
+          <strong>{qualityOutcome.label}</strong>
+          <small>{qualityOutcome.disposition}</small>
+          {qualityOutcome.next_step ? (
+            <small>Next: {qualityOutcome.next_step}</small>
+          ) : null}
+        </div>
+      )}
+      {(!targetMode || maturityState !== "unavailable") &&
+        dimensions.length > 0 && (
+          <details className="quality-maturity-dimensions">
+            <summary>{dimensions.length} scored dimensions</summary>
+            <div
+              aria-label="Maturity dimension scores"
+              className="quality-maturity-dimension-list"
+            >
+              {dimensions.map(([dimension, score]) => (
+                <span key={dimension} title={dimension}>
+                  <b>{dimension.replace(/[._:-]+/g, " ")}</b>
+                  <span>{score}/4</span>
+                </span>
+              ))}
+            </div>
+          </details>
         )}
       {maturity.agent_usability && (
         <details className="agent-usability-summary">
@@ -731,6 +893,11 @@ export function QualityMaturitySummary({
           </ul>
           <div className="agent-usability-growth">
             <span>Growth health</span>
+            <strong>
+              {maturity.agent_usability.growth_health.score === undefined
+                ? "—"
+                : `${maturity.agent_usability.growth_health.score}/4`}
+            </strong>
             <StatusPill
               tone={agentUsabilityTone(
                 maturity.agent_usability.growth_health.status,
@@ -780,7 +947,7 @@ export function QualityMaturitySummary({
 }
 
 export interface QualityAttentionItem {
-  kind: "gate" | "findings";
+  kind: "gate" | "findings" | "contract";
   label: string;
   detail: string;
   staleOnly: boolean;
@@ -794,15 +961,30 @@ export function qualityAttentionItems(
 ): QualityAttentionItem[] {
   const requiredGateIds = new Set(
     (repository.release_rule?.required_quality_gates ?? []).map(
-      (requirement) => requirement.gate_id,
+      (requirement) =>
+        (requirement.policy ?? "block") === "block" ? requirement.gate_id : "",
     ),
   );
+  requiredGateIds.delete("");
   const configuredGateIds = new Set(
     repository.quality.ci_readiness.configured_gate_ids,
   );
   const target = targetScopeForRepository(repository);
   const targetMode = hasTargetScope(target.branch, target.commit);
   const items: QualityAttentionItem[] = [];
+  for (const contract of repository.quality.evidence_contracts ?? []) {
+    if (contract.status === "current") continue;
+    items.push({
+      kind: "contract",
+      label: `${contract.label} · re-audit required`,
+      detail: contract.observed_schema
+        ? `${contract.observed_schema} observed · ${contract.target_schema} required`
+        : `No contract schema observed · ${contract.target_schema} required`,
+      staleOnly: false,
+      targetVerified: false,
+      targetEvidenceState: "unavailable",
+    });
+  }
   for (const gate of repository.quality.gates) {
     const projection = projectQualityGateForTarget(
       gate,

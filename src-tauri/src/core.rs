@@ -14,9 +14,9 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ffi::OsStr;
 use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc;
 use std::thread;
@@ -35,6 +35,8 @@ const DEFAULT_QR_AUDIT_TIMEOUT_SECONDS: u64 = 120;
 const STORE_WRITE_LOCK_WAIT_SECONDS: u64 = 5;
 const STORE_WRITE_LOCK_STALE_SECONDS: u64 = 1_800;
 const QUALITY_READ_TIMEOUT_SECONDS: u64 = 10;
+const RELEASE_GIT_TIMEOUT_SECONDS: u64 = 10;
+const RELEASE_COMMIT_LIMIT: usize = 1_000;
 const TARGET_EVIDENCE_GATE_TIMEOUT_SECONDS: u64 = 120;
 const TARGET_EVIDENCE_TOTAL_TIMEOUT_SECONDS: u64 = 600;
 
@@ -581,6 +583,8 @@ pub struct ReleasePreparation {
     pub candidate_bump: Option<String>,
     pub candidate_version: Option<String>,
     pub version_status: String,
+    #[serde(default)]
+    pub release_boundary_status: Option<String>,
     pub notes: Vec<ReleaseNoteSection>,
     pub status: String,
     pub reasons: Vec<String>,
@@ -2723,6 +2727,81 @@ where
     })
 }
 
+fn run_git_bounded<I, S>(
+    path: &Path,
+    arguments: I,
+    timeout: StdDuration,
+) -> Result<GitOutput, String>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let mut child = git_process(path)
+        .args(arguments)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("Could not run Git in {}: {error}", path.display()))?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "Git stdout was unavailable".to_string())?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "Git stderr was unavailable".to_string())?;
+    let stdout_reader = thread::spawn(move || {
+        let mut bytes = Vec::new();
+        let mut stdout = stdout;
+        stdout.read_to_end(&mut bytes).map(|_| bytes)
+    });
+    let stderr_reader = thread::spawn(move || {
+        let mut bytes = Vec::new();
+        let mut stderr = stderr;
+        stderr.read_to_end(&mut bytes).map(|_| bytes)
+    });
+    let started_at = Instant::now();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if started_at.elapsed() < timeout => {
+                thread::sleep(StdDuration::from_millis(10));
+            }
+            Ok(None) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!(
+                    "Git command exceeded the {} second release-preview deadline in {}",
+                    timeout.as_secs(),
+                    path.display()
+                ));
+            }
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!(
+                    "Could not wait for Git in {}: {error}",
+                    path.display()
+                ));
+            }
+        }
+    };
+    let stdout = stdout_reader
+        .join()
+        .map_err(|_| "Git stdout reader stopped unexpectedly".to_string())?
+        .map_err(|error| format!("Could not read Git stdout: {error}"))?;
+    let stderr = stderr_reader
+        .join()
+        .map_err(|_| "Git stderr reader stopped unexpectedly".to_string())?
+        .map_err(|error| format!("Could not read Git stderr: {error}"))?;
+    Ok(GitOutput {
+        success: status.success(),
+        stdout: String::from_utf8_lossy(&stdout).into_owned(),
+        stderr: String::from_utf8_lossy(&stderr).into_owned(),
+        exit_code: status.code(),
+    })
+}
+
 fn git_static(path: &Path, arguments: &[&str]) -> Option<String> {
     let result = run_git(path, arguments.iter()).ok()?;
     if result.success {
@@ -3390,16 +3469,11 @@ fn apply_quality_evidence_scoped(
     let feed_path = quality::canonical_maturity_feed_path();
     let audit = quality::maturity_feed_import(feed_path.as_deref(), &state.repositories);
     let fleet = quality::fleet_audit_import(fleet_audit_root, &state.repositories);
-    let mac_control_scope = state
-        .repositories
-        .iter()
-        .filter(|repository| !remediation::is_excluded_repository(repository))
-        .filter(|repository| remediation::repository_requires_maturity(repository))
-        .cloned()
-        .collect::<Vec<_>>();
+    let mac_control_scope = state.repositories.clone();
     let mac_control = mac_control_maturity::evaluate_canonical(&mac_control_scope);
     state.quality = audit.portfolio;
     state.quality.mac_control_ideal_state = mac_control.portfolio.clone();
+    state.quality.evidence_contracts = vec![mac_control.portfolio.evidence_contract.clone()];
     let remote_by_name = state
         .remote_repositories
         .iter()
@@ -3463,6 +3537,8 @@ fn apply_quality_evidence_scoped(
             .get(&repository.id)
             .cloned()
             .unwrap_or_default();
+        imported.evidence_contracts =
+            vec![imported.mac_control_ideal_state.evidence_contract.clone()];
         imported.target_fleet_audit_root = repository.quality.target_fleet_audit_root.clone();
         if let Some(fleet_evidence) = fleet_evidence {
             if target_fleet_evidence.is_some()
@@ -3507,9 +3583,12 @@ fn apply_quality_evidence_scoped(
     for repository in &mut state.repositories {
         if let Some(mac_control_state) = mac_control.by_repository.get(&repository.id) {
             repository.quality.mac_control_ideal_state = mac_control_state.clone();
+            repository.quality.evidence_contracts =
+                vec![mac_control_state.evidence_contract.clone()];
         }
     }
     quality::update_ci_readiness_summary(&mut state.quality, &state.repositories);
+    quality::update_composite_maturity_summary(&mut state.quality, &mut state.repositories);
     state.remediation = remediation::rebuild_run_with_fleet_root(
         &state.repositories,
         &state.remediation,
@@ -4474,13 +4553,13 @@ fn refresh_remediation_at(
     timeout_seconds: u64,
 ) -> Result<PortfolioSnapshot, String> {
     let initial_state = load_store(path)?;
-    let eligible_paths = initial_state
+    let has_eligible_repositories = initial_state
         .repositories
         .iter()
         .filter(|repository| !remediation::is_excluded_repository(repository))
-        .map(|repository| repository.path.clone())
-        .collect::<Vec<_>>();
-    if eligible_paths.is_empty() {
+        .next()
+        .is_some();
+    if !has_eligible_repositories {
         return Err("No eligible repositories remain for remediation refresh.".to_string());
     }
     let refresh_id = format!("remediation-refresh-{}", iso_now().replace([':', '-'], ""));
@@ -4543,6 +4622,21 @@ fn refresh_remediation_at(
         Some("eligible repositories"),
     ) {
         return fail_remediation_refresh(path, &refresh_id, &mut steps, "local_scan", error);
+    }
+    let eligible_paths = state
+        .repositories
+        .iter()
+        .filter(|repository| !remediation::is_excluded_repository(repository))
+        .map(|repository| repository.path.clone())
+        .collect::<Vec<_>>();
+    if eligible_paths.is_empty() {
+        return fail_remediation_refresh(
+            path,
+            &refresh_id,
+            &mut steps,
+            "local_scan",
+            "No eligible Git repositories remain for remediation refresh.".to_string(),
+        );
     }
     set_remediation_refresh_step(
         &mut steps,
@@ -4834,7 +4928,7 @@ fn refresh_remediation_at(
         &mut steps,
         "remediation_plan",
         "completed",
-        "Ranked active repository plans and retained terminal closure records.",
+        "Ranked active repository plans and retained resolved-action history.",
         None,
     );
     let has_blockers = steps.iter().any(|step| step.status == "blocked");
@@ -5055,6 +5149,8 @@ fn normalize_release_rule(rule: ReleaseRuleConfig) -> Result<ReleaseRuleConfig, 
         .map(|requirement| QualityGateRequirement {
             gate_id: crate::quality::normalize_gate_id(&requirement.gate_id),
             source: requirement.source,
+            minimum_verification_level: requirement.minimum_verification_level,
+            policy: requirement.policy,
         })
         .collect::<Vec<_>>();
     required_quality_gates.sort_by(|left, right| {
@@ -5206,6 +5302,10 @@ fn canonical_repository_path(path: &Path) -> Option<PathBuf> {
     } else {
         Some(top)
     }
+}
+
+fn has_git_metadata(path: &Path) -> bool {
+    path.join(".git").exists()
 }
 
 fn default_ignore(name: &str) -> bool {
@@ -6061,18 +6161,33 @@ fn release_commit_details(subject: &str) -> (String, Option<String>) {
     (category.to_string(), bump.map(str::to_string))
 }
 
-fn release_commits(path: &Path, base: &str, head: &str) -> Vec<ReleaseCommitSummary> {
+fn release_commits(
+    path: &Path,
+    base: &str,
+    head: &str,
+) -> Result<Vec<ReleaseCommitSummary>, String> {
     let range = format!("{base}..{head}");
-    let raw = git_owned(
+    let output = run_git_bounded(
         path,
         vec![
             "log".to_string(),
             range,
+            format!("--max-count={RELEASE_COMMIT_LIMIT}"),
             "--format=%H%x09%s%x09%cI".to_string(),
         ],
-    )
-    .unwrap_or_default();
-    raw.lines()
+        StdDuration::from_secs(RELEASE_GIT_TIMEOUT_SECONDS),
+    )?;
+    if !output.success {
+        let detail = output.stderr.trim();
+        return Err(if detail.is_empty() {
+            format!("Git could not inspect the committed release range {base}..{head}")
+        } else {
+            format!("Git could not inspect the committed release range {base}..{head}: {detail}")
+        });
+    }
+    Ok(output
+        .stdout
+        .lines()
         .filter_map(|line| {
             let mut fields = line.split('\t');
             let sha = fields.next()?.trim();
@@ -6090,7 +6205,7 @@ fn release_commits(path: &Path, base: &str, head: &str) -> Vec<ReleaseCommitSumm
                 committed_at: committed_at.to_string(),
             })
         })
-        .collect()
+        .collect())
 }
 
 fn git_ref_exists(path: &Path, reference: &str) -> bool {
@@ -6219,7 +6334,14 @@ fn preview_ai_summary_at(
         return Ok(preview);
     }
 
-    let commits = release_commits(Path::new(&workspace.path), &base, head);
+    let commits = match release_commits(Path::new(&workspace.path), &base, head) {
+        Ok(commits) => commits,
+        Err(error) => {
+            preview.status = "Committed evidence range unavailable".to_string();
+            preview.reasons.push(error);
+            return Ok(preview);
+        }
+    };
     let metadata_payload = serde_json::json!({
         "repository_id": repository.id.clone(),
         "workspace_id": workspace.id.clone(),
@@ -6545,21 +6667,32 @@ fn evaluate_release_rule_with_quality(
                 ReleaseRuleResult::Blocked
             }
         };
-        if result == ReleaseRuleResult::Failed {
-            quality_result = ReleaseRuleResult::Failed;
-        } else if result == ReleaseRuleResult::Blocked
-            && quality_result == ReleaseRuleResult::Passed
-        {
-            quality_result = ReleaseRuleResult::Blocked;
+        if requirement.policy == quality::QualityRequirementPolicy::Block {
+            if result == ReleaseRuleResult::Failed {
+                quality_result = ReleaseRuleResult::Failed;
+            } else if result == ReleaseRuleResult::Blocked
+                && quality_result == ReleaseRuleResult::Passed
+            {
+                quality_result = ReleaseRuleResult::Blocked;
+            }
         }
+        let minimum_level = requirement
+            .minimum_verification_level
+            .as_ref()
+            .map(quality::QualityVerificationLevel::as_str)
+            .unwrap_or("any");
         trace.push(ReleaseRuleTrace {
             label: format!(
-                "Quality gate · {} · {}",
+                "Quality gate · {} · {} · {}",
                 quality::gate_label(&requirement.gate_id),
-                requirement.source.as_str()
+                requirement.source.as_str(),
+                match requirement.policy {
+                    quality::QualityRequirementPolicy::Block => "Block",
+                    quality::QualityRequirementPolicy::Warn => "Warn",
+                }
             ),
             status: format!("{} · {}", status.as_str(), freshness.as_str()),
-            value: detail,
+            value: format!("{detail} · minimum verification: {minimum_level}"),
             source: format!("Imported {} evidence", requirement.source.as_str()),
         });
     }
@@ -6588,15 +6721,15 @@ fn release_threshold_condition(
         .as_ref()
         .and_then(|release| release.target_commit.as_deref())
         .or(repository.workspace.target_branch.as_deref());
-    let commits = base
-        .map(|base| {
-            release_commits(
-                Path::new(&repository.workspace.path),
-                base,
-                &repository.workspace.branch,
-            )
-        })
-        .unwrap_or_default();
+    let commits = match base {
+        Some(base) => release_commits(
+            Path::new(&repository.workspace.path),
+            base,
+            &repository.workspace.branch,
+        )
+        .ok()?,
+        None => Vec::new(),
+    };
     let (result, trace) =
         evaluate_release_rule_with_quality(repository, rule, baseline.as_ref(), &commits);
     if result != ReleaseRuleResult::Passed {
@@ -6808,6 +6941,11 @@ fn prepare_release(
     provider_available: bool,
 ) -> ReleasePreparation {
     let observed_at = iso_now();
+    let public_release_boundary_required =
+        remediation::repository_requires_public_release_boundary(repository);
+    let release_boundary = &repository.quality.release_boundary;
+    let release_boundary_ready =
+        !public_release_boundary_required || release_boundary.is_release_ready();
     let target_branch = repository
         .target_branch
         .clone()
@@ -6828,9 +6966,13 @@ fn prepare_release(
         .as_ref()
         .and_then(|release| release.target_commit.as_deref())
         .or(target_branch.as_deref());
-    let commits_since_baseline = range_base
-        .map(|base| release_commits(Path::new(&workspace.path), base, &workspace.branch))
-        .unwrap_or_default();
+    let (commits_since_baseline, commit_range_error) = match range_base {
+        Some(base) => match release_commits(Path::new(&workspace.path), base, &workspace.branch) {
+            Ok(commits) => (commits, None),
+            Err(error) => (Vec::new(), Some(error)),
+        },
+        None => (Vec::new(), None),
+    };
     let candidate_bump = highest_release_bump(&commits_since_baseline);
     let candidate_version = baseline
         .as_ref()
@@ -6847,7 +6989,9 @@ fn prepare_release(
         .map(|(category, commits)| ReleaseNoteSection { category, commits })
         .collect::<Vec<_>>();
     let configured_rule = repository.release_rule.as_ref();
-    let (rule_result, rule_trace) = if connected
+    let (rule_result, rule_trace) = if commit_range_error.is_some() {
+        (Some(ReleaseRuleResult::Unknown), Vec::new())
+    } else if connected
         || configured_rule.is_some_and(|rule| !rule.required_quality_gates.is_empty())
     {
         configured_rule
@@ -6878,6 +7022,9 @@ fn prepare_release(
         "Not configured — commits are shown without threshold evaluation".to_string()
     };
     let mut reasons = Vec::new();
+    if let Some(error) = commit_range_error.as_ref() {
+        reasons.push(error.clone());
+    }
     if target_branch.is_none() {
         reasons.push("Target branch is unknown".to_string());
     }
@@ -6912,6 +7059,13 @@ fn prepare_release(
     if rule_result == Some(ReleaseRuleResult::Unknown) {
         reasons.push("Release threshold evidence is incomplete".to_string());
     }
+    if public_release_boundary_required && !release_boundary_ready {
+        reasons.push(format!(
+            "Public-release boundary evidence is {} and {}; regenerate the v2 receipt for this exact target",
+            release_boundary.status.to_ascii_lowercase(),
+            release_boundary.freshness.to_ascii_lowercase()
+        ));
+    }
     let mut evidence_items = vec![
         evidence(
             "Target branch",
@@ -6929,8 +7083,13 @@ fn prepare_release(
         ),
         evidence(
             "Commits since baseline",
-            commits_since_baseline.len().to_string(),
-            "git log",
+            commit_range_error
+                .as_ref()
+                .map(|error| format!("Unknown · {error}"))
+                .unwrap_or_else(|| commits_since_baseline.len().to_string()),
+            &format!(
+                "bounded git log · max {RELEASE_COMMIT_LIMIT} commits · {RELEASE_GIT_TIMEOUT_SECONDS}s deadline"
+            ),
             &observed_at,
         ),
         evidence(
@@ -6995,12 +7154,37 @@ fn prepare_release(
         "Deterministic candidate and local user confirmation",
         &observed_at,
     ));
+    if public_release_boundary_required {
+        evidence_items.push(evidence(
+            "Public-release boundary",
+            format!(
+                "{} · {}{}",
+                release_boundary.status,
+                release_boundary.freshness,
+                if release_boundary.blocking_check_ids.is_empty() {
+                    String::new()
+                } else {
+                    format!(
+                        " · blocking: {}",
+                        release_boundary.blocking_check_ids.join(", ")
+                    )
+                }
+            ),
+            release_boundary
+                .report_path
+                .as_deref()
+                .unwrap_or(".quality-runner/release-boundary.json"),
+            &observed_at,
+        ));
+    }
     let missing_baseline =
         baseline.is_none() && configured_rule.is_some_and(release_rule_needs_baseline);
     let blocked = target_branch.is_none()
         || !connected
         || !workspace.status_available
         || workspace.dirty
+        || !release_boundary_ready
+        || commit_range_error.is_some()
         || (missing_baseline && configured_rule.is_none())
         || (missing_baseline && configured_rule.is_some_and(|rule| !rule.allow_first_release))
         || rule_result == Some(ReleaseRuleResult::Failed)
@@ -7018,6 +7202,12 @@ fn prepare_release(
         candidate_bump,
         candidate_version,
         version_status,
+        release_boundary_status: public_release_boundary_required.then(|| {
+            format!(
+                "{} · {}",
+                release_boundary.status, release_boundary.freshness
+            )
+        }),
         notes,
         status: if blocked {
             if connected && missing_baseline && configured_rule.is_none() {
@@ -7210,12 +7400,11 @@ fn prepare_release_recipe(
     }
 }
 
-fn prepare_repository_at(
-    path: &Path,
+fn prepare_repository_from_state(
+    state: &StoreState,
     repository_id: &str,
     workspace_id: Option<&str>,
 ) -> Result<RepositoryPreparation, String> {
-    let state = load_store_with_quality(path)?;
     let repository = state
         .repositories
         .iter()
@@ -7244,6 +7433,44 @@ fn prepare_repository_at(
         recipe,
         generated_at: iso_now(),
     })
+}
+
+fn preparation_state(path: &Path, fresh_quality: bool) -> Result<StoreState, String> {
+    if fresh_quality {
+        load_store_read_only_with_quality_bounded(path)
+    } else {
+        load_store_read_only(path)
+    }
+}
+
+fn prepare_repository_at_with_quality(
+    path: &Path,
+    repository_id: &str,
+    workspace_id: Option<&str>,
+    fresh_quality: bool,
+) -> Result<RepositoryPreparation, String> {
+    let state = preparation_state(path, fresh_quality)?;
+    prepare_repository_from_state(&state, repository_id, workspace_id)
+}
+
+fn prepare_repository_by_query_at(
+    path: &Path,
+    query: &str,
+    workspace_id: Option<&str>,
+    fresh_quality: bool,
+) -> Result<RepositoryPreparation, String> {
+    let state = preparation_state(path, fresh_quality)?;
+    let snapshot = snapshot_from_store(path, &state);
+    let repository_id = find_cli_repository(&snapshot, query)?.id.clone();
+    prepare_repository_from_state(&state, &repository_id, workspace_id)
+}
+
+fn prepare_repository_at(
+    path: &Path,
+    repository_id: &str,
+    workspace_id: Option<&str>,
+) -> Result<RepositoryPreparation, String> {
+    prepare_repository_at_with_quality(path, repository_id, workspace_id, false)
 }
 
 fn remediation_handoff_check_for_repository(
@@ -8548,7 +8775,7 @@ fn scan_discovered_and_persist(
             {
                 continue;
             }
-            if Path::new(&old.path).exists() {
+            if Path::new(&old.path).exists() && has_git_metadata(Path::new(&old.path)) {
                 let repository_path = PathBuf::from(&old.path);
                 let repository =
                     scan_repository(&repository_path, Some(&old), &state.expected_conditions);
@@ -11878,7 +12105,7 @@ fn print_human_quality(report: &AgentQualityReport) {
 
 fn print_human_remediation(run: &RemediationRun) {
     println!(
-        "PRONTO REMEDIATION · {} · {} active · {} closed · {} excluded · {} GitHub-only candidates",
+        "PRONTO REMEDIATION · {} · {} active · {} resolved-history entries · {} excluded · {} GitHub-only candidates",
         run.status,
         run.plans.len(),
         run.closures.len(),
@@ -11927,7 +12154,7 @@ fn print_human_remediation(run: &RemediationRun) {
     }
     for closure in &run.closures {
         println!(
-            "  closed · {} · goal {} ({}) · {} · {} · {}",
+            "  resolved · {} · goal {} ({}) · {} · {} · {}",
             closure.repository_name,
             closure.target_state,
             closure.goal_source,
@@ -12011,7 +12238,7 @@ fn print_human_release(report: &AgentReleaseReport) {
 
 fn print_cli_usage() {
     println!(
-        "Usage: pronto . | pronto skills [<skill-id>] [--json] | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--fresh] [--json] | pronto quality [<repository>] [--json] | pronto quality refresh [--json] | pronto remediation handoff-check <repository> [--workspace <id>] [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] | pronto status [--fresh] [--json] | pronto help"
+        "Usage: pronto . | pronto skills [<skill-id>] [--json] | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--fresh] [--json] | pronto quality [<repository>] [--json] | pronto quality refresh [--json] | pronto prepare <repository> [--workspace <id>] [--fresh] [--json] | pronto release preview <repository> [--workspace <id>] [--fresh] [--json] | pronto remediation handoff-check <repository> [--workspace <id>] [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] | pronto repo set-target <repository> <branch> [--json] | pronto status [--fresh] [--json] | pronto help"
     );
 }
 
@@ -12085,10 +12312,15 @@ pub fn run_cli(arguments: Vec<String>) {
                         println!("Description: {}", skill.description);
                         println!("Category: {} · Family: {}", skill.category, skill.family);
                         println!("Lifecycle: {}", skill.lifecycle);
-                        println!(
-                            "Usage: {} recent · {} all-time",
-                            skill.usage.recent_count, skill.usage.all_time_count
-                        );
+                        if skill.usage.state == "observed" {
+                            println!(
+                                "Usage: {} recent · {} all-time",
+                                skill.usage.recent_count, skill.usage.all_time_count
+                            );
+                        } else {
+                            println!("Usage: unavailable");
+                            println!("Usage evidence: {}", skill.usage.reason);
+                        }
                     } else {
                         println!(
                             "PRONTO SKILLS · {} skills · {}",
@@ -13147,6 +13379,30 @@ pub fn run_cli(arguments: Vec<String>) {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
             });
+            if positionals.first().map(String::as_str) == Some("set-target") {
+                if positionals.len() != 3 {
+                    eprintln!("Usage: pronto repo set-target <repository> <branch> [--json]");
+                    std::process::exit(2);
+                }
+                let result = load_store(&path).and_then(|state| {
+                    let snapshot = snapshot_from_store(&path, &state);
+                    let repository = find_cli_repository(&snapshot, &positionals[1])?;
+                    set_repository_target_branch_at(&path, &repository.id, &positionals[2])
+                });
+                match result {
+                    Ok(snapshot) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&snapshot)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    ),
+                    Ok(_) => println!("Repository target branch updated."),
+                    Err(error) => {
+                        eprintln!("Pronto could not update the repository target branch: {error}");
+                        std::process::exit(1);
+                    }
+                }
+                std::process::exit(0);
+            }
             if positionals.first().map(String::as_str) == Some("set-lifecycle")
                 && positionals.len() == 3
             {
@@ -13326,11 +13582,11 @@ pub fn run_cli(arguments: Vec<String>) {
                 std::process::exit(0);
             }
             let Some(query) = positionals.first() else {
-                eprintln!("Usage: pronto repo <repository> [--fresh] [--json]");
+                eprintln!("Usage: pronto repo <repository> [--fresh] [--json] | pronto repo set-target <repository> <branch> [--json]");
                 std::process::exit(2);
             };
             if positionals.len() > 1 {
-                eprintln!("Usage: pronto repo <repository> [--fresh] [--json]");
+                eprintln!("Usage: pronto repo <repository> [--fresh] [--json] | pronto repo set-target <repository> <branch> [--json]");
                 std::process::exit(2);
             }
             let state_result = if fresh {
@@ -13421,34 +13677,37 @@ pub fn run_cli(arguments: Vec<String>) {
             }
         }
         "prepare" => {
+            let fresh = arguments.iter().any(|argument| argument == "--fresh");
             let workspace_id = cli_option(&arguments, "--workspace").unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
             });
             let positionals =
-                cli_positionals(&arguments, &["--workspace"]).unwrap_or_else(|error| {
-                    eprintln!("Pronto CLI error: {error}");
-                    std::process::exit(2);
-                });
+                cli_positionals_with_flags(&arguments, &["--workspace"], &["--fresh"])
+                    .unwrap_or_else(|error| {
+                        eprintln!("Pronto CLI error: {error}");
+                        std::process::exit(2);
+                    });
             let Some(query) = positionals.first() else {
-                eprintln!("Usage: pronto prepare <repository> [--workspace <id>] [--json]");
+                eprintln!(
+                    "Usage: pronto prepare <repository> [--workspace <id>] [--fresh] [--json]"
+                );
                 std::process::exit(2);
             };
             if positionals.len() > 1 {
-                eprintln!("Usage: pronto prepare <repository> [--workspace <id>] [--json]");
+                eprintln!(
+                    "Usage: pronto prepare <repository> [--workspace <id>] [--fresh] [--json]"
+                );
                 std::process::exit(2);
             }
-            let result = load_store_with_quality(&path)
-                .map(|state| snapshot_from_store(&path, &state))
-                .and_then(|snapshot| {
-                    let repository = find_cli_repository(&snapshot, query)?;
-                    prepare_repository_at(&path, &repository.id, workspace_id.as_deref())
-                })
-                .map(|preparation| AgentPreparationReport {
-                    schema_version: AGENT_PREPARATION_SCHEMA.to_string(),
-                    generated_at: preparation.generated_at.clone(),
-                    preparation,
-                });
+            let result =
+                prepare_repository_by_query_at(&path, query, workspace_id.as_deref(), fresh).map(
+                    |preparation| AgentPreparationReport {
+                        schema_version: AGENT_PREPARATION_SCHEMA.to_string(),
+                        generated_at: preparation.generated_at.clone(),
+                        preparation,
+                    },
+                );
             match result {
                 Ok(report) if json => println!(
                     "{}",
@@ -13462,33 +13721,32 @@ pub fn run_cli(arguments: Vec<String>) {
             }
         }
         "release" => {
+            let fresh = arguments.iter().any(|argument| argument == "--fresh");
             let workspace_id = cli_option(&arguments, "--workspace").unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
             });
             let positionals =
-                cli_positionals(&arguments, &["--workspace"]).unwrap_or_else(|error| {
-                    eprintln!("Pronto CLI error: {error}");
-                    std::process::exit(2);
-                });
+                cli_positionals_with_flags(&arguments, &["--workspace"], &["--fresh"])
+                    .unwrap_or_else(|error| {
+                        eprintln!("Pronto CLI error: {error}");
+                        std::process::exit(2);
+                    });
             if positionals.len() != 2 || positionals[0] != "preview" {
-                eprintln!("Usage: pronto release preview <repository> [--workspace <id>] [--json]");
+                eprintln!("Usage: pronto release preview <repository> [--workspace <id>] [--fresh] [--json]");
                 std::process::exit(2);
             }
             let query = &positionals[1];
-            let result = load_store_with_quality(&path)
-                .map(|state| snapshot_from_store(&path, &state))
-                .and_then(|snapshot| {
-                    let repository = find_cli_repository(&snapshot, query)?;
-                    prepare_repository_at(&path, &repository.id, workspace_id.as_deref())
-                })
-                .map(|preparation| AgentReleaseReport {
-                    schema_version: AGENT_RELEASE_SCHEMA.to_string(),
-                    generated_at: preparation.generated_at.clone(),
-                    repository_id: preparation.repository_id,
-                    release: preparation.release,
-                    recipe: preparation.recipe,
-                });
+            let result =
+                prepare_repository_by_query_at(&path, query, workspace_id.as_deref(), fresh).map(
+                    |preparation| AgentReleaseReport {
+                        schema_version: AGENT_RELEASE_SCHEMA.to_string(),
+                        generated_at: preparation.generated_at.clone(),
+                        repository_id: preparation.repository_id,
+                        release: preparation.release,
+                        recipe: preparation.recipe,
+                    },
+                );
             match result {
                 Ok(report) if json => println!(
                     "{}",
@@ -13671,7 +13929,7 @@ pub fn run_cli(arguments: Vec<String>) {
                                 .collect::<Vec<_>>();
                             if plan.is_none() && closures.is_empty() {
                                 return Err(format!(
-                                    "No active remediation plan or retained closure found for repository '{query}'."
+                                    "No active remediation plan or resolved remediation history found for repository '{query}'."
                                 ));
                             }
                             let mut run = snapshot.remediation;
@@ -14429,7 +14687,14 @@ mod tests {
             ..remediation::RemediationRefreshStep::default()
         }];
         apply_quality_evidence_scoped(&mut state, None, None);
-        assert_eq!(state.repositories[0].quality.maturity.score, Some(2.0));
+        assert_eq!(state.repositories[0].quality.maturity.score, Some(0.25));
+        assert_eq!(
+            state.repositories[0]
+                .quality
+                .maturity
+                .scored_dimension_count,
+            Some(8)
+        );
         assert_eq!(
             state.repositories[0].quality.maturity.freshness,
             QualityFreshness::Fresh
@@ -14439,7 +14704,7 @@ mod tests {
         let mut persisted = load_store(&store).expect("scoped maturity state should reload");
         let refreshed = scan_and_persist_scoped(&store, &mut persisted, None)
             .expect("ordinary refresh should succeed");
-        assert_eq!(refreshed.repositories[0].quality.maturity.score, Some(2.0));
+        assert_eq!(refreshed.repositories[0].quality.maturity.score, Some(0.25));
         assert_eq!(
             refreshed.repositories[0].quality.maturity.freshness,
             QualityFreshness::Fresh
@@ -14517,7 +14782,7 @@ mod tests {
                 .repository
                 .as_ref()
                 .and_then(|detail| detail.repository.quality.maturity.score),
-            Some(2.0)
+            Some(0.25)
         );
         assert_eq!(
             report
@@ -14624,7 +14889,7 @@ mod tests {
 
         assert_eq!(
             maturity_coverage_gaps(&snapshot.repositories),
-            vec![format!("{repository_name} (missing)")]
+            vec![format!("{repository_name} (unknown)")]
         );
 
         snapshot.repositories[0].quality.maturity.score = Some(2.0);
@@ -14845,6 +15110,49 @@ mod tests {
             .is_empty());
 
         fs::remove_dir_all(root).expect("deleted repository fixture should be removable");
+    }
+
+    #[test]
+    fn prunes_existing_non_git_namespace_records_on_full_refresh() {
+        let root = fixture_root();
+        let namespace = root.join("BBDSE");
+        let nested_repository = fixture_repository_named(&namespace, "nested-repository");
+        let store = root.join("registry.db");
+
+        let first = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("initial scan should discover nested Git repositories");
+        assert_eq!(first.repositories.len(), 1);
+        assert_eq!(
+            first.repositories[0].path,
+            canonical_path(&nested_repository)
+                .expect("nested repository should canonicalize")
+                .to_string_lossy()
+        );
+
+        let mut state = load_store(&store).expect("initial store should be readable");
+        let stale_namespace = scan_repository(&namespace, None, &state.expected_conditions);
+        state.repositories.push(stale_namespace);
+        save_store(&store, &state).expect("stale namespace should persist for the fixture");
+
+        let mut state = load_store(&store).expect("state with stale namespace should reload");
+        let refreshed = scan_and_persist_scoped(&store, &mut state, None)
+            .expect("full refresh should prune the non-Git namespace");
+
+        assert_eq!(refreshed.repositories.len(), 1);
+        assert_eq!(
+            refreshed.repositories[0].path,
+            canonical_path(&nested_repository)
+                .expect("nested repository should canonicalize")
+                .to_string_lossy()
+        );
+        assert!(!refreshed.repositories.iter().any(|repository| {
+            repository.path
+                == canonical_path(&namespace)
+                    .expect("namespace should canonicalize")
+                    .to_string_lossy()
+        }));
+
+        fs::remove_dir_all(root).expect("namespace fixture should be removable");
     }
 
     #[test]
@@ -15538,6 +15846,11 @@ mod tests {
                     report_url: None,
                     report_kind: Some("GitHub check run".to_string()),
                     detail: "success".to_string(),
+                    verification_level: quality::QualityVerificationLevel::SourceInferred,
+                    target_kind: Some("source".to_string()),
+                    target_url: None,
+                    target_provider: Some("github".to_string()),
+                    deployment_id: None,
                 }],
             }],
             ..QualitySnapshot::default()
@@ -15552,14 +15865,200 @@ mod tests {
             required_quality_gates: vec![QualityGateRequirement {
                 gate_id: "lint".to_string(),
                 source: quality::QualitySource::Ci,
+                minimum_verification_level: None,
+                policy: quality::QualityRequirementPolicy::Block,
             }],
         };
 
         let (result, trace) = evaluate_release_rule_with_quality(&repository, &rule, None, &[]);
         assert_eq!(result, ReleaseRuleResult::Blocked);
         assert!(trace.iter().any(|item| {
-            item.label == "Quality gate · Lint · CI" && item.status == "Passed · Stale"
+            item.label == "Quality gate · Lint · CI · Block" && item.status == "Passed · Stale"
         }));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn warning_quality_requirement_is_visible_without_blocking_release() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let mut repository = scan_repository(&repository_path, None, &[]);
+        repository.quality = QualitySnapshot {
+            gates: vec![quality::QualityGate {
+                id: "web_readiness".to_string(),
+                label: "Web readiness".to_string(),
+                status: QualityGateStatus::Failed,
+                freshness: QualityFreshness::Fresh,
+                evidence: vec![quality::QualityEvidence {
+                    id: "web_readiness".to_string(),
+                    source: quality::QualitySource::Qr,
+                    status: QualityGateStatus::Failed,
+                    freshness: QualityFreshness::Fresh,
+                    observed_at: Some(iso_now()),
+                    scanned_commit: repository.workspace.last_commit.clone(),
+                    scanned_branch: Some(repository.branch.clone()),
+                    command: None,
+                    source_label: "Quality Runner web readiness".to_string(),
+                    report_path: None,
+                    report_url: None,
+                    report_kind: Some("Quality Runner web readiness".to_string()),
+                    detail: "Polish warning".to_string(),
+                    verification_level: quality::QualityVerificationLevel::DeploymentVerified,
+                    target_kind: Some("deployment".to_string()),
+                    target_url: Some("https://preview.example.test".to_string()),
+                    target_provider: Some("fixture".to_string()),
+                    deployment_id: Some("dep-1".to_string()),
+                }],
+            }],
+            ..QualitySnapshot::default()
+        };
+        let rule = ReleaseRuleConfig {
+            name: "Web polish visibility".to_string(),
+            operator: "AND".to_string(),
+            min_commits: None,
+            min_elapsed_days: None,
+            required_commit_types: Vec::new(),
+            allow_first_release: false,
+            required_quality_gates: vec![QualityGateRequirement {
+                gate_id: "web_readiness".to_string(),
+                source: quality::QualitySource::Qr,
+                minimum_verification_level: Some(
+                    quality::QualityVerificationLevel::DeploymentVerified,
+                ),
+                policy: quality::QualityRequirementPolicy::Warn,
+            }],
+        };
+
+        let (result, trace) = evaluate_release_rule_with_quality(&repository, &rule, None, &[]);
+        assert_eq!(result, ReleaseRuleResult::Passed);
+        assert!(trace.iter().any(|item| {
+            item.label == "Quality gate · Web readiness · QR · Warn"
+                && item.status == "Failed · Fresh"
+        }));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn public_release_preview_is_blocked_by_missing_boundary_evidence() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let contract_dir = repository_path.join(".pronto");
+        fs::create_dir_all(&contract_dir).expect("goal contract directory should be writable");
+        fs::write(
+            contract_dir.join("remediation-goal.json"),
+            serde_json::json!({
+                "schema_version": "pronto-remediation-goal/v1",
+                "target_state": "public_release",
+                "reason": "Fixture exercises public release preparation."
+            })
+            .to_string(),
+        )
+        .expect("goal contract should be writable");
+        let mut repository = scan_repository(&repository_path, None, &[]);
+        repository.provider_state = "GitHub connected as github:fixture".to_string();
+        repository.last_fetch_at = Some(iso_now());
+
+        let preparation = prepare_release(&repository, &repository.workspace, true);
+
+        assert_eq!(
+            preparation.release_boundary_status.as_deref(),
+            Some("Missing · Unknown")
+        );
+        assert!(preparation.reasons.iter().any(|reason| {
+            reason.contains("Public-release boundary evidence is missing and unknown")
+        }));
+        assert!(preparation.evidence.iter().any(|item| {
+            item.label == "Public-release boundary"
+                && item.value.contains("blocking: receipt_missing")
+        }));
+        assert_eq!(preparation.status, "Blocked");
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn public_release_preview_accepts_only_a_fresh_passing_boundary() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let contract_dir = repository_path.join(".pronto");
+        fs::create_dir_all(&contract_dir).expect("goal contract directory should be writable");
+        fs::write(
+            contract_dir.join("remediation-goal.json"),
+            serde_json::json!({
+                "schema_version": "pronto-remediation-goal/v1",
+                "target_state": "public_release",
+                "reason": "Fixture exercises public release preparation."
+            })
+            .to_string(),
+        )
+        .expect("goal contract should be writable");
+        let mut repository = scan_repository(&repository_path, None, &[]);
+        repository.provider_state = "GitHub connected as github:fixture".to_string();
+        repository.last_fetch_at = Some(iso_now());
+        repository.quality.release_boundary.status = "Passed".to_string();
+        repository.quality.release_boundary.freshness = "Fresh".to_string();
+        repository
+            .quality
+            .release_boundary
+            .blocking_check_ids
+            .clear();
+        repository.quality.release_boundary.checks = [
+            "source_provenance",
+            "surface_classification",
+            "tracked_public_content",
+            "public_adapter_fixtures",
+            "distribution_archives",
+            "clean_room_install",
+        ]
+        .into_iter()
+        .map(|id| crate::release_boundary::ReleaseBoundaryCheck {
+            id: id.to_string(),
+            status: "passed".to_string(),
+            reason: None,
+        })
+        .collect();
+
+        let preparation = prepare_release(&repository, &repository.workspace, true);
+
+        assert_eq!(
+            preparation.release_boundary_status.as_deref(),
+            Some("Passed · Fresh")
+        );
+        assert!(!preparation
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("Public-release boundary evidence")));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn non_public_release_preview_does_not_require_boundary_evidence() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let repository = scan_repository(&repository_path, None, &[]);
+
+        let preparation = prepare_release(&repository, &repository.workspace, false);
+
+        assert_eq!(preparation.release_boundary_status, None);
+        assert!(!preparation
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("Public-release boundary evidence")));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn bounded_release_git_command_times_out_instead_of_hanging() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        let started_at = Instant::now();
+        let result = run_git_bounded(
+            &repository,
+            ["-c", "alias.pronto-slow=!sleep 2", "pronto-slow"],
+            StdDuration::from_millis(50),
+        );
+
+        assert!(result.is_err_and(|error| error.contains("release-preview deadline")));
+        assert!(started_at.elapsed() < StdDuration::from_secs(1));
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
@@ -15671,6 +16170,28 @@ mod tests {
                 .first_mut()
                 .expect("fixture repository should be registered");
             stored_repository.provider_state = "GitHub connected as github:fixture".to_string();
+            stored_repository.quality.release_boundary.status = "Passed".to_string();
+            stored_repository.quality.release_boundary.freshness = "Fresh".to_string();
+            stored_repository
+                .quality
+                .release_boundary
+                .blocking_check_ids
+                .clear();
+            stored_repository.quality.release_boundary.checks = [
+                "source_provenance",
+                "surface_classification",
+                "tracked_public_content",
+                "public_adapter_fixtures",
+                "distribution_archives",
+                "clean_room_install",
+            ]
+            .into_iter()
+            .map(|id| crate::release_boundary::ReleaseBoundaryCheck {
+                id: id.to_string(),
+                status: "passed".to_string(),
+                reason: None,
+            })
+            .collect();
             stored_repository.releases = vec![ReleaseSnapshot {
                 id: "github:release-1".to_string(),
                 provider: "github".to_string(),

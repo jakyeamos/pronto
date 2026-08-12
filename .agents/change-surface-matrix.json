@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-01",
+  "last_reviewed": "2026-08-10",
   "surfaces": [
     {
       "id": "native-core",
@@ -85,6 +85,50 @@
       "status": "applicable"
     },
     {
+      "id": "failure-visibility-gate",
+      "scope": "local",
+      "path": ".quality-runner.toml and package.json:scripts.failure-visibility",
+      "owner": "Pronto repository maintainers",
+      "condition": "Fallback, degradation, evidence normalization, or negative-path behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "pnpm failure-visibility",
+        "Run Quality Runner verify-gates with --only-gate failure_visibility in disposable mode and inspect evidence_state."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "codex-skill-invocation-feed",
+      "scope": "external",
+      "path": "~/.codex/state_5.sqlite::skill_invocations",
+      "owner": "Codex runtime fork and Pronto provider adapter",
+      "condition": "Codex skill event identity, persistence, status semantics, retention, or Pronto aggregation changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "Run scoped codex-state skill_invocations tests.",
+        "Run the Codex explicit and implicit skill integration tests.",
+        "pnpm cli skills --json",
+        "Perform installed-app Skills interaction verification."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "codex-skill-otlp-compatibility-feed",
+      "scope": "external",
+      "path": "127.0.0.1:43180/v1/metrics -> ~/Library/Application Support/Pronto/codex-skill-metrics.db",
+      "owner": "Codex OTLP metrics exporter and Pronto localhost collector",
+      "condition": "Codex skill metric name, dimensions, temporality, OTLP JSON shape, collector lifecycle, coverage semantics, or source precedence changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "Run scoped skill_usage_collector and Skills fallback tests.",
+        "node --test scripts/skill-usage-collector.test.mjs",
+        "pnpm skills:collector:check",
+        "Start a fresh Codex process and verify an observed metric through pnpm cli skills --json.",
+        "Perform installed-app Skills interaction verification."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "quality-runner-feed",
       "scope": "external",
       "path": "~/.quality-runner/fleet-audit/current/maturity.json",
@@ -95,6 +139,35 @@
         "quality-runner doctor --json",
         "quality-runner fleet audit run --repo-path \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm cli quality \"$(git rev-parse --show-toplevel)\" --json"
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "quality-runner-web-readiness",
+      "scope": "external",
+      "path": "<repository>/.quality-runner/web-readiness.json",
+      "owner": "Quality Runner and the target repository",
+      "condition": "Web applicability, evidence levels, target identity, categorical readiness, route evidence, or release consumption changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "qr web-readiness <repository> --json",
+        "pnpm cli quality <repository> --json",
+        "pnpm cli release preview <repository> --json"
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "mac-control-ideal-state-feed",
+      "scope": "external",
+      "path": "~/.quality-runner/fleet-audit/current/mac-control-ideal-state.json, src-tauri/src/mac_control_maturity.rs, and the Quality Gates renderer",
+      "owner": "Quality Runner, Mac Control, and Pronto integration owners",
+      "condition": "Mac Control manifest schema, semantic evidence, source-grounding, provider-boundary, score, freshness, or user-facing disposition changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml mac_control_maturity",
+        "pnpm vitest run src/renderer/src/components/QualityComponents.test.tsx",
+        "pnpm typecheck",
+        "Read back a Quality Runner v4 companion feed in Pronto."
       ],
       "status": "applicable"
     },
@@ -117,10 +190,13 @@
       "scope": "external",
       "path": "/Applications/Pronto.app",
       "owner": "Pronto repository maintainers",
-      "condition": "Tauri configuration, bundled assets, native entry points, or production installation behavior changes.",
+      "condition": "The build/promotion command contract, Tauri configuration, bundled assets, native entry points, or production installation behavior changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
+        "node --test scripts/build-workflow.test.mjs scripts/install-app.test.mjs",
         "pnpm build:bundle",
+        "pnpm build:release (CI or release preparation)",
+        "pnpm app:update",
         "pnpm app:check",
         "Perform installed-app interaction smoke verification."
       ],

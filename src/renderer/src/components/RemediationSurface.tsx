@@ -23,7 +23,6 @@ import {
   remediationStatusTone,
 } from "./RemediationActionRow";
 import {
-  remediationMaturityPolicySummary,
   RemediationMaturityPolicyCriteria,
   RemediationMaturityPolicyMeta,
 } from "./RemediationMaturityPolicy";
@@ -70,7 +69,6 @@ export function RemediationSurface({
   const [detailRevealed, setDetailRevealed] = useState(false);
   const detailPanelRef = useRef<HTMLElement>(null);
   const planRowRefs = useRef(new Map<string, HTMLButtonElement>());
-  const closures = run.closures ?? [];
   const selectedPlan = useMemo(
     () => run.plans.find((plan) => plan.id === selectedPlanId) ?? run.plans[0],
     [run.plans, selectedPlanId],
@@ -195,36 +193,6 @@ export function RemediationSurface({
         </section>
       )}
 
-      {closures.length > 0 && (
-        <section className="surface-panel remediation-closure-panel">
-          <div className="surface-heading compact-heading">
-            <div>
-              <p className="eyebrow">Closure ledger</p>
-              <h2>Repositories removed from the active queue</h2>
-            </div>
-            <StatusPill tone="mint">{closures.length} retained</StatusPill>
-          </div>
-          <div className="remediation-closure-list">
-            {closures.map((closure) => (
-              <div className="remediation-closure" key={closure.id}>
-                <div>
-                  <strong>{closure.repository_name}</strong>
-                  <span>{closure.summary}</span>
-                </div>
-                <small>
-                  {remediationStatusLabel(closure.target_state)} ·{" "}
-                  {remediationStatusLabel(closure.goal_source)} ·{" "}
-                  {closure.disposition} ·{" "}
-                  {formatRemediationTime(closure.closed_at)}
-                  {closure.maturity_policy &&
-                    ` · ${remediationMaturityPolicySummary(closure.maturity_policy)}`}
-                </small>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
       <div className="remediation-plan-layout">
         <section className="surface-panel remediation-plan-list-panel">
           <div className="surface-heading compact-heading">
@@ -238,8 +206,8 @@ export function RemediationSurface({
             <div className="surface-empty">
               <CheckCircle2 size={18} />
               <span>
-                No active remediation remains. Refresh scoped evidence before
-                treating this as current.
+                No remediation is currently queued. New findings, commits, or
+                workspace changes may create work on the next refresh.
               </span>
             </div>
           ) : (
@@ -378,7 +346,7 @@ export function RemediationSurface({
                   )}
                 </div>
                 <details>
-                  <summary>Goal-specific closure contract</summary>
+                  <summary>Goal-specific completion criteria</summary>
                   <ul>
                     {selectedPlan.goal.closure_criteria.map((criterion) => (
                       <li key={criterion}>{criterion}</li>

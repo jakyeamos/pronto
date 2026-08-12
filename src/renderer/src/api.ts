@@ -72,10 +72,10 @@ export const emptyAnalytics: AnalyticsSnapshot = {
 };
 
 export const emptySkills: SkillsSnapshot = {
-  schema_version: "pronto-skills/v3",
+  schema_version: "pronto-skills/v4",
   generated_at: new Date().toISOString(),
   freshness: "Unavailable until the first skills refresh",
-  source: "Local skill roots and local session records",
+  source: "Local skill roots; usage requires structured provider telemetry",
   recent_days: 30,
   roots: [],
   skills: [],

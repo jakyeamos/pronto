@@ -87,7 +87,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
   - `pronto quality disposition set <repository> <fingerprint> <status> ...`
     for an auditable repository-owned review decision that overlays, but never
     mutates, Quality Runner detector evidence;
-  - `pronto remediation [<repository>] --json` for the ranked active remediation queue and retained terminal closure ledger;
+  - `pronto remediation [<repository>] --json` for the ranked active remediation queue and point-in-time resolved-action history;
   - `pronto attention --json` for conditions, dirty workspaces, synchronization gaps, and quality gaps;
   - `pronto activity [<repository>] --limit <n> --json` for bounded events and action audits;
   - `pronto prepare <repository> --json` for pull-request, release, and recipe evidence;
@@ -110,7 +110,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
   integration-ready branches, submodules, and active conditions therefore
   cannot appear in the UI without a remediation disposition. Only actionable plans remain in the
   ranked queue, evidence-backed terminal outcomes move to a retained
-  goal-stamped closure ledger, and the remediation export produces the current
+  goal-stamped resolved-action history, and the remediation export produces the current
   queue as Markdown alongside JSON. Its deterministic ordering preserves
   status, earliest unresolved domain, and action priority, then applies
   explicit control-plane and evidence-provider leverage before using repository

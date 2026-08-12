@@ -20,6 +20,9 @@ artifact, the selected mode, and the candidate's sanitized projection. JAS
 validates, preflights, and applies the public catalog and/or private overlay;
 the tab then records a sanitized admission receipt back in AWL. A later refresh
 shows `JAS_APPLIED`, `JAS_ALREADY_APPLIED`, or a blocked admission on the
-candidate itself. Drafts, missing projections, `defer`, and `reject` never
-mutate JAS. If AWL or JAS is missing or cannot execute, the tab reports that
-state and does not invent candidates or decisions.
+candidate itself. Pronto enables `public`, `private`, and `both` only when the
+selected candidate is complete and its sanitized JAS projection is ready.
+Drafts and missing projections keep those acceptance controls disabled while
+leaving `defer` and `reject` available. They never mutate JAS. If AWL or JAS is
+missing or cannot execute, the tab reports that state and does not invent
+candidates or decisions.

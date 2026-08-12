@@ -1,6 +1,6 @@
 # Agent command contract
 
-Last reviewed: 2026-07-29.
+Last reviewed: 2026-08-11.
 
 ## Invocation
 
@@ -32,6 +32,26 @@ explicit path for live merge checks. A blocked route
 intentionally withholds follow-up projections and exits non-zero; use its
 `next_safe_step` before refreshing or repairing evidence.
 
+## Target branch policy
+
+The fleet integration and maturity target is an explicit repository-level
+`dev` target. Git's `main` or `master` default branch remains the release and
+default branch; configuring Pronto to target `dev` does not rename, replace, or
+merge those branches. Set the target only after confirming that the local
+repository has the requested branch:
+
+```sh
+pnpm --silent --dir "$PRONTO_ROOT" run cli repo set-target <repository> dev --json
+pnpm --silent --dir "$PRONTO_ROOT" run cli refresh <repository> --json
+```
+
+`repo set-target` persists the target override and validates the local branch;
+it does not mutate Git. The subsequent scoped refresh re-evaluates the
+repository snapshot. Quality Runner evidence is accepted for the selected
+target only when both the scanned branch and scanned commit exactly match the
+target branch and current target head. A stale or mismatched scan remains
+stale/unknown until it is refreshed from the exact target commit.
+
 ## Focused read and preview surfaces
 
 | Need                      | Command                                                                                                                                                       | Contract                         |
@@ -42,32 +62,61 @@ intentionally withholds follow-up projections and exits non-zero; use its
 | Fold preparation          | `fold preview [<repository>] [--target <branch>] [--product <name> \| --group <name>] [--limit <n>] --json`                                                   | `pronto-agent-fold-preview/v1`   |
 | Fleet orientation         | `summary [--product <name> \| --group <name>] --json`                                                                                                         | `pronto-agent-summary/v1`        |
 | One repository            | `repo <absolute-repo-path> [--fresh] --json`                                                                                                                  | `pronto-agent-repository/v1`     |
+| Repository target         | `repo set-target <repository> <branch> --json`                                                                                                                | persisted target override        |
 | Quality evidence          | `quality [<repository>] --json`                                                                                                                               | `pronto-agent-quality/v1`        |
 | Quality import            | `quality refresh --json`                                                                                                                                      | persisted local quality snapshot |
 | Finding adjudication      | `quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] --json` | repository-owned overlay         |
-| Skill topology            | `skills [<skill-id>] --json`                                                                                                                                  | `pronto-skills/v2`               |
+| Skill topology            | `skills [<skill-id>] --json`                                                                                                                                  | `pronto-skills/v4`               |
 | Repository change matrix  | `change-matrix repo <repository> [--operation <add\|change\|remove>] --json`                                                                                  | `pronto-change-matrix/v1`        |
 | Skill change matrix       | `change-matrix skill <skill-id> [--operation <add\|change\|remove>] --json`                                                                                   | `pronto-change-matrix/v1`        |
 | Active remediation        | `remediation [<repository>] --json`                                                                                                                           | `pronto-remediation/v3`          |
 | Work requiring attention  | `attention --json`                                                                                                                                            | `pronto-agent-attention/v1`      |
 | Recent transitions/audits | `activity [<repository>] --limit <n> --json`                                                                                                                  | `pronto-agent-activity/v1`       |
-| Preparation preflight     | `prepare <repository> [--workspace <id>] --json`                                                                                                              | `pronto-agent-preparation/v1`    |
-| Release preflight         | `release preview <repository> [--workspace <id>] --json`                                                                                                      | `pronto-agent-release/v1`        |
+| Preparation preflight     | `prepare <repository> [--workspace <id>] [--fresh] --json`                                                                                                    | `pronto-agent-preparation/v1`    |
+| Release preflight         | `release preview <repository> [--workspace <id>] [--fresh] --json`                                                                                            | `pronto-agent-release/v1`        |
 
 Resolve a repository with `git rev-parse --show-toplevel` and pass the
 absolute path, repository name, ID, or an exact workspace path. Do not pass `.`
 and assume it will resolve.
 
+Quality, summary, attention, and remediation projections expose generic
+`evidence_contracts` state. Observation freshness and contract freshness are
+independent: a recent report whose observed schema differs from the registered
+target schema remains readable but reports `audit_required`. At portfolio
+scope, any non-current repository means a full fleet audit is required; do not
+interpret a legacy report's successful checks as current contract coverage.
+
+Fleet quality presentation uses `quality_outcome_counts` and
+`quality_outcome_taxonomy`. Display their bounded labels instead of shortening
+everything to `Blocked`: `checks_failing` is observed failing quality evidence;
+`verification_blocked` is an execution, setup, timeout, or provenance barrier;
+`review_needed` has no known blocker but remains below ideal or unverified;
+`evidence_unknown` lacks trustworthy current evidence; and `healthy` is
+fresh-passing or safely reused maintained evidence. Repository projections also
+carry a bounded `quality_outcome.disposition` that names the affected
+dimensions and their evidence state, plus an optional `next_step`. Surface
+those details so review-needed and evidence-review rows are actionable: render
+`evidence_unknown` as `Evidence review required`, never as the raw machine state
+or the old `unknown` label. The legacy QR `quality_status` remains a
+compatibility field, not preferred display copy.
+
 The Node adapter normally resolves `cargo` from the documented Homebrew paths
 and then `PATH`. Set `PRONTO_CARGO` to an explicit Cargo executable only when a
 different verified Rust toolchain is required.
 
-For every app-facing source change, `pnpm build:bundle` alone is provisional.
-Completion requires `pnpm build`, which stages and fully replaces
-`/Applications/Pronto.app`, followed by `pnpm app:check` and a launch of the
-installed app. If Pronto was already running, the installer must quit it before
-replacement and reopen it afterward. Never use an overlay copy: obsolete files
-must not survive an installation.
+For ordinary app-facing source changes, exercise the live `pnpm dev` window and
+run the applicable quality gates. That verifies the current checkout directly
+without claiming that `/Applications/Pronto.app` is current. Promote a coherent
+checkpoint with `pnpm app:update` when the installed daily-driver app should
+change, or when Tauri configuration, bundled assets, native entry points,
+installation behavior, or release readiness is in scope. The update builds only
+the macOS app bundle, stages and fully replaces `/Applications/Pronto.app`, and
+must be followed by `pnpm app:check` plus an installed-app launch. `pnpm build`
+and `pnpm app` remain compatibility aliases for `pnpm app:update`;
+`pnpm build:release` generates the complete distribution artifact set. If
+Pronto was already running, the installer must quit it before replacement and
+reopen it afterward. Never use an overlay copy: obsolete files must not survive
+an installation.
 
 Repository and summary projections include a read-only `project_compass`
 summary derived from `.project-compass/contract.json`. `Ready` reports the
@@ -85,7 +134,26 @@ artifacts during a refresh.
 missing contract returns `status: "missing"`, its maturity impact, observed
 topology, and the expected location without synthesizing or writing anything.
 `skills [<skill-id>] --json` preserves source paths and hashes, provider state,
-parity evidence, and `hosted_in_jakye_agent_setup`.
+parity evidence, and `hosted_in_jakye_agent_setup`. Its `usage.state` is
+`observed` only for a structured provider invocation feed. An unavailable feed
+reports zeroed compatibility counters with `usage.state: "unavailable"`; agents
+must not interpret those counters as observed zero usage. Catalog, prompt, and
+transcript text are never invocation evidence. Codex observations come from the
+read-only `skill_invocations` table in `~/.codex/state_5.sqlite` when the
+instrumented fork is installed. Otherwise Pronto falls back to its
+localhost-only `codex.skill.injected` OTLP compatibility feed. The fallback
+records coverage start and collector heartbeat; `all_time_count` covers only
+events received after activation. Enable, inspect, or reverse that approved
+persistent route with `pnpm skills:collector:install`,
+`pnpm skills:collector:check`, and `pnpm skills:collector:uninstall`. Enabling it
+replaces Codex's default metrics exporter while active, and Codex processes must
+restart to load the configuration.
+
+Run `pnpm failure-visibility` after changing fallback, degradation, or evidence
+normalization behavior. It exercises the native usage source, renderer
+normalization, and collector refusal paths. Quality Runner reports this as the
+required `failure_visibility` capability; discovery alone is `configured`, not
+a passing result.
 
 `remediation` is an active, goal-aware ranked queue. Its `plans` contain only
 actionable repositories and expose the resolved `goal` profile. Repositories
@@ -100,10 +168,19 @@ workspaces, branches, submodules, conditions, release preparation, agent
 permission, and analytics.
 Each plan also contains an `explanation` projection that groups only active
 (`open`, `in_progress`, or `blocked`) actions into ordered operator phases.
-Pronto supplies four default phase definitions—preserve and reconcile
+Pronto supplies five default phase definitions—preserve and reconcile
 repository work, reconcile product and provider truth, reach quality and
-maturity closure, and refresh, verify, and close—but that sequence is not a
-maximum. A repository contract may add phase definitions, assign action
+maturity threshold, prove the public distribution boundary, and refresh and
+re-evaluate—but that sequence is not a maximum. The public-distribution phase
+is active only for `public_release` goals. Pronto reads
+`.quality-runner/release-boundary.json` as
+`quality-runner-release-boundary/v2`; v1 or unknown schemas require a new audit.
+Missing, stale, exact-target-mismatched, matrix-digest-mismatched,
+artifact-digest-mismatched, or failed evidence creates a receipt-derived blocked
+action and hard-blocks `release preview`. Manual action status cannot bypass the
+gate, and Pronto never executes receipt content. The passing receipt proves
+`public_core`, `public_adapter`, and `local_only` classification plus artifact,
+isolated-install, and sanitized-integration evidence. A repository contract may add phase definitions, assign action
 domains to them, and place each addition after an earlier phase. Repository
 phases take ownership of their declared domains; active actions in an
 unassigned domain remain visible in an explicit `unclassified_remediation`
@@ -126,6 +203,11 @@ including the fresh, commit-matched Mac Control ideal-state gate where
 applicable; this is a score condition, not a four-repository count. See
 `docs/mac-control-maturity-gate.md` for the report contract and explicit
 not-applicable handling.
+Only `mac-control-task-manifest/v4` source-grounded dimensions can contribute
+to the implementation lane. V1 through v3 declaration counts remain visible
+for diagnosis but score zero and must be labeled non-scoring in every consumer.
+Validate producer-count consistency, typed semantic claims, provider ownership,
+and per-dimension grounding before presenting a Mac Control disposition.
 Unresolved coverage must link to action IDs; clear, informational, or
 goal-inapplicable surfaces remain explicit without manufacturing work. Terminal evidence-backed outcomes move to the retained
 `closures` ledger, including their target state, and may re-enter the queue
@@ -196,10 +278,14 @@ Read-only projections (`route`, `status`, `repo`, `summary`, `next`, `fold
 preview`, `quality`, `attention`, `activity`, and `remediation`) use the
 persisted SQLite snapshot and do not ingest repository quality artifacts while
 serializing their response. This keeps follow-up reads observable even when a
-repository's quality tree is slow or unavailable. Add `--fresh` to `route`,
-`status`, or `repo` only when a bounded fresh quality projection is required;
-the projection has a 10-second deadline and returns an explicit error state on
-timeout. Use `quality refresh --json` when the imported quality state should be
+repository's quality tree is slow or unavailable. Preparation and release
+previews also use the cached snapshot by default. Add `--fresh` to `route`,
+`status`, `repo`, `prepare`, or `release preview` only when a bounded fresh
+quality projection is required; the projection has a 10-second deadline and
+returns an explicit error state on timeout. Release-history inspection is
+independently capped at 1,000 commits and 10 seconds; failure is returned as
+explicit unavailable evidence rather than an empty history. Use
+`quality refresh --json` when the imported quality state should be
 persisted for subsequent cached reads. Quality refreshes are single-flight per
 Pronto database, so concurrent writers receive a retryable error instead of
 interleaving state.

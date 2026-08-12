@@ -221,13 +221,22 @@ function SkillsTable({
               <small>{providerSummary(skill)}</small>
             </td>
             <td>
-              <strong>{skill.usage.recent_count}</strong>
-              <small>
-                {skill.usage.all_time_count} all-time
-                {skill.usage.last_seen_at
-                  ? " · " + formatTime(skill.usage.last_seen_at)
-                  : " · no observation"}
-              </small>
+              {skill.usage.state === "observed" ? (
+                <>
+                  <strong>{skill.usage.recent_count}</strong>
+                  <small>
+                    {skill.usage.all_time_count} recorded
+                    {skill.usage.last_seen_at
+                      ? " · " + formatTime(skill.usage.last_seen_at)
+                      : " · observation time unavailable"}
+                  </small>
+                </>
+              ) : (
+                <>
+                  <StatusPill tone="slate">Unavailable</StatusPill>
+                  <small>No verified provider feed</small>
+                </>
+              )}
             </td>
             <td className="skills-capability-cell">
               <StatusPill
@@ -286,6 +295,13 @@ function SkillsSurfaceContent({
   >({});
   const papercutsSelected = selected?.id === PAPERCUTS_SKILL_ID;
   const normalizedQuery = query.trim().toLowerCase();
+  const usageEvidenceAvailable = safeSkills.some(
+    (skill) => skill.usage.state === "observed",
+  );
+  const effectiveSort =
+    !usageEvidenceAvailable && (sort === "recent" || sort === "allTime")
+      ? "name"
+      : sort;
   const skills = useMemo(() => {
     return safeSkills
       .filter(
@@ -296,15 +312,15 @@ function SkillsSurfaceContent({
             .includes(normalizedQuery),
       )
       .sort((left, right) => {
-        if (sort === "recent")
+        if (effectiveSort === "recent")
           return right.usage.recent_count - left.usage.recent_count;
-        if (sort === "allTime")
+        if (effectiveSort === "allTime")
           return right.usage.all_time_count - left.usage.all_time_count;
-        if (sort === "parity")
+        if (effectiveSort === "parity")
           return (right.parity_score ?? -1) - (left.parity_score ?? -1);
         return left.name.localeCompare(right.name);
       });
-  }, [normalizedQuery, safeSkills, sort]);
+  }, [effectiveSort, normalizedQuery, safeSkills]);
   const skillGroups = useMemo<SkillGroup[]>(() => {
     const categories = new Map<string, Map<string, SkillRecord[]>>();
     skills.forEach((skill) => {
@@ -364,14 +380,24 @@ function SkillsSurfaceContent({
           <small>in jakye-agent-setup</small>
         </div>
         <div>
-          <span>Observed use</span>
+          <span>Usage evidence</span>
           <strong>
-            {safeSkills.reduce(
-              (total, skill) => total + skill.usage.recent_count,
-              0,
-            )}
+            {usageEvidenceAvailable
+              ? safeSkills.reduce(
+                  (total, skill) =>
+                    total +
+                    (skill.usage.state === "observed"
+                      ? skill.usage.recent_count
+                      : 0),
+                  0,
+                )
+              : "Unavailable"}
           </strong>
-          <small>last {normalizedSnapshot.recent_days} days</small>
+          <small>
+            {usageEvidenceAvailable
+              ? `recorded in last ${normalizedSnapshot.recent_days} days`
+              : "structured provider feed required"}
+          </small>
         </div>
         <div>
           <span>Freshness</span>
@@ -434,12 +460,16 @@ function SkillsSurfaceContent({
             <label className="skills-sort">
               Sort
               <select
-                value={sort}
+                value={effectiveSort}
                 onChange={(event) => setSort(event.target.value as SortKey)}
               >
                 <option value="name">Name</option>
-                <option value="recent">Recent usage</option>
-                <option value="allTime">All-time usage</option>
+                {usageEvidenceAvailable ? (
+                  <>
+                    <option value="recent">Recent usage</option>
+                    <option value="allTime">Recorded usage</option>
+                  </>
+                ) : null}
                 <option value="parity">Parity evidence</option>
               </select>
             </label>
@@ -607,9 +637,23 @@ function SkillsSurfaceContent({
                   <div>
                     <dt>Usage</dt>
                     <dd>
-                      {selected.usage.recent_count} recent ·{" "}
-                      {selected.usage.all_time_count} all-time
+                      {selected.usage.state === "observed" ? (
+                        <>
+                          {selected.usage.recent_count} recent ·{" "}
+                          {selected.usage.all_time_count} recorded
+                          <small>{selected.usage.reason}</small>
+                        </>
+                      ) : (
+                        <>
+                          <StatusPill tone="slate">Unavailable</StatusPill>
+                          <small>{selected.usage.reason}</small>
+                        </>
+                      )}
                     </dd>
+                  </div>
+                  <div>
+                    <dt>Usage evidence</dt>
+                    <dd>{selected.usage.telemetry_source}</dd>
                   </div>
                   <div>
                     <dt>Parity</dt>

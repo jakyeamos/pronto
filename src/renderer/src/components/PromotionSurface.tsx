@@ -39,6 +39,10 @@ const decisionActions: Array<{
   { decision: "reject", label: "Reject", tone: "coral" },
 ];
 
+function isPromotionDecision(decision: PromotionDecision): boolean {
+  return decision === "public" || decision === "private" || decision === "both";
+}
+
 function decisionLabel(decision?: string | null): string {
   if (decision === "public") return "Public projection";
   if (decision === "private") return "Private projection";
@@ -215,6 +219,9 @@ export function PromotionSurface({
     ) ??
     inbox.candidates[0] ??
     null;
+  const jasProjectionReady =
+    selected?.candidate_kind === "complete" &&
+    selected.jas_projection_status === "ready";
 
   useEffect(() => {
     if (!selected || selected.candidate_id !== selectedId) {
@@ -225,6 +232,7 @@ export function PromotionSurface({
 
   async function handleDecision(decision: PromotionDecision): Promise<void> {
     if (!selected || submitting) return;
+    if (isPromotionDecision(decision) && !jasProjectionReady) return;
     const trimmedReason = reason.trim();
     if ((decision === "defer" || decision === "reject") && !trimmedReason) {
       return;
@@ -518,7 +526,24 @@ export function PromotionSurface({
                     className={`button button-${action.tone}`}
                     type="button"
                     key={action.decision}
-                    disabled={actionsDisabled}
+                    data-decision={action.decision}
+                    disabled={
+                      actionsDisabled ||
+                      (isPromotionDecision(action.decision) &&
+                        !jasProjectionReady)
+                    }
+                    aria-describedby={
+                      isPromotionDecision(action.decision) &&
+                      !jasProjectionReady
+                        ? "promotion-readiness-note"
+                        : undefined
+                    }
+                    title={
+                      isPromotionDecision(action.decision) &&
+                      !jasProjectionReady
+                        ? "A complete candidate with a sanitized JAS projection is required."
+                        : undefined
+                    }
                     onClick={() => void handleDecision(action.decision)}
                   >
                     {action.decision === "reject" ? (
@@ -532,10 +557,16 @@ export function PromotionSurface({
                   </button>
                 ))}
               </div>
-              <p className="promotion-action-note">
-                An accepted choice records the AWL decision and invokes JAS
-                admission/install when the packet is complete and
-                projection-ready. Defer and reject only record the decision.
+              <p
+                className="promotion-action-note"
+                id="promotion-readiness-note"
+                role={jasProjectionReady ? undefined : "status"}
+              >
+                {jasProjectionReady
+                  ? "An accepted choice records the AWL decision and invokes JAS admission/install when the packet is complete and projection-ready. Defer and reject only record the decision."
+                  : selected.candidate_kind === "complete"
+                    ? "Promotion choices are disabled until this complete candidate includes a sanitized JAS projection. You can still defer or reject it."
+                    : "Promotion choices are disabled until AWL produces a complete candidate packet with a sanitized JAS projection. You can still defer or reject it."}
               </p>
             </>
           ) : (

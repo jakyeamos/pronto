@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from "react";
+import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { CircleDot, FolderPlus, SearchX } from "lucide-react";
 import type { Condition } from "../types";
 
@@ -6,12 +6,23 @@ export function formatTime(value?: string): string {
   if (!value) return "Not recorded";
   const timestamp = Date.parse(value);
   if (Number.isNaN(timestamp)) return value;
-  const minutes = Math.max(0, Math.round((Date.now() - timestamp) / 60_000));
+  const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60_000));
   if (minutes < 1) return "Just now";
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.round(hours / 24)}d ago`;
+}
+
+export function LiveRelativeTime({ value }: { value?: string }): ReactElement {
+  const [, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  return <>{formatTime(value)}</>;
 }
 
 export function formatExactTime(value?: string): string {

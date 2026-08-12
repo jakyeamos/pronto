@@ -51,6 +51,20 @@ Agent usability is the reference for a supplemental maturity projection:
 - Missing behavior receipts remain visible even when documentation and static
   mappings are healthy.
 
+The fleet quality outcome is the reference for descriptive portfolio status:
+
+- Quality Runner owns the category taxonomy and the repository-level
+  `quality_outcome.disposition`/`next_step` explanation.
+- `src-tauri/src/quality.rs` imports those optional fields by stable repository
+  identity and keeps evidence-review, review, blocked, and failing states
+  distinct at the machine boundary; presentation never renders the raw
+  evidence-review state or the old `unknown` label.
+- `QualityOutcomeSummary` renders category meaning and next action, while
+  `QualityMaturitySummary` renders each repository's bounded disposition.
+- Older feeds without the additive fields remain readable. When they contain a
+  raw evidence-review count, Pronto uses only the bounded evidence-review
+  fallback; it does not invent per-repository dimensions or evidence details.
+
 ## Add or change a repository surface
 
 The remediation coverage ledger is the reference for cross-surface parity:
