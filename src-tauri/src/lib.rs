@@ -21,6 +21,24 @@ use tauri::Manager;
 const WINDOW_EDGE_SNAP_THRESHOLD: i32 = 16;
 
 #[cfg(desktop)]
+fn restore_main_window(app: &tauri::AppHandle) {
+    let Some(window) = app.get_webview_window("main") else {
+        log::warn!("cannot restore the main window because it is not registered");
+        return;
+    };
+
+    if let Err(error) = window.show() {
+        log::warn!("failed to show the main window: {error}");
+    }
+    if let Err(error) = window.unminimize() {
+        log::warn!("failed to unminimize the main window: {error}");
+    }
+    if let Err(error) = window.set_focus() {
+        log::warn!("failed to focus the main window: {error}");
+    }
+}
+
+#[cfg(desktop)]
 fn snapped_window_position(
     position: tauri::PhysicalPosition<i32>,
     window_size: tauri::PhysicalSize<u32>,
@@ -71,7 +89,18 @@ fn snap_window_to_work_area(window: &tauri::Window, position: tauri::PhysicalPos
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default()
+    let mut builder = tauri::Builder::default();
+
+    // Tauri requires the single-instance plugin to be registered before every
+    // other plugin so a duplicate launch exits before it can create a window.
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(
+            |app, _arguments, _working_directory| restore_main_window(app),
+        ));
+    }
+
+    let builder = builder
         .plugin(tauri_plugin_dialog::init())
         .on_window_event(|window, event| {
             #[cfg(desktop)]
@@ -89,7 +118,7 @@ pub fn run() {
         }
     });
 
-    builder
+    let app = builder
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -149,8 +178,15 @@ pub fn run() {
             papercuts::create_papercut,
             papercuts::set_papercut_status,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|_app_handle, _event| {
+        #[cfg(target_os = "macos")]
+        if let tauri::RunEvent::Reopen { .. } = _event {
+            restore_main_window(_app_handle);
+        }
+    });
 }
 
 #[cfg(all(test, desktop))]
