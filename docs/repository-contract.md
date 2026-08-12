@@ -135,10 +135,11 @@ the application deployment boundary and requires that exact intent. The
 installer performs a staged whole-bundle replacement, verifies exact parity,
 and restarts Pronto when it was already running. It temporarily unloads and
 restores the repository-owned `com.pronto.skill-usage-collector` launch agent
-so that service's KeepAlive policy cannot race the replacement; overlay copies
-are forbidden because they can retain obsolete files. An app-facing change is
-not complete until `pnpm app:check` passes and the installed version has been
-launched.
+so that service's KeepAlive policy cannot race the replacement, then forces a
+distinct foreground launch so LaunchServices does not treat that collector as
+the desktop window; overlay copies are forbidden because they can retain
+obsolete files. An app-facing change is not complete until `pnpm app:check`
+passes and the installed version has been launched.
 
 Release preparation is not publication. Before a release, require a clean
 canonical commit, a confirmed baseline, fresh required gates, a deterministic

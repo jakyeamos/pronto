@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   classifyInstalledAppProcesses,
   digestBundle,
+  installedAppLaunchArguments,
   replaceAppBundle,
 } from "./install-app-lib.mjs";
 
@@ -69,4 +70,12 @@ test("does not mistake the launchd collector for the foreground app", () => {
       collectorRunning: true,
     },
   );
+});
+
+test("forces a distinct foreground launch while the collector is running", () => {
+  assert.deepEqual(installedAppLaunchArguments("com.pronto.desktop"), [
+    "-n",
+    "-b",
+    "com.pronto.desktop",
+  ]);
 });

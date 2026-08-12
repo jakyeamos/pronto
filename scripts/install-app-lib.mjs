@@ -74,6 +74,10 @@ export function classifyInstalledAppProcesses(processList, targetExecutable) {
   };
 }
 
+export function installedAppLaunchArguments(appBundleIdentifier) {
+  return ["-n", "-b", appBundleIdentifier];
+}
+
 export function replaceAppBundle(sourceApp, targetApp) {
   const expectedDigest = digestBundle(sourceApp);
   const stagingRoot = mkdtempSync(

@@ -9,6 +9,7 @@ import {
   classifyInstalledAppProcesses,
   digestBundle,
   digestFile,
+  installedAppLaunchArguments,
   replaceAppBundle,
 } from "./install-app-lib.mjs";
 
@@ -104,7 +105,10 @@ function startCollectorLaunchAgent() {
 }
 
 function launchInstalledApp() {
-  execFileSync("/usr/bin/open", ["-b", appBundleIdentifier]);
+  execFileSync(
+    "/usr/bin/open",
+    installedAppLaunchArguments(appBundleIdentifier),
+  );
 }
 
 if (!assertBundle(sourceApp, "The local release bundle"))
