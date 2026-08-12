@@ -51,6 +51,29 @@ export function digestBundle(bundlePath) {
   return hash.digest("hex");
 }
 
+export function classifyInstalledAppProcesses(processList, targetExecutable) {
+  const commands = processList
+    .split("\n")
+    .map((command) => command.trim())
+    .filter(Boolean)
+    .filter(
+      (command) =>
+        command === targetExecutable ||
+        command.startsWith(`${targetExecutable} `),
+    );
+
+  return {
+    foregroundRunning: commands.some(
+      (command) =>
+        command === targetExecutable ||
+        !command.includes(" --skill-usage-collector"),
+    ),
+    collectorRunning: commands.some((command) =>
+      command.includes(" --skill-usage-collector"),
+    ),
+  };
+}
+
 export function replaceAppBundle(sourceApp, targetApp) {
   const expectedDigest = digestBundle(sourceApp);
   const stagingRoot = mkdtempSync(

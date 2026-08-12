@@ -133,9 +133,12 @@ publication authority from authenticated read access.
 `pnpm build` builds and installs into `/Applications/Pronto.app`, so it crosses
 the application deployment boundary and requires that exact intent. The
 installer performs a staged whole-bundle replacement, verifies exact parity,
-and restarts Pronto when it was already running; overlay copies are forbidden
-because they can retain obsolete files. An app-facing change is not complete
-until `pnpm app:check` passes and the installed version has been launched.
+and restarts Pronto when it was already running. It temporarily unloads and
+restores the repository-owned `com.pronto.skill-usage-collector` launch agent
+so that service's KeepAlive policy cannot race the replacement; overlay copies
+are forbidden because they can retain obsolete files. An app-facing change is
+not complete until `pnpm app:check` passes and the installed version has been
+launched.
 
 Release preparation is not publication. Before a release, require a clean
 canonical commit, a confirmed baseline, fresh required gates, a deterministic

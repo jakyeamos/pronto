@@ -120,6 +120,7 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm build:bundle",
+        "node --test scripts/install-app.test.mjs",
         "pnpm app:check",
         "Perform installed-app interaction smoke verification."
       ],

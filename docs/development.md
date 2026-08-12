@@ -20,8 +20,11 @@ This builds the current checkout, stages and atomically replaces
 `/Applications/Pronto.app`, and verifies that the entire installed app bundle
 and native executable match the build. Obsolete files from an earlier build
 cannot survive the replacement. If Pronto is running, the installer quits it
-before the swap and reopens the newly installed version afterward. `pnpm app`
-is retained as an alias.
+before the swap and reopens the newly installed version afterward. The
+installer also pauses the owned `com.pronto.skill-usage-collector` launch agent
+before replacement and restores it from its existing plist afterward, so its
+KeepAlive policy cannot hold the old executable open. `pnpm app` is retained as
+an alias.
 
 To build only the repository release bundle without installing it, use:
 

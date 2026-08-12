@@ -72,8 +72,10 @@ For every app-facing source change, `pnpm build:bundle` alone is provisional.
 Completion requires `pnpm build`, which stages and fully replaces
 `/Applications/Pronto.app`, followed by `pnpm app:check` and a launch of the
 installed app. If Pronto was already running, the installer must quit it before
-replacement and reopen it afterward. Never use an overlay copy: obsolete files
-must not survive an installation.
+replacement and reopen it afterward. The installer temporarily unloads and
+restores `com.pronto.skill-usage-collector` so its KeepAlive process cannot hold
+the old bundle open. Never use an overlay copy: obsolete files must not survive
+an installation.
 
 Repository and summary projections include a read-only `project_compass`
 summary derived from `.project-compass/contract.json`. `Ready` reports the
