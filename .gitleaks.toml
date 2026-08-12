@@ -1,0 +1,8 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Deterministic fake secret in the deleted Papercuts sanitizer test"
+commits = ["6560b0abfa158d77d2899890342e369753f928f6"]
+paths = ["scripts/test_papercuts_capture\\.py"]
+regexes = ["abc123456789"]
