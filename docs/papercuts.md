@@ -47,7 +47,10 @@ successfully and never blocks or changes the answer. The legacy
 The repository source of truth is `scripts/papercuts-capture.py`. Run
 `pnpm papercuts:hook:test`, install it atomically with
 `pnpm papercuts:hook:install`, and verify the deployed copy with
-`pnpm papercuts:hook:check`.
+`pnpm papercuts:hook:check`. Build the hook's narrow standalone CLI with
+`pnpm papercuts:cli:build`, install it atomically with
+`pnpm papercuts:cli:install`, and verify exact binary parity with
+`pnpm papercuts:cli:check`.
 
 Repository scopes use an opaque derivative of the current stable Pronto
 repository identity because legacy repository IDs can contain absolute paths.

@@ -135,6 +135,7 @@
       "validation": [
         "pnpm papercuts:hook:test",
         "pnpm papercuts:hook:check",
+        "pnpm papercuts:cli:check",
         "Exercise a denied-primary capture followed by a permitted flush."
       ],
       "status": "applicable"

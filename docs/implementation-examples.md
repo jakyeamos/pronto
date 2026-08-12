@@ -75,4 +75,6 @@ primary storage, secure permissions, deduplication, migration, and recovery.
 
 Keep the hook in repository source, deploy it atomically through
 `pnpm papercuts:hook:install`, and verify the live copy separately from source
-tests with `pnpm papercuts:hook:check`.
+tests with `pnpm papercuts:hook:check`. The hook's standalone native CLI follows
+the same build, atomic install, and exact-parity checks through the
+`papercuts:cli:*` scripts so hook and database contracts cannot drift silently.
