@@ -16,6 +16,7 @@ import {
   qualityConfigurationSummary,
   qualityEvidenceSummary,
   qualityGateDisplayLabel,
+  qualityProfileSummary,
 } from "./QualityComponents";
 import { targetScopeForRepository } from "../branchEvidence";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
@@ -76,7 +77,7 @@ function totalHighFindings(repositories: RepositorySnapshot[]): number {
 function readinessGapSummary(quality: PortfolioSnapshot["quality"]): string {
   const configuration = qualityConfigurationSummary(quality);
   if (configuration.ideal === 0) {
-    return "CI configuration profile not available";
+    return qualityProfileSummary(quality);
   }
   const entries = Object.entries(quality.ci_readiness_open_gate_counts ?? {})
     .sort(
@@ -112,7 +113,8 @@ export function QualityGatesSurface({
     discoveredCustomGates.length === 1 ? "" : "s"
   }`;
   const columns = matrixGateColumns(repositories, showCustomGates);
-  const canonicalGateCount = CANONICAL_GATE_IDS.length;
+  const standardGateTypeCount =
+    CANONICAL_GATE_IDS.length + CONDITIONAL_GATE_IDS.length;
   const conditionalGateCount = columns.filter((column) =>
     CONDITIONAL_GATE_IDS.includes(
       column as (typeof CONDITIONAL_GATE_IDS)[number],
@@ -153,7 +155,7 @@ export function QualityGatesSurface({
               </strong>
               <small>
                 {configuration.ideal === 0
-                  ? "No matched recommendation profile"
+                  ? qualityProfileSummary(portfolioQuality)
                   : `${configuration.fullRepositories}/${configuration.repositories} repositories at ideal configuration${
                       configuration.unscoredRepositories > 0
                         ? ` · ${configuration.unscoredRepositories} not scored`
@@ -224,7 +226,7 @@ export function QualityGatesSurface({
             <small>
               {evidence.ideal > 0
                 ? "Fresh CI, local, and QR passes"
-                : "No matched recommendation profile"}
+                : qualityProfileSummary(portfolioQuality)}
             </small>
             <CheckCircle2 size={18} />
           </div>
@@ -250,7 +252,8 @@ export function QualityGatesSurface({
           <div className="quality-matrix-heading-meta">
             <div className="quality-matrix-controls">
               <StatusPill tone="slate">
-                {canonicalGateCount} canonical
+                {standardGateTypeCount} standard gate types · applicability
+                varies by repository
                 {conditionalGateCount > 0 ? " · dependency audit applies" : ""}
               </StatusPill>
               {discoveredCustomGates.length > 0 && (
@@ -269,7 +272,7 @@ export function QualityGatesSurface({
             <span>
               {showCustomGates
                 ? `${columns.length} gates visible · horizontal comparison`
-                : "Canonical release gates shown by default"}
+                : "Standard evidence columns shown by default · profiles decide requirements"}
             </span>
           </div>
         </div>

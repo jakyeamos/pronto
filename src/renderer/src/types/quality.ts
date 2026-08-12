@@ -76,6 +76,7 @@ export interface QualityMaturity {
     message: string;
   }>;
   agent_usability?: AgentUsabilityMaturity;
+  ci_gate_audit?: CiGateCandidateAudit;
   audit_id?: string;
   observed_at?: string;
   scanned_commit?: string;
@@ -84,7 +85,49 @@ export interface QualityMaturity {
   report_path?: string;
 }
 
-export interface AgentUsabilityLane {
+interface CiGateCandidateEvidence {
+  kind?: string;
+  path: string;
+  reason: string;
+}
+
+interface CiGateCandidate {
+  id: string;
+  label: string;
+  recommendation:
+    "required_candidate" | "optional_candidate" | "review_required" | string;
+  confidence: "high" | "medium" | string;
+  invariant: string;
+  failure_mode: string;
+  evidence: CiGateCandidateEvidence[];
+  suggested_trigger: { event: string; paths: string[] };
+  suggested_check_context: string;
+  existing_check: {
+    status: string;
+    contexts: Array<{ context: string; path: string }>;
+  };
+  negative_controls: CiGateCandidateEvidence[];
+  admission: { state: string; blockers: string[] };
+  next_step: string;
+}
+
+interface CiGateCandidateAudit {
+  schema: string;
+  status: string;
+  generated_at: string;
+  repository: { name: string; branch?: string; head_sha?: string };
+  policy: {
+    authority: string;
+    implementation_allowed: boolean;
+    promotion_requirement: string;
+  };
+  candidate_count: number;
+  candidates: CiGateCandidate[];
+  provenance_hash: string;
+  error?: string;
+}
+
+interface AgentUsabilityLane {
   id: string;
   label: string;
   applicable: boolean;
@@ -93,7 +136,7 @@ export interface AgentUsabilityLane {
   message: string;
 }
 
-export interface AgentUsabilityGrowthHealth {
+interface AgentUsabilityGrowthHealth {
   status: string;
   message: string;
   document_count: number;
@@ -114,7 +157,7 @@ export interface AgentUsabilityGrowthHealth {
   inventory_truncated: boolean;
 }
 
-export interface AgentUsabilityMaturity {
+interface AgentUsabilityMaturity {
   schema: string;
   status: string;
   manifest_status: string;
@@ -139,9 +182,17 @@ export interface QualityReadiness {
   stale_gate_ids: string[];
   failed_gate_ids: string[];
   blocked_gate_ids: string[];
+  profile_source: string;
+  profile_contract_path?: string;
+  profile_reason?: string;
+  profile_error?: string;
+  optional_gate_ids: string[];
+  not_applicable_gate_ids: string[];
+  gate_labels: Record<string, string>;
+  gate_reasons: Record<string, string>;
 }
 
-export interface MacControlRepositoryState {
+interface MacControlRepositoryState {
   repository_id: string;
   repository_name: string;
   applicability: string;
@@ -164,7 +215,7 @@ export interface MacControlRepositoryState {
   report_path?: string;
 }
 
-export interface MacControlPortfolioSnapshot {
+interface MacControlPortfolioSnapshot {
   status: string;
   freshness: string;
   ideal_state: boolean;
@@ -221,6 +272,10 @@ export interface QualityPortfolioSnapshot {
   ci_configuration_full_repository_count?: number;
   ci_configuration_repository_count?: number;
   ci_configuration_unscored_repository_count?: number;
+  ci_profile_repository_contract_count?: number;
+  ci_profile_compatibility_count?: number;
+  ci_profile_invalid_count?: number;
+  ci_profile_unavailable_count?: number;
   feed_schema?: string;
   provenance_hash?: string;
   mac_control_ideal_state?: MacControlPortfolioSnapshot;

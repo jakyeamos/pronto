@@ -25,6 +25,21 @@ in React.
 
 ## Add or change a quality or remediation rule
 
+Repository CI gate profiles are the reference for separating discovered
+evidence from repository-owned obligation:
+
+- `.pronto/ci-gate-profile.json` classifies all standard gates as required,
+  optional, or not applicable and records the semantic reason.
+- `src-tauri/src/quality.rs` validates the contract, preserves its provenance,
+  and includes only required gates in the ideal denominator.
+- Required `custom:<snake_case_id>` gates flow into active remediation;
+  discovered or optional custom checks do not become requirements.
+- `QualityReadinessSummary` identifies repository-owned, static compatibility,
+  unavailable, and invalid profile states rather than displaying an unexplained
+  score.
+
+See `docs/ci-gate-profiles.md` for the schema and a complete example.
+
 Quality finding dispositions show the intended evidence overlay pattern:
 
 - `.pronto/quality-finding-dispositions.json` stores repository-owned review

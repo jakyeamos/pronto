@@ -457,6 +457,13 @@ export function qualityGateDisplayLabel(gateId: string): string {
   );
 }
 
+function readinessGateDisplayLabel(
+  readiness: QualityReadiness,
+  gateId: string,
+): string {
+  return readiness.gate_labels?.[gateId] ?? qualityGateDisplayLabel(gateId);
+}
+
 export function qualityConfigurationSummary(
   quality: QualityPortfolioSnapshot,
 ): {
@@ -486,6 +493,22 @@ export function qualityEvidenceSummary(quality: QualityPortfolioSnapshot): {
   };
 }
 
+export function qualityProfileSummary(
+  quality: QualityPortfolioSnapshot,
+): string {
+  const parts = [
+    [quality.ci_profile_invalid_count ?? 0, "invalid"],
+    [quality.ci_profile_unavailable_count ?? 0, "unavailable"],
+    [quality.ci_profile_repository_contract_count ?? 0, "repository-owned"],
+    [quality.ci_profile_compatibility_count ?? 0, "static compatibility"],
+  ]
+    .filter(([count]) => Number(count) > 0)
+    .map(([count, label]) => `${count} ${label}`);
+  return parts.length > 0
+    ? `CI profiles: ${parts.join(" · ")}`
+    : "No valid repository-owned or compatibility CI profiles";
+}
+
 function QualityReadinessSummary({
   readiness,
   compact = false,
@@ -501,6 +524,10 @@ function QualityReadinessSummary({
   const applicableGateCount = readiness.applicable_gate_ids.length;
   const evidenceGateCount = readiness.covered_gate_ids.length;
   const freshPassingGateCount = readiness.fresh_passing_gate_ids ?? [];
+  const profileSource = readiness.profile_source ?? "unavailable";
+  const profileUnavailable =
+    profileSource === "unavailable" ||
+    profileSource === "invalid_repository_contract";
   return (
     <div
       className={`quality-readiness${compact ? " quality-readiness-compact" : ""}`}
@@ -513,6 +540,29 @@ function QualityReadinessSummary({
             : `${configuredGateIds.length}/${applicableGateCount}`}
         </strong>
       </div>
+      {profileUnavailable ? (
+        <>
+          <StatusPill tone="amber">
+            {profileSource === "invalid_repository_contract"
+              ? "Invalid repository CI profile"
+              : "CI profile unavailable"}
+          </StatusPill>
+          <small>
+            {readiness.profile_error ??
+              "No repository-owned or compatibility profile is available."}
+          </small>
+        </>
+      ) : profileSource === "repository_contract" ? (
+        <small>
+          Repository-owned CI profile
+          {readiness.profile_reason ? ` · ${readiness.profile_reason}` : ""}
+        </small>
+      ) : (
+        <small>
+          Static compatibility profile
+          {readiness.profile_reason ? ` · ${readiness.profile_reason}` : ""}
+        </small>
+      )}
       {readinessEvidenceState === "unavailable" ? (
         <>
           <StatusPill tone="amber">Target readiness unavailable</StatusPill>
@@ -549,7 +599,9 @@ function QualityReadinessSummary({
             </>
           )}
           {readiness.configuration_score == null ? (
-            <small>No matched recommendation profile</small>
+            !profileUnavailable && (
+              <small>CI profile has no required gates</small>
+            )
           ) : (
             <>
               <small>
@@ -571,7 +623,9 @@ function QualityReadinessSummary({
                   </summary>
                   <span>
                     {unconfiguredGateIds
-                      .map(qualityGateDisplayLabel)
+                      .map((gateId) =>
+                        readinessGateDisplayLabel(readiness, gateId),
+                      )
                       .join(", ")}
                   </span>
                 </details>
@@ -582,8 +636,38 @@ function QualityReadinessSummary({
                     {openGateIds.length === 1 ? "" : "s"} needed
                   </summary>
                   <span>
-                    {openGateIds.map(qualityGateDisplayLabel).join(", ")}
+                    {openGateIds
+                      .map((gateId) =>
+                        readinessGateDisplayLabel(readiness, gateId),
+                      )
+                      .join(", ")}
                   </span>
+                </details>
+              ) : null}
+              {(readiness.optional_gate_ids?.length ?? 0) > 0 ||
+              (readiness.not_applicable_gate_ids?.length ?? 0) > 0 ? (
+                <details className="quality-readiness-disclosure">
+                  <summary>Profile classification</summary>
+                  {(readiness.optional_gate_ids?.length ?? 0) > 0 && (
+                    <span>
+                      Optional:{" "}
+                      {readiness.optional_gate_ids
+                        .map((gateId) =>
+                          readinessGateDisplayLabel(readiness, gateId),
+                        )
+                        .join(", ")}
+                    </span>
+                  )}
+                  {(readiness.not_applicable_gate_ids?.length ?? 0) > 0 && (
+                    <span>
+                      Not applicable:{" "}
+                      {readiness.not_applicable_gate_ids
+                        .map((gateId) =>
+                          readinessGateDisplayLabel(readiness, gateId),
+                        )
+                        .join(", ")}
+                    </span>
+                  )}
                 </details>
               ) : null}
             </>
@@ -755,6 +839,85 @@ export function QualityMaturitySummary({
               skill-covered
             </small>
             <small>{maturity.agent_usability.growth_health.message}</small>
+          </div>
+        </details>
+      )}
+      {!compact && maturity.ci_gate_audit && (
+        <details className="agent-usability-summary ci-gate-candidate-summary">
+          <summary>
+            <span>Custom CI gate candidates</span>
+            <strong>
+              {maturity.ci_gate_audit.status === "invalid"
+                ? "Not trusted"
+                : `${maturity.ci_gate_audit.candidate_count} recommendations`}
+            </strong>
+            <StatusPill
+              tone={
+                maturity.ci_gate_audit.status === "invalid" ? "red" : "amber"
+              }
+            >
+              {maturity.ci_gate_audit.status.replaceAll("_", " ")}
+            </StatusPill>
+          </summary>
+          {maturity.ci_gate_audit.error ? (
+            <div className="agent-usability-growth">
+              <strong>Audit rejected</strong>
+              <small>{maturity.ci_gate_audit.error}</small>
+            </div>
+          ) : maturity.ci_gate_audit.candidates.length === 0 ? (
+            <div className="agent-usability-growth">
+              <strong>
+                No custom gate candidate met the semantic threshold
+              </strong>
+              <small>
+                Quality Runner requires independent repository signals; generic
+                documentation or a repository name is not enough.
+              </small>
+            </div>
+          ) : (
+            <ul
+              className="agent-usability-lanes ci-gate-candidate-list"
+              aria-label="Custom CI gate candidates"
+            >
+              {maturity.ci_gate_audit.candidates.map((candidate) => (
+                <li key={candidate.id}>
+                  <span>{candidate.label}</span>
+                  <strong>
+                    {candidate.recommendation.replaceAll("_", " ")} ·{" "}
+                    {candidate.confidence} confidence
+                  </strong>
+                  <small>
+                    Invariant: {candidate.invariant} Failure mode:{" "}
+                    {candidate.failure_mode}
+                  </small>
+                  <small>
+                    Evidence:{" "}
+                    {candidate.evidence
+                      .slice(0, 4)
+                      .map((evidence) => evidence.path)
+                      .join(", ")}
+                  </small>
+                  <small>
+                    Suggested check: {candidate.suggested_check_context} on{" "}
+                    {candidate.suggested_trigger.event} · Existing check:{" "}
+                    {candidate.existing_check.status.replaceAll("_", " ")} ·
+                    Negative controls: {candidate.negative_controls.length}
+                  </small>
+                  <small>
+                    Admission: {candidate.admission.state.replaceAll("_", " ")}{" "}
+                    · {candidate.admission.blockers.join(" ")}
+                  </small>
+                  <small>{candidate.next_step}</small>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="agent-usability-growth">
+            <strong>Recommendation only</strong>
+            <small>
+              Candidates do not affect the CI score or remediation queue until
+              the repository-owned CI profile explicitly accepts them.
+            </small>
           </div>
         </details>
       )}

@@ -13,8 +13,11 @@ The active Pronto workspace is also represented below because it is the
 application consuming this matrix. Its row is based on the current workspace
 scripts and the latest scoped Quality Runner refresh.
 
-This is a read-only recommendation report. It does not claim that a gate passes
-and it does not run tests, builds, audits, or network refreshes.
+This is a read-only compatibility report. New and reviewed repositories should
+own their current applicability in `.pronto/ci-gate-profile.json`; see
+[Repository CI gate profiles](ci-gate-profiles.md). The matrix does not claim
+that a gate passes and it does not run tests, builds, audits, or network
+refreshes.
 
 ## Recommended taxonomy
 
@@ -46,9 +49,10 @@ not delete the underlying CI report or QR artifact.
 
 ## CI configuration and evidence in Pronto
 
-For each available repository row, Pronto treats every `K`, `N`, `A`, and `C`
-marker as part of that repository's ideal CI profile. `C` is already scoped by
-the matrix's repository-specific capability assessment. The repository
+When `.pronto/ci-gate-profile.json` is absent, Pronto treats every `K`, `N`,
+`A`, and `C` marker in a unique available repository row as a compatibility CI
+profile. `C` is already scoped by the matrix's historical repository-specific
+capability assessment. The repository
 configuration count is displayed as `configured ideal gates / ideal gates`.
 Configuration is discovered from QR capability and repository-scan artifacts,
 plus imported CI check names; it does not claim that a gate has passed.
@@ -56,7 +60,9 @@ plus imported CI check names; it does not claim that a gate has passed.
 Pronto keeps execution evidence separate. It shows both `fresh passing ideal
 gates / ideal gates` and `covered ideal gates / ideal gates`: the former is the
 release-relevant count of fresh passing results, while the latter counts ideal
-gates with any imported result. Each gate retains its source, status, and
+gates with any imported result. The UI labels matrix-backed scores as static
+compatibility profiles so they cannot be mistaken for current repository-owned
+truth. Each gate retains its source, status, and
 freshness. Failed, blocked, and stale evidence remains visible as an evidence
 update and does not become a passing result. Release rules independently
 require a fresh pass. `PENDING`, `FIXTURE?`, and rows with no recommended gates

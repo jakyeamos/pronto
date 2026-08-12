@@ -25,6 +25,13 @@ until integration or patch equivalence and ownership are proven.
   `.agents/change-surface-matrix.json` are governed contracts. Update the
   affected projection, consumer, documentation, and machine-readable evidence
   together.
+- `.pronto/ci-gate-profile.json` owns repository-specific CI applicability.
+  Every standard gate must be classified with a reason; required custom gates
+  use stable `custom:<snake_case_id>` identifiers. See
+  [Repository CI gate profiles](ci-gate-profiles.md).
+- Quality Runner owns semantic custom-gate recommendations. Pronto validates and
+  describes them but never promotes them into requirements; repository-owned
+  profile acceptance is the authority boundary.
 
 When a contract changes, trace the full path: source evidence, Rust domain
 model, persisted representation, CLI JSON, renderer type and component,

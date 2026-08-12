@@ -244,13 +244,6 @@ export async function refresh(): Promise<PortfolioSnapshot> {
   return invoke<PortfolioSnapshot>("refresh");
 }
 
-export async function refreshQuality(): Promise<PortfolioSnapshot> {
-  if (!isDesktopBridgeAvailable()) {
-    throw new Error("Quality refresh is available in the Pronto desktop app.");
-  }
-  return invoke<PortfolioSnapshot>("refresh_quality");
-}
-
 export async function refreshGithub(): Promise<PortfolioSnapshot> {
   if (!isDesktopBridgeAvailable()) {
     throw new Error("GitHub refresh is available in the Pronto desktop app.");

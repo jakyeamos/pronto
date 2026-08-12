@@ -96,14 +96,14 @@ export function combineTargetEvidenceStates(
   return "verified";
 }
 
-export function isTargetEvidence(scope: BranchEvidenceScope): boolean {
+function isTargetEvidence(scope: BranchEvidenceScope): boolean {
   return (
     branchEvidenceStatus(scope) === "verified" ||
     !hasTargetScope(scope.targetBranch, scope.targetCommit)
   );
 }
 
-export function filterTargetEvidence<T extends BranchEvidenceRecord>(
+function filterTargetEvidence<T extends BranchEvidenceRecord>(
   evidence: readonly T[],
   targetBranch?: string | null,
   targetCommit?: string | null,

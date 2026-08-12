@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-01",
+  "last_reviewed": "2026-08-11",
   "surfaces": [
     {
       "id": "native-core",
@@ -75,7 +75,7 @@
       "scope": "local",
       "path": ".pronto/ and .project-compass/",
       "owner": "Pronto repository maintainers",
-      "condition": "The desired remediation state, product truth, progress, blocker, drift, or continuity evidence changes.",
+      "condition": "The desired remediation state, CI gate applicability, product truth, progress, blocker, drift, or continuity evidence changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm cli remediation \"$(git rev-parse --show-toplevel)\" --json",
@@ -89,7 +89,7 @@
       "scope": "external",
       "path": "~/.quality-runner/fleet-audit/current/maturity.json",
       "owner": "Quality Runner",
-      "condition": "Quality Runner changes its maturity feed, repository identity, gate, finding, agent-usability, growth-health, freshness, or provenance contract.",
+      "condition": "Quality Runner changes its maturity feed, repository identity, gate, custom-gate candidate audit, finding, agent-usability, growth-health, freshness, or provenance contract.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "quality-runner doctor --json",

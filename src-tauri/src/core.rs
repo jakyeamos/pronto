@@ -3451,12 +3451,12 @@ fn apply_quality_evidence_scoped(
             .map(|evidence| evidence.maturity.clone())
             .or_else(|| audit.maturities.get(&repository.id).cloned())
             .or_else(|| fleet_evidence.map(|evidence| evidence.maturity.clone()));
-        let ideal_gate_ids = quality::ideal_gate_ids_for_repository(repository);
+        let ci_gate_profile = quality::ci_gate_profile_for_repository(repository);
         let mut imported = quality::ingest_repository_quality(
             repository,
             remote,
             maturity,
-            ideal_gate_ids.as_deref(),
+            Some(&ci_gate_profile),
         );
         imported.mac_control_ideal_state = mac_control
             .by_repository

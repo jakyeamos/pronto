@@ -181,7 +181,7 @@ interface RemediationRefreshStep {
   evidence_path?: string | null;
 }
 
-export interface GitHubOnlyCandidate {
+interface GitHubOnlyCandidate {
   repository_id: string;
   provider: string;
   full_name: string;

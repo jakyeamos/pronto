@@ -1,5 +1,10 @@
 # Development workflow
 
+Repository CI applicability is owned by
+`.pronto/ci-gate-profile.json`; see
+[Repository CI gate profiles](ci-gate-profiles.md). The static recommendation
+matrix is compatibility-only when that contract is absent.
+
 Use the live desktop development command while changing code:
 
 ```sh

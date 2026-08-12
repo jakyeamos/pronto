@@ -32,6 +32,7 @@ import { AttentionQueue, RepositoryRow } from "./PortfolioComponents";
 import {
   QualityAttentionList,
   QualityEvidenceList,
+  QualityMaturitySummary,
   qualityAttentionItems,
 } from "./QualityComponents";
 import { QualityGatesSurface } from "./QualityGatesSurface";
@@ -151,6 +152,12 @@ function makeReadiness(
     stale_gate_ids: [],
     failed_gate_ids: [],
     blocked_gate_ids: [],
+    profile_source: "recommendation_matrix",
+    profile_reason: "Compatibility fixture profile.",
+    optional_gate_ids: [],
+    not_applicable_gate_ids: [],
+    gate_labels: {},
+    gate_reasons: {},
     ...overrides,
   };
 }
@@ -267,6 +274,25 @@ function makePortfolio(
     quality: {
       matched_repository_count: 0,
       audit_status: "Not configured",
+      ci_profile_repository_contract_count: repositories.filter(
+        (repository) =>
+          repository.quality.ci_readiness.profile_source ===
+          "repository_contract",
+      ).length,
+      ci_profile_compatibility_count: repositories.filter(
+        (repository) =>
+          repository.quality.ci_readiness.profile_source ===
+          "recommendation_matrix",
+      ).length,
+      ci_profile_invalid_count: repositories.filter(
+        (repository) =>
+          repository.quality.ci_readiness.profile_source ===
+          "invalid_repository_contract",
+      ).length,
+      ci_profile_unavailable_count: repositories.filter(
+        (repository) =>
+          repository.quality.ci_readiness.profile_source === "unavailable",
+      ).length,
       ...qualityOverrides,
     },
     remediation,
@@ -608,7 +634,9 @@ describe("quality evidence surfaces", () => {
       "Both lanes are required before claiming the 4.0/4.0 maturity ideal",
     );
     expect(markup).toContain("Tests");
-    expect(markup).toContain("8 canonical");
+    expect(markup).toContain(
+      "9 standard gate types · applicability varies by repository",
+    );
     expect(markup).toContain("Show 1 custom gate");
     expect(markup).not.toContain("Security Scan");
     expect(markup).toContain("4");
@@ -1011,7 +1039,67 @@ describe("quality evidence surfaces", () => {
     );
     expect(unconfigured).toContain("Not configured");
     expect(unconfigured).toContain("No CI, local, or QR gate evidence");
-    expect(unconfigured).toContain("No matched recommendation profile");
+    expect(unconfigured).toContain("Static compatibility profile");
+  });
+
+  it("explains invalid repository CI profiles instead of showing an unknown score", () => {
+    const repository = makeRepository({
+      quality: makeQuality({
+        ci_readiness: makeReadiness({
+          applicable_gate_ids: [],
+          profile_source: "invalid_repository_contract",
+          profile_error:
+            "The CI gate profile must classify every standard gate; missing: runtime_smoke.",
+        }),
+      }),
+    });
+    const markup = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([repository])}
+        repositories={[repository]}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup).toContain("Invalid repository CI profile");
+    expect(markup).toContain("missing: runtime_smoke");
+    expect(markup).not.toContain("No matched recommendation profile");
+  });
+
+  it("renders repository-owned custom gate classifications descriptively", () => {
+    const repository = makeRepository({
+      quality: makeQuality({
+        ci_readiness: makeReadiness({
+          configuration_score: 0,
+          configuration_score_display: "0.0",
+          applicable_gate_ids: ["build", "custom:restore_drill"],
+          unconfigured_gate_ids: ["custom:restore_drill"],
+          missing_gate_ids: ["custom:restore_drill"],
+          profile_source: "repository_contract",
+          profile_reason: "Production data must be recoverable.",
+          optional_gate_ids: ["custom:diagnostic_report"],
+          not_applicable_gate_ids: ["runtime_smoke"],
+          gate_labels: {
+            "custom:restore_drill": "Restore drill",
+            "custom:diagnostic_report": "Diagnostic report",
+            runtime_smoke: "Smoke",
+          },
+        }),
+      }),
+    });
+    const markup = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([repository])}
+        repositories={[repository]}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup).toContain("Repository-owned CI profile");
+    expect(markup).toContain("Production data must be recoverable.");
+    expect(markup).toContain("Restore drill");
+    expect(markup).toContain("Optional: Diagnostic report");
+    expect(markup).toContain("Not applicable: Smoke");
   });
 
   it("shows configured conditional gates before passing evidence exists", () => {
@@ -1605,9 +1693,7 @@ describe("quality evidence surfaces", () => {
       "Selecting a branch or refreshing evidence checks existing target evidence first, then runs QR quality and fleet audits in a clean disposable worktree when the target head changed or matching evidence is unavailable; your active workspace is not switched.",
     );
     expect(markup).toContain('aria-label="Target branch for pronto"');
-    expect(markup).toContain(
-      'aria-label="Refresh target evidence for pronto"',
-    );
+    expect(markup).toContain('aria-label="Refresh target evidence for pronto"');
     expect(markup).toContain(
       '<option value="develop" selected="">develop</option>',
     );
@@ -1855,5 +1941,73 @@ describe("quality evidence surfaces", () => {
       "Coverage incomplete · 1 scoped outcome · 1/2 pillars covered",
     );
     expect(detail).toContain("3 scoped outcomes · 2/2 pillars covered");
+  });
+
+  it("explains custom CI gate candidates without presenting them as requirements", () => {
+    const markup = renderToStaticMarkup(
+      <QualityMaturitySummary
+        maturity={makeMaturity({
+          ci_gate_audit: {
+            schema: "quality-runner-ci-gate-candidates/v1",
+            status: "complete",
+            generated_at: "2026-08-11T23:30:00Z",
+            repository: {
+              name: "service",
+              branch: "main",
+              head_sha: "abcdef1234567890",
+            },
+            policy: {
+              authority: "recommendation_only",
+              implementation_allowed: false,
+              promotion_requirement: "Repository profile acceptance required.",
+            },
+            candidate_count: 1,
+            candidates: [
+              {
+                id: "custom:migration_compatibility",
+                label: "Migration compatibility",
+                recommendation: "required_candidate",
+                confidence: "high",
+                invariant: "Schema changes remain rollback compatible.",
+                failure_mode: "A migration can strand an older application.",
+                evidence: [
+                  {
+                    kind: "path",
+                    path: "migrations/001.sql",
+                    reason: "migration surface",
+                  },
+                ],
+                suggested_trigger: {
+                  event: "pull_request",
+                  paths: ["**/migrations/**"],
+                },
+                suggested_check_context: "custom / migration-compatibility",
+                existing_check: { status: "not_found", contexts: [] },
+                negative_controls: [],
+                admission: {
+                  state: "proposal_only",
+                  blockers: [
+                    "Repository-owned policy has not accepted this candidate.",
+                  ],
+                },
+                next_step:
+                  "Add a negative control and explicitly accept or reject the gate.",
+              },
+            ],
+            provenance_hash: "a".repeat(64),
+          },
+        })}
+        readiness={makeReadiness()}
+      />,
+    );
+
+    expect(markup).toContain("Custom CI gate candidates");
+    expect(markup).toContain("Migration compatibility");
+    expect(markup).toContain("Schema changes remain rollback compatible");
+    expect(markup).toContain(
+      "Repository-owned policy has not accepted this candidate",
+    );
+    expect(markup).toContain("Recommendation only");
+    expect(markup).toContain("do not affect the CI score or remediation queue");
   });
 });

@@ -19,10 +19,14 @@ const fixtureFiles = [
   "docs/implementation-examples.md",
   "docs/implementation-plan.md",
   "docs/agent-usability-maturity.md",
+  "docs/ci-gate-profiles.md",
   "docs/mac-control-maturity-gate.md",
+  "docs/quality-gate-recommendation-matrix.md",
   "docs/remediation-sequential-handoff.md",
   "docs/repository-contract.md",
   "scripts/validate-repository-contract.mjs",
+  "src-tauri/src/quality.rs",
+  "src/renderer/src/components/QualityComponents.test.tsx",
 ];
 
 function isoDate(offsetDays = 0) {
