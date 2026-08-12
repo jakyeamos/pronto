@@ -32,10 +32,22 @@ absolute paths are redacted before persistence. Excerpt text is deleted after
 assistant response is persisted.
 
 The primary write is Pronto's SQLite database. A failed write is atomically
-spooled under `~/.codex/papercuts` for at most seven days and 10,000 events.
+spooled under `~/Library/Application Support/Pronto/papercuts-hook` for at most
+seven days and 10,000 events. If a task began before that path was granted, or
+its sandbox otherwise denies Application Support, the hook falls back to a
+private `0700` directory under that user's `$TMPDIR` and writes `0600` event
+files. A later permitted hook invocation migrates emergency events to the
+primary spool and flushes both tiers through the idempotent event-key contract.
+
 One failure is silent. Three consecutive flush failures, or inability to write
-the spool, produces one concise task warning. The hook always exits successfully
-and never blocks or changes the answer.
+either spool, produces one concise task warning. The hook always exits
+successfully and never blocks or changes the answer. The legacy
+`~/.codex/papercuts/health.json` path remains read-compatible during migration.
+
+The repository source of truth is `scripts/papercuts-capture.py`. Run
+`pnpm papercuts:hook:test`, install it atomically with
+`pnpm papercuts:hook:install`, and verify the deployed copy with
+`pnpm papercuts:hook:check`.
 
 Repository scopes use an opaque derivative of the current stable Pronto
 repository identity because legacy repository IDs can contain absolute paths.

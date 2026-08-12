@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-01",
+  "last_reviewed": "2026-08-11",
   "surfaces": [
     {
       "id": "native-core",
@@ -122,6 +122,20 @@
         "pnpm build:bundle",
         "pnpm app:check",
         "Perform installed-app interaction smoke verification."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "codex-papercuts-hook",
+      "scope": "external",
+      "path": "~/.codex/hooks/papercuts-capture.py",
+      "owner": "Pronto repository maintainers",
+      "condition": "Papercuts capture, privacy, spool, health, or recovery behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "pnpm papercuts:hook:test",
+        "pnpm papercuts:hook:check",
+        "Exercise a denied-primary capture followed by a permitted flush."
       ],
       "status": "applicable"
     }

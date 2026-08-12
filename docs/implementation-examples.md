@@ -63,3 +63,16 @@ shows that an integration-eligible diff is not sufficient when unpublished or
 active-work evidence exists. The correct sequence is preserve, reconcile the
 canonical branch, fold the wanted change, verify and publish, then prune only
 after equivalence and ownership checks.
+
+## Keep fail-open capture durable across sandbox generations
+
+`scripts/papercuts-capture.py` is the reference for a bounded two-tier local
+handoff. It writes Pronto-owned Application Support first, falls back to a
+private `$TMPDIR` spool when an already-running task lacks that grant, and
+migrates the emergency tier on the next permitted invocation. Stable event
+keys make retry, migration, and flush idempotent. The paired test covers denied
+primary storage, secure permissions, deduplication, migration, and recovery.
+
+Keep the hook in repository source, deploy it atomically through
+`pnpm papercuts:hook:install`, and verify the live copy separately from source
+tests with `pnpm papercuts:hook:check`.

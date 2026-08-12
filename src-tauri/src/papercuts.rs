@@ -149,6 +149,7 @@ pub struct PapercutDigest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct PapercutCaptureHealth {
     pub status: String,
     pub database_writable: bool,
@@ -257,7 +258,10 @@ fn normalized_choice(value: String, label: &str, allowed: &[&str]) -> Result<Str
     if allowed.contains(&value.as_str()) {
         Ok(value)
     } else {
-        Err(format!("Papercut {label} must be one of: {}.", allowed.join(", ")))
+        Err(format!(
+            "Papercut {label} must be one of: {}.",
+            allowed.join(", ")
+        ))
     }
 }
 
@@ -290,7 +294,11 @@ fn sanitize_excerpt(value: &str) -> String {
                 .find(char::is_whitespace)
                 .map(|offset| start + offset)
                 .unwrap_or(sanitized.len());
-            let replacement = if marker.starts_with('/') { "[path]" } else { "[secret]" };
+            let replacement = if marker.starts_with('/') {
+                "[path]"
+            } else {
+                "[secret]"
+            };
             sanitized.replace_range(start..end, replacement);
         }
     }
@@ -323,7 +331,13 @@ fn normalize_phenomenon(value: &str) -> String {
     let normalized = value
         .to_ascii_lowercase()
         .chars()
-        .map(|character| if character.is_ascii_alphanumeric() { character } else { ' ' })
+        .map(|character| {
+            if character.is_ascii_alphanumeric() {
+                character
+            } else {
+                ' '
+            }
+        })
         .collect::<String>()
         .split_whitespace()
         .take(12)
@@ -567,7 +581,9 @@ fn migrate_v1(connection: &mut Connection) -> Result<(), String> {
         let excerpt_hash = stable_hash(&excerpt);
         let phenomenon_key = normalize_phenomenon(&item.title);
         let expires_at = chrono::DateTime::parse_from_rfc3339(&item.created_at)
-            .map(|value| (value.with_timezone(&Utc) + Duration::days(EXCERPT_RETENTION_DAYS)).to_rfc3339())
+            .map(|value| {
+                (value.with_timezone(&Utc) + Duration::days(EXCERPT_RETENTION_DAYS)).to_rfc3339()
+            })
             .unwrap_or_else(|_| (Utc::now() + Duration::days(EXCERPT_RETENTION_DAYS)).to_rfc3339());
         transaction
             .execute(
@@ -718,7 +734,10 @@ const PATTERN_COLUMNS: &str = "id, fingerprint, fingerprint_version, scope_kind,
     occurrence_count, scope_count, first_observed_at, last_observed_at, created_at,
     updated_at, resolved_at";
 
-fn load_observation(connection: &Connection, observation_id: &str) -> Result<PapercutObservation, String> {
+fn load_observation(
+    connection: &Connection,
+    observation_id: &str,
+) -> Result<PapercutObservation, String> {
     connection
         .query_row(
             &format!("SELECT {OBSERVATION_COLUMNS} FROM papercut_observations WHERE id = ?1"),
@@ -893,7 +912,13 @@ fn promote_observation(
             observation,
             "local",
             Some(&observation.scope_id),
-            if urgent_verified { "urgent" } else if force_local { "manual" } else { "local_recurring" },
+            if urgent_verified {
+                "urgent"
+            } else if force_local {
+                "manual"
+            } else {
+                "local_recurring"
+            },
             &local_ids,
         )?);
     }
@@ -902,7 +927,11 @@ fn promote_observation(
         .query_row(
             "SELECT COUNT(DISTINCT scope_id) FROM papercut_observations
              WHERE target_kind = ?1 AND phenomenon_key = ?2 AND failure_mode = ?3",
-            params![observation.target_kind, observation.phenomenon_key, observation.failure_mode],
+            params![
+                observation.target_kind,
+                observation.phenomenon_key,
+                observation.failure_mode
+            ],
             |row| row.get::<_, i64>(0),
         )
         .map_err(|error| format!("Could not count cross-scope Papercut evidence: {error}"))?;
@@ -930,7 +959,9 @@ fn observe_at(
     let observed_at = input.observed_at.clone().unwrap_or_else(iso_now);
     let excerpt_expires_at = input.excerpt.as_ref().map(|_| {
         chrono::DateTime::parse_from_rfc3339(&observed_at)
-            .map(|value| (value.with_timezone(&Utc) + Duration::days(EXCERPT_RETENTION_DAYS)).to_rfc3339())
+            .map(|value| {
+                (value.with_timezone(&Utc) + Duration::days(EXCERPT_RETENTION_DAYS)).to_rfc3339()
+            })
             .unwrap_or_else(|_| (Utc::now() + Duration::days(EXCERPT_RETENTION_DAYS)).to_rfc3339())
     });
     let observation = PapercutObservation {
@@ -1051,14 +1082,25 @@ fn patterns_for_observation(
         .collect()
 }
 
+fn load_health_from_home(home: &Path) -> PapercutCaptureHealth {
+    let paths = [
+        home.join("Library/Application Support/Pronto/papercuts-hook/health.json"),
+        home.join(".codex/papercuts/health.json"),
+    ];
+    paths
+        .iter()
+        .find_map(|path| {
+            std::fs::read_to_string(path)
+                .ok()
+                .and_then(|value| serde_json::from_str(&value).ok())
+        })
+        .unwrap_or_default()
+}
+
 fn load_health() -> PapercutCaptureHealth {
-    let Some(home) = dirs::home_dir() else {
-        return PapercutCaptureHealth::default();
-    };
-    let path = home.join(".codex/papercuts/health.json");
-    std::fs::read_to_string(path)
-        .ok()
-        .and_then(|value| serde_json::from_str(&value).ok())
+    dirs::home_dir()
+        .as_deref()
+        .map(load_health_from_home)
         .unwrap_or_default()
 }
 
@@ -1117,12 +1159,18 @@ fn backlog_from_connection(connection: &Connection) -> Result<PapercutBacklog, S
     let mut counts = PapercutCounts {
         total: papercuts.len(),
         observations: observations.len(),
-        local_patterns: patterns.iter().filter(|item| item.scope_kind == "local").count(),
+        local_patterns: patterns
+            .iter()
+            .filter(|item| item.scope_kind == "local")
+            .count(),
         cross_scope_patterns: patterns
             .iter()
             .filter(|item| item.scope_kind == "cross_scope")
             .count(),
-        draft_proposals: proposals.iter().filter(|item| item.status == "draft").count(),
+        draft_proposals: proposals
+            .iter()
+            .filter(|item| item.status == "draft")
+            .count(),
         ..PapercutCounts::default()
     };
     for item in &papercuts {
@@ -1170,10 +1218,7 @@ fn create_at(
     let title = required(title, "title")?;
     let detail = required(detail, "detail")?;
     let now = iso_now();
-    let event_key = format!(
-        "manual:{now}:{}",
-        NEXT_ID.fetch_add(1, Ordering::Relaxed)
-    );
+    let event_key = format!("manual:{now}:{}", NEXT_ID.fetch_add(1, Ordering::Relaxed));
     let result = observe_at(
         path,
         PapercutObservationInput {
@@ -1205,7 +1250,11 @@ fn create_at(
                     "UPDATE papercut_patterns SET surface = ?1, impact = ?2, next_action = ?3
                      WHERE id = ?4",
                     params![
-                        if surface.trim().is_empty() { "Pronto UI" } else { surface.trim() },
+                        if surface.trim().is_empty() {
+                            "Pronto UI"
+                        } else {
+                            surface.trim()
+                        },
                         sanitize_excerpt(&impact),
                         if next_action.trim().is_empty() {
                             "Define the next validation step.".to_string()
@@ -1221,7 +1270,11 @@ fn create_at(
     })
 }
 
-fn set_status_at(path: &Path, pattern_id: String, status: String) -> Result<PapercutBacklog, String> {
+fn set_status_at(
+    path: &Path,
+    pattern_id: String,
+    status: String,
+) -> Result<PapercutBacklog, String> {
     let pattern_id = required(pattern_id, "id")?;
     let status = normalize_status(status)?;
     let now = iso_now();
@@ -1306,7 +1359,9 @@ fn propose_at(path: &Path, input: MultiplierProposalInput) -> Result<MultiplierP
                 )
                 .map_err(|error| format!("Could not validate proposal evidence: {error}"))?;
             if !exists {
-                return Err(format!("Multiplier proposal pattern does not exist: {pattern_id}"));
+                return Err(format!(
+                    "Multiplier proposal pattern does not exist: {pattern_id}"
+                ));
             }
         }
         connection
@@ -1343,7 +1398,11 @@ fn set_proposal_status_at(
     status: String,
 ) -> Result<MultiplierProposal, String> {
     let proposal_id = required(proposal_id, "proposal id")?;
-    let status = normalized_choice(status, "proposal status", &["draft", "accepted", "deferred", "rejected"])?;
+    let status = normalized_choice(
+        status,
+        "proposal status",
+        &["draft", "accepted", "deferred", "rejected"],
+    )?;
     let now = iso_now();
     let reviewed_at = (status != "draft").then(|| now.clone());
     crate::core::with_store_write_for_extension(path, |connection| {
@@ -1437,7 +1496,8 @@ fn load_digests(connection: &Connection) -> Result<Vec<PapercutDigest>, String> 
         .query_map([], |row| row.get::<_, String>(0))
         .map_err(|error| format!("Could not read Papercut digests: {error}"))?
         .map(|row| {
-            let value = row.map_err(|error| format!("Could not decode Papercut digest row: {error}"))?;
+            let value =
+                row.map_err(|error| format!("Could not decode Papercut digest row: {error}"))?;
             serde_json::from_str(&value)
                 .map_err(|error| format!("Could not decode Papercut digest: {error}"))
         })
@@ -1450,11 +1510,13 @@ fn read_stdin_json<T: for<'de> Deserialize<'de>>() -> Result<T, String> {
     std::io::stdin()
         .read_to_string(&mut input)
         .map_err(|error| format!("Could not read Papercuts JSON from stdin: {error}"))?;
-    serde_json::from_str(&input).map_err(|error| format!("Papercuts stdin must be valid JSON: {error}"))
+    serde_json::from_str(&input)
+        .map_err(|error| format!("Papercuts stdin must be valid JSON: {error}"))
 }
 
 fn cli_json<T: Serialize>(value: &T) -> Result<String, String> {
-    serde_json::to_string_pretty(value).map_err(|error| format!("Could not encode Papercuts JSON: {error}"))
+    serde_json::to_string_pretty(value)
+        .map_err(|error| format!("Could not encode Papercuts JSON: {error}"))
 }
 
 pub fn run_cli(arguments: &[String]) -> Result<String, String> {
@@ -1553,7 +1615,9 @@ pub fn generate_papercut_digest() -> Result<PapercutDigest, String> {
 }
 
 #[tauri::command]
-pub fn create_multiplier_proposal(input: MultiplierProposalInput) -> Result<MultiplierProposal, String> {
+pub fn create_multiplier_proposal(
+    input: MultiplierProposalInput,
+) -> Result<MultiplierProposal, String> {
     propose_at(&crate::core::local_store_path(), input)
 }
 
@@ -1574,12 +1638,16 @@ pub fn set_papercut_status(papercut_id: String, status: String) -> Result<Paperc
 mod tests {
     use super::*;
     use std::fs;
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    static NEXT_TEST_ID: AtomicU64 = AtomicU64::new(0);
 
     fn test_database() -> (std::path::PathBuf, std::path::PathBuf) {
         let root = std::env::temp_dir().join(format!(
-            "pronto-papercuts-{}-{}",
+            "pronto-papercuts-{}-{}-{}",
             std::process::id(),
+            NEXT_TEST_ID.fetch_add(1, Ordering::Relaxed),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .expect("clock should be after epoch")
@@ -1587,6 +1655,31 @@ mod tests {
         ));
         fs::create_dir_all(&root).expect("test storage should be created");
         (root.join("registry.db"), root)
+    }
+
+    #[test]
+    fn capture_health_prefers_pronto_runtime_and_falls_back_to_legacy_state() {
+        let (_, root) = test_database();
+        let primary = root.join("Library/Application Support/Pronto/papercuts-hook");
+        let legacy = root.join(".codex/papercuts");
+        fs::create_dir_all(&legacy).expect("legacy health directory should exist");
+        fs::write(
+            legacy.join("health.json"),
+            r#"{"status":"degraded","database_writable":false}"#,
+        )
+        .expect("legacy health should persist");
+        assert_eq!(load_health_from_home(&root).status, "degraded");
+
+        fs::create_dir_all(&primary).expect("primary health directory should exist");
+        fs::write(
+            primary.join("health.json"),
+            r#"{"status":"healthy","database_writable":true}"#,
+        )
+        .expect("primary health should persist");
+        let health = load_health_from_home(&root);
+        assert_eq!(health.status, "healthy");
+        assert!(health.database_writable);
+        let _ = fs::remove_dir_all(root);
     }
 
     fn observation(event_key: &str, scope_id: &str) -> PapercutObservationInput {
@@ -1621,7 +1714,10 @@ mod tests {
         assert!(duplicate.deduplicated);
         let second = observe_at(&database, observation("turn-b:0", "repo-a"), false, false)
             .expect("second observation should persist");
-        assert!(second.promoted_patterns.iter().any(|item| item.scope_kind == "local"));
+        assert!(second
+            .promoted_patterns
+            .iter()
+            .any(|item| item.scope_kind == "local"));
         let third = observe_at(&database, observation("turn-c:0", "repo-b"), false, false)
             .expect("third observation should persist");
         assert!(third
@@ -1637,7 +1733,8 @@ mod tests {
         let mut input = observation("urgent:0", "repo-a");
         input.signal_kind = "failed_verification".to_string();
         input.urgent = true;
-        let result = observe_at(&database, input, false, false).expect("urgent signal should persist");
+        let result =
+            observe_at(&database, input, false, false).expect("urgent signal should persist");
         assert_eq!(result.promoted_patterns.len(), 1);
         assert_eq!(result.promoted_patterns[0].evidence_tier, "urgent");
         assert_eq!(result.promoted_patterns[0].scope_kind, "local");
@@ -1648,9 +1745,15 @@ mod tests {
     fn sanitizes_and_expires_short_excerpts() {
         let (database, root) = test_database();
         let mut input = observation("sanitize:0", "repo-a");
-        input.excerpt = Some(format!("See /Users/person/private.txt with sk-secret {}", "x".repeat(300)));
+        input.excerpt = Some(format!(
+            "See /Users/person/private.txt with sk-secret {}",
+            "x".repeat(300)
+        ));
         let result = observe_at(&database, input, false, false).expect("signal should persist");
-        let excerpt = result.observation.excerpt.expect("excerpt should remain during retention");
+        let excerpt = result
+            .observation
+            .excerpt
+            .expect("excerpt should remain during retention");
         assert!(!excerpt.contains("/Users/"));
         assert!(!excerpt.contains("sk-secret"));
         assert!(excerpt.chars().count() <= EXCERPT_MAX_CHARS);
@@ -1678,7 +1781,8 @@ mod tests {
         let (database, root) = test_database();
         let mut old = observation("expired:0", "repo-a");
         old.observed_at = Some("2020-01-01T00:00:00Z".to_string());
-        let old_result = observe_at(&database, old, false, false).expect("old signal should persist");
+        let old_result =
+            observe_at(&database, old, false, false).expect("old signal should persist");
         observe_at(&database, observation("fresh:0", "repo-b"), false, false)
             .expect("a later write should run retention pruning");
         let backlog = load_at(&database).expect("backlog should load");
