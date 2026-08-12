@@ -130,6 +130,18 @@ means the repository has not established a Compass contract; `Invalid`
 preserves the parse or contract error. Pronto never creates or repairs Compass
 artifacts during a refresh.
 
+The fleet summary also includes a read-only `showcase` projection with schema
+`pronto-showcase/v1`, derived from the single fleet-level
+`.pronto/showcase-goal.json` contract. It keeps product readiness,
+demo-material readiness, career signal, eligibility, blockers, and missing
+materials separate. The readiness ranking covers every assessed repository;
+registered repositories absent from the reviewed contract are included as
+unranked `unknown` entries. Eligibility is evaluated before public priority:
+`private_client` work can retain private readiness context but never receives
+a public priority, counts toward the public goal, or enters the public queue.
+`unknown`, `blocked`, and `not_applicable` remain categorical rather than
+becoming zero scores.
+
 `change-matrix` explains an existing repository- or skill-owned contract. A
 missing contract returns `status: "missing"`, its maturity impact, observed
 topology, and the expected location without synthesizing or writing anything.

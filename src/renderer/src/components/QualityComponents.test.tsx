@@ -275,6 +275,24 @@ function makePortfolio(
       ...qualityOverrides,
     },
     remediation,
+    showcase: {
+      schema_version: "pronto-showcase/v1",
+      status: "Missing",
+      contract_path: ".pronto/showcase-goal.json",
+      reviewed_at: null,
+      quality_bar_source: null,
+      goal: {
+        target_publishable_demo_count: 0,
+        publishable_demo_count: 0,
+        remaining_demo_count: 0,
+        status: "Not configured",
+      },
+      scoring: null,
+      public_queue: [],
+      private_client_count: 0,
+      projects: [],
+      error: null,
+    },
     retention_days: 90,
     generated_at: "2026-07-26T11:00:00Z",
     storage_path: "/tmp/pronto/registry.db",
@@ -1526,6 +1544,7 @@ describe("quality evidence surfaces", () => {
 
   it("uses Portfolio as the merged destination and embeds the matrix without duplicate overview cards", () => {
     expect(navItems.map((item) => item.label)).toContain("Portfolio");
+    expect(navItems.map((item) => item.label)).toContain("AI showcase");
     expect(navItems.map((item) => item.label)).not.toContain("Quality gates");
     expect(navItems.map((item) => item.label)).not.toContain("Products");
 

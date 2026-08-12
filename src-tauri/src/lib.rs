@@ -11,6 +11,7 @@ pub mod promotion;
 pub mod quality;
 pub mod release_boundary;
 pub mod remediation;
+pub mod showcase;
 pub mod skill_usage_collector;
 pub mod skills;
 

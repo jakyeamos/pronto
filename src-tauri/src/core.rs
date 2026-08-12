@@ -6,6 +6,7 @@ use crate::quality::{
     QualitySnapshot,
 };
 use crate::remediation::{self, RemediationRun};
+use crate::showcase::{self, ShowcasePortfolioSnapshot};
 use crate::skills::{self, SkillsSnapshot};
 use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use rusqlite::{params, Connection as SqliteConnection, OpenFlags, OptionalExtension, Row};
@@ -747,6 +748,8 @@ pub struct PortfolioSnapshot {
     pub quality: QualityPortfolioSnapshot,
     #[serde(default)]
     pub remediation: RemediationRun,
+    #[serde(default)]
+    pub showcase: ShowcasePortfolioSnapshot,
     pub retention_days: i64,
     pub generated_at: String,
     pub storage_path: String,
@@ -903,6 +906,7 @@ pub struct AgentSummary {
     pub attention_count: usize,
     pub provider_status: ProviderStatus,
     pub quality: QualityPortfolioSnapshot,
+    pub showcase: ShowcasePortfolioSnapshot,
     pub repositories: Vec<AgentRepositorySummary>,
 }
 
@@ -2564,6 +2568,7 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
     }
     let mut remediation_run = state.remediation.clone();
     remediation::sync_github_only_candidates(&mut remediation_run, &state.remote_repositories);
+    let showcase = showcase::inspect(&repositories);
     PortfolioSnapshot {
         roots: state.roots.clone(),
         repositories,
@@ -2576,6 +2581,7 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
         provider_status: state.provider_status.clone(),
         quality: state.quality.clone(),
         remediation: remediation_run,
+        showcase,
         retention_days: state.retention_days,
         generated_at: iso_now(),
         storage_path: path.to_string_lossy().to_string(),
@@ -11672,6 +11678,7 @@ fn agent_summary(snapshot: &PortfolioSnapshot, scope: &str) -> AgentSummary {
         attention_count,
         provider_status: snapshot.provider_status.clone(),
         quality: snapshot.quality.clone(),
+        showcase: snapshot.showcase.clone(),
         repositories,
     }
 }
@@ -14382,6 +14389,7 @@ pub fn run_cli(arguments: Vec<String>) {
                     provider_status: ProviderStatus::default(),
                     quality: QualityPortfolioSnapshot::default(),
                     remediation: remediation::empty_run(),
+                    showcase: ShowcasePortfolioSnapshot::default(),
                     retention_days: DEFAULT_RETENTION_DAYS,
                     generated_at: iso_now(),
                     storage_path: path.to_string_lossy().to_string(),

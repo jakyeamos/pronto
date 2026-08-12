@@ -22,6 +22,7 @@ import { RepositoryDetailSurface } from "./components/Drawers";
 import { PortfolioCollectionsSurface } from "./components/PortfolioCollectionsSurface";
 import { PromotionSurface } from "./components/PromotionSurface";
 import { QualityGatesSurface } from "./components/QualityGatesSurface";
+import { ShowcaseSurface } from "./components/ShowcaseSurface";
 import { RemediationSurface } from "./components/RemediationSurface";
 import { RemoteCatalogSurface } from "./components/RemoteCatalogSurface";
 import { RefreshConfirmationDialog } from "./components/RefreshConfirmationDialog";
@@ -365,6 +366,11 @@ export function App(): ReactElement {
           {showingRepositoryDetail && selectedRepository ? (
             <RepositoryDetailSurface
               repository={selectedRepository}
+              backLabel={
+                activeNav === "showcase"
+                  ? "Back to AI showcase"
+                  : "Back to Portfolio"
+              }
               analytics={analytics}
               isRefreshing={isRefreshing}
               onBack={() => setSelectedRepositoryId(null)}
@@ -418,6 +424,12 @@ export function App(): ReactElement {
                 }
               />
             </>
+          ) : activeNav === "showcase" ? (
+            <ShowcaseSurface
+              showcase={snapshot.showcase}
+              repositories={snapshot.repositories}
+              onOpenRepository={handleOpenRepository}
+            />
           ) : activeNav === "remediation" ? (
             <RemediationSurface
               run={snapshot.remediation}

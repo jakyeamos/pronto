@@ -1,6 +1,6 @@
 # Pronto repository operating contract
 
-Last reviewed: 2026-08-11.
+Last reviewed: 2026-08-12.
 
 This is the repository-specific execution contract for contributors and
 agents. The canonical branch is `main`; work is developed on an isolated
@@ -23,9 +23,9 @@ unavailable until it is regenerated from the exact `dev` commit.
 
 - `src-tauri/src/core.rs` owns repository discovery, durable SQLite state, Git
   and provider evidence, focused CLI projections, preflights, and audits.
-- Focused Rust modules such as `quality.rs`, `remediation.rs`, and
-  `change_matrix.rs` own their domain rules. Add behavior there instead of
-  duplicating it in the renderer or Node adapter.
+- Focused Rust modules such as `quality.rs`, `remediation.rs`,
+  `change_matrix.rs`, and `showcase.rs` own their domain rules. Add behavior
+  there instead of duplicating it in the renderer or Node adapter.
 - `src/renderer/src/` renders shared projection contracts. It may format state
   but must not invent freshness, passing evidence, authorization, or closure.
 - `bin/pronto.mjs` is a thin launcher for the native CLI. It invokes bare
@@ -37,6 +37,14 @@ unavailable until it is regenerated from the exact `dev` commit.
   `.agents/change-surface-matrix.json` are governed contracts. Update the
   affected projection, consumer, documentation, and machine-readable evidence
   together.
+
+AI Showcase readiness is governed by one fleet-level
+`.pronto/showcase-goal.json`; see `docs/showcase-contract.md`. Public
+eligibility is a hard gate before public priority and publishing. In
+particular, `private_client` work can retain a readiness score as private audit
+context but must never count toward the public goal or enter the public
+materials/publishing queue. Registered repositories absent from the reviewed
+contract remain visible as unranked `unknown` entries.
 
 When a contract changes, trace the full path: source evidence, Rust domain
 model, persisted representation, CLI JSON, renderer type and component,

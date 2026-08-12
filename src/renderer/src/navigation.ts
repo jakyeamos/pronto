@@ -6,12 +6,14 @@ import {
   GitBranch,
   Inbox,
   LayoutDashboard,
+  Film,
   Settings2,
   Sparkles,
 } from "lucide-react";
 
 export type NavItem =
   | "portfolio"
+  | "showcase"
   | "remediation"
   | "promotions"
   | "analytics"
@@ -27,6 +29,7 @@ export const navItems: Array<{
   icon: typeof LayoutDashboard;
 }> = [
   { id: "portfolio", label: "Portfolio", icon: LayoutDashboard },
+  { id: "showcase", label: "AI showcase", icon: Film },
   { id: "remediation", label: "Remediation", icon: ClipboardCheck },
   { id: "promotions", label: "Promotion inbox", icon: Inbox },
   { id: "analytics", label: "Analytics", icon: ChartNoAxesCombined },
@@ -45,6 +48,11 @@ export const pageCopy: Record<
     eyebrow: "Local evidence",
     title: "Know what needs attention.",
     body: "A factual view of your projects, workspaces, and Git state—freshness included.",
+  },
+  showcase: {
+    eyebrow: "Recruiter-facing proof",
+    title: "Turn the full fleet into a publishing plan.",
+    body: "Rank every registered repository by product and demo readiness, then prioritize public materials without exposing client work.",
   },
   remediation: {
     eyebrow: "Fresh evidence → focused work",

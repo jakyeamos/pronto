@@ -35,6 +35,7 @@ import { WorkspaceSyncDetailView } from "./WorkspaceSyncDetailView";
 
 export function RepositoryDetailSurface({
   repository,
+  backLabel = "Back to Portfolio",
   analytics,
   isRefreshing,
   onBack,
@@ -46,6 +47,7 @@ export function RepositoryDetailSurface({
   onOpenReport,
 }: {
   repository: RepositorySnapshot;
+  backLabel?: string;
   analytics: AnalyticsSnapshot;
   isRefreshing: boolean;
   onBack: () => void;
@@ -115,7 +117,7 @@ export function RepositoryDetailSurface({
           onClick={onBack}
         >
           <ArrowLeft size={15} />
-          Back to Portfolio
+          {backLabel}
         </button>
         <StatusPill tone="slate" icon={<GitBranch size={11} />}>
           {repository.provider_state}
