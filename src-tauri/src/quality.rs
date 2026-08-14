@@ -3,6 +3,7 @@ use crate::behavior_assurance::{
 };
 use crate::core::{CheckSnapshot, RemoteRepositorySnapshot, RepositorySnapshot};
 use crate::evidence_contract::{EvidenceContractFleetCoverage, EvidenceContractRepositoryStatus};
+use crate::installed_runtime::{self, InstalledRuntimeSnapshot};
 use crate::mac_control_maturity::{MacControlPortfolioSnapshot, MacControlRepositoryState};
 use crate::release_boundary::{self, ReleaseBoundarySnapshot};
 use chrono::{DateTime, Duration, Utc};
@@ -748,6 +749,8 @@ pub struct QualitySnapshot {
     pub web_readiness: WebReadinessSnapshot,
     #[serde(default)]
     pub release_boundary: ReleaseBoundarySnapshot,
+    #[serde(default)]
+    pub installed_runtime: InstalledRuntimeSnapshot,
     pub last_ingested_at: Option<String>,
     pub ingestion_status: String,
     pub ingestion_message: Option<String>,
@@ -766,6 +769,7 @@ impl Default for QualitySnapshot {
             evidence_contracts: Vec::new(),
             web_readiness: WebReadinessSnapshot::default(),
             release_boundary: ReleaseBoundarySnapshot::default(),
+            installed_runtime: InstalledRuntimeSnapshot::default(),
             last_ingested_at: None,
             ingestion_status: "No evidence".to_string(),
             ingestion_message: None,
@@ -2779,8 +2783,14 @@ pub fn ingest_repository_quality(
         })
         .unwrap_or_default();
     let maturity_available = maturity.is_some();
-    let evidence_available =
-        gates.iter().any(|gate| !gate.evidence.is_empty()) || findings.total > 0;
+    let installed_runtime = installed_runtime::evaluate(
+        Path::new(&repository.path),
+        repository.workspace.last_commit.as_deref(),
+    );
+    let runtime_available = installed_runtime.applicability == "applicable";
+    let evidence_available = gates.iter().any(|gate| !gate.evidence.is_empty())
+        || findings.total > 0
+        || runtime_available;
     QualitySnapshot {
         gates,
         findings,
@@ -2792,6 +2802,7 @@ pub fn ingest_repository_quality(
         evidence_contracts: Vec::new(),
         web_readiness,
         release_boundary,
+        installed_runtime,
         last_ingested_at,
         ingestion_status: if evidence_available || maturity_available {
             "Available".to_string()

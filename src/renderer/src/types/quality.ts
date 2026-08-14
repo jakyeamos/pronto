@@ -266,6 +266,31 @@ export interface QualityReadiness {
   blocked_gate_ids: string[];
 }
 
+export interface InstalledRuntimeIssue {
+  stage: string;
+  status: string;
+  message: string;
+}
+
+export interface InstalledRuntimeTargetSnapshot {
+  id: string;
+  label: string;
+  status: string;
+  source_revision?: string;
+  build_revision?: string;
+  process_id?: number;
+  observed_at?: string;
+  issues: InstalledRuntimeIssue[];
+}
+
+export interface InstalledRuntimeSnapshot {
+  schema_version: string;
+  applicability: string;
+  status: string;
+  summary: string;
+  config_path?: string;
+  targets: InstalledRuntimeTargetSnapshot[];
+}
 export interface ReleaseRecipeConfig {
   name: string;
   validation_commands: string[];

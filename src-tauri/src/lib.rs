@@ -2,6 +2,7 @@ pub mod behavior_assurance;
 pub mod change_matrix;
 pub mod core;
 pub mod evidence_contract;
+pub mod installed_runtime;
 #[cfg(target_os = "macos")]
 mod mac_accessibility;
 pub mod mac_control_maturity;

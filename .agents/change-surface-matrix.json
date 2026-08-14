@@ -239,7 +239,7 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm contract:check",
-         "Verify every artifact path remains Git-ignored and every rebuild command is current."
+        "Verify every artifact path remains Git-ignored and every rebuild command is current."
       ],
       "status": "applicable"
     },
@@ -304,6 +304,20 @@
         "pnpm vitest run src/renderer/src/components/QualityComponents.test.tsx",
         "pnpm typecheck",
         "Read back a Quality Runner v4 companion feed in Pronto."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "installed-runtime-parity",
+      "scope": "external",
+      "path": ".pronto/installed-runtime-parity.json and producer-owned install/process manifests",
+      "owner": "Repository runtime producer and Pronto maintainers",
+      "condition": "Installed-runtime parity schema, stage classification, process proof, projection, or remediation behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml installed_runtime --no-default-features",
+        "pnpm vitest run src/renderer/src/components/QualityComponents.test.tsx",
+        "pnpm cli repo <configured-repository> --json"
       ],
       "status": "applicable"
     },

@@ -1,4 +1,5 @@
 import type {
+  InstalledRuntimeSnapshot,
   QualityFindings,
   QualityGate,
   QualityMaturity,
@@ -212,6 +213,7 @@ export interface QualitySnapshot {
   evidence_contracts?: EvidenceContractRepositoryStatus[];
   web_readiness?: WebReadinessSnapshot;
   release_boundary?: ReleaseBoundarySnapshot;
+  installed_runtime?: InstalledRuntimeSnapshot;
   last_ingested_at?: string;
   ingestion_status: string;
   ingestion_message?: string;
