@@ -100,14 +100,15 @@
     {
       "id": "fleet-detector-refresh",
       "scope": "external",
-      "path": "src-tauri/src/core.rs, Quality Runner fleet detector publication, repository-local QR runs, and Pronto quality import",
+      "path": "src-tauri/src/core.rs, src-tauri/src/quality.rs, Quality Runner fleet detector publication, repository-local QR runs, and Pronto quality import",
       "owner": "Pronto and Quality Runner integration owners",
       "condition": "Fleet detector command, producer schema, exact-target publication, per-repository status, or findings coverage behavior changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::quality_detector_refresh",
+        "cargo test --manifest-path src-tauri/Cargo.toml quality::tests",
         "pnpm cli help",
-        "Run a source QR detector refresh against a disposable fixture and verify Pronto imports its repository-local findings evidence."
+        "Run a source QR detector refresh against a disposable fixture and verify Pronto refreshes target refs, imports exact-target findings, and rejects any published result that is not selected."
       ],
       "status": "applicable"
     },

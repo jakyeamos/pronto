@@ -2514,6 +2514,25 @@ struct QrRun {
     observed_at: Option<String>,
 }
 
+fn repository_provenance_for_branch<'a>(
+    repository: &'a RepositorySnapshot,
+    scanned_branch: Option<&str>,
+) -> (Option<&'a str>, Option<&'a str>) {
+    if let Some(scanned_branch) = scanned_branch {
+        if let Some(branch) = repository
+            .branches
+            .iter()
+            .find(|branch| branch.name == scanned_branch)
+        {
+            return (branch.last_commit.as_deref(), Some(branch.name.as_str()));
+        }
+    }
+    (
+        repository.workspace.last_commit.as_deref(),
+        Some(repository.branch.as_str()),
+    )
+}
+
 impl QrRun {
     fn configured_gate_ids(&self) -> Vec<String> {
         let mut configured_gate_ids = Vec::new();
@@ -2556,6 +2575,8 @@ impl QrRun {
     fn gate_evidence(&self, repository: &RepositorySnapshot) -> Vec<QualityEvidence> {
         let branch = self.branch();
         let commit = self.commit();
+        let (current_commit, current_branch) =
+            repository_provenance_for_branch(repository, branch.as_deref());
         let report_path = artifact_path(&self.run_dir, "gate-verification.json")
             .or_else(|| artifact_path(&self.run_dir, "gate-execution-plan.json"));
         let observed_at = self.observed_at.clone();
@@ -2620,8 +2641,8 @@ impl QrRun {
                     gate_observed_at.as_deref(),
                     commit.as_deref(),
                     branch.as_deref(),
-                    repository.workspace.last_commit.as_deref(),
-                    Some(repository.branch.as_str()),
+                    current_commit,
+                    current_branch,
                     Utc::now(),
                 );
                 let command = json_string_at(&gate, &["command"]);
@@ -2707,6 +2728,8 @@ impl QrRun {
             .sum();
         let branch = self.branch();
         let commit = self.commit();
+        let (current_commit, current_branch) =
+            repository_provenance_for_branch(repository, branch.as_deref());
         QualityFindings {
             total,
             severity_counts,
@@ -2719,8 +2742,8 @@ impl QrRun {
                 self.observed_at.as_deref(),
                 commit.as_deref(),
                 branch.as_deref(),
-                repository.workspace.last_commit.as_deref(),
-                Some(repository.branch.as_str()),
+                current_commit,
+                current_branch,
                 Utc::now(),
             ),
             report_path: Some(report_path.to_string_lossy().to_string()),

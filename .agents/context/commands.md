@@ -186,10 +186,16 @@ Missing findings evidence is not repaired by the maturity audit. Use the
 explicit `quality detector-refresh` lane to run QR full analysis with
 deterministic skill packs at every registered repository's exact target commit,
 passing Pronto's configured target branches as path-keyed overrides, publishing
-normal QR runs, and immediately re-importing them. The command continues past
-per-repository `blocked` and `unsupported` outcomes and returns the QR ledger
-plus post-import findings coverage. It does not execute discovered repository
-gates. Agent review remains off unless the operator explicitly sets
+normal QR runs, and immediately re-importing them. Pronto performs a local
+read-only repository scan before QR starts and again before import so target-ref
+provenance cannot remain cached across the detector run. Every QR result marked
+`published` is then reconciled against the imported report path, target branch,
+target commit, freshness, and findings total. A published result that is not
+ingested is returned as `reconciliation[].status = "rejected"`, makes the
+overall result `Partial`, and exits nonzero. The command continues past QR's
+explicit per-repository `blocked` and `unsupported` outcomes and returns the QR
+ledger plus post-import findings coverage. It does not execute discovered
+repository gates. Agent review remains off unless the operator explicitly sets
 `--agent-review-mode`.
 
 ## Refresh and state boundaries
