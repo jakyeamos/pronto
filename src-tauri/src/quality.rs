@@ -2174,6 +2174,67 @@ fn repository_provenance_for_branch<'a>(
 }
 
 impl QrRun {
+    fn finding_report(&self) -> Option<(PathBuf, Value)> {
+        let report_names = [
+            "code-quality-scan.json",
+            "quality-audit.json",
+            "completed-report.json",
+            "repo-scan.json",
+            "run-summary.json",
+        ];
+        let mut run_dirs = vec![self.run_dir.clone()];
+
+        let publication = read_json(&self.run_dir.join("fleet-detector-publication.json"));
+        let is_fleet_detector_run = publication.as_ref().is_some_and(|payload| {
+            json_string_at(payload, &["schema"]).as_deref()
+                == Some("quality-runner-fleet-detector-publication/v1")
+        });
+        if is_fleet_detector_run {
+            let run_name = self.run_dir.file_name().and_then(|name| name.to_str());
+            let group_name = run_name.and_then(|name| {
+                ["-inspect", "-run", "-verify"]
+                    .iter()
+                    .find_map(|suffix| name.strip_suffix(suffix))
+            });
+            if let (Some(parent), Some(group_name)) = (self.run_dir.parent(), group_name) {
+                let mut siblings = fs::read_dir(parent)
+                    .ok()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Result::ok)
+                    .map(|entry| entry.path())
+                    .filter(|path| path != &self.run_dir)
+                    .filter(|path| {
+                        path.file_name()
+                            .and_then(|name| name.to_str())
+                            .is_some_and(|name| {
+                                ["-inspect", "-run", "-verify"]
+                                    .iter()
+                                    .any(|suffix| name == format!("{group_name}{suffix}"))
+                            })
+                    })
+                    .filter(|path| {
+                        read_json(&path.join("fleet-detector-publication.json")).is_some_and(
+                            |payload| {
+                                json_string_at(&payload, &["schema"]).as_deref()
+                                    == Some("quality-runner-fleet-detector-publication/v1")
+                            },
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                siblings.sort();
+                run_dirs.extend(siblings);
+            }
+        }
+
+        report_names.iter().find_map(|name| {
+            run_dirs.iter().find_map(|run_dir| {
+                let path = run_dir.join(name);
+                read_json(&path).map(|payload| (path, payload))
+            })
+        })
+    }
+
     fn configured_gate_ids(&self) -> Vec<String> {
         let mut configured_gate_ids = Vec::new();
         let mut seen_gate_ids = HashSet::new();
@@ -2332,18 +2393,7 @@ impl QrRun {
     }
 
     fn findings(&self, repository: &RepositorySnapshot) -> QualityFindings {
-        let report_names = [
-            "code-quality-scan.json",
-            "quality-audit.json",
-            "completed-report.json",
-            "repo-scan.json",
-            "run-summary.json",
-        ];
-        let Some((report_path, payload)) = report_names
-            .iter()
-            .map(|name| self.run_dir.join(name))
-            .find_map(|path| read_json(&path).map(|payload| (path, payload)))
-        else {
+        let Some((report_path, payload)) = self.finding_report() else {
             return QualityFindings::default();
         };
         let severity_counts = severity_counts(&payload);
@@ -3656,6 +3706,99 @@ mod tests {
             .report_path
             .as_deref()
             .is_some_and(|path| path.ends_with("run-summary.json")));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn fleet_detector_run_uses_sibling_inspect_findings_with_latest_verify_evidence() {
+        let root = fixture_root();
+        let repository_path = root.join("repo");
+        let runs = repository_path.join(".quality-runner").join("runs");
+        let inspect = runs.join("fleet-detector-transaction-repo-inspect");
+        let verify = runs.join("fleet-detector-transaction-repo-verify");
+        fs::create_dir_all(&inspect).expect("inspect run should be writable");
+        fs::create_dir_all(&verify).expect("verify run should be writable");
+        let publication = r#"{"schema":"quality-runner-fleet-detector-publication/v1"}"#;
+        fs::write(inspect.join("fleet-detector-publication.json"), publication)
+            .expect("inspect publication should be writable");
+        fs::write(verify.join("fleet-detector-publication.json"), publication)
+            .expect("verify publication should be writable");
+        fs::write(
+            inspect.join("run-manifest.json"),
+            r#"{"created_at":"2026-08-14T11:00:00Z","git":{"branch":"main","head_sha":"abc"}}"#,
+        )
+        .expect("inspect manifest should be writable");
+        fs::write(
+            inspect.join("code-quality-scan.json"),
+            r#"{"findings":[{"severity":"high"},{"severity":"medium"}]}"#,
+        )
+        .expect("detector report should be writable");
+        fs::write(
+            verify.join("run-manifest.json"),
+            r#"{"created_at":"2026-08-14T11:02:00Z","git":{"branch":"main","head_sha":"abc"}}"#,
+        )
+        .expect("verify manifest should be writable");
+        fs::write(
+            verify.join("run-summary.json"),
+            r#"{"finding_counts":{"total":0}}"#,
+        )
+        .expect("verify summary should be writable");
+        fs::write(
+            verify.join("gate-verification.json"),
+            r#"{"gates":[{"id":"lint","status":"passed","command":"pnpm lint"}]}"#,
+        )
+        .expect("verification should be writable");
+
+        let repository = fixture_repository(&repository_path);
+        let snapshot = ingest_repository_quality(&repository, None, None, None);
+        assert_eq!(snapshot.findings.total, 2);
+        assert!(snapshot
+            .findings
+            .report_path
+            .as_deref()
+            .is_some_and(|path| path.ends_with("-inspect/code-quality-scan.json")));
+        assert!(snapshot.gates.iter().any(|gate| gate.id == "lint"));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn unmarked_similarly_named_runs_do_not_share_finding_reports() {
+        let root = fixture_root();
+        let repository_path = root.join("repo");
+        let runs = repository_path.join(".quality-runner").join("runs");
+        let inspect = runs.join("ordinary-run-inspect");
+        let verify = runs.join("ordinary-run-verify");
+        fs::create_dir_all(&inspect).expect("inspect run should be writable");
+        fs::create_dir_all(&verify).expect("verify run should be writable");
+        fs::write(
+            inspect.join("run-manifest.json"),
+            r#"{"created_at":"2026-08-14T11:00:00Z"}"#,
+        )
+        .expect("inspect manifest should be writable");
+        fs::write(
+            inspect.join("code-quality-scan.json"),
+            r#"{"findings":[{"severity":"high"}]}"#,
+        )
+        .expect("detector report should be writable");
+        fs::write(
+            verify.join("run-manifest.json"),
+            r#"{"created_at":"2026-08-14T11:02:00Z"}"#,
+        )
+        .expect("verify manifest should be writable");
+        fs::write(
+            verify.join("run-summary.json"),
+            r#"{"finding_counts":{"total":0}}"#,
+        )
+        .expect("verify summary should be writable");
+
+        let repository = fixture_repository(&repository_path);
+        let snapshot = ingest_repository_quality(&repository, None, None, None);
+        assert_eq!(snapshot.findings.total, 0);
+        assert!(snapshot
+            .findings
+            .report_path
+            .as_deref()
+            .is_some_and(|path| path.ends_with("-verify/run-summary.json")));
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 

@@ -109,6 +109,7 @@
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::quality_detector_refresh",
         "lifecycle-aware detector coverage regression excludes exact QR unsupported paths while retaining tracked totals",
         "cargo test --manifest-path src-tauri/Cargo.toml quality::tests",
+        "fleet detector sibling-artifact regression selects inspect findings while retaining latest verify gate evidence and rejects unmarked similarly named runs",
         "pnpm cli help",
         "Run a source QR detector refresh against a disposable fixture and verify Pronto refreshes target refs, imports exact-target findings, and rejects any published result that is not selected."
       ],
