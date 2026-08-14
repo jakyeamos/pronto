@@ -11,6 +11,42 @@ import {
 } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
+export function findExecutableProcessIds(
+  processList,
+  executablePath,
+  ignoredArgumentPrefixes = [],
+) {
+  const processIds = [];
+
+  for (const line of processList.split("\n")) {
+    const match = line.match(/^\s*(\d+)\s+(.+)$/);
+    if (!match) continue;
+
+    const processId = Number.parseInt(match[1], 10);
+    const command = match[2].trim();
+    if (
+      command !== executablePath &&
+      !command.startsWith(`${executablePath} `)
+    ) {
+      continue;
+    }
+
+    const argumentsText = command.slice(executablePath.length).trimStart();
+    if (
+      ignoredArgumentPrefixes.some(
+        (prefix) =>
+          argumentsText === prefix || argumentsText.startsWith(`${prefix} `),
+      )
+    ) {
+      continue;
+    }
+
+    processIds.push(processId);
+  }
+
+  return processIds;
+}
+
 export function digestFile(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
