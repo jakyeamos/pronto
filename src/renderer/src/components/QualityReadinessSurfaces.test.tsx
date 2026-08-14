@@ -109,6 +109,7 @@ describe("quality readiness and release surfaces", () => {
     expect(markup).toContain("Tests (1)");
     expect(markup).toContain("Mac Control maturity");
     expect(markup).toContain("0.0");
+    expect(markup).not.toContain("Semantic coverage");
     expect(markup).not.toContain("Mac Control semantic evidence");
     expect(markup).toContain(
       "Legacy declarations: 8 recorded · non-scoring until v4 source evidence is established",
