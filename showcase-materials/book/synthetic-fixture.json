@@ -4,13 +4,16 @@
   "gap": "BK-1",
   "observed_at": "2026-08-13T17:37:05Z",
   "source_kind": "synthetic_original",
-  "role": "rights_safe_reproducibility_appendix_only",
+  "role": "owner_approved_synthetic_showcase_case",
   "fixture_policy": {
     "created_for_showcase": true,
+    "owner_approved_synthetic_case": true,
     "real_book_excerpt": false,
     "real_people_or_places": false,
     "third_party_text": false,
     "third_party_audio": false,
+    "copyright_free_music": true,
+    "music_origin": "original_synthetic_music_motif_generated_from_fixture_tokens",
     "provider_output": false,
     "external_mutations": 0
   },
@@ -56,9 +59,11 @@
       "rights": "original_synthetic_work_owned_for_this_showcase_material"
     },
     "audio": {
-      "kind": "synthetic_sine_tone_tokens",
+      "kind": "original_synthetic_music_motif",
       "asset_files": [],
-      "rights": "generated_for_reproducibility_appendix; not a product soundtrack"
+      "rights": "copyright_free_original_synthetic_music; no third_party_recording",
+      "implementation": "Deterministic oscillator/tone tokens that can be rendered in-browser without an external recording.",
+      "credit": "Original Signal Room motif created for this showcase packet"
     },
     "controls": [
       "mute",
@@ -71,11 +76,12 @@
     "Keep the synthetic-fixture label visible in every preview, capture, or narrated walkthrough.",
     "Do not present this prose, timing, or audio plan as a shipped Book chapter.",
     "Do not mix this appendix with unreviewed repository text, soundtrack files, or external fonts.",
-    "Use the appendix to explain the intended transformation arc while BK-1 rights evidence is pending."
+    "Use this synthetic case as the primary local showcase material; keep real Book assets out of the packet."
   ],
   "claim_boundary": [
-    "This fixture proves only that a rights-safe chapter-to-media material can be specified.",
+    "This owner-approved synthetic case clears BK-1 for local showcase material only.",
+    "It does not clear rights for the real Book chapter, soundtrack, fonts, or repository assets.",
     "It does not prove Book's live synchronization, hosted reader, authoring workflow, or accessibility behavior."
   ],
-  "next_gap": "BK-1"
+  "next_gap": "BK-2"
 }

@@ -754,7 +754,7 @@
       "profile": "creative_case",
       "release_state": "gated",
       "primary_sequence": ["github", "portfolio", "linkedin", "handshake"],
-      "active_gate": "BK-1: select one representative chapter and complete its rights and attribution ledger.",
+      "active_gate": "BK-2: author the full transformation arc for the owner-approved synthetic case, then prove the direct reader surface before hosting.",
       "targets": [
         {
           "channel": "github",
@@ -766,7 +766,7 @@
           "channel": "portfolio",
           "requirement": "required",
           "status": "gated",
-          "artifact": "Local synthetic reader-to-media case; approved chapter and rights remain gated."
+          "artifact": "Owner-approved synthetic reader-to-media case; real Book assets are intentionally excluded."
         },
         {
           "channel": "linkedin",
@@ -778,7 +778,7 @@
           "channel": "handshake",
           "requirement": "required",
           "status": "gated",
-          "artifact": "AI Showcase package after BK-1 rights/AI-role review, hosted no-auth verification, and external destination readbacks."
+          "artifact": "AI Showcase package after BK-2 direct-reader proof, hosted no-auth verification, and external destination readbacks."
         }
       ]
     },

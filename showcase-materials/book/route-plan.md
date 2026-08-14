@@ -1,21 +1,23 @@
 # Book route plan
 
-Status: steps 1–3 are specified. The local reader seam is documented, and a
-rights-safe synthetic appendix is available. BK-1 is blocked because the
-checkout does not carry the chapter, soundtrack, font, and AI/human
-attribution records needed for a public case study.
+Status: steps 1–3 are specified. The local reader seam is documented, and an
+owner-approved synthetic case is selected for the showcase. BK-1 is resolved
+for that scoped case: it uses invented text, an original synthetic music motif,
+and original CSS visuals, with no real Book or third-party recording included.
+The real-asset path remains intentionally out of scope.
 
 The [canonical target](../ideal-demo-targets.md#book) owns the durable promise
 and proof gate.
 
 ## 1. Ideal target
 
-**North star:** one creator-owned chapter moves from a quiet reading surface
+**North star:** one synthetic chapter moves from a quiet reading surface
 into a carefully timed audiovisual passage, then returns control to the reader
 through mute, reduced-motion, and navigation choices without losing the prose.
 
-**Non-negotiable:** the writing remains primary. Authorship, creative direction,
-AI assistance, implementation, and asset ownership must be stated separately.
+**Non-negotiable:** the writing remains primary. Synthetic text, original music,
+creative direction, implementation, and any later AI assistance must be stated
+separately. The case must never imply that it is the user's book or soundtrack.
 
 ## 2. Concept materials
 
@@ -44,56 +46,54 @@ manifest-driven chapters, motion, layered audio, persistence, and smoke path;
 hosted behavior and showcase assets are unproven.
 
 Project disposition: `largely_product_ready` — use the existing reader and
-authoring model; close chapter-content, direct-surface proof, rights, and public
-packaging gaps.
+authoring model; the synthetic case closes the material-rights choice while
+direct-surface proof and public packaging remain open.
 
-Gap classes: evidence — BK-1; content — BK-2; product — BK-3, BK-4;
+Gap classes: evidence — BK-1 (resolved scoped); content — BK-2; product — BK-3, BK-4;
 packaging — BK-5, BK-6.
 
 | ID   | Gap to close                                  | Observable acceptance condition                                                                                          | Owner                     | Required proof                                 |
 | ---- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------- | ---------------------------------------------- |
-| BK-1 | Select and clear one representative chapter   | Text, imagery, audio, fonts, and any generated assets have explicit showcase rights and credits                          | Creative/content owner    | Rights and attribution ledger                  |
+| BK-1 | Select and clear one representative chapter   | **Synthetic mode:** invented text, original synthetic music, and original visuals are explicitly labeled and carry no real-asset claim. A later real chapter requires a new rights review. | Creative/content owner | Synthetic scope approval and asset decisions |
 | BK-2 | Author the complete transformation arc        | The selected passage has intentional entry, peak, exit, and fallback behavior tied to narrative beats                    | Creative/product owner    | Chapter manifest and design review             |
 | BK-3 | Stabilize media synchronization               | Motion, audio layers, text position, and navigation remain aligned across a fresh desktop session and supported viewport | Frontend/audio owner      | Timed run and state assertions                 |
 | BK-4 | Prove reader control and accessibility        | Mute, reduced motion, keyboard navigation, focus, and readable fallback work during the same scene                       | Accessibility owner       | Direct-surface audit and capture               |
 | BK-5 | Expose the authoring model without admin risk | A sanitized static view explains the manifest-to-scene system without requiring public admin access                      | Product/showcase owner    | Case-study authoring frame and security review |
 | BK-6 | Establish a public proof surface              | A no-auth reader or case study loads reliably and identifies hosted versus local evidence                                | Deployment/showcase owner | Link readback and environment identity         |
 
-**Build order:** BK-1 → BK-2 → BK-3/BK-4 → BK-5 → BK-6.
+**Build order:** BK-1 (resolved scoped) → BK-2 → BK-3/BK-4 → BK-5 → BK-6.
 
-## 4. BK-1 evidence boundary
+## 4. BK-1 synthetic scope
 
-The live repository is route-ready and clean at the reviewed `dev` checkout.
-Chapter 1 (`The Ritual`) is a reasonable candidate because it exercises the
-manifest, chapter-specific themes, line-aware audio cues, and reader controls.
-It is not yet a cleared showcase asset. The source contains no explicit
-chapter authorship/permission statement, no track-level public-use record for
-the three referenced MP3 files, no pinned font provenance note for the
-external Google Fonts import, and no task-level AI-versus-human contribution
-statement.
+The user-selected showcase mode deliberately does not use the repository's real
+chapter, soundtrack, or font. **The Signal Room** is invented for this packet;
+its audio is a deterministic, copyright-free synthetic music motif with no
+third-party recording. The visual field is original CSS. The approval and
+asset decisions are recorded in
+[`evidence/bk-1-synthetic-scope-approval.json`](evidence/bk-1-synthetic-scope-approval.json).
 
-The detailed boundary is recorded in
-[`contribution-ledger.json`](contribution-ledger.json), and the blocked proof
-receipt is [`evidence/bk-1-blocker.json`](evidence/bk-1-blocker.json). Until an
-owner-approved ledger exists, do not publish the real prose, soundtrack-backed
-capture, or an unqualified authorship/AI claim. A sensitive-content review is
-also required before selecting a real excerpt for public capture.
+[`evidence/bk-1-blocker.json`](evidence/bk-1-blocker.json) remains as the
+boundary receipt for the excluded real-asset path. It is not a blocker for the
+selected synthetic case. If the showcase ever switches to the real chapter,
+that path must reopen its chapter, music, font, sensitive-content, and
+AI/human contribution review before capture.
 
-## 5. Rights-safe appendix
+## 5. Synthetic case material
 
-[`synthetic-fixture.json`](synthetic-fixture.json) specifies a small original
-chapter, four narrative beats, synthetic audio tokens, gradient/particle
-visuals, and reader controls. It is an appendix for explaining the intended
-transformation arc while BK-1 is pending—not a substitute for the product
-chapter and not proof of synchronization, hosting, or accessibility behavior.
-Keep the synthetic label visible in every preview or walkthrough that uses it.
+[`synthetic-fixture.json`](synthetic-fixture.json) specifies the original
+chapter, four narrative beats, synthetic music motif, gradient/particle visuals,
+and reader controls. It is the selected local showcase case, not a substitute
+for the product chapter and not proof of synchronization, hosting, or
+accessibility behavior. Keep the synthetic label visible in every preview or
+walkthrough that uses it.
 
 [`synthetic-preview.html`](synthetic-preview.html) is now the shareable no-auth
 surface for that appendix. It makes the prose, media timing, reader controls,
 and evidence boundary legible without importing repository text, external
 fonts, soundtrack files, provider output, or runtime claims. The
 [`bk-1-synthetic-material-receipt.json`](evidence/bk-1-synthetic-material-receipt.json)
-records a static HTTP fetch only; this material addition does not clear BK-1.
+records a static HTTP fetch only. It supports the scoped BK-1 material choice;
+it does not prove the Book runtime or clear rights for real repository assets.
 
 ## 6. Local showcase package
 
@@ -105,9 +105,10 @@ long-form narrative in [`case-study.md`](case-study.md), the bounded claims in
 in [`assets/preview-16x9.svg`](assets/preview-16x9.svg); the checkpoint is
 [`evidence/bk-6-material-checkpoint.json`](evidence/bk-6-material-checkpoint.json).
 
-This package uses the rights-safe synthetic chapter **The Signal Room**. It
-makes the four-beat reading-to-media arc and reader-control contract shareable,
-but it does not close BK-1 chapter/asset rights, AI-versus-human attribution,
-BK-2 authoring, BK-3 synchronization, BK-4 accessibility, hosted no-auth
-verification, or external destination readbacks. It is a candidate local
-material, not product authorship or a public chapter release.
+This package uses the owner-approved synthetic chapter **The Signal Room** and
+an original synthetic music motif. It makes the four-beat reading-to-media arc
+and reader-control contract shareable. BK-1 is resolved for this synthetic
+scope; BK-2 authoring, BK-3 synchronization, BK-4 accessibility, hosted no-auth
+verification, and external destination readbacks remain open. It is a
+candidate local material, not the user's book, not the repository soundtrack,
+and not a public chapter release.

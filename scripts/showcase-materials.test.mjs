@@ -1547,11 +1547,12 @@ test("Dsci-proj exposes a labeled synthetic contract preview without overclaimin
   assert.match(route, /does not close DS-1/i);
 });
 
-test("Book parks real chapter rights while preserving a labeled synthetic appendix", async () => {
+test("Book uses owner-approved synthetic text and copyright-free music while preserving the real-asset boundary", async () => {
   const [
     ledger,
     fixture,
     blocker,
+    approval,
     preview,
     materialReceipt,
     route,
@@ -1568,6 +1569,13 @@ test("Book parks real chapter rights while preserving a labeled synthetic append
     ).then(JSON.parse),
     readFile(
       new URL("showcase-materials/book/evidence/bk-1-blocker.json", root),
+      "utf8",
+    ).then(JSON.parse),
+    readFile(
+      new URL(
+        "showcase-materials/book/evidence/bk-1-synthetic-scope-approval.json",
+        root,
+      ),
       "utf8",
     ).then(JSON.parse),
     readFile(
@@ -1595,8 +1603,11 @@ test("Book parks real chapter rights while preserving a labeled synthetic append
     ledger.schema_version,
     "pronto-showcase-book-contribution-ledger/v1",
   );
-  assert.equal(ledger.status, "review_required");
+  assert.equal(ledger.status, "scoped_synthetic_case");
   assert.equal(ledger.publication_ready, false);
+  assert.equal(ledger.showcase_scope.mode, "synthetic_only");
+  assert.equal(ledger.showcase_scope.real_repository_chapter_used, false);
+  assert.equal(ledger.showcase_scope.real_repository_audio_used, false);
   assert.equal(ledger.candidate.chapter_id, "chapter1");
   assert.equal(
     ledger.contributions.find((item) => item.id === "audio")?.rights_status,
@@ -1607,32 +1618,41 @@ test("Book parks real chapter rights while preserving a labeled synthetic append
       ?.observed_status,
     "not_determined",
   );
-  assert.match(ledger.claim_boundary.join(" | "), /No public chapter/);
+  assert.match(ledger.claim_boundary.join(" | "), /No rights clearance for the real chapter/);
 
   assert.equal(
     fixture.schema_version,
     "pronto-showcase-book-synthetic-fixture/v1",
   );
   assert.equal(fixture.source_kind, "synthetic_original");
-  assert.equal(fixture.role, "rights_safe_reproducibility_appendix_only");
+  assert.equal(fixture.role, "owner_approved_synthetic_showcase_case");
+  assert.equal(fixture.fixture_policy.owner_approved_synthetic_case, true);
   assert.equal(fixture.fixture_policy.third_party_audio, false);
+  assert.equal(fixture.fixture_policy.copyright_free_music, true);
+  assert.equal(fixture.media_plan.audio.kind, "original_synthetic_music_motif");
   assert.equal(fixture.chapter.beats.length, 4);
   assert.equal(fixture.media_plan.controls.includes("reduced_motion"), true);
   assert.match(fixture.display_rules.join(" | "), /synthetic-fixture label/i);
 
   assert.equal(blocker.gap, "BK-1");
-  assert.equal(blocker.status, "blocked");
+  assert.equal(blocker.status, "resolved_scoped");
   assert.equal(
     blocker.disposition,
-    "parked_pending_chapter_and_asset_rights_record",
+    "owner_approved_scoped_synthetic_case",
   );
-  assert.ok(
-    blocker.missing_contract.required.some((item) =>
-      /music permission/i.test(item),
-    ),
-  );
+  assert.equal(blocker.resolution.selected_mode, "synthetic_only");
   assert.match(blocker.blocked_action, /Do not publish/i);
-  assert.equal(blocker.synthetic_fallback.does_not_clear_bk_1, true);
+  assert.equal(blocker.synthetic_fallback.does_not_clear_real_asset_path, true);
+
+  assert.equal(approval.status, "resolved_scoped");
+  assert.equal(approval.disposition, "owner_approved_scoped_synthetic_case");
+  assert.equal(approval.approval.approver, "Jakye Amos");
+  assert.equal(approval.scope.real_book_excerpt_used, false);
+  assert.equal(approval.scope.third_party_recording_used, false);
+  assert.equal(
+    approval.asset_decisions.music.classification,
+    "copyright_free_original_synthetic_music",
+  );
 
   assert.match(preview, /Synthetic showcase fixture · not product authorship/);
   assert.match(preview, /The Signal Room/);
@@ -1644,7 +1664,7 @@ test("Book parks real chapter rights while preserving a labeled synthetic append
   );
   assert.equal(
     materialReceipt.status,
-    "passed_as_rights_safe_synthetic_appendix",
+    "passed_as_owner_approved_synthetic_case",
   );
   assert.equal(materialReceipt.artifact.label_required, true);
   assert.equal(
@@ -1653,7 +1673,7 @@ test("Book parks real chapter rights while preserving a labeled synthetic append
   );
   assert.match(
     materialReceipt.claim_boundary.join(" | "),
-    /does not clear BK-1/,
+    /supports BK-1 only for the synthetic scope/,
   );
 
   const project = goal.projects.find(
@@ -1662,18 +1682,19 @@ test("Book parks real chapter rights while preserving a labeled synthetic append
   const readinessProject = readiness.projects.find(
     (candidate) => candidate.repository_name === "Book",
   );
-  assert.equal(project?.next_step_category, "evidence");
-  assert.match(project?.next_step ?? "", /BK-1/);
-  assert.match(project?.blockers?.join(" | ") ?? "", /chapter authorship/i);
-  assert.equal(readinessProject?.first_required_closure, "BK-1");
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 6);
+  assert.equal(project?.next_step_category, "content");
+  assert.match(project?.next_step ?? "", /BK-2/);
+  assert.equal(project?.blockers?.length, 0);
+  assert.equal(readinessProject?.first_required_closure, "BK-2");
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 5);
   assert.equal(
     readinessProject?.rehearsal_disposition,
-    "local_material_package_complete_rights_evidence_required",
+    "local_material_package_complete_synthetic_scope_approved_direct_surface_and_hosting_required",
   );
-  assert.match(route, /BK-1 evidence boundary/);
+  assert.match(route, /BK-1 synthetic scope/);
   assert.match(route, /synthetic-fixture\.json/);
   assert.match(route, /synthetic-preview\.html/);
+  assert.match(route, /original synthetic music motif/);
 });
 
 test("RemodelVision, Dsci-proj, and Book expose bounded local candidate packages", async () => {

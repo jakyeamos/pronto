@@ -249,9 +249,9 @@
       "work_disposition": "largely_product_ready",
       "current_stage": "gap_closure",
       "rehearsal_status": "not_ready",
-      "first_required_closure": "BK-1",
-      "remaining_gap_count_before_rehearsal": 6,
-      "rehearsal_disposition": "local_material_package_complete_rights_evidence_required"
+      "first_required_closure": "BK-2",
+      "remaining_gap_count_before_rehearsal": 5,
+      "rehearsal_disposition": "local_material_package_complete_synthetic_scope_approved_direct_surface_and_hosting_required"
     },
     {
       "repository_name": "agent-router",

@@ -5,14 +5,14 @@
   "reviewed_at": "2026-08-14T06:00:00Z",
   "levels": [
     {
-      "id": "synthetic-appendix",
-      "label": "Rights-safe chapter appendix",
+      "id": "synthetic-case",
+      "label": "Owner-approved synthetic chapter case",
       "status": "verified_local",
-      "status_display": "Original synthetic prose and media plan",
-      "allowed_claim": "The candidate specifies four narrative beats, synthetic audio tokens, original visual treatment, and reader controls.",
-      "forbidden_inference": "The appendix is the product chapter, product authorship, or a soundtrack-backed runtime capture.",
+      "status_display": "Invented prose, original synthetic music, and original visual treatment",
+      "allowed_claim": "The selected local case specifies four narrative beats, a copyright-free original synthetic music motif, original visuals, and reader controls without using real Book assets.",
+      "forbidden_inference": "The synthetic case is the product chapter, establishes product authorship, clears the real repository soundtrack, or proves a runtime capture.",
       "public_claim_allowed": true,
-      "evidence_refs": ["synthetic-fixture.json", "evidence/bk-1-synthetic-material-receipt.json"]
+      "evidence_refs": ["synthetic-fixture.json", "evidence/bk-1-synthetic-material-receipt.json", "evidence/bk-1-synthetic-scope-approval.json"]
     },
     {
       "id": "product-capability",
@@ -26,13 +26,13 @@
     },
     {
       "id": "rights-attribution",
-      "label": "Chapter, asset, and attribution rights",
-      "status": "blocked_owner_review",
-      "status_display": "BK-1 ledger is still required",
-      "allowed_claim": "The local contribution ledger identifies the missing chapter, soundtrack, font, sensitive-content, and AI/human decisions.",
-      "forbidden_inference": "Repository ownership or bot commits establish publication permission or a complete authorship statement.",
+      "label": "Synthetic case rights and attribution",
+      "status": "resolved_scoped",
+      "status_display": "BK-1 resolved for synthetic-only local material",
+      "allowed_claim": "The selected case uses invented prose, original synthetic music, and original visuals; the approval record keeps real Book assets out of scope.",
+      "forbidden_inference": "The synthetic approval establishes rights for the real Book chapter, soundtrack, fonts, or repository assets.",
       "public_claim_allowed": true,
-      "evidence_refs": ["contribution-ledger.json", "evidence/bk-1-blocker.json"]
+      "evidence_refs": ["contribution-ledger.json", "evidence/bk-1-blocker.json", "evidence/bk-1-synthetic-scope-approval.json"]
     },
     {
       "id": "accessibility",

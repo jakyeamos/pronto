@@ -1,6 +1,6 @@
 {
   "schema_version": "pronto-showcase-postability/v1",
-  "reviewed_at": "2026-08-14T17:01:49.548Z",
+  "reviewed_at": "2026-08-14T17:22:07.735Z",
   "purpose": "Track whether each public Showcase project has a locally postable packet without confusing local materials, live proof, authority, hosting, or external publication.",
   "publication_policy": "This ledger never authorizes external posting. A project is not posted until a fresh destination receipt and readback are recorded.",
   "state_definitions": {
@@ -656,23 +656,21 @@
         "handshake"
       ],
       "open_materials": [
-        "approved chapter and asset rights/attribution ledger",
-        "clear AI and human role statement",
         "fresh direct reader proof",
         "hosted no-auth case URL",
         "external destination readbacks"
       ],
-      "active_gate": "BK-1: select one representative chapter and complete its rights and attribution ledger.",
-      "next_step": "Clear BK-1 from showcase-materials/book/route-plan.md: select one representative chapter and complete its rights and attribution ledger; the BK-6 local candidate package is complete while direct reader proof remains separate.",
+      "active_gate": "BK-2: author the full transformation arc for the owner-approved synthetic case, then prove the direct reader surface before hosting.",
+      "next_step": "Continue at BK-2 in showcase-materials/book/route-plan.md: author the full transformation arc for the selected synthetic case, then prove the direct reader surface before hosting.",
       "readiness": {
         "current_stage": "gap_closure",
         "rehearsal_status": "not_ready",
-        "first_required_closure": "BK-1"
+        "first_required_closure": "BK-2"
       },
       "deferral": {
-        "type": "rights_or_editorial_authority",
-        "reason": "Clear BK-1 from showcase-materials/book/route-plan.md: select one representative chapter and complete its rights and attribution ledger; the BK-6 local candidate package is complete while direct reader proof remains separate.",
-        "reentry": "Clear BK-1 from showcase-materials/book/route-plan.md: select one representative chapter and complete its rights and attribution ledger; the BK-6 local candidate package is complete while direct reader proof remains separate."
+        "type": "hosting_or_external_readback",
+        "reason": "Continue at BK-2 in showcase-materials/book/route-plan.md: author the full transformation arc for the selected synthetic case, then prove the direct reader surface before hosting.",
+        "reentry": "Continue at BK-2 in showcase-materials/book/route-plan.md: author the full transformation arc for the selected synthetic case, then prove the direct reader surface before hosting."
       },
       "external_posting_proof": false
     },

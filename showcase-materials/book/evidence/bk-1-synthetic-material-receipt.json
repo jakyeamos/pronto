@@ -3,7 +3,7 @@
   "project": "book",
   "gap": "BK-1",
   "observed_at": "2026-08-13T19:06:27Z",
-  "status": "passed_as_rights_safe_synthetic_appendix",
+  "status": "passed_as_owner_approved_synthetic_case",
   "source_kind": "synthetic_original",
   "artifact": {
     "path": "showcase-materials/book/synthetic-preview.html",
@@ -22,14 +22,14 @@
       "The Signal Room",
       "Reader controls stay in the story",
       "What this page proves",
-      "Real chapter, soundtrack, font, and AI/human attribution records remain BK-1 gates"
+      "BK-1 resolved for synthetic scope; real Book assets remain excluded"
     ]
   },
   "claim_boundary": [
-    "The page is a shareable no-auth material for the rights-safe synthetic appendix.",
+    "The page is a shareable no-auth material for the owner-approved synthetic case.",
     "It makes the intended chapter-to-media transformation arc and reader-control contract legible.",
-    "It does not clear BK-1, prove the Book runtime, prove synchronization or accessibility behavior, or authorize publication of repository prose or assets."
+    "It supports BK-1 only for the synthetic scope; it does not prove the Book runtime, prove synchronization or accessibility behavior, or authorize publication of repository prose or assets."
   ],
-  "next_action": "Return to BK-1 when the chapter and asset ledger is approved; replace the synthetic appendix only after rights and contribution evidence pass review.",
-  "next_gap": "BK-1"
+  "next_action": "Proceed to BK-2 transformation-arc authoring; reopen real-asset rights review only if the case stops being synthetic.",
+  "next_gap": "BK-2"
 }

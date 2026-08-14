@@ -1,0 +1,51 @@
+{
+  "schema_version": "pronto-showcase-book-synthetic-scope-approval/v1",
+  "project": "book",
+  "gap": "BK-1",
+  "observed_at": "2026-08-14T17:14:08Z",
+  "status": "resolved_scoped",
+  "disposition": "owner_approved_scoped_synthetic_case",
+  "approval": {
+    "approver": "Jakye Amos",
+    "authority": "explicit owner instruction in the current task",
+    "decision": "Use an arbitrary synthetic example for showcase material instead of the real book or music."
+  },
+  "scope": {
+    "approved_for_local_showcase": true,
+    "text_source": "synthetic_original",
+    "audio_source": "original_synthetic_music_motif",
+    "visual_source": "original_css_treatment",
+    "real_book_excerpt_used": false,
+    "real_book_assets_used": false,
+    "third_party_text_used": false,
+    "third_party_recording_used": false,
+    "external_font_used": false,
+    "no_real_authorship_claim": true,
+    "no_external_publisher_or_collaborator_claim": true,
+    "hosting_or_external_posting_authorized": false
+  },
+  "asset_decisions": {
+    "text": {
+      "name": "The Signal Room",
+      "classification": "invented_synthetic_fixture",
+      "credit": "Synthetic showcase material created for this packet"
+    },
+    "music": {
+      "name": "Signal Room motif",
+      "classification": "copyright_free_original_synthetic_music",
+      "implementation": "Deterministic oscillator/tone tokens; no third-party recording or composition is included.",
+      "credit": "Original synthetic music motif created for this packet"
+    },
+    "visuals": {
+      "classification": "original_css_gradient_and_particles",
+      "credit": "Original showcase treatment created for this packet"
+    }
+  },
+  "claim_boundary": [
+    "This approval clears BK-1 for the selected synthetic local case only.",
+    "It does not clear publication rights for the real Book chapter, soundtrack, fonts, or repository assets.",
+    "It does not prove the live reader, synchronization, accessibility, hosting, or external destination readbacks.",
+    "The synthetic label must remain visible anywhere this case is shown."
+  ],
+  "next_gap": "BK-2"
+}

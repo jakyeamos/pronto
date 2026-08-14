@@ -7,8 +7,8 @@
   "source": {
     "repository": "Book",
     "case_id": "BK-1-synthetic-reading-to-media-arc",
-    "synthetic_appendix_status": "passed_rights_safe",
-    "rights_status": "blocked_bk_1",
+    "synthetic_appendix_status": "owner_approved_synthetic_case",
+    "rights_status": "resolved_scoped_bk_1",
     "release_provenance": "not_verified"
   },
   "artifacts": [
@@ -17,19 +17,20 @@
     { "path": "claim-ledger.json", "status": "present" },
     { "path": "preview.html", "status": "present" },
     { "path": "assets/preview-16x9.svg", "status": "reviewed_local" },
-    { "path": "assets/preview-16x9.png", "status": "reviewed_local", "dimensions": "1600x900", "sha256": "6084c24e2720e643ec7fc05e62a5bd68901af234a7c72f142a5acbc97ed2faa2" },
+    { "path": "assets/preview-16x9.png", "status": "reviewed_local", "dimensions": "1600x900", "sha256": "a98c712a36f39fabcef0047c18e77c44d7cfb7c33d8e1ee0cfbb93dd1ff76e0f" },
     { "path": "public/index.html", "status": "candidate_no_auth_source" },
     { "path": "public-description.txt", "status": "present" }
   ],
   "checks": {
     "synthetic_rights_safe_appendix": "pass",
-    "chapter_and_asset_rights": "blocked_bk_1",
-    "ai_human_role_statement": "blocked_bk_1",
+    "synthetic_scope_approval": "pass",
+    "chapter_and_asset_rights": "resolved_scoped_synthetic_only",
+    "ai_human_role_statement": "not_required_for_synthetic_case",
     "synchronization_and_accessibility": "not_verified",
     "preview_render": "pass",
     "preview_visual_review": "pass",
     "hosted_no_auth": "open",
     "external_destination_readbacks": "open"
   },
-  "claim_boundary": "This checkpoint proves a rights-safe synthetic reading-to-media target, local candidate materials, and explicit BK-1 boundaries. It does not prove public chapter rights, product authorship, live synchronization, accessibility behavior, hosting, or external publication."
+  "claim_boundary": "This checkpoint proves an owner-approved synthetic reading-to-media target, local candidate materials, and the scoped BK-1 boundary. It does not prove rights for real Book assets, product authorship, live synchronization, accessibility behavior, hosting, or external publication."
 }
