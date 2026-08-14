@@ -22,7 +22,82 @@ export interface AnalyticsMetricSample {
   findings_repository_count: number;
   release_rule_repository_count: number;
   release_ready_repository_count: number;
+  remediation_open_action_count?: number;
+  remediation_in_progress_action_count?: number;
+  remediation_blocked_action_count?: number;
+  remediation_deferred_action_count?: number;
+  remediation_verified_action_count?: number;
+  remediation_progress_percent?: number | null;
   quality_freshness?: string;
+  /** Governed v2 observations. Legacy fixed fields remain for v1 history adaptation. */
+  metrics?: Record<string, number | null>;
+}
+
+export type AnalyticsChartType =
+  | "line"
+  | "bar"
+  | "diverging-bar"
+  | "scatter"
+  | "stacked-bar"
+  | "heatmap"
+  | "table";
+
+export interface MetricDefinition {
+  id: string;
+  label: string;
+  description: string;
+  unit: string;
+  denominator: string;
+  scope: "portfolio" | "repository";
+  time_semantics: "point-in-time" | "trailing-window";
+  window_days?: number | null;
+  aggregation: "sum" | "average" | "count" | "latest";
+  polarity: "higher-is-better" | "lower-is-better" | "neutral";
+  source: string;
+  freshness: string;
+  allowed_visualizations: AnalyticsChartType[];
+}
+
+export interface AnalyticsFinding {
+  id: string;
+  kind: "change" | "outlier" | "stale" | "conflict" | "coverage-gap";
+  severity: "info" | "attention" | "high";
+  title: string;
+  detail: string;
+  metric_ids: string[];
+  repository_id?: string | null;
+  observed_at?: string | null;
+}
+
+export interface AnalyticsWidgetConfig {
+  id: string;
+  title: string;
+  metric_ids: string[];
+  chart_type: AnalyticsChartType;
+  grouping: "portfolio" | "repository";
+  width: 1 | 2;
+  height: 1 | 2;
+  order: number;
+}
+
+export interface AnalyticsViewFilters {
+  range_days: number;
+  repository_ids: string[];
+  group_ids: string[];
+  product_ids: string[];
+  freshness: "all" | "fresh" | "stale" | "conflicted" | "unavailable";
+}
+
+export interface AnalyticsView {
+  schema_version: "pronto-analytics-view/v1";
+  id: string;
+  name: string;
+  builtin: boolean;
+  is_default: boolean;
+  filters: AnalyticsViewFilters;
+  widgets: AnalyticsWidgetConfig[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AnalyticsRepositorySeries {
@@ -41,6 +116,10 @@ export interface AnalyticsSnapshot {
   history_available_from?: string;
   portfolio_samples: AnalyticsMetricSample[];
   repositories: AnalyticsRepositorySeries[];
+  metric_catalog?: MetricDefinition[];
+  findings?: AnalyticsFinding[];
+  views?: AnalyticsView[];
+  default_view_id?: string;
 }
 
 export interface SkillUsage {

@@ -14,13 +14,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import type {
-  AnalyticsSnapshot,
   Condition,
   EventRecord,
   QualityPortfolioSnapshot,
   RepositorySnapshot,
 } from "../types";
-import { AnalyticsDashboardBand } from "./AnalyticsComponents";
 import {
   EmptyState,
   formatExactTime,
@@ -46,7 +44,6 @@ export function CommandCenterSurface({
   quality,
   snapshotGeneratedAt,
   isRefreshing,
-  analytics,
   repositories,
   allRepositories,
   events,
@@ -58,6 +55,7 @@ export function CommandCenterSurface({
   onCondition,
   onRefreshQuality,
   onOpenQualityReport,
+  onOpenAnalytics = () => undefined,
 }: {
   activeConditionCount: number;
   dirtyCount: number;
@@ -67,7 +65,6 @@ export function CommandCenterSurface({
   quality: QualityPortfolioSnapshot;
   snapshotGeneratedAt: string;
   isRefreshing: boolean;
-  analytics: AnalyticsSnapshot;
   repositories: RepositorySnapshot[];
   allRepositories: RepositorySnapshot[];
   events: EventRecord[];
@@ -79,6 +76,8 @@ export function CommandCenterSurface({
   onCondition: (repository: RepositorySnapshot, condition: Condition) => void;
   onRefreshQuality: () => void;
   onOpenQualityReport?: (reportPath: string) => void;
+  onOpenAnalytics?: () => void;
+  analytics?: unknown;
 }): ReactElement {
   const configuration = qualityConfigurationSummary(quality);
   const evidence = qualityEvidenceSummary(quality);
@@ -240,7 +239,13 @@ export function CommandCenterSurface({
           ) : null}
         </div>
       </section>
-      <AnalyticsDashboardBand analytics={analytics} />
+      <div className="portfolio-analytics-link">
+        <span>Need historical trends, comparisons, or custom views?</span>
+        <button type="button" className="text-link" onClick={onOpenAnalytics}>
+          Open Analytics
+          <ChevronRight size={14} />
+        </button>
+      </div>
       <div className="content-grid">
         <section className="portfolio-panel">
           <div className="panel-heading">

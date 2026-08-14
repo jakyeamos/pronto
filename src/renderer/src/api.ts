@@ -4,6 +4,7 @@ import { normalizeSkillsSnapshot } from "./skillsSnapshot";
 import type {
   AiPayloadPreview,
   AnalyticsSnapshot,
+  AnalyticsView,
   SkillsSnapshot,
   ExternalTool,
   PortfolioSnapshot,
@@ -56,7 +57,7 @@ export const emptySnapshot: PortfolioSnapshot = {
     plans: [],
   },
   showcase: {
-    schema_version: "pronto-showcase/v1",
+    schema_version: "pronto-showcase/v2",
     status: "Missing",
     contract_path: ".pronto/showcase-goal.json",
     reviewed_at: null,
@@ -79,7 +80,7 @@ export const emptySnapshot: PortfolioSnapshot = {
 };
 
 export const emptyAnalytics: AnalyticsSnapshot = {
-  schema_version: "pronto-analytics/v1",
+  schema_version: "pronto-analytics/v2",
   generated_at: new Date().toISOString(),
   source: "Local refresh snapshots",
   freshness: "Unavailable until the first local refresh",
@@ -87,6 +88,10 @@ export const emptyAnalytics: AnalyticsSnapshot = {
   retention_days: 90,
   portfolio_samples: [],
   repositories: [],
+  metric_catalog: [],
+  findings: [],
+  views: [],
+  default_view_id: "curated",
 };
 
 export const emptySkills: SkillsSnapshot = {
@@ -151,11 +156,32 @@ export async function getSnapshot(): Promise<PortfolioSnapshot> {
   return invoke<PortfolioSnapshot>("get_snapshot");
 }
 
-export async function getAnalytics(): Promise<AnalyticsSnapshot> {
+export async function getAnalytics(rangeDays = 30): Promise<AnalyticsSnapshot> {
   if (!isDesktopBridgeAvailable()) {
     return emptyAnalytics;
   }
-  return invoke<AnalyticsSnapshot>("get_analytics");
+  return invoke<AnalyticsSnapshot>("get_analytics", { rangeDays });
+}
+
+export async function saveAnalyticsView(
+  view: AnalyticsView,
+): Promise<AnalyticsView[]> {
+  if (!isDesktopBridgeAvailable()) return [];
+  return invoke("save_analytics_view", { view });
+}
+
+export async function deleteAnalyticsView(
+  viewId: string,
+): Promise<AnalyticsView[]> {
+  if (!isDesktopBridgeAvailable()) return [];
+  return invoke("delete_analytics_view", { viewId });
+}
+
+export async function setDefaultAnalyticsView(
+  viewId: string,
+): Promise<AnalyticsView[]> {
+  if (!isDesktopBridgeAvailable()) return [];
+  return invoke("set_default_analytics_view", { viewId });
 }
 
 export async function getSkills(): Promise<SkillsSnapshot> {

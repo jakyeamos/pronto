@@ -6,10 +6,8 @@ import type {
   AnalyticsSnapshot,
   RepositorySnapshot,
 } from "../types";
-import {
-  AnalyticsSurface,
-  AnalyticsDashboardBand,
-} from "./AnalyticsComponents";
+import { AnalyticsSurface } from "./AnalyticsComponents";
+import { metricsShareAxis } from "./AnalyticsCharts";
 import {
   HorizontalBarChart,
   StackedBarChart,
@@ -54,7 +52,7 @@ function makeAnalytics(
   samples: AnalyticsMetricSample[] = [],
 ): AnalyticsSnapshot {
   return {
-    schema_version: "pronto-analytics/v1",
+    schema_version: "pronto-analytics/v2",
     generated_at: "2026-07-26T11:00:00Z",
     source: "Local refresh snapshots",
     freshness: "Fresh · observed Jul 26, 11:00 AM",
@@ -63,6 +61,10 @@ function makeAnalytics(
     history_available_from: samples[0]?.observed_at,
     portfolio_samples: samples,
     repositories: [],
+    metric_catalog: [],
+    findings: [],
+    views: [],
+    default_view_id: "curated",
   };
 }
 
@@ -89,6 +91,11 @@ describe("analytics charts", () => {
     expect(markup).toContain('aria-label="Fleet health trend"');
     expect(markup).toContain("Active conditions");
     expect(markup).toContain(">2<");
+    expect(markup).toContain('aria-label="Latest chart values"');
+    expect(markup).toContain("chart-legend-line");
+    expect(markup).toContain('fill="none"');
+    expect(markup).toContain("chart-line-amber");
+    expect(markup).toContain('stroke="#f2bc71"');
     expect(markup).toContain(
       "One observation only. Refresh again to build a trend.",
     );
@@ -97,7 +104,7 @@ describe("analytics charts", () => {
 
   it("renders explicit empty and unavailable evidence states", () => {
     const empty = renderToStaticMarkup(
-      <AnalyticsDashboardBand analytics={makeAnalytics()} />,
+      <AnalyticsSurface analytics={makeAnalytics()} repositories={[]} />,
     );
     const unavailable = renderToStaticMarkup(
       <AnalyticsSurface
@@ -114,13 +121,67 @@ describe("analytics charts", () => {
       />,
     );
 
-    expect(empty).toContain("No refresh history yet");
-    expect(empty).toContain(
-      "Run a local refresh to record the first observation.",
-    );
-    expect(unavailable).toContain("Evidence unavailable");
+    expect(empty).toContain("No refresh history in this range");
     expect(unavailable).toContain("Unavailable");
-    expect(unavailable).toContain("Fresh passing evidence score Unavailable");
+    expect(unavailable).toContain(
+      "Quality and evidence coverage are unavailable",
+    );
+  });
+
+  it("rejects metrics with mismatched windows or denominators on one axis", () => {
+    expect(
+      metricsShareAxis([
+        {
+          id: "commits",
+          label: "Commits",
+          description: "",
+          unit: "commits",
+          denominator: "portfolio",
+          scope: "portfolio",
+          time_semantics: "trailing-window",
+          window_days: 30,
+          aggregation: "sum",
+          polarity: "neutral",
+          source: "git",
+          freshness: "local-refresh",
+          allowed_visualizations: ["line"],
+        },
+        {
+          id: "ahead",
+          label: "Ahead",
+          description: "",
+          unit: "commits",
+          denominator: "workspaces",
+          scope: "repository",
+          time_semantics: "point-in-time",
+          aggregation: "sum",
+          polarity: "lower-is-better",
+          source: "git",
+          freshness: "local-refresh",
+          allowed_visualizations: ["bar"],
+        },
+      ]),
+    ).toBe(false);
+  });
+
+  it("exposes keyboard-operable repository comparison sorting", () => {
+    const analytics = makeAnalytics([makeSample()]);
+    analytics.repositories = [
+      {
+        repository_id: "repository-1",
+        name: "Pronto",
+        samples: [makeSample()],
+      },
+    ];
+
+    const markup = renderToStaticMarkup(
+      <AnalyticsSurface analytics={analytics} repositories={[]} />,
+    );
+
+    expect(markup).toContain("Sortable evidence table");
+    expect(markup).toContain('aria-sort="descending"');
+    expect(markup).toContain(">Findings ↓</button>");
+    expect(markup).toContain(">Repository</button>");
   });
 
   it("treats serialized null metrics as unavailable instead of crashing", () => {
@@ -139,10 +200,11 @@ describe("analytics charts", () => {
       />,
     );
 
-    expect(unavailable).toContain("Evidence unavailable");
-    expect(unavailable).toContain("Maturity Unavailable");
-    expect(unavailable).toContain("Fresh passing evidence score Unavailable");
-    expect(unavailable).toContain("Unavailable detected findings");
+    expect(unavailable).toContain(
+      "Quality and evidence coverage are unavailable",
+    );
+    expect(unavailable).toContain("High-severity findings");
+    expect(unavailable).toContain("Unavailable");
   });
 
   it("renders repository analytics from the matching repository series", () => {
@@ -203,13 +265,15 @@ describe("analytics charts", () => {
       'aria-label="Workspace activity composition"',
     );
     expect(composition).toContain("3");
+    expect(composition).toContain("chart-segment-label");
+    expect(composition).toContain("4 total");
     expect(composition).toContain(
       "Workspace activity state composition at the latest local refresh.",
     );
     expect(comparison).toContain(
       'aria-label="Repository attention comparison"',
     );
-    expect(comparison).toContain("repository-with-a-very…");
+    expect(comparison).toContain("repository-with-a-very-long-…");
     expect(comparison).toContain("2 conditions · 1 dirty · 1 unsynced");
   });
 });

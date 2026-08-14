@@ -160,12 +160,55 @@ export interface QualityMaturity {
   }>;
   quality_outcome?: QualityRepositoryOutcome;
   agent_usability?: AgentUsabilityMaturity;
+  repository_maturity?: RepositoryMaturityModel;
   audit_id?: string;
   observed_at?: string;
   scanned_commit?: string;
   scanned_branch?: string;
   freshness: QualityFreshness;
   report_path?: string;
+}
+
+interface RepositoryMaturityPillar {
+  id: string;
+  label: string;
+  weight: number;
+  applicability: "applicable" | "unknown" | "not_applicable" | string;
+  status: string;
+  score?: number;
+  dimension_scores: Record<string, number>;
+  missing_capabilities: string[];
+  critical_dimensions: string[];
+}
+
+interface RepositoryMaturityModel {
+  schema: string;
+  score?: number;
+  uncapped_score?: number;
+  status: string;
+  pillars: RepositoryMaturityPillar[];
+  evidence: {
+    applicable_pillar_count: number;
+    assessed_pillar_count: number;
+    applicable_weight: number;
+    assessed_weight: number;
+    evidence_coverage: number;
+    fresh_evidence_coverage: number;
+    unknown_applicability: string[];
+    unmapped_dimensions: string[];
+  };
+  critical_cap: {
+    applied: boolean;
+    maximum_score?: number;
+    reasons: string[];
+  };
+}
+
+interface PortfolioMaturityPillar {
+  id: string;
+  label: string;
+  score?: number;
+  assessed_repository_count: number;
 }
 
 export interface QualityRepositoryOutcome {
@@ -318,6 +361,89 @@ interface MacControlPortfolioSnapshot {
   run_id?: string;
 }
 
+interface BehaviorAssuranceGap {
+  kind: string;
+  message: string;
+  behavior_id?: string;
+  scenario_id?: string;
+}
+
+interface BehaviorCoverageCounts {
+  total: number;
+  profiled: number;
+  verified: number;
+  stale: number;
+  failed: number;
+  blocked: number;
+  unknown: number;
+}
+
+interface BehaviorScenarioCoverage {
+  behavior_id: string;
+  scenario_id: string;
+  tier: number;
+  profiled: boolean;
+  categories: string[];
+  risk?: string;
+  side_effects?: string;
+  status: "verified" | "stale" | "failed" | "blocked" | "unknown" | string;
+  verification_level?: string;
+  receipt_id?: string;
+  freshness: string;
+}
+
+interface BehaviorCoverage extends BehaviorCoverageCounts {
+  profile_status: string;
+  per_tier: Record<string, BehaviorCoverageCounts>;
+  per_edge_category: Record<string, BehaviorCoverageCounts>;
+  category_gaps: Array<{ category: string; scenario_count: number }>;
+  scenarios: BehaviorScenarioCoverage[];
+  truncated: boolean;
+}
+
+interface BehaviorAssuranceRepositoryState {
+  schema: string;
+  applicability: string;
+  state?: string;
+  contract_status: string;
+  contract_schema?: string;
+  edge_profile_status?: string;
+  result_status: string;
+  freshness: string;
+  release_ready: boolean;
+  score?: number;
+  contract_path: string;
+  receipt_directory: string;
+  contract_digest?: string;
+  target_branch?: string;
+  target_commit?: string;
+  observed_at?: string;
+  required_scenario_count: number;
+  passed_scenario_count: number;
+  accepted_defect_count: number;
+  receipt_count: number;
+  coverage?: BehaviorCoverage;
+  gaps: BehaviorAssuranceGap[];
+  detail?: string;
+  next_step: string;
+}
+
+interface BehaviorAssurancePortfolioState {
+  schema: string;
+  status: string;
+  repository_count: number;
+  ready_repository_count: number;
+  applicability_counts: Record<string, number>;
+  result_status_counts: Record<string, number>;
+  contract_schema_counts?: Record<string, number>;
+  edge_profile_status_counts?: Record<string, number>;
+  state_counts?: Record<string, number>;
+  required_scenario_count: number;
+  passed_scenario_count: number;
+  gap_count: number;
+  coverage?: BehaviorCoverageCounts;
+}
+
 export interface QualitySnapshot {
   gates: QualityGate[];
   findings: QualityFindings;
@@ -325,6 +451,7 @@ export interface QualitySnapshot {
   target_fleet_audit_root?: string;
   ci_readiness: QualityReadiness;
   mac_control_ideal_state?: MacControlRepositoryState;
+  behavior_assurance: BehaviorAssuranceRepositoryState;
   evidence_contracts?: EvidenceContractRepositoryStatus[];
   web_readiness?: WebReadinessSnapshot;
   release_boundary?: ReleaseBoundarySnapshot;
@@ -345,6 +472,11 @@ export interface QualityPortfolioSnapshot {
   source_maturity_score?: number;
   source_maturity_score_display?: string;
   source_scored_dimension_count?: number;
+  maturity_pillars?: PortfolioMaturityPillar[];
+  maturity_evidence_coverage?: number;
+  maturity_fresh_evidence_coverage?: number;
+  maturity_provisional_repository_count?: number;
+  maturity_capped_repository_count?: number;
   audit_status: string;
   ci_readiness_score?: number;
   ci_readiness_score_display?: string;
@@ -371,6 +503,7 @@ export interface QualityPortfolioSnapshot {
     { label: string; meaning: string; next_step?: string }
   >;
   mac_control_ideal_state?: MacControlPortfolioSnapshot;
+  behavior_assurance?: BehaviorAssurancePortfolioState;
   evidence_contracts?: EvidenceContractFleetCoverage[];
 }
 

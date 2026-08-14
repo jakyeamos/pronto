@@ -157,6 +157,13 @@ function qualityFreshnessTone(freshness: QualityFreshness): string {
   return "slate";
 }
 
+function maturityDimensionLabel(dimension: string): string {
+  if (dimension === "diagnosability.stable_error_codes") {
+    return "Stable error codes";
+  }
+  return dimension.replace(/[._:-]+/g, " ");
+}
+
 function agentUsabilityTone(status: string): string {
   if (status === "healthy" || status === "behavior_verified") return "mint";
   if (status === "blocked") return "red";
@@ -735,6 +742,7 @@ export function QualityMaturitySummary({
   targetCommit?: string;
   targetReadinessState?: TargetEvidenceState;
 }): ReactElement {
+  const repositoryMaturity = maturity.repository_maturity;
   const dimensions = Object.entries(maturity.dimension_scores ?? {}).sort(
     ([leftDimension, leftScore], [rightDimension, rightScore]) =>
       leftScore - rightScore || leftDimension.localeCompare(rightDimension),
@@ -781,7 +789,7 @@ export function QualityMaturitySummary({
               >
                 {(maturity.gaps ?? []).slice(0, compact ? 2 : 4).map((gap) => (
                   <li key={`${gap.dimension}-${gap.status}`}>
-                    <strong>{gap.dimension.replaceAll("_", " ")}</strong>
+                    <strong>{maturityDimensionLabel(gap.dimension)}</strong>
                     <span>{readableQualityEvidenceText(gap.message)}</span>
                   </li>
                 ))}
@@ -802,12 +810,31 @@ export function QualityMaturitySummary({
                   : "Audit unavailable"}
           </span>
           <small>
-            {maturity.scored_dimension_count
-              ? `${maturity.scored_dimension_count} dimensions · `
-              : ""}
+            {repositoryMaturity
+              ? `${repositoryMaturity.evidence.assessed_pillar_count}/${repositoryMaturity.evidence.applicable_pillar_count} applicable pillars · `
+              : maturity.scored_dimension_count
+                ? `${maturity.scored_dimension_count} legacy dimensions · `
+                : ""}
             {maturity.audit_id ?? "No audit run"} ·{" "}
             {qualityFreshnessLabel(maturity.freshness)}
           </small>
+          {repositoryMaturity && (
+            <div className="repository-maturity-meta">
+              <StatusPill tone={agentUsabilityTone(repositoryMaturity.status)}>
+                {repositoryMaturity.status}
+              </StatusPill>
+              <small>
+                {Math.round(
+                  repositoryMaturity.evidence.evidence_coverage * 100,
+                )}
+                % evidence ·{" "}
+                {Math.round(
+                  repositoryMaturity.evidence.fresh_evidence_coverage * 100,
+                )}
+                % fresh
+              </small>
+            </div>
+          )}
           {targetMode && maturityState !== "verified" && (
             <small>
               {targetEvidenceMessage({
@@ -821,11 +848,46 @@ export function QualityMaturitySummary({
         </>
       )}
       {(!targetMode || maturityState !== "unavailable") &&
+        repositoryMaturity && (
+          <div
+            className="repository-maturity-pillars"
+            aria-label="Repository maturity pillars"
+          >
+            {repositoryMaturity.pillars.map((pillar) => (
+              <div key={pillar.id} data-status={pillar.status}>
+                <span>{pillar.label}</span>
+                <strong>
+                  {pillar.applicability === "not_applicable"
+                    ? "N/A"
+                    : pillar.score === undefined
+                      ? "Unknown"
+                      : `${pillar.score}/4`}
+                </strong>
+                {!compact && pillar.missing_capabilities.length > 0 && (
+                  <small>
+                    Missing: {pillar.missing_capabilities.join(", ")}
+                  </small>
+                )}
+              </div>
+            ))}
+            {repositoryMaturity.critical_cap.applied && (
+              <div className="repository-maturity-cap">
+                <ShieldAlert size={12} />
+                <span>
+                  Score capped at{" "}
+                  {repositoryMaturity.critical_cap.maximum_score}/4 by{" "}
+                  {repositoryMaturity.critical_cap.reasons.join(", ")}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      {(!targetMode || maturityState !== "unavailable") &&
         (maturity.gaps ?? []).length > 0 && (
           <ul className="quality-maturity-gaps" aria-label="Maturity gaps">
             {(maturity.gaps ?? []).slice(0, compact ? 2 : 4).map((gap) => (
               <li key={`${gap.dimension}-${gap.status}`}>
-                <strong>{gap.dimension.replaceAll("_", " ")}</strong>
+                <strong>{maturityDimensionLabel(gap.dimension)}</strong>
                 <span>
                   {gap.score === undefined ? "not scored" : `${gap.score}/4`} ·{" "}
                   {readableQualityEvidenceText(gap.message)}
@@ -849,14 +911,14 @@ export function QualityMaturitySummary({
       {(!targetMode || maturityState !== "unavailable") &&
         dimensions.length > 0 && (
           <details className="quality-maturity-dimensions">
-            <summary>{dimensions.length} scored dimensions</summary>
+            <summary>{dimensions.length} raw diagnostic dimensions</summary>
             <div
               aria-label="Maturity dimension scores"
               className="quality-maturity-dimension-list"
             >
               {dimensions.map(([dimension, score]) => (
                 <span key={dimension} title={dimension}>
-                  <b>{dimension.replace(/[._:-]+/g, " ")}</b>
+                  <b>{maturityDimensionLabel(dimension)}</b>
                   <span>{score}/4</span>
                 </span>
               ))}

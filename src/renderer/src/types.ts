@@ -428,6 +428,18 @@ export interface ShowcaseProjectSnapshot {
     | "blocked"
     | "unknown";
   disposition_source: string;
+  work_disposition:
+    | "largely_product_ready"
+    | "targeted_gap_closure"
+    | "material_build_or_restoration"
+    | "conditional_gate"
+    | "private_client"
+    | "not_applicable"
+    | "blocked"
+    | "unknown";
+  work_disposition_summary: string;
+  next_step_category:
+    "product" | "demo_integration" | "evidence" | "content" | "packaging";
   product_readiness: ShowcaseDimension;
   demo_materials: ShowcaseDimension;
   career_signal: ShowcaseDimension;
@@ -448,7 +460,7 @@ export interface ShowcaseProjectSnapshot {
 }
 
 export interface ShowcasePortfolioSnapshot {
-  schema_version: "pronto-showcase/v1";
+  schema_version: "pronto-showcase/v2";
   status: "Ready" | "Missing" | "Invalid";
   contract_path: string;
   reviewed_at?: string | null;

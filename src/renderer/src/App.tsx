@@ -396,7 +396,6 @@ export function App(): ReactElement {
                 quality={snapshot.quality}
                 snapshotGeneratedAt={snapshot.generated_at}
                 isRefreshing={isRefreshing}
-                analytics={analytics}
                 repositories={repositories}
                 allRepositories={snapshot.repositories}
                 events={snapshot.events}
@@ -413,6 +412,7 @@ export function App(): ReactElement {
                 onOpenQualityReport={(reportPath) =>
                   void handleOpenQualityReport(reportPath)
                 }
+                onOpenAnalytics={() => setActiveNav("analytics")}
               />
               <QualityGatesSurface
                 snapshot={snapshot}
@@ -451,6 +451,8 @@ export function App(): ReactElement {
             <AnalyticsSurface
               analytics={analytics}
               repositories={snapshot.repositories}
+              groups={snapshot.groups}
+              products={snapshot.products}
             />
           ) : activeNav === "skills" ? (
             <SkillsSurface

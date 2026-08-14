@@ -35,6 +35,27 @@ const CANONICAL_GATE_IDS = [
 ] as const;
 
 const CONDITIONAL_GATE_IDS = ["dependency_audit", "web_readiness"] as const;
+const EMPTY_EDGE_COVERAGE = {
+  total: 0,
+  profiled: 0,
+  verified: 0,
+  stale: 0,
+  failed: 0,
+  blocked: 0,
+  unknown: 0,
+};
+type EdgeFleetFilter =
+  | "all"
+  | "missing"
+  | "legacy"
+  | "unprofiled"
+  | "partially_verified"
+  | "stale"
+  | "failed"
+  | "blocked"
+  | "unknown"
+  | "current"
+  | "not_applicable";
 
 function customGateColumns(repositories: RepositorySnapshot[]): string[] {
   const knownGateIds = new Set<string>([
@@ -76,6 +97,80 @@ function totalHighFindings(repositories: RepositorySnapshot[]): number {
   );
 }
 
+function matchesEdgeFilter(
+  repository: RepositorySnapshot,
+  filter: EdgeFleetFilter,
+): boolean {
+  const assurance = repository.quality.behavior_assurance;
+  const state = behaviorAssuranceState(assurance);
+  if (filter === "all") return true;
+  if (filter === "missing") return state === "missing_contract";
+  if (filter === "legacy") return state === "legacy_v1";
+  if (filter === "unprofiled") return state === "unprofiled";
+  if (filter === "partially_verified") return state === "partially_verified";
+  if (filter === "stale") return state === "stale";
+  if (filter === "failed") return state === "failed";
+  if (filter === "blocked") return state === "blocked";
+  if (filter === "unknown") return state === "unknown";
+  if (filter === "current") return state === "current";
+  return state === "not_applicable";
+}
+
+function behaviorAssuranceState(
+  assurance: RepositorySnapshot["quality"]["behavior_assurance"],
+): string {
+  if (assurance.state) return assurance.state;
+  if (
+    assurance.contract_status === "missing" &&
+    assurance.gaps.some((gap) => gap.kind === "contract_missing")
+  )
+    return "missing_contract";
+  if (
+    assurance.contract_schema === "pronto-behavior-assurance/v1" ||
+    assurance.edge_profile_status === "legacy"
+  )
+    return "legacy_v1";
+  if (assurance.applicability === "not_applicable") return "not_applicable";
+  if (
+    assurance.contract_status === "invalid" ||
+    assurance.result_status === "blocked"
+  )
+    return "blocked";
+  if (assurance.result_status === "failed") return "failed";
+  if (assurance.freshness === "stale") return "stale";
+  if (
+    assurance.passed_scenario_count > 0 &&
+    assurance.passed_scenario_count < assurance.required_scenario_count
+  )
+    return "partially_verified";
+  if (
+    assurance.edge_profile_status === "missing" ||
+    assurance.edge_profile_status === "unprofiled" ||
+    assurance.edge_profile_status === "partially_profiled"
+  )
+    return "unprofiled";
+  if (assurance.release_ready) return "current";
+  return "unknown";
+}
+
+function behaviorAssuranceStateLabel(
+  assurance: RepositorySnapshot["quality"]["behavior_assurance"],
+): string {
+  const labels: Record<string, string> = {
+    missing_contract: "Missing contract",
+    legacy_v1: "Legacy v1",
+    unprofiled: "Unprofiled",
+    partially_verified: "Partially verified",
+    stale: "Stale",
+    failed: "Failed",
+    blocked: "Blocked",
+    unknown: "Unknown",
+    current: "Current",
+    not_applicable: "Not applicable",
+  };
+  return labels[behaviorAssuranceState(assurance)] ?? "Unknown";
+}
+
 function readinessGapSummary(quality: PortfolioSnapshot["quality"]): string {
   const configuration = qualityConfigurationSummary(quality);
   if (configuration.ideal === 0) {
@@ -96,6 +191,62 @@ function readinessGapSummary(quality: PortfolioSnapshot["quality"]): string {
     : "No open gate updates";
 }
 
+function BehaviorAssuranceSummary({
+  repository,
+}: {
+  repository: RepositorySnapshot;
+}): ReactElement {
+  const assurance = repository.quality.behavior_assurance;
+  const coverage = assurance.coverage ?? EMPTY_EDGE_COVERAGE;
+  const state = behaviorAssuranceState(assurance);
+  const status = behaviorAssuranceStateLabel(assurance);
+  return (
+    <div className="quality-maturity-summary">
+      <StatusPill
+        tone={
+          state === "current" || state === "not_applicable"
+            ? "mint"
+            : state === "failed" || state === "blocked"
+              ? "coral"
+              : "amber"
+        }
+      >
+        {status}
+      </StatusPill>
+      <strong>
+        Release {assurance.passed_scenario_count}/
+        {assurance.required_scenario_count}
+      </strong>
+      <small>required Tier-0 scenarios</small>
+      <strong>
+        Edge {coverage.verified}/{coverage.total}
+      </strong>
+      <small>
+        verified · {coverage.profiled}/{coverage.total} profiled
+      </small>
+      {(coverage.failed > 0 ||
+        coverage.blocked > 0 ||
+        coverage.stale > 0 ||
+        coverage.unknown > 0) && (
+        <small>
+          {coverage.failed} failed · {coverage.blocked} blocked ·{" "}
+          {coverage.stale} stale · {coverage.unknown} unknown
+        </small>
+      )}
+      {assurance.coverage?.category_gaps.slice(0, 2).map((gap) => (
+        <small key={gap.category}>
+          {gap.category.replaceAll("_", " ")} · {gap.scenario_count} gap
+          {gap.scenario_count === 1 ? "" : "s"}
+        </small>
+      ))}
+      {assurance.gaps[0] && <small>{assurance.gaps[0].message}</small>}
+      {assurance.gaps.length > 1 && (
+        <small>{assurance.gaps.length - 1} more gaps</small>
+      )}
+    </div>
+  );
+}
+
 export function QualityGatesSurface({
   snapshot,
   repositories,
@@ -110,6 +261,7 @@ export function QualityGatesSurface({
   showOverview?: boolean;
 }): ReactElement {
   const [showCustomGates, setShowCustomGates] = useState(false);
+  const [edgeFilter, setEdgeFilter] = useState<EdgeFleetFilter>("all");
   const discoveredCustomGates = customGateColumns(repositories);
   const customGateCountLabel = `${discoveredCustomGates.length} custom gate${
     discoveredCustomGates.length === 1 ? "" : "s"
@@ -134,6 +286,22 @@ export function QualityGatesSurface({
   const staleEvidenceContracts = (
     portfolioQuality.evidence_contracts ?? []
   ).filter((contract) => contract.status !== "current");
+  const edgeRepositories = repositories.filter((repository) =>
+    matchesEdgeFilter(repository, edgeFilter),
+  );
+  const edgeCoverage = repositories.reduce(
+    (total, repository) => {
+      const coverage =
+        repository.quality.behavior_assurance.coverage ?? EMPTY_EDGE_COVERAGE;
+      for (const key of Object.keys(
+        EMPTY_EDGE_COVERAGE,
+      ) as (keyof typeof EMPTY_EDGE_COVERAGE)[]) {
+        total[key] += coverage[key];
+      }
+      return total;
+    },
+    { ...EMPTY_EDGE_COVERAGE },
+  );
   return (
     <>
       {showOverview && staleEvidenceContracts.length > 0 && (
@@ -179,16 +347,52 @@ export function QualityGatesSurface({
             </strong>
             <small>
               {portfolioQuality.scored_dimension_count
-                ? `${portfolioQuality.scored_dimension_count} dimensions · `
+                ? `${portfolioQuality.scored_dimension_count} pillar assessments · `
                 : ""}
               {portfolioQuality.audit_status}
             </small>
             {portfolioQuality.source_maturity_score_display && (
               <small>
-                QR base {portfolioQuality.source_maturity_score_display}/4 ·
-                seven operational lanes consolidated
+                {portfolioQuality.feed_schema ===
+                "quality-runner-maturity-feed/v2"
+                  ? "QR source holistic"
+                  : "Legacy QR dimension mean"}{" "}
+                {portfolioQuality.source_maturity_score_display}/4
               </small>
             )}
+            {(portfolioQuality.maturity_pillars ?? []).length > 0 && (
+              <div
+                className="portfolio-maturity-pillars"
+                aria-label="Fleet maturity pillars"
+              >
+                {(portfolioQuality.maturity_pillars ?? []).map((pillar) => (
+                  <span key={pillar.id} title={pillar.label}>
+                    <b>{pillar.label}</b>
+                    {pillar.score === undefined
+                      ? "Unknown"
+                      : `${pillar.score}/4`}
+                  </span>
+                ))}
+              </div>
+            )}
+            {portfolioQuality.maturity_evidence_coverage !== undefined && (
+              <small>
+                {Math.round(portfolioQuality.maturity_evidence_coverage * 100)}%
+                evidence ·{" "}
+                {Math.round(
+                  (portfolioQuality.maturity_fresh_evidence_coverage ?? 0) *
+                    100,
+                )}
+                % fresh ·{" "}
+                {portfolioQuality.maturity_provisional_repository_count ?? 0}
+                {" provisional · "}
+                {portfolioQuality.maturity_capped_repository_count ?? 0} capped
+              </small>
+            )}
+            <small>
+              Product readiness and Project Compass progress are reported
+              separately from repository maturity.
+            </small>
             <QualityOutcomeSummary quality={portfolioQuality} />
             <div className="quality-overview-secondary">
               <span>CI configuration</span>
@@ -296,6 +500,85 @@ export function QualityGatesSurface({
         </section>
       )}
 
+      <section className="surface-panel quality-edge-panel">
+        <div className="surface-heading quality-edge-heading">
+          <div>
+            <p className="eyebrow">Whole-inventory assurance</p>
+            <h2>Edge durability</h2>
+            <p>
+              Release assurance remains Tier 0. This view tracks every declared
+              scenario without turning the wider inventory into a release gate.
+            </p>
+          </div>
+          <label className="quality-edge-filter">
+            <span>Show repositories</span>
+            <select
+              aria-label="Filter edge durability repositories"
+              value={edgeFilter}
+              onChange={(event) =>
+                setEdgeFilter(event.target.value as EdgeFleetFilter)
+              }
+            >
+              <option value="all">All</option>
+              <option value="missing">Missing contracts</option>
+              <option value="legacy">Legacy v1</option>
+              <option value="unprofiled">Unprofiled scenarios</option>
+              <option value="partially_verified">Partially verified</option>
+              <option value="stale">Stale receipts</option>
+              <option value="failed">Reproducible failures</option>
+              <option value="blocked">Blocked</option>
+              <option value="unknown">Unknown</option>
+              <option value="current">Current</option>
+              <option value="not_applicable">Not applicable</option>
+            </select>
+          </label>
+        </div>
+        <div className="quality-edge-metrics">
+          <span>
+            <strong>{edgeCoverage.verified}</strong>/{edgeCoverage.total}{" "}
+            verified
+          </span>
+          <span>
+            <strong>{edgeCoverage.profiled}</strong>/{edgeCoverage.total}{" "}
+            profiled
+          </span>
+          <span>{edgeCoverage.stale} stale</span>
+          <span>{edgeCoverage.failed} failed</span>
+          <span>{edgeCoverage.blocked} blocked</span>
+          <span>{edgeCoverage.unknown} unknown</span>
+        </div>
+        <div className="quality-edge-repositories">
+          {edgeRepositories.length === 0 ? (
+            <p>No repositories match this edge-durability filter.</p>
+          ) : (
+            edgeRepositories.map((repository) => (
+              <button
+                className="quality-edge-repository"
+                key={repository.id}
+                type="button"
+                onClick={() => onOpenRepository(repository)}
+              >
+                <strong>{repository.name}</strong>
+                <span>
+                  {behaviorAssuranceStateLabel(
+                    repository.quality.behavior_assurance,
+                  )}
+                </span>
+                <small>
+                  {repository.quality.behavior_assurance.coverage?.verified ??
+                    0}
+                  /{repository.quality.behavior_assurance.coverage?.total ?? 0}{" "}
+                  verified ·{" "}
+                  {repository.quality.behavior_assurance.edge_profile_status ??
+                    "unprofiled"}{" "}
+                  profile
+                </small>
+              </button>
+            ))
+          )}
+        </div>
+      </section>
+
       <section className="surface-panel quality-matrix-panel">
         <div className="surface-heading quality-matrix-heading">
           <div>
@@ -357,6 +640,7 @@ export function QualityGatesSurface({
                 <col className="quality-matrix-repository-column" />
                 <col className="quality-matrix-maturity-column" />
                 <col className="quality-matrix-findings-column" />
+                <col className="quality-matrix-gate-column" />
                 {columns.map((column) => (
                   <col className="quality-matrix-gate-column" key={column} />
                 ))}
@@ -380,6 +664,11 @@ export function QualityGatesSurface({
                     className="quality-matrix-sticky quality-matrix-findings-column"
                   >
                     QR findings
+                  </th>
+                  <th scope="col" className="quality-matrix-gate-column">
+                    <span className="quality-matrix-gate-heading">
+                      Behavior assurance
+                    </span>
                   </th>
                   {columns.map((column) => (
                     <th
@@ -461,6 +750,9 @@ export function QualityGatesSurface({
                           targetCommit={target.commit}
                           onOpenReport={onOpenReport}
                         />
+                      </td>
+                      <td className="quality-matrix-gate-column">
+                        <BehaviorAssuranceSummary repository={repository} />
                       </td>
                       {columns.map((column) => {
                         const gate = repository.quality.gates.find(

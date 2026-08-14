@@ -171,6 +171,22 @@ function makeQuality(
     ingestion_status: "No evidence",
     ingestion_message: "No imported evidence",
     ...overrides,
+    behavior_assurance: overrides.behavior_assurance ?? {
+      schema: "quality-runner-behavior-assurance/v1",
+      applicability: "unknown",
+      contract_status: "missing",
+      result_status: "unknown",
+      freshness: "unknown",
+      release_ready: false,
+      contract_path: ".pronto/behavior-assurance.json",
+      receipt_directory: ".quality-runner/behavior-assurance/receipts",
+      required_scenario_count: 0,
+      passed_scenario_count: 0,
+      accepted_defect_count: 0,
+      receipt_count: 0,
+      gaps: [],
+      next_step: "Run Quality Runner.",
+    },
   };
 }
 
@@ -276,7 +292,7 @@ function makePortfolio(
     },
     remediation,
     showcase: {
-      schema_version: "pronto-showcase/v1",
+      schema_version: "pronto-showcase/v2",
       status: "Missing",
       contract_path: ".pronto/showcase-goal.json",
       reviewed_at: null,
@@ -888,6 +904,7 @@ describe("quality evidence surfaces", () => {
           dimension_scores: {
             "agent_usability.behavior_evidence": 1,
             change_surface_coverage: 2,
+            "diagnosability.stable_error_codes": 2,
             dynamic_verification: 1,
             future_dimension: 4,
           },
@@ -903,11 +920,177 @@ describe("quality evidence surfaces", () => {
       />,
     );
 
-    expect(markup).toContain("4 scored dimensions");
+    expect(markup).toContain("5 raw diagnostic dimensions");
     expect(markup).toContain('aria-label="Maturity dimension scores"');
     expect(markup).toContain("agent usability behavior evidence");
     expect(markup).toContain("dynamic verification");
+    expect(markup).toContain("Stable error codes");
     expect(markup).toContain("future dimension");
+  });
+
+  it("renders holistic maturity pillars, coverage, unknowns, and critical caps", () => {
+    const repository = makeRepository({
+      quality: makeQuality({
+        maturity: makeMaturity({
+          score: 2,
+          score_display: "2.000",
+          scored_dimension_count: 3,
+          freshness: "Fresh",
+          repository_maturity: {
+            schema: "quality-runner-repository-maturity/v2",
+            score: 2,
+            uncapped_score: 3.5,
+            status: "blocked",
+            pillars: [
+              {
+                id: "correctness_reliability",
+                label: "Correctness and reliability",
+                weight: 0.22,
+                applicability: "applicable",
+                status: "attention",
+                score: 3.5,
+                dimension_scores: { quality_commands: 3.5 },
+                missing_capabilities: ["behavior_outcomes"],
+                critical_dimensions: [],
+              },
+              {
+                id: "security_privacy_supply_chain",
+                label: "Security, privacy, and supply chain",
+                weight: 0.22,
+                applicability: "applicable",
+                status: "blocked",
+                score: 4,
+                dimension_scores: { security_constraints: 4 },
+                missing_capabilities: ["artifact_provenance"],
+                critical_dimensions: ["security_constraints"],
+              },
+              {
+                id: "maintainability_evolvability",
+                label: "Maintainability and evolvability",
+                weight: 0.16,
+                applicability: "applicable",
+                status: "unknown",
+                dimension_scores: {},
+                missing_capabilities: ["architecture_boundaries"],
+                critical_dimensions: [],
+              },
+              {
+                id: "operability_release_safety",
+                label: "Operability and release safety",
+                weight: 0.14,
+                applicability: "applicable",
+                status: "unknown",
+                dimension_scores: {},
+                missing_capabilities: ["diagnosability"],
+                critical_dimensions: [],
+              },
+              {
+                id: "user_facing_quality",
+                label: "User-facing quality",
+                weight: 0.1,
+                applicability: "unknown",
+                status: "unknown",
+                dimension_scores: {},
+                missing_capabilities: ["user_journey_evidence"],
+                critical_dimensions: [],
+              },
+              {
+                id: "human_agent_usability",
+                label: "Human and agent usability",
+                weight: 0.1,
+                applicability: "not_applicable",
+                status: "not_applicable",
+                dimension_scores: {},
+                missing_capabilities: [],
+                critical_dimensions: [],
+              },
+              {
+                id: "governance_sustainability",
+                label: "Governance and sustainability",
+                weight: 0.06,
+                applicability: "unknown",
+                status: "unknown",
+                dimension_scores: {},
+                missing_capabilities: ["ownership_and_governance"],
+                critical_dimensions: [],
+              },
+            ],
+            evidence: {
+              applicable_pillar_count: 4,
+              assessed_pillar_count: 2,
+              applicable_weight: 0.74,
+              assessed_weight: 0.44,
+              evidence_coverage: 0.595,
+              fresh_evidence_coverage: 0.297,
+              unknown_applicability: [
+                "user_facing_quality",
+                "governance_sustainability",
+              ],
+              unmapped_dimensions: [],
+            },
+            critical_cap: {
+              applied: true,
+              maximum_score: 2,
+              reasons: ["security_privacy_supply_chain:security_constraints"],
+            },
+          },
+        }),
+      }),
+    });
+
+    const markup = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([repository])}
+        repositories={[repository]}
+        showOverview={false}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup).toContain('aria-label="Repository maturity pillars"');
+    expect(markup).toContain("Security, privacy, and supply chain");
+    expect(markup).toContain("60% evidence");
+    expect(markup).toContain("30% fresh");
+    expect(markup).toContain("Score capped at 2/4");
+    expect(markup).toContain("N/A");
+    expect(markup).toContain("Unknown");
+  });
+
+  it("labels v2 fleet maturity and keeps product progress separate", () => {
+    const repository = makeRepository();
+    const markup = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([repository], {
+          maturity_score_display: "3.250",
+          scored_dimension_count: 6,
+          source_maturity_score_display: "3.100",
+          feed_schema: "quality-runner-maturity-feed/v2",
+          maturity_evidence_coverage: 0.8,
+          maturity_fresh_evidence_coverage: 0.7,
+          maturity_provisional_repository_count: 1,
+          maturity_capped_repository_count: 0,
+          maturity_pillars: [
+            {
+              id: "security_privacy_supply_chain",
+              label: "Security, privacy, and supply chain",
+              score: 3,
+              assessed_repository_count: 1,
+            },
+          ],
+        })}
+        repositories={[repository]}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup).toContain("6 pillar assessments");
+    expect(markup).toContain("QR source holistic");
+    expect(markup).toContain("80% evidence");
+    expect(markup).toContain("70% fresh");
+    expect(markup).toContain("1 provisional");
+    expect(markup).toContain(
+      "Product readiness and Project Compass progress are reported separately",
+    );
   });
 
   it("keeps Tenure dev evidence visible while marking its older head stale", () => {
@@ -1560,6 +1743,75 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("Quality gate matrix");
     expect(markup).not.toContain("Repositories matched");
     expect(markup).not.toContain("Fleet maturity");
+  });
+
+  it("separates Tier-0 release assurance from whole-inventory edge durability", () => {
+    const repository = makeRepository({
+      quality: makeQuality({
+        behavior_assurance: {
+          schema: "quality-runner-behavior-assurance/v2",
+          applicability: "applicable",
+          contract_status: "current",
+          contract_schema: "pronto-behavior-assurance/v2",
+          edge_profile_status: "partially_profiled",
+          result_status: "passed",
+          freshness: "current",
+          release_ready: true,
+          contract_path: ".pronto/behavior-assurance.json",
+          receipt_directory: ".quality-runner/behavior-assurance/receipts",
+          required_scenario_count: 1,
+          passed_scenario_count: 1,
+          accepted_defect_count: 0,
+          receipt_count: 1,
+          coverage: {
+            total: 4,
+            profiled: 3,
+            verified: 1,
+            stale: 1,
+            failed: 1,
+            blocked: 0,
+            unknown: 1,
+            profile_status: "partially_profiled",
+            per_tier: {
+              "0": {
+                total: 1,
+                profiled: 1,
+                verified: 1,
+                stale: 0,
+                failed: 0,
+                blocked: 0,
+                unknown: 0,
+              },
+            },
+            per_edge_category: {},
+            category_gaps: [
+              { category: "state_and_ordering", scenario_count: 2 },
+            ],
+            scenarios: [],
+            truncated: false,
+          },
+          gaps: [],
+          next_step: "Review edge coverage separately.",
+        },
+      }),
+    });
+    const markup = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([repository])}
+        repositories={[repository]}
+        showOverview={false}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup).toContain("Whole-inventory assurance");
+    expect(markup).toContain("Edge durability");
+    expect(markup).toContain("Release 1/1");
+    expect(markup).toContain("Edge 1/4");
+    expect(markup).toContain("3/4 profiled");
+    expect(markup).toContain("Legacy v1");
+    expect(markup).toContain("Reproducible failures");
+    expect(markup).toContain("state and ordering");
   });
 
   it("nests release products under the Groups destination", () => {

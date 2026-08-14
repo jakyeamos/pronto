@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { Film, Flag, LockKeyhole, Sparkles } from "lucide-react";
 import type {
   RepositorySnapshot,
@@ -6,6 +6,7 @@ import type {
   ShowcaseProjectSnapshot,
 } from "../types";
 import { formatExactTime } from "./ConsolePrimitives";
+import { QualityRunnerCaseStudy } from "./QualityRunnerCaseStudy";
 
 const laneLabels: Record<ShowcaseProjectSnapshot["lane"], string> = {
   publish_ready: "Publish ready",
@@ -15,6 +16,31 @@ const laneLabels: Record<ShowcaseProjectSnapshot["lane"], string> = {
   blocked: "Blocked",
   unknown: "Unknown",
   not_applicable: "Not applicable",
+};
+
+const workDispositionLabels: Record<
+  ShowcaseProjectSnapshot["work_disposition"],
+  string
+> = {
+  largely_product_ready: "Largely product-ready",
+  targeted_gap_closure: "Targeted gap closure",
+  material_build_or_restoration: "Material build or restoration",
+  conditional_gate: "Conditional gate",
+  private_client: "Private / client",
+  not_applicable: "Not applicable",
+  blocked: "Blocked",
+  unknown: "Disposition unknown",
+};
+
+const nextStepCategoryLabels: Record<
+  ShowcaseProjectSnapshot["next_step_category"],
+  string
+> = {
+  product: "Product",
+  demo_integration: "Demo integration",
+  evidence: "Evidence",
+  content: "Content",
+  packaging: "Packaging",
 };
 
 function scoreLabel(value: number | null | undefined): string {
@@ -37,6 +63,8 @@ export function ShowcaseSurface({
   repositories: RepositorySnapshot[];
   onOpenRepository: (repository: RepositorySnapshot) => void;
 }): ReactElement {
+  const [activeCaseStudy, setActiveCaseStudy] = useState<string | null>(null);
+
   if (showcase.status !== "Ready") {
     return (
       <section className="showcase-surface" aria-label="AI showcase readiness">
@@ -55,17 +83,23 @@ export function ShowcaseSurface({
     );
   }
 
-  const projects = [...showcase.projects].sort((left, right) => {
-    if (left.showcase_score == null && right.showcase_score == null) {
-      return left.display_name.localeCompare(right.display_name);
-    }
-    if (left.showcase_score == null) return 1;
-    if (right.showcase_score == null) return -1;
-    return (
-      right.showcase_score - left.showcase_score ||
-      left.display_name.localeCompare(right.display_name)
-    );
-  });
+  const projects = showcase.projects
+    .filter(
+      (project) =>
+        project.public_eligibility !== "not_applicable" &&
+        project.public_eligibility !== "private_client",
+    )
+    .sort((left, right) => {
+      if (left.showcase_score == null && right.showcase_score == null) {
+        return left.display_name.localeCompare(right.display_name);
+      }
+      if (left.showcase_score == null) return 1;
+      if (right.showcase_score == null) return -1;
+      return (
+        right.showcase_score - left.showcase_score ||
+        left.display_name.localeCompare(right.display_name)
+      );
+    });
   const readinessRanks = new Map(
     projects
       .filter((project) => project.showcase_score != null)
@@ -80,16 +114,20 @@ export function ShowcaseSurface({
     if (repository) onOpenRepository(repository);
   };
 
+  if (activeCaseStudy === "quality-runner") {
+    return <QualityRunnerCaseStudy onBack={() => setActiveCaseStudy(null)} />;
+  }
+
   return (
     <section className="showcase-surface" aria-label="AI showcase readiness">
       <div className="showcase-heading">
         <div>
           <p className="eyebrow">AI showcase</p>
-          <h2>Build five recruiter-ready public demos</h2>
+          <h2>Create materials for every showcase project</h2>
           <p>
-            Product readiness and demo materials stay separate. Client work is
-            audited privately but cannot enter the public goal or publishing
-            queue.
+            The full eligible tab is now the goal. Product-first and blocked
+            projects must clear their evidence gates before final materials;
+            client work remains outside the public queue.
           </p>
         </div>
         <div className="showcase-heading-meta">
@@ -106,7 +144,7 @@ export function ShowcaseSurface({
       <div className="showcase-metrics">
         <div className="showcase-metric showcase-metric-accent">
           <Flag size={17} />
-          <span>Public demo goal</span>
+          <span>Full showcase goal</span>
           <strong>
             {showcase.goal.publishable_demo_count}/
             {showcase.goal.target_publishable_demo_count}
@@ -115,9 +153,11 @@ export function ShowcaseSurface({
         </div>
         <div className="showcase-metric">
           <Film size={17} />
-          <span>Fleet projects</span>
+          <span>Visible projects</span>
           <strong>{projects.length}</strong>
-          <small>Every registered repo plus audited entries</small>
+          <small>
+            Eligible demo candidates; support and client work hidden
+          </small>
         </div>
         <div className="showcase-metric">
           <Sparkles size={17} />
@@ -136,12 +176,11 @@ export function ShowcaseSurface({
       <div className="showcase-queue">
         <div className="showcase-queue-heading">
           <div>
-            <h3>Full fleet readiness ranking</h3>
+            <h3>Showcase candidate ranking</h3>
             <p>
-              Every repository is visible. Assessed work is ranked by product
-              and demo readiness; unknown evidence stays explicitly unranked.
-              Client work can receive a private readiness score but never a
-              public-publishing priority.
+              Eligible work is ranked by product and demo readiness. Supporting
+              repositories, upstream/provenance carriers, and client work stay
+              out of this tab; unknown evidence remains explicitly unranked.
             </p>
           </div>
           <div className="showcase-formulas">
@@ -167,8 +206,17 @@ export function ShowcaseSurface({
                   >
                     {laneLabels[project.lane]}
                   </span>
+                  <span className="showcase-work-disposition">
+                    {workDispositionLabels[project.work_disposition]}
+                  </span>
                 </div>
-                <p>{project.next_step}</p>
+                <p>{project.work_disposition_summary}</p>
+                <p>
+                  <strong>
+                    {nextStepCategoryLabels[project.next_step_category]}:
+                  </strong>{" "}
+                  {project.next_step}
+                </p>
                 <small>
                   {project.public_eligibility === "private_client"
                     ? "Private audit only · never eligible for public publishing"
@@ -199,6 +247,15 @@ export function ShowcaseSurface({
                     onClick={() => openProject(project)}
                   >
                     Open repository
+                  </button>
+                )}
+                {project.repository_name === "quality-runner" && (
+                  <button
+                    type="button"
+                    className="button button-quiet showcase-case-button"
+                    onClick={() => setActiveCaseStudy("quality-runner")}
+                  >
+                    View Tenure case study
                   </button>
                 )}
               </div>
