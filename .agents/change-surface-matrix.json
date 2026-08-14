@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-11",
+  "last_reviewed": "2026-08-14",
   "surfaces": [
     {
       "id": "native-core",
@@ -80,6 +80,19 @@
         "pnpm cli remediation \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm cli repo \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm cli quality \"$(git rev-parse --show-toplevel)\" --json"
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "cache-lifecycle-contract",
+      "scope": "local",
+      "path": ".pronto/cache-lifecycle.json",
+      "owner": "Pronto repository maintainers",
+      "condition": "Rebuildable artifacts, cache ownership, worktree isolation, retention authorization, or rebuild commands change.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "pnpm contract:check",
+        "Verify every artifact path remains Git-ignored and every rebuild command is current."
       ],
       "status": "applicable"
     },

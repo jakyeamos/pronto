@@ -1,0 +1,53 @@
+{
+  "schema_version": "pronto-cache-lifecycle/v1",
+  "owner": "Pronto repository maintainers",
+  "last_reviewed": "2026-08-14",
+  "central_cargo_intermediates": {
+    "provider": "codex-storage-pressure",
+    "sharing": "partitioned_by_worktree_and_toolchain",
+    "retention": "external_explicit_authorization",
+    "reason": "Mutable Cargo intermediates must not be shared across concurrent branches; the external provider may plan inactive eviction but cannot infer deletion authority from this repository contract."
+  },
+  "artifacts": [
+    {
+      "path": "node_modules",
+      "kind": "package-link-tree",
+      "scope": "worktree",
+      "rebuild_command": "pnpm install --frozen-lockfile",
+      "ignore_evidence": {
+        "path": ".gitignore",
+        "contains": "node_modules"
+      }
+    },
+    {
+      "path": "src-tauri/target",
+      "kind": "cargo-final-artifacts",
+      "scope": "worktree",
+      "rebuild_command": "pnpm test",
+      "ignore_evidence": {
+        "path": ".gitignore",
+        "contains": "src-tauri/target"
+      }
+    },
+    {
+      "path": "dist",
+      "kind": "web-build-output",
+      "scope": "worktree",
+      "rebuild_command": "pnpm build:web",
+      "ignore_evidence": {
+        "path": ".gitignore",
+        "contains": "dist"
+      }
+    },
+    {
+      "path": "out",
+      "kind": "generated-output",
+      "scope": "worktree",
+      "rebuild_command": "pnpm build:web",
+      "ignore_evidence": {
+        "path": ".gitignore",
+        "contains": "out"
+      }
+    }
+  ]
+}

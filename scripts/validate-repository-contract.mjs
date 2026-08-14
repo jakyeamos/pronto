@@ -13,6 +13,7 @@ const requiredDocuments = [
   "docs/implementation-examples.md",
 ];
 const evidenceContractPath = ".agents/environment-legibility.json";
+const cacheLifecyclePath = ".pronto/cache-lifecycle.json";
 const automationFiles = new Set([
   ".circleci/config.yml",
   ".circleci/config.yaml",
@@ -220,6 +221,121 @@ if (matrix) {
   }
 }
 
+let cacheLifecycle;
+let packageContract;
+try {
+  cacheLifecycle = JSON.parse(read(cacheLifecyclePath));
+} catch (error) {
+  errors.push(`${cacheLifecyclePath}: invalid JSON: ${error.message}`);
+}
+try {
+  packageContract = JSON.parse(read("package.json"));
+} catch (error) {
+  errors.push(`package.json: invalid JSON: ${error.message}`);
+}
+
+if (cacheLifecycle) {
+  if (cacheLifecycle.schema_version !== "pronto-cache-lifecycle/v1") {
+    errors.push(`${cacheLifecyclePath}: unsupported schema_version`);
+  }
+  if (!cacheLifecycle.owner) {
+    errors.push(`${cacheLifecyclePath}: owner is required`);
+  }
+  const reviewed = Date.parse(cacheLifecycle.last_reviewed);
+  const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+  if (
+    !Number.isFinite(reviewed) ||
+    reviewed > Date.now() ||
+    Date.now() - reviewed > ninetyDays
+  ) {
+    errors.push(
+      `${cacheLifecyclePath}: last_reviewed is missing, future-dated, or stale`,
+    );
+  }
+  const centralCargo = cacheLifecycle.central_cargo_intermediates ?? {};
+  if (
+    centralCargo.provider !== "codex-storage-pressure" ||
+    centralCargo.sharing !== "partitioned_by_worktree_and_toolchain" ||
+    centralCargo.retention !== "external_explicit_authorization"
+  ) {
+    errors.push(
+      `${cacheLifecyclePath}: central Cargo ownership, isolation, and authorization boundaries are required`,
+    );
+  }
+  const artifacts = Array.isArray(cacheLifecycle.artifacts)
+    ? cacheLifecycle.artifacts
+    : [];
+  if (!artifacts.length) {
+    errors.push(`${cacheLifecyclePath}: artifacts must be non-empty`);
+  }
+  const seenArtifactPaths = new Set();
+  for (const artifact of artifacts) {
+    const artifactPath = artifact?.path;
+    if (
+      typeof artifactPath !== "string" ||
+      !artifactPath ||
+      path.isAbsolute(artifactPath) ||
+      artifactPath.split(/[\\/]+/).includes("..")
+    ) {
+      errors.push(`${cacheLifecyclePath}: artifact path is missing or unsafe`);
+      continue;
+    }
+    if (seenArtifactPaths.has(artifactPath)) {
+      errors.push(
+        `${cacheLifecyclePath}: duplicate artifact path: ${artifactPath}`,
+      );
+    }
+    seenArtifactPaths.add(artifactPath);
+    if (artifact.scope !== "worktree" || !artifact.kind) {
+      errors.push(
+        `${cacheLifecyclePath}: ${artifactPath} must declare kind and worktree scope`,
+      );
+    }
+    if (
+      typeof artifact.rebuild_command !== "string" ||
+      !artifact.rebuild_command.trim()
+    ) {
+      errors.push(
+        `${cacheLifecyclePath}: ${artifactPath} rebuild_command is required`,
+      );
+    } else {
+      const commandMatch = artifact.rebuild_command.match(
+        /^pnpm\s+(?:run\s+)?([^\s]+)(?:\s|$)/,
+      );
+      const commandName = commandMatch?.[1];
+      if (
+        !commandName ||
+        (commandName !== "install" && !packageContract?.scripts?.[commandName])
+      ) {
+        errors.push(
+          `${cacheLifecyclePath}: ${artifactPath} rebuild command is not a current pnpm script`,
+        );
+      }
+    }
+    const ignorePath = artifact.ignore_evidence?.path;
+    const ignoreTerm = artifact.ignore_evidence?.contains;
+    const ignoreContents = readContractPath(
+      ignorePath,
+      `${cacheLifecyclePath}:${artifactPath}.ignore_evidence`,
+    );
+    const ignoreLines = new Set(
+      ignoreContents
+        .split(/\r?\n/)
+        .map((line) => line.trim().replace(/\/$/, ""))
+        .filter((line) => line && !line.startsWith("#")),
+    );
+    const normalizedIgnoreTerm =
+      typeof ignoreTerm === "string"
+        ? ignoreTerm.trim().replace(/\/$/, "")
+        : "";
+    if (!normalizedIgnoreTerm || !ignoreLines.has(normalizedIgnoreTerm)) {
+      errors.push(
+        `${cacheLifecyclePath}: ${artifactPath} ignore evidence did not match`,
+      );
+    }
+  }
+}
+
 let evidenceContract;
 try {
   evidenceContract = JSON.parse(read(evidenceContractPath));
@@ -321,5 +437,5 @@ if (errors.length) {
 }
 
 process.stdout.write(
-  `Repository contract valid: ${requiredDocuments.length} routed documents, ${Object.keys(requiredDimensionHeadings).length} maturity dimensions, and ${matrix.surfaces.length} change surfaces.\n`,
+  `Repository contract valid: ${requiredDocuments.length} routed documents, ${Object.keys(requiredDimensionHeadings).length} maturity dimensions, ${cacheLifecycle.artifacts.length} rebuildable cache artifacts, and ${matrix.surfaces.length} change surfaces.\n`,
 );
