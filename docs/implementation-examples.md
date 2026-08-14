@@ -23,6 +23,20 @@ When adding a field, update the Rust-owned type and derivation first, then every
 serialized consumer and focused test. Do not compute a second interpretation
 in React.
 
+Showcase onboarding is the reference for a bounded cross-surface state change:
+
+- `src-tauri/src/core.rs` identifies repository IDs newly admitted by the
+  registration or refresh merge before persisting the registry.
+- `src-tauri/src/showcase.rs` atomically appends one idempotent pending goal
+  row to the existing fleet contract, keeping eligibility, dimensions, scores,
+  and publication authority unknown until review.
+- `docs/showcase-contract.md`, `.agents/context/commands.md`, and
+  `.agents/change-surface-matrix.json` document the same write boundary, while
+  the native tests cover preservation and retry behavior.
+
+Do not create a contract or infer public readiness as part of repository
+discovery; a missing or invalid contract remains an explicit review state.
+
 ## Add or change a quality or remediation rule
 
 Quality finding dispositions show the intended evidence overlay pattern:

@@ -67,21 +67,30 @@ release-relevant count of fresh passing results, while the latter counts ideal
 gates with any imported result. Each gate retains its source, status, and
 freshness. Failed, blocked, and stale evidence remains visible as an evidence
 update and does not become a passing result. Release rules independently
-require a fresh pass. Configuration, covered evidence, and fresh passing
-evidence are independently scored from 0–4 and contribute as
-`ci.configuration`, `ci.evidence_coverage`, and `ci.fresh_passing` maturity
-dimensions. The historical `ci_readiness.score` field now has one stable
+require a fresh pass. Configuration and covered evidence remain diagnostic
+lanes. Fresh passing evidence contributes as `ci.fresh_passing` to the
+correctness-and-reliability pillar. The historical `ci_readiness.score` field now has one stable
 meaning everywhere: fresh passing applicable gates divided by applicable
 gates. Covered-but-failed, blocked, or stale evidence can raise evidence
-coverage but cannot raise fresh passing readiness. `PENDING`, `FIXTURE?`, and
+coverage but cannot raise fresh passing readiness or repository maturity.
+`PENDING`, `FIXTURE?`, and
 rows with no recommended gates receive the baseline until an explicit
 specialized profile replaces it.
 
-Project Compass's audited MVP and complete-product progress scores also feed the
-consolidated repository maturity score as `project_compass.mvp_progress` and
-`project_compass.complete_product_progress`. Their 0–100 percentages map
-linearly to 0–4. A missing or invalid contract scores zero; its confidence
-percentage remains provenance about the assessment, not additional maturity.
+Repository maturity uses seven weighted pillars: correctness and reliability;
+security, privacy, and supply chain; maintainability and evolvability;
+operability and release safety; user-facing quality; human and agent usability;
+and governance and sustainability. Each pillar receives equal influence from
+its own evidence dimensions before pillar weights are applied, so adding more
+detectors to one area cannot dominate the score. Unknown applicability remains
+unknown, explicit `not_applicable` pillars leave the denominator, and evidence
+coverage is displayed beside the score. A blocked dimension in correctness,
+security, or operability caps the repository score at 2/4.
+
+Project Compass MVP and complete-product progress remain visible product
+readiness evidence, but they do not contribute to repository maturity. A
+well-built incomplete product and a complete low-quality repository are
+therefore no longer collapsed into the same number.
 
 ## Project matrix
 

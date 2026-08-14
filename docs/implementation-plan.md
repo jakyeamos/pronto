@@ -119,8 +119,8 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 - `route` is also read-only and preserves a clean machine-readable stdout contract when invoked through the documented silent pnpm wrapper; the JSON payload is the only stdout content.
 - The agent operating route is provider-neutral: the global home contract routes portfolio, workspace, branch, quality, and release triage to the `$pronto` skill; this repository's `.agents/context/` packet supplies the live CLI contract.
 - `$pronto` is an evidence and preflight surface, not an autonomous Git operator. `fold preview` supplies persisted branch/worktree candidates, while the reviewed `fold-feature-branches` workflow owns live ref classification, integration, and pruning authorization.
-- The behavior inventory in `docs/pronto-behavior-spec.xlsx` tracks each implemented feature, source function, test method, evidence, and remaining open question.
-- Tauri interaction verification is performed when the local desktop runtime can launch; provider and release rows remain explicitly blocked rather than being marked verified from static code.
+- The repository-owned `.pronto/behavior-assurance.json` contract inventories critical behavior; immutable receipts preserve target, producer, oracle result, verification level, and evidence. `docs/pronto-behavior-spec.xlsx` is historical inventory only and cannot establish release readiness.
+- Tauri interaction verification is performed when the local desktop runtime can launch; provider and release scenarios remain explicitly blocked rather than receiving a passing receipt from static code.
 
 ## Complexity and safety gate
 

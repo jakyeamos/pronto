@@ -3,8 +3,8 @@
 Last reviewed: 2026-08-09.
 
 Pronto consumes a Quality Runner projection that keeps agent usability
-diagnostically distinct while including every applicable audited score in the
-aggregate repository and fleet maturity result. The projection has four
+diagnostically distinct while rolling applicable evidence into the single
+human-and-agent-usability pillar. The projection has four
 independent evidence lanes:
 
 1. **Documentation contract** — every declared agent-facing tool has an existing,
@@ -18,9 +18,11 @@ independent evidence lanes:
 
 Each applicable lane contributes under a stable `agent_usability.*` dimension
 ID. The dedicated projection still exposes the underlying relationship and
-behavior state, but it no longer removes their consequence from the average. A
-4/4 repository therefore requires 4/4 in every ordinary and applicable
-agent-usability dimension.
+behavior state. Those dimensions are averaged within the pillar before its 10%
+repository weight is applied, preventing a large agent manifest from
+outweighing security, correctness, or operability. A 4/4 repository therefore
+requires maintained evidence in every applicable pillar and no unresolved
+applicability or critical blocker.
 
 ## Repository contract
 
@@ -70,6 +72,10 @@ candidate evidence, but they do not become execution proof without a passing
 status and observation date.
 
 Explicit `not_applicable` lanes and growth health carry no score and remain
-outside the repository and fleet denominators. Pronto renders the canonical QR
-score, four lane scores, and growth-health score and counts. It does not infer
-coverage or turn missing evidence into zero or a passing state.
+outside the human-and-agent-usability calculation. When the whole repository
+declares agent usability `not_applicable`, the pillar is excluded from the
+repository denominator. With no declaration and no agent evidence, the pillar
+is `unknown`, not zero and not implicitly inapplicable. Pronto renders the
+holistic score, pillar status, evidence coverage, four lane scores, and
+growth-health counts. It does not infer coverage or turn missing evidence into
+zero or a passing state.

@@ -66,6 +66,33 @@ cargo +1.88.0 check --manifest-path src-tauri/Cargo.toml --locked
 The `MSRV` GitHub Actions job runs this command independently from the stable
 Rust build so a dependency update cannot silently raise the minimum.
 
+## Parallel refresh workflow
+
+Use `pronto refresh-batch` for an explicitly scoped fleet refresh when the
+read-only scan itself is the bottleneck:
+
+```sh
+pnpm --silent --dir "$PRONTO_ROOT" run cli refresh-batch --parallelism 4 --json
+```
+
+The command snapshots the local store, scans repository Git/filesystem evidence
+in bounded parallel workers, and performs one deterministic, locked merge. It
+does not call providers or mutate repository files. If another writer changes
+the store while scans are running, the command reloads and retries the scan
+once; an unresolved conflict is reported as retryable. The ordinary
+`refresh` command remains the compatibility path for a single repository or
+the existing serial critical section.
+
+## Behavior assurance
+
+Critical user-visible behavior is declared in
+`.pronto/behavior-assurance.json` and proven by immutable Quality Runner
+receipts. Run `pnpm --silent run cli behavior --json` to audit the persisted
+fleet projection. Missing or stale Tier-0 evidence blocks release preparation;
+unrelated changes can safely reuse ancestor receipts when declared change
+triggers are untouched. The complete contract and migration guidance is in
+[behavior-assurance.md](./behavior-assurance.md).
+
 ## Remediation queue contract
 
 For sequential agent execution, use the
@@ -84,6 +111,16 @@ Queue order preserves status, remediation domain, and priority before giving
 the Pronto and AIOS control planes and the Quality Runner evidence provider
 explicit fleet leverage. Repository goal and raw action weight are used only
 after those safety and leverage decisions.
+
+Plan `status` is queue/closure state, not a live execution verdict. Use
+`pronto remediation gate <repository> [--workspace <id>] --json` before
+repository remediation. Its `pronto-remediation-execution-gate/v1` receipt
+performs read-only live Git and path checks, combines them with persisted
+ownership evidence, identifies the affected operations for every blocker, and
+projects closure and caller authorization as separate concepts. A missing
+release receipt can therefore block `closure_gate` while execution remains
+`ready`; unavailable, dirty, interrupted, or owner-ambiguous workspaces make
+the execution gate fail closed without relabeling the plan itself.
 
 The run also exposes `github_only_candidates`: authenticated GitHub repositories
 present in the provider snapshot without a matching local checkout. They remain
