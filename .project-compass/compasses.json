@@ -8,8 +8,46 @@
       "path": "contract.json",
       "parent_id": null,
       "status": "active"
+    },
+    {
+      "id": "inventory-routing",
+      "kind": "subsystem",
+      "path": "inventory-routing.json",
+      "parent_id": "project",
+      "status": "draft"
+    },
+    {
+      "id": "quality-remediation",
+      "kind": "subsystem",
+      "path": "quality-remediation.json",
+      "parent_id": "project",
+      "status": "draft"
+    },
+    {
+      "id": "release-provider-context",
+      "kind": "subsystem",
+      "path": "release-provider-context.json",
+      "parent_id": "project",
+      "status": "draft"
     }
   ],
-  "links": [],
-  "updated_at": "2026-08-14T23:11:30.026Z"
+  "links": [
+    {
+      "id": "quality-remediation-to-inventory-routing",
+      "from": "quality-remediation",
+      "to": "inventory-routing",
+      "kind": "handoff",
+      "summary": "Quality evidence informs fleet routing; producer and consumer authority must remain explicit.",
+      "status": "unknown"
+    },
+    {
+      "id": "release-provider-context-to-inventory-routing",
+      "from": "release-provider-context",
+      "to": "inventory-routing",
+      "kind": "depends-on",
+      "summary": "Provider context is interpreted against local inventory; freshness and authority boundaries remain open.",
+      "status": "unknown"
+    }
+  ],
+  "updated_at": "2026-08-14T23:31:00Z"
 }

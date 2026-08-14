@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "revision": 1,
+  "project": {
+    "name": "Pronto quality and remediation",
+    "identity": "The Pronto quality and remediation surface that consumes evidence without hiding uncertainty.",
+    "audience": "Operators and agents deciding what quality or remediation work is safe and valuable next.",
+    "core_loop": "Read quality evidence, explain findings and gates, select an authorized remediation path, and preserve the result.",
+    "north_star": "Quality work is prioritized from explicit evidence and every blocked or degraded path remains visible.",
+    "not_this": [
+      "Running source remediation automatically",
+      "Inventing missing evidence",
+      "Replacing Quality Runner producer authority"
+    ]
+  },
+  "scope": {
+    "id": "quality-remediation",
+    "kind": "subsystem",
+    "parent_id": "project",
+    "purpose": "Turn quality evidence into explainable findings, governed remediation order, and reviewable handoffs.",
+    "boundary": "Owns quality, evidence-contract, remediation, and their renderer projections; repository inventory and external provider acquisition remain outside this child.",
+    "non_goals": [
+      "Running source remediation automatically",
+      "Inventing missing evidence",
+      "Replacing Quality Runner producer authority"
+    ],
+    "parent_outcomes": [
+      "quality-evidence",
+      "complete-remediation-coverage",
+      "governed-handoffs"
+    ],
+    "paths": [
+      "src-tauri/src/quality.rs",
+      "src-tauri/src/remediation.rs",
+      "src-tauri/src/evidence_contract.rs",
+      "src/renderer/src/components/QualityComponents.tsx",
+      "src/renderer/src/components/RemediationSurface.tsx"
+    ]
+  },
+  "targets": {
+    "mvp": {
+      "definition": "The scoped boundary is explicitly ratified, its parent outcome is clear, and its smallest local proof is repeatable."
+    },
+    "complete_product": {
+      "definition": "The scoped boundary remains aligned through changes, interfaces, and user-visible or consumer-facing verification."
+    }
+  },
+  "pillars": [
+    {
+      "id": "quality-remediation-purpose",
+      "name": "Draft scoped purpose",
+      "outcomes": [
+        {
+          "id": "quality-remediation-aligned-boundary",
+          "name": "The Pronto quality and remediation boundary advances its parent outcome without silently taking on sibling responsibilities.",
+          "targets": [
+            "mvp",
+            "complete_product"
+          ],
+          "maturity": 25,
+          "confidence": "low",
+          "layers": {
+            "intended": "Drafted from explicit repository documentation; pending owner quiz and ratification.",
+            "planned": "Local proof and sibling contracts are pending the boundary decision.",
+            "implemented": "Observed implementation paths: src-tauri/src/quality.rs, src-tauri/src/remediation.rs, src-tauri/src/evidence_contract.rs, src/renderer/src/components/QualityComponents.tsx, src/renderer/src/components/RemediationSurface.tsx.",
+            "verified": "No independently scoped end-to-end proof has been accepted yet."
+          },
+          "evidence": [
+            {
+              "ref": ".agents/context/README.md",
+              "note": "Repository documentation used to draft this child boundary; not treated as user intent until quiz review.",
+              "observed_at": "2026-08-14T23:31:00Z"
+            },
+            {
+              "ref": "docs/repository-contract.md",
+              "note": "Repository documentation used to draft this child boundary; not treated as user intent until quiz review.",
+              "observed_at": "2026-08-14T23:31:00Z"
+            },
+            {
+              "ref": "docs/quality-gate-recommendation-matrix.md",
+              "note": "Repository documentation used to draft this child boundary; not treated as user intent until quiz review.",
+              "observed_at": "2026-08-14T23:31:00Z"
+            },
+            {
+              "ref": "docs/implementation-plan.md",
+              "note": "Repository documentation used to draft this child boundary; not treated as user intent until quiz review.",
+              "observed_at": "2026-08-14T23:31:00Z"
+            }
+          ],
+          "blockers": [
+            {
+              "kind": "product-decision",
+              "summary": "Owner must ratify, split, merge, or retire this draft child Compass through the realignment quiz before it becomes active truth."
+            },
+            {
+              "kind": "verification",
+              "summary": "An independently scoped local proof and its neighboring handoffs are not yet established."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "source_layers": {
+    "intended": [
+      {
+        "ref": ".agents/context/README.md",
+        "note": "Explicit repository documentation is the current basis for this draft; owner quiz remains open.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "docs/repository-contract.md",
+        "note": "Explicit repository documentation is the current basis for this draft; owner quiz remains open.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "docs/quality-gate-recommendation-matrix.md",
+        "note": "Explicit repository documentation is the current basis for this draft; owner quiz remains open.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "docs/implementation-plan.md",
+        "note": "Explicit repository documentation is the current basis for this draft; owner quiz remains open.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      }
+    ],
+    "planned": [],
+    "implemented": [
+      {
+        "ref": "src-tauri/src/quality.rs",
+        "note": "Observed implementation or contract path used as evidence only.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "src-tauri/src/remediation.rs",
+        "note": "Observed implementation or contract path used as evidence only.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "src-tauri/src/evidence_contract.rs",
+        "note": "Observed implementation or contract path used as evidence only.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "src/renderer/src/components/QualityComponents.tsx",
+        "note": "Observed implementation or contract path used as evidence only.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "src/renderer/src/components/RemediationSurface.tsx",
+        "note": "Observed implementation or contract path used as evidence only.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      }
+    ],
+    "verified": []
+  },
+  "drift": [
+    {
+      "kind": "verification-gap",
+      "summary": "This child boundary is a draft derived from repository documentation and has not yet been ratified or independently verified.",
+      "status": "open",
+      "observed_at": "2026-08-14T23:31:00Z",
+      "evidence": [
+        {
+          "ref": ".agents/context/README.md",
+          "note": "Draft boundary needs explicit owner confirmation and local proof.",
+          "observed_at": "2026-08-14T23:31:00Z"
+        }
+      ]
+    }
+  ],
+  "updated_at": "2026-08-14T23:31:00Z"
+}
