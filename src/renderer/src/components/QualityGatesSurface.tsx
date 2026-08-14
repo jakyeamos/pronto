@@ -12,7 +12,6 @@ import type { PortfolioSnapshot, RepositorySnapshot } from "../types";
 import {
   QualityFindingsSummary,
   QualityGateCell,
-  QualityMaturitySummary,
   QualityOutcomeSummary,
   projectQualityReadinessForTarget,
   qualityConfigurationSummary,
@@ -20,6 +19,7 @@ import {
   qualityGateDisplayLabel,
   macControlFreshnessLabel,
 } from "./QualityComponents";
+import { QualityMaturityWithCacheSummary } from "./CacheDesignSummary";
 import { targetScopeForRepository } from "../branchEvidence";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
 
@@ -730,7 +730,7 @@ export function QualityGatesSurface({
                         </button>
                       </th>
                       <td className="quality-matrix-sticky quality-matrix-maturity-column">
-                        <QualityMaturitySummary
+                        <QualityMaturityWithCacheSummary
                           maturity={repository.quality.maturity}
                           readiness={targetReadiness.readiness}
                           targetBranch={target.branch}

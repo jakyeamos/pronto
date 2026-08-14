@@ -7,6 +7,7 @@ import type {
 import type { RemediationRun } from "./types/remediation";
 
 export * from "./types/quality";
+export * from "./types/cacheDesign";
 export * from "./types/remediation";
 export * from "./types/insights";
 export * from "./types/promotion";

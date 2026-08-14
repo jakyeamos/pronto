@@ -19,6 +19,7 @@ const fixtureFiles = [
   "docs/implementation-examples.md",
   "docs/implementation-plan.md",
   "docs/agent-usability-maturity.md",
+  "docs/cache-design-maturity-gate.md",
   "docs/mac-control-maturity-gate.md",
   "docs/remediation-sequential-handoff.md",
   "docs/repository-contract.md",

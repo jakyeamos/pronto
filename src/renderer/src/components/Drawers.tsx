@@ -22,12 +22,12 @@ import {
   QualityFindingsSummary,
   QualityGateCell,
   QualityGateStatusPill,
-  QualityMaturitySummary,
   WebReadinessSummary,
   projectQualityGateForTarget,
   projectQualityReadinessForTarget,
   qualityGateDisplayLabel,
 } from "./QualityComponents";
+import { QualityMaturityWithCacheSummary } from "./CacheDesignSummary";
 import { targetScopeForRepository } from "../branchEvidence";
 import { ProjectCompassDetail } from "./ProjectCompassDetail";
 import { RepositoryAnalyticsPanel } from "./RepositoryAnalyticsPanel";
@@ -277,7 +277,7 @@ export function RepositoryDetailSurface({
         ) : (
           <>
             <div className="quality-detail-overview">
-              <QualityMaturitySummary
+              <QualityMaturityWithCacheSummary
                 maturity={repository.quality.maturity}
                 readiness={targetReadiness.readiness}
                 targetBranch={target.branch}
