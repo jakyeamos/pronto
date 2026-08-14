@@ -3536,7 +3536,11 @@ struct QualityDetectorRefreshReport {
     ingested_published_repositories: usize,
     rejected_published_repositories: usize,
     reconciliation: Vec<QualityDetectorReconciliation>,
+    tracked_repositories: usize,
+    detector_applicable_repositories: usize,
+    detector_excluded_repositories: usize,
     findings_evidence_repositories: usize,
+    applicable_findings_evidence_repositories: usize,
     missing_findings_evidence_repositories: usize,
     snapshot: PortfolioSnapshot,
 }
@@ -3558,6 +3562,24 @@ fn detector_result_string(result: &serde_json::Value, path: &[&str]) -> Option<S
         .try_fold(result, |value, key| value.get(*key))
         .and_then(serde_json::Value::as_str)
         .map(str::to_string)
+}
+
+fn detector_unsupported_paths(qr_payload: &serde_json::Value) -> HashSet<PathBuf> {
+    qr_payload
+        .get("results")
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|result| {
+            result.get("status").and_then(serde_json::Value::as_str) == Some("unsupported")
+        })
+        .filter_map(|result| {
+            result
+                .get("primary_path")
+                .and_then(serde_json::Value::as_str)
+        })
+        .map(|path| fs::canonicalize(path).unwrap_or_else(|_| PathBuf::from(path)))
+        .collect()
 }
 
 fn reconcile_published_detector_results(
@@ -3767,10 +3789,31 @@ fn refresh_quality_detectors_at(
         .iter()
         .filter(|repository| quality_metric_is_available(repository))
         .count();
-    let missing_findings_evidence_repositories = snapshot
+    let unsupported_paths = detector_unsupported_paths(&qr_payload);
+    let detector_applicable_repositories = snapshot
+        .repositories
+        .iter()
+        .filter(|repository| {
+            let path = fs::canonicalize(&repository.path)
+                .unwrap_or_else(|_| PathBuf::from(&repository.path));
+            !unsupported_paths.contains(&path)
+        })
+        .count();
+    let detector_excluded_repositories = snapshot
         .repositories
         .len()
-        .saturating_sub(findings_evidence_repositories);
+        .saturating_sub(detector_applicable_repositories);
+    let applicable_findings_evidence_repositories = snapshot
+        .repositories
+        .iter()
+        .filter(|repository| {
+            let path = fs::canonicalize(&repository.path)
+                .unwrap_or_else(|_| PathBuf::from(&repository.path));
+            !unsupported_paths.contains(&path) && quality_metric_is_available(repository)
+        })
+        .count();
+    let missing_findings_evidence_repositories =
+        detector_applicable_repositories.saturating_sub(applicable_findings_evidence_repositories);
     let qr_status = qr_payload
         .get("status")
         .and_then(serde_json::Value::as_str)
@@ -3789,7 +3832,11 @@ fn refresh_quality_detectors_at(
         ingested_published_repositories,
         rejected_published_repositories,
         reconciliation,
+        tracked_repositories: snapshot.repositories.len(),
+        detector_applicable_repositories,
+        detector_excluded_repositories,
         findings_evidence_repositories,
+        applicable_findings_evidence_repositories,
         missing_findings_evidence_repositories,
         snapshot,
     })
@@ -14153,12 +14200,14 @@ pub fn run_cli(arguments: Vec<String>) {
                             );
                         } else {
                             println!(
-                                "Detector refresh: {} · {} published reports ingested · {} rejected · {} repositories with findings evidence · {} missing",
+                                "Detector refresh: {} · {} published reports ingested · {} rejected · {} of {} applicable repositories with findings evidence · {} missing · {} unsupported excluded",
                                 report.status,
                                 report.ingested_published_repositories,
                                 report.rejected_published_repositories,
-                                report.findings_evidence_repositories,
-                                report.missing_findings_evidence_repositories
+                                report.applicable_findings_evidence_repositories,
+                                report.detector_applicable_repositories,
+                                report.missing_findings_evidence_repositories,
+                                report.detector_excluded_repositories
                             );
                         }
                     }
@@ -14685,6 +14734,12 @@ mod tests {
         assert_eq!(report.published_repositories, 1);
         assert_eq!(report.ingested_published_repositories, 1);
         assert_eq!(report.rejected_published_repositories, 0);
+        assert_eq!(report.tracked_repositories, 1);
+        assert_eq!(report.detector_applicable_repositories, 1);
+        assert_eq!(report.detector_excluded_repositories, 0);
+        assert_eq!(report.findings_evidence_repositories, 1);
+        assert_eq!(report.applicable_findings_evidence_repositories, 1);
+        assert_eq!(report.missing_findings_evidence_repositories, 0);
         assert_eq!(report.reconciliation[0].status, "ingested");
         assert_eq!(
             report.snapshot.repositories[0].quality.findings.freshness,
@@ -14708,6 +14763,63 @@ mod tests {
         assert!(arguments.contains(&format!("{}\nmain\n", repository.to_string_lossy())));
         assert!(arguments.contains("--timeout-seconds\n321\n"));
         assert!(arguments.contains("--agent-review-mode\noff\n"));
+
+        fs::remove_dir_all(root).expect("detector fixture should be removable");
+    }
+
+    #[test]
+    fn quality_detector_refresh_excludes_qr_unsupported_repositories_from_coverage() {
+        let root = fixture_root();
+        let active = fixture_repository_named(&root, "active-repository");
+        let archive = fixture_repository_named(&root, "archival-repository");
+        let store = root.join("registry.db");
+        let registered = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        assert_eq!(registered.repositories.len(), 2);
+
+        let qr_payload = serde_json::json!({
+            "schema": "quality-runner-fleet-detector-refresh/v1",
+            "status": "partial",
+            "counts": {"published": 0, "blocked": 1, "unsupported": 1},
+            "results": [
+                {
+                    "primary_path": active,
+                    "status": "blocked",
+                    "reason": "fixture detector blocker",
+                },
+                {
+                    "primary_path": archive,
+                    "status": "unsupported",
+                    "reason": "repository documentation declares an archival generated snapshot",
+                },
+            ],
+        });
+        let fake_qr = root.join("fake-qr-lifecycle-coverage");
+        fs::write(
+            &fake_qr,
+            format!(
+                "#!/bin/sh\nprintf '%s\\n' '{}'\n",
+                serde_json::to_string(&qr_payload).expect("QR payload should encode")
+            ),
+        )
+        .expect("fake QR should be writable");
+        let mut permissions = fs::metadata(&fake_qr)
+            .expect("fake QR metadata should load")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&fake_qr, permissions).expect("fake QR should be executable");
+
+        let report =
+            refresh_quality_detectors_at(&store, Some(&fake_qr.to_string_lossy()), 60, "off")
+                .expect("lifecycle-aware report should be produced");
+
+        assert_eq!(report.status, "Partial");
+        assert_eq!(report.tracked_repositories, 2);
+        assert_eq!(report.detector_applicable_repositories, 1);
+        assert_eq!(report.detector_excluded_repositories, 1);
+        assert_eq!(report.findings_evidence_repositories, 0);
+        assert_eq!(report.applicable_findings_evidence_repositories, 0);
+        assert_eq!(report.missing_findings_evidence_repositories, 1);
 
         fs::remove_dir_all(root).expect("detector fixture should be removable");
     }

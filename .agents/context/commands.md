@@ -194,9 +194,11 @@ target commit, freshness, and findings total. A published result that is not
 ingested is returned as `reconciliation[].status = "rejected"`, makes the
 overall result `Partial`, and exits nonzero. The command continues past QR's
 explicit per-repository `blocked` and `unsupported` outcomes and returns the QR
-ledger plus post-import findings coverage. It does not execute discovered
-repository gates. Agent review remains off unless the operator explicitly sets
-`--agent-review-mode`.
+ledger plus post-import findings coverage. Coverage reports both all tracked
+repositories and the detector-applicable denominator; exact QR `unsupported`
+results are counted as excluded rather than falsely reported as missing. It
+does not execute discovered repository gates. Agent review remains off unless
+the operator explicitly sets `--agent-review-mode`.
 
 ## Refresh and state boundaries
 
