@@ -76,6 +76,14 @@ means the repository has not established a Compass contract; `Invalid`
 preserves the parse or contract error. Pronto never creates or repairs Compass
 artifacts during a refresh.
 
+Repositories may also declare `.pronto/installed-runtime-parity.json` to make
+source, packaged-build, installed-artifact, and running-process drift visible.
+`repo`, `quality`, `summary`, and composed `route` projections expose the
+result; remediation adds a repository-health action when parity is not
+`current`. Pronto reads only the declared bounded manifests and validates the
+recorded PID against the declared executable. See
+`docs/installed-runtime-parity.md` for schemas and state meanings.
+
 `change-matrix` explains an existing repository- or skill-owned contract. A
 missing contract returns `status: "missing"`, its maturity impact, observed
 topology, and the expected location without synthesizing or writing anything.

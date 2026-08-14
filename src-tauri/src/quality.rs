@@ -1,4 +1,5 @@
 use crate::core::{CheckSnapshot, RemoteRepositorySnapshot, RepositorySnapshot};
+use crate::installed_runtime::{self, InstalledRuntimeSnapshot};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -349,6 +350,8 @@ pub struct QualitySnapshot {
     pub maturity: QualityMaturity,
     #[serde(default)]
     pub ci_readiness: QualityReadiness,
+    #[serde(default)]
+    pub installed_runtime: InstalledRuntimeSnapshot,
     pub last_ingested_at: Option<String>,
     pub ingestion_status: String,
     pub ingestion_message: Option<String>,
@@ -361,6 +364,7 @@ impl Default for QualitySnapshot {
             findings: QualityFindings::default(),
             maturity: QualityMaturity::default(),
             ci_readiness: QualityReadiness::default(),
+            installed_runtime: InstalledRuntimeSnapshot::default(),
             last_ingested_at: None,
             ingestion_status: "No evidence".to_string(),
             ingestion_message: None,
@@ -1093,13 +1097,20 @@ pub fn ingest_repository_quality(
         })
         .unwrap_or_default();
     let maturity_available = maturity.is_some();
-    let evidence_available =
-        gates.iter().any(|gate| !gate.evidence.is_empty()) || findings.total > 0;
+    let installed_runtime = installed_runtime::evaluate(
+        Path::new(&repository.path),
+        repository.workspace.last_commit.as_deref(),
+    );
+    let runtime_available = installed_runtime.applicability == "applicable";
+    let evidence_available = gates.iter().any(|gate| !gate.evidence.is_empty())
+        || findings.total > 0
+        || runtime_available;
     QualitySnapshot {
         gates,
         findings,
         maturity: maturity.unwrap_or_default(),
         ci_readiness,
+        installed_runtime,
         last_ingested_at,
         ingestion_status: if evidence_available || maturity_available {
             "Available".to_string()

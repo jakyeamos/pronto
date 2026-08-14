@@ -1,5 +1,4 @@
-import { Fragment, useState } from "react";
-import type { ReactElement } from "react";
+import { Fragment, useState, type ReactElement } from "react";
 import {
   ArrowLeft,
   ChevronRight,
@@ -24,6 +23,7 @@ import {
   qualityGateDisplayLabel,
 } from "./QualityComponents";
 import { ProjectCompassDetail } from "./ProjectCompassDetail";
+import { InstalledRuntimeParityDetail } from "./InstalledRuntimeParityDetail";
 import { RepositoryAnalyticsPanel } from "./RepositoryAnalyticsPanel";
 import { WorkspaceSyncDetailView } from "./WorkspaceSyncDetailView";
 
@@ -165,6 +165,9 @@ export function RepositoryDetailSurface({
         </div>
       </div>
       <ProjectCompassDetail repository={repository} />
+      {repository.quality.installed_runtime?.applicability === "applicable" && (
+        <InstalledRuntimeParityDetail runtime={repository.quality.installed_runtime} />
+      )}
       <div className="drawer-section quality-detail-section">
         <div className="drawer-section-title">
           <div>

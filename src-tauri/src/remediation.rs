@@ -1176,6 +1176,7 @@ fn build_plan(
     add_goal_seeds(repository, &goal, &mut seeds);
     add_release_evidence_seeds(repository, &goal, &mut seeds);
     add_project_compass_seeds(repository, &mut seeds);
+    add_installed_runtime_seed(repository, &mut seeds);
     if goal_requires_provider(&goal) {
         add_provider_seed(repository, &mut seeds);
         add_pull_request_seeds(repository, &mut seeds);
@@ -1260,6 +1261,55 @@ fn build_plan(
         tracks,
         actions,
     }
+}
+
+fn add_installed_runtime_seed(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
+    let runtime = &repository.quality.installed_runtime;
+    if runtime.applicability != "applicable" || runtime.status == "current" {
+        return;
+    }
+    let statuses = runtime
+        .targets
+        .iter()
+        .flat_map(|target| target.issues.iter().map(|item| item.status.clone()))
+        .collect::<Vec<_>>();
+    let freshness = if statuses.iter().any(|status| status == "evidence_stale") {
+        "Stale"
+    } else if statuses
+        .iter()
+        .any(|status| matches!(status.as_str(), "invalid" | "unverifiable"))
+    {
+        "Unknown"
+    } else {
+        "Fresh"
+    };
+    seeds.push(ActionSeed {
+        stable_key: "repository_health:installed-runtime-parity".to_string(),
+        domain: "repository_health".to_string(),
+        title: "Reconcile the installed runtime".to_string(),
+        summary: runtime.summary.clone(),
+        severity: "runtime".to_string(),
+        priority: "P1".to_string(),
+        weight: 3,
+        acceptance_criteria: vec![
+            "The current source revision matches the packaged build revision.".to_string(),
+            "The installed artifact digest matches the packaged build digest.".to_string(),
+            "The running process PID and artifact digest match the installed executable."
+                .to_string(),
+            "Pronto reports installed runtime parity as current.".to_string(),
+        ],
+        evidence: vec![evidence(
+            "Installed runtime parity",
+            "Source, build, install, and process identity",
+            "Attention required",
+            freshness,
+            Some(&repository.last_scan_at),
+            runtime.config_path.as_deref(),
+            &format!("Observed states: {}", statuses.join(", ")),
+        )],
+        related_finding_ids: Vec::new(),
+        source_run_id: None,
+    });
 }
 
 fn add_goal_seeds(
@@ -4771,6 +4821,42 @@ mod tests {
             "evidence_refresh" | "ci_ideal" | "maturity"
         )));
         fs::remove_dir_all(root).expect("goal fixture should be removable");
+    }
+
+    #[test]
+    fn installed_runtime_drift_creates_one_causal_reconciliation_action() {
+        let mut repository = fixture_repository("runtime-drift");
+        repository.quality.installed_runtime = crate::installed_runtime::InstalledRuntimeSnapshot {
+            applicability: "applicable".to_string(),
+            status: "attention_required".to_string(),
+            summary: "One runtime target needs a restart.".to_string(),
+            config_path: Some(".pronto/installed-runtime-parity.json".to_string()),
+            targets: vec![crate::installed_runtime::InstalledRuntimeTargetSnapshot {
+                id: "daemon".to_string(),
+                label: "Daemon".to_string(),
+                status: "restart_required".to_string(),
+                source_revision: Some(String::from("a").repeat(40)),
+                build_revision: Some(String::from("a").repeat(40)),
+                process_id: Some(42),
+                observed_at: Some("2026-08-14T05:00:00Z".to_string()),
+                issues: vec![crate::installed_runtime::InstalledRuntimeIssue {
+                    stage: "runtime".to_string(),
+                    status: "restart_required".to_string(),
+                    message: "Running process differs from install.".to_string(),
+                }],
+            }],
+            ..crate::installed_runtime::InstalledRuntimeSnapshot::default()
+        };
+        let mut seeds = Vec::new();
+
+        add_installed_runtime_seed(&repository, &mut seeds);
+
+        assert_eq!(seeds.len(), 1);
+        assert_eq!(
+            seeds[0].stable_key,
+            "repository_health:installed-runtime-parity"
+        );
+        assert!(seeds[0].evidence[0].detail.contains("restart_required"));
     }
 
     #[test]

@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-01",
+  "last_reviewed": "2026-08-14",
   "surfaces": [
     {
       "id": "native-core",
@@ -94,6 +94,20 @@
         "quality-runner doctor --json",
         "quality-runner fleet audit run --repo-path \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm cli quality \"$(git rev-parse --show-toplevel)\" --json"
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "installed-runtime-parity",
+      "scope": "external",
+      "path": ".pronto/installed-runtime-parity.json and producer-owned install/process manifests",
+      "owner": "Repository runtime producer and Pronto maintainers",
+      "condition": "Installed-runtime parity schema, stage classification, process proof, projection, or remediation behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml installed_runtime --no-default-features",
+        "pnpm vitest run src/renderer/src/components/QualityComponents.test.tsx",
+        "pnpm cli repo <configured-repository> --json"
       ],
       "status": "applicable"
     },

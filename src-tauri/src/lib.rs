@@ -1,5 +1,6 @@
 pub mod change_matrix;
 pub mod core;
+pub mod installed_runtime;
 pub mod project_compass;
 pub mod quality;
 pub mod remediation;
