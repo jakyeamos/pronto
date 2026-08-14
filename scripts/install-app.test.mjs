@@ -3,7 +3,34 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { digestBundle, replaceAppBundle } from "./install-app-lib.mjs";
+import {
+  digestBundle,
+  findExecutableProcessIds,
+  replaceAppBundle,
+} from "./install-app-lib.mjs";
+
+test("separates the foreground app from its launchd collector", () => {
+  const executable = "/Applications/Pronto.app/Contents/MacOS/pronto";
+  const processList = `
+  41 ${executable}
+  42 ${executable} --skill-usage-collector
+  43 ${executable} --skill-usage-collector --verbose
+  44 ${executable} --diagnostic
+  45 /tmp/Pronto.app/Contents/MacOS/pronto
+  46 ${executable}-helper
+  `;
+
+  assert.deepEqual(
+    findExecutableProcessIds(processList, executable, [
+      "--skill-usage-collector",
+    ]),
+    [41, 44],
+  );
+  assert.deepEqual(
+    findExecutableProcessIds(processList, executable),
+    [41, 42, 43, 44],
+  );
+});
 
 function writeBundle(bundlePath, executableContents) {
   mkdirSync(join(bundlePath, "Contents", "MacOS"), { recursive: true });
