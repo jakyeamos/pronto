@@ -18,7 +18,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 const STORE_VERSION: u8 = 5;
-const SQLITE_SCHEMA_VERSION: i64 = 9;
+const SQLITE_SCHEMA_VERSION: i64 = 10;
 const DEFAULT_RETENTION_DAYS: i64 = 90;
 const DEFAULT_MAX_UNTRACKED_BYTES: u64 = 2_000_000;
 const DEFAULT_MAX_MANIFEST_BYTES: u64 = 64 * 1024;
@@ -1180,6 +1180,14 @@ fn initialize_store(connection: &SqliteConnection) -> Result<(), String> {
              );
              CREATE INDEX IF NOT EXISTS idx_analytics_samples_scope_time
                  ON analytics_samples (repository_id, observed_at);
+             CREATE TABLE IF NOT EXISTS analytics_views (
+                 id TEXT PRIMARY KEY,
+                 name TEXT NOT NULL,
+                 is_default INTEGER NOT NULL DEFAULT 0,
+                 payload_json TEXT NOT NULL,
+                 created_at TEXT NOT NULL,
+                 updated_at TEXT NOT NULL
+             );
              CREATE TABLE IF NOT EXISTS skills_snapshots (
                  id INTEGER PRIMARY KEY CHECK (id = 1),
                  payload_json TEXT NOT NULL
@@ -14889,6 +14897,15 @@ mod tests {
             )
             .expect("analytics table should be created");
         assert_eq!(analytics_table_count, 1);
+
+        let analytics_views_table_count: i64 = connection
+            .query_row(
+                "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'analytics_views'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("analytics views table should be created");
+        assert_eq!(analytics_views_table_count, 1);
 
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
