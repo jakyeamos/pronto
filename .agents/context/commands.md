@@ -165,11 +165,11 @@ must be followed by `pnpm app:check` plus an installed-app launch. `pnpm build`
 and `pnpm app` remain compatibility aliases for `pnpm app:update`;
 `pnpm build:release` generates the complete distribution artifact set. If
 Pronto was already running, the installer must quit it before replacement and
-reopen it afterward. The installer temporarily unloads and restores
-`com.pronto.skill-usage-collector` so its KeepAlive process cannot hold the old
-bundle open, then forces a distinct foreground launch. Never use an overlay
-copy: obsolete files must not survive
-an installation.
+force a distinct foreground launch afterward. Never use an overlay copy:
+obsolete files must not survive an installation. An already loaded
+`com.pronto.skill-usage-collector` remains registered across the atomic
+replacement and is restarted with `launchctl kickstart -k`; registration is
+reserved for a missing or materially changed LaunchAgent plist.
 
 Repository and summary projections include a read-only `project_compass`
 summary derived from `.project-compass/contract.json`. `Ready` reports the

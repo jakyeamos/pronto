@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   configureCodexOtlp,
   launchAgentPlist,
+  launchAgentRegistrationPlan,
   removeCodexOtlp,
 } from "./skill-usage-collector-lib.mjs";
 
@@ -40,4 +41,34 @@ test("launch agent is loopback collector only", () => {
   assert.match(plist, /com\.pronto\.skill-usage-collector/);
   assert.match(plist, /--skill-usage-collector/);
   assert.match(plist, /<key>KeepAlive<\/key>/);
+});
+
+test("restarts an unchanged loaded launch agent without re-registering", () => {
+  assert.equal(
+    launchAgentRegistrationPlan({
+      loaded: true,
+      currentPlist: "same",
+      desiredPlist: "same",
+    }),
+    "restart",
+  );
+});
+
+test("registers only when the launch agent is missing or changed", () => {
+  assert.equal(
+    launchAgentRegistrationPlan({
+      loaded: false,
+      currentPlist: null,
+      desiredPlist: "current",
+    }),
+    "bootstrap",
+  );
+  assert.equal(
+    launchAgentRegistrationPlan({
+      loaded: true,
+      currentPlist: "old",
+      desiredPlist: "current",
+    }),
+    "reregister",
+  );
 });

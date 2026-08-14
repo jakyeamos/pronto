@@ -14,6 +14,7 @@ import {
   codexOtlpMarkers,
   configureCodexOtlp,
   launchAgentPlist,
+  launchAgentRegistrationPlan,
   removeCodexOtlp,
 } from "./skill-usage-collector-lib.mjs";
 
@@ -49,6 +50,15 @@ function bootoutIfLoaded() {
   }
 }
 
+function serviceIsLoaded() {
+  try {
+    launchctl("print", `${domain}/${label}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function install() {
   if (!existsSync(executable)) {
     throw new Error(
@@ -64,9 +74,19 @@ function install() {
 
   mkdirSync(logDirectory, { recursive: true });
   const plist = launchAgentPlist({ executable, logPath, errorLogPath });
-  bootoutIfLoaded();
-  writeAtomic(plistPath, plist);
-  launchctl("bootstrap", domain, plistPath);
+  const currentPlist = existsSync(plistPath)
+    ? readFileSync(plistPath, "utf8")
+    : null;
+  const registrationPlan = launchAgentRegistrationPlan({
+    loaded: serviceIsLoaded(),
+    currentPlist,
+    desiredPlist: plist,
+  });
+  if (registrationPlan === "reregister") bootoutIfLoaded();
+  if (registrationPlan !== "restart") {
+    if (currentPlist !== plist) writeAtomic(plistPath, plist);
+    launchctl("bootstrap", domain, plistPath);
+  }
   launchctl("kickstart", "-k", `${domain}/${label}`);
   check();
   process.stdout.write(

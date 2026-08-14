@@ -2,7 +2,6 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync } from "node:fs";
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -32,12 +31,6 @@ const userId = globalThis.process.getuid?.();
 const launchDomain = userId == null ? null : `gui/${userId}`;
 const collectorService =
   launchDomain == null ? null : `${launchDomain}/${collectorLabel}`;
-const collectorPlistPath = join(
-  homedir(),
-  "Library",
-  "LaunchAgents",
-  `${collectorLabel}.plist`,
-);
 
 function fail(message) {
   globalThis.console.error(
@@ -90,7 +83,7 @@ function terminateInstalledApp(processIds) {
 function waitForInstalledAppToQuit(timeoutMilliseconds = 10_000) {
   const deadline = Date.now() + timeoutMilliseconds;
   const waitState = new Int32Array(new SharedArrayBuffer(4));
-  while (installedAppProcessIds().length > 0) {
+  while (installedAppProcessIds({ includeCollector: false }).length > 0) {
     if (Date.now() >= deadline) {
       throw new Error(
         "Pronto did not quit within 10 seconds; the installed bundle was not replaced.",
@@ -123,27 +116,11 @@ function collectorServiceIsLoaded() {
   }
 }
 
-function stopCollectorService() {
+function restartCollectorService() {
   if (collectorService == null) {
     throw new Error(
-      "A macOS user ID is required to stop the Pronto collector.",
+      "A macOS user ID is required to restart the Pronto collector.",
     );
-  }
-  execFileSync("/bin/launchctl", ["bootout", collectorService]);
-}
-
-function startCollectorService() {
-  if (launchDomain == null || collectorService == null) {
-    throw new Error(
-      "A macOS user ID is required to start the Pronto collector.",
-    );
-  }
-  if (!collectorServiceIsLoaded()) {
-    execFileSync("/bin/launchctl", [
-      "bootstrap",
-      launchDomain,
-      collectorPlistPath,
-    ]);
   }
   execFileSync("/bin/launchctl", ["kickstart", "-k", collectorService]);
 }
@@ -203,27 +180,19 @@ if (existsSync(targetApp) && lstatSync(targetApp).isSymbolicLink()) {
 }
 
 let installedAppWasRunning = false;
-let collectorWasLoaded = false;
 try {
-  const allInstalledProcessIdsBeforeUpdate = installedAppProcessIds();
-  installedAppWasRunning =
-    installedAppProcessIds({ includeCollector: false }).length > 0;
-  collectorWasLoaded = collectorServiceIsLoaded();
-  if (collectorWasLoaded) stopCollectorService();
-  if (allInstalledProcessIdsBeforeUpdate.length > 0) {
-    terminateInstalledApp(allInstalledProcessIdsBeforeUpdate);
+  const appProcessIdsBeforeUpdate = installedAppProcessIds({
+    includeCollector: false,
+  });
+  installedAppWasRunning = appProcessIdsBeforeUpdate.length > 0;
+  const collectorWasLoaded = collectorServiceIsLoaded();
+  if (appProcessIdsBeforeUpdate.length > 0) {
+    terminateInstalledApp(appProcessIdsBeforeUpdate);
     waitForInstalledAppToQuit();
   }
   replaceAppBundle(sourceApp, targetApp);
-  if (collectorWasLoaded) startCollectorService();
+  if (collectorWasLoaded) restartCollectorService();
 } catch (error) {
-  if (collectorWasLoaded && existsSync(targetApp)) {
-    try {
-      startCollectorService();
-    } catch {
-      // Preserve the original installation failure as the actionable error.
-    }
-  }
   if (
     installedAppWasRunning &&
     existsSync(targetApp) &&

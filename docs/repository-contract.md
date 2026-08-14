@@ -233,6 +233,13 @@ or app installation alone does not prove the collector is loaded; require
 `pnpm skills:collector:check`, a fresh Codex process, an observed metric, and a
 Skills CLI/UI readback.
 
+Routine app promotion keeps an already loaded collector registered and uses
+`launchctl kickstart -k` after the atomic bundle replacement. Collector setup
+bootstraps a missing service and re-registers only when its plist materially
+changes. Do not use `bootout` plus `bootstrap` as an ordinary restart path:
+macOS may treat repeated registration as new background activity and surface
+redundant Login Items notifications.
+
 Release preparation is not publication. Before a release, require a clean
 canonical commit, a confirmed baseline, fresh required gates, a deterministic
 `release preview`, exact artifact provenance, and provider-native review. This

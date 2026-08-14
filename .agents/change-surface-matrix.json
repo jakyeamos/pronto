@@ -287,6 +287,9 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "node --test scripts/build-workflow.test.mjs scripts/install-app.test.mjs",
+        "node --test scripts/skill-usage-collector.test.mjs",
+        "Verify an unchanged loaded LaunchAgent uses kickstart without bootout or bootstrap, while missing and materially changed plists take the explicit registration path.",
+        "Validate .pronto/behavior-assurance.json and retain the background-service-lifecycle scenario in the owning Quality Runner evidence flow.",
         "pnpm build:bundle",
         "node --test scripts/install-app.test.mjs",
         "pnpm build:release (CI or release preparation)",
