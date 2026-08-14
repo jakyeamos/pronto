@@ -15,13 +15,16 @@ const fixtureFiles = [
   ".agents/context/branch-sensitive-quality-verification.md",
   ".agents/context/commands.md",
   ".agents/environment-legibility.json",
+  ".gitignore",
   ".github/workflows/quality.yml",
+  "package.json",
   "docs/implementation-examples.md",
   "docs/implementation-plan.md",
   "docs/agent-usability-maturity.md",
   "docs/mac-control-maturity-gate.md",
   "docs/remediation-sequential-handoff.md",
   "docs/repository-contract.md",
+  ".pronto/cache-lifecycle.json",
   "scripts/validate-repository-contract.mjs",
 ];
 
@@ -70,6 +73,13 @@ function mutateEvidenceContract(fixture, mutate) {
   writeJson(contractPath, contract);
 }
 
+function mutateCacheLifecycle(fixture, mutate) {
+  const contractPath = path.join(fixture, ".pronto/cache-lifecycle.json");
+  const contract = JSON.parse(fs.readFileSync(contractPath, "utf8"));
+  mutate(contract);
+  writeJson(contractPath, contract);
+}
+
 function runValidator(fixture) {
   return spawnSync(
     process.execPath,
@@ -88,7 +98,52 @@ test("accepts the repository-owned maturity evidence fixture", (t) => {
   const result = runValidator(createFixture(t));
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /9 maturity dimensions/);
+  assert.match(
+    result.stdout,
+    /9 maturity dimensions, 4 rebuildable cache artifacts/,
+  );
+});
+
+test("rejects an unsafe cache artifact path", (t) => {
+  const fixture = createFixture(t);
+  mutateCacheLifecycle(fixture, (contract) => {
+    contract.artifacts[0].path = "../node_modules";
+  });
+
+  assertRejected(runValidator(fixture), /artifact path is missing or unsafe/);
+});
+
+test("rejects shared mutable Cargo intermediates", (t) => {
+  const fixture = createFixture(t);
+  mutateCacheLifecycle(fixture, (contract) => {
+    contract.central_cargo_intermediates.sharing = "shared_across_worktrees";
+  });
+
+  assertRejected(
+    runValidator(fixture),
+    /central Cargo ownership, isolation, and authorization boundaries are required/,
+  );
+});
+
+test("rejects cache artifacts without matching ignore evidence", (t) => {
+  const fixture = createFixture(t);
+  mutateCacheLifecycle(fixture, (contract) => {
+    contract.artifacts[0].ignore_evidence.contains = "not-an-ignore-rule";
+  });
+
+  assertRejected(runValidator(fixture), /ignore evidence did not match/);
+});
+
+test("rejects a cache artifact with a stale rebuild script", (t) => {
+  const fixture = createFixture(t);
+  mutateCacheLifecycle(fixture, (contract) => {
+    contract.artifacts[1].rebuild_command = "pnpm removed-script";
+  });
+
+  assertRejected(
+    runValidator(fixture),
+    /rebuild command is not a current pnpm script/,
+  );
 });
 
 test("rejects an unresolved tool-to-skill relationship", (t) => {

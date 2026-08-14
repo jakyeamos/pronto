@@ -18,6 +18,10 @@ storage gate; it never refreshes or writes the snapshot. `status --json`
 remains the complete legacy snapshot; use a focused projection when one is
 available.
 
+`pnpm contract:check` also validates `.pronto/cache-lifecycle.json`. That
+contract identifies rebuildable worktree outputs and their rebuild commands;
+it is evidence for a separately authorized cleanup, not deletion authority.
+
 `route --json` is the preferred composed entry point for agent orientation. It
 performs the same read-only doctor gate for the selected scope and, only when
 that gate is ready, includes bounded `next`, repository, quality,

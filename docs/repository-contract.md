@@ -60,6 +60,22 @@ fields; registration never fabricates a placeholder row. Registered
 repositories absent from the reviewed contract remain visible as unranked
 `unknown` entries, and a missing fleet contract remains missing.
 
+### Cache lifecycle boundaries
+
+`.pronto/cache-lifecycle.json` declares repository-owned rebuildable outputs,
+their worktree scope, rebuild commands, and ignore evidence. The contract does
+not authorize deletion. `node_modules`, `dist`, `out`, and
+`src-tauri/target` may be reclaimed only after the exact worktree is proved
+inactive and the applicable rebuild path remains available.
+
+Codex-scoped Cargo builds may place bulky compiler intermediates in the
+external storage-pressure provider. Those mutable intermediates remain
+partitioned by worktree and toolchain. They are not shared across concurrent
+branches; only content-addressed package or compiler caches are candidates for
+future cross-worktree sharing. The external provider owns pressure planning,
+lock checks, and retention authorization, while this repository owns the list
+of final and generated artifacts that can be rebuilt.
+
 When a contract changes, trace the full path: source evidence, Rust domain
 model, persisted representation, CLI JSON, renderer type and component,
 remediation/analytics consumers, tests, and context documentation. Use the
@@ -188,6 +204,9 @@ A change is done only when all applicable conditions hold:
 6. Every validation failure has a fix or an exact blocker and disposition.
 7. Destructive cleanup occurs only after preservation, integration proof,
    publication verification, and separate authorization.
+8. `pnpm contract:check` validates the cache lifecycle contract, including
+   safe relative paths, worktree scoping, rebuild commands, and matching ignore
+   evidence.
 
 The canonical local gate set is declared in `.quality-runner.toml` and
 `package.json`. `pnpm smoke` also runs `pnpm contract:check`, which verifies

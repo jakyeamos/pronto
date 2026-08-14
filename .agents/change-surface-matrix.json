@@ -231,6 +231,19 @@
       "status": "applicable"
     },
     {
+      "id": "cache-lifecycle-contract",
+      "scope": "local",
+      "path": ".pronto/cache-lifecycle.json",
+      "owner": "Pronto repository maintainers",
+      "condition": "Rebuildable artifacts, cache ownership, worktree isolation, retention authorization, or rebuild commands change.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "pnpm contract:check",
+         "Verify every artifact path remains Git-ignored and every rebuild command is current."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "quality-runner-feed",
       "scope": "external",
       "path": "~/.quality-runner/fleet-audit/current/maturity.json and quality-runner-maturity-feed/v2",
