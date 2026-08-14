@@ -71,6 +71,20 @@
       "status": "applicable"
     },
     {
+      "id": "isolated-change-skill-contract",
+      "scope": "external",
+      "path": "skills/isolated-change-workflow/, ~/.agents/skills/isolated-change-workflow/, and docs/isolated-change-workflow.md",
+      "owner": "Pronto repository maintainers and provider-neutral skill routing",
+      "condition": "Repository mutation isolation, task receipt, pre-commit enforcement, or integration-readiness behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "Run the skill creator quick validator against skills/isolated-change-workflow.",
+        "Run python3 -m unittest discover -s skills/isolated-change-workflow/scripts -p 'test_*.py'.",
+        "Forward-test positive, negative, and same-line-conflict cases before projecting the skill externally."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "repository-contracts",
       "scope": "local",
       "path": ".pronto/ and .project-compass/",
