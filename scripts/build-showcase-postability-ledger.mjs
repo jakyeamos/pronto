@@ -124,6 +124,15 @@ const artifactCandidates = (packagePath) => ({
   ],
 });
 
+const localFixSlots = [
+  "story_route",
+  "evidence",
+  "public_case",
+  "preview",
+  "short_copy",
+  "role_review",
+];
+
 const firstExisting = async (candidates) => {
   for (const candidate of Array.isArray(candidates) ? candidates : [candidates]) {
     if (await exists(candidate)) return candidate;
@@ -158,6 +167,14 @@ for (const project of publicProjects) {
     artifacts.preview &&
     artifacts.short_copy &&
     artifacts.role_review;
+  const localFix = {
+    state: localPackageComplete ? "complete" : "partial",
+    required: localFixSlots,
+    applied: localFixSlots.filter((slot) => Boolean(artifacts[slot])),
+    remaining: localFixSlots.filter((slot) => !artifacts[slot]),
+    boundary:
+      "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates.",
+  };
   const override = statusOverrides[project.repository_name];
   let state = override?.state;
   if (!state) {
@@ -194,6 +211,7 @@ for (const project of publicProjects) {
     release_state: target.release_state,
     postability_state: state,
     local_package_complete: localPackageComplete,
+    local_fix: localFix,
     artifacts,
     required_channels: targets.eligibility_policy.required_channels,
     open_materials: project.missing_materials,
@@ -215,6 +233,8 @@ const summary = {
   public_project_count: rows.length,
   local_packet_ready_count: rows.filter((row) => row.local_package_complete).length,
   local_package_incomplete_count: rows.filter((row) => !row.local_package_complete).length,
+  local_fix_complete_count: rows.filter((row) => row.local_fix.state === "complete").length,
+  local_fix_partial_count: rows.filter((row) => row.local_fix.state === "partial").length,
   deferred_or_blocked_count: rows.filter((row) => row.deferral).length,
   externally_postable_count: rows.filter(
     (row) => row.local_package_complete && row.open_materials.length === 0 && row.external_posting_proof,

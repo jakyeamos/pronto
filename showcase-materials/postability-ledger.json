@@ -1,6 +1,6 @@
 {
   "schema_version": "pronto-showcase-postability/v1",
-  "reviewed_at": "2026-08-14T15:43:00.925Z",
+  "reviewed_at": "2026-08-14T17:01:49.548Z",
   "purpose": "Track whether each public Showcase project has a locally postable packet without confusing local materials, live proof, authority, hosting, or external publication.",
   "publication_policy": "This ledger never authorizes external posting. A project is not posted until a fresh destination receipt and readback are recorded.",
   "state_definitions": {
@@ -11,10 +11,12 @@
     "deferred_by_decision": "The owner or a required provider contract has intentionally deferred the next closure."
   },
   "summary": {
-    "public_project_count": 34,
-    "local_packet_ready_count": 32,
+    "public_project_count": 32,
+    "local_packet_ready_count": 30,
     "local_package_incomplete_count": 2,
-    "deferred_or_blocked_count": 33,
+    "local_fix_complete_count": 30,
+    "local_fix_partial_count": 2,
+    "deferred_or_blocked_count": 31,
     "externally_postable_count": 0,
     "publication_receipts_recorded": 0
   },
@@ -26,6 +28,28 @@
       "release_state": "gated",
       "postability_state": "local_package_incomplete",
       "local_package_complete": null,
+      "local_fix": {
+        "state": "partial",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [
+          "preview"
+        ],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -65,6 +89,27 @@
       "release_state": "in_progress",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -105,6 +150,28 @@
       "release_state": "blocked",
       "postability_state": "blocked_owner_provenance",
       "local_package_complete": false,
+      "local_fix": {
+        "state": "partial",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "role_review"
+        ],
+        "remaining": [
+          "public_case",
+          "preview",
+          "short_copy"
+        ],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -146,6 +213,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -160,21 +248,19 @@
         "handshake"
       ],
       "open_materials": [
-        "release-source attestation or rebuild",
-        "human editorial approval",
         "no-auth hosted verification"
       ],
       "active_gate": "RDW-0: bind the installed artifact to the intended source revision and complete editorial approval.",
-      "next_step": "Close RDW-0 from showcase-materials/research-domain-writing/route-plan.md: a release owner must bind the installed artifact to the intended source revision; the local RDW-6 material package is complete, so editorial approval and hosting remain separate gates.",
+      "next_step": "Complete RDW-5 from showcase-materials/research-domain-writing/route-plan.md: host the no-auth case, verify the hosted page on desktop and mobile, and record destination readbacks; source attestation and editorial approval are closed locally.",
       "readiness": {
         "current_stage": "gap_closure",
         "rehearsal_status": "not_ready",
-        "first_required_closure": "RDW-0"
+        "first_required_closure": "RDW-5"
       },
       "deferral": {
         "type": "rights_or_editorial_authority",
-        "reason": "Close RDW-0 from showcase-materials/research-domain-writing/route-plan.md: a release owner must bind the installed artifact to the intended source revision; the local RDW-6 material package is complete, so editorial approval and hosting remain separate gates.",
-        "reentry": "Close RDW-0 from showcase-materials/research-domain-writing/route-plan.md: a release owner must bind the installed artifact to the intended source revision; the local RDW-6 material package is complete, so editorial approval and hosting remain separate gates."
+        "reason": "Complete RDW-5 from showcase-materials/research-domain-writing/route-plan.md: host the no-auth case, verify the hosted page on desktop and mobile, and record destination readbacks; source attestation and editorial approval are closed locally.",
+        "reentry": "Complete RDW-5 from showcase-materials/research-domain-writing/route-plan.md: host the no-auth case, verify the hosted page on desktop and mobile, and record destination readbacks; source attestation and editorial approval are closed locally."
       },
       "external_posting_proof": false
     },
@@ -185,6 +271,27 @@
       "release_state": "in_progress",
       "postability_state": "local_packet_ready",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -216,6 +323,27 @@
       "release_state": "in_progress",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -253,6 +381,27 @@
       "release_state": "in_progress",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -290,6 +439,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -322,92 +492,33 @@
       "external_posting_proof": false
     },
     {
-      "repository_name": "ai-workflow-leverage",
-      "display_name": "AI Workflow Leverage",
-      "package_path": "showcase-materials/ai-workflow-leverage",
-      "release_state": "deferred",
-      "postability_state": "deferred_by_decision",
-      "local_package_complete": true,
-      "artifacts": {
-        "story_route": true,
-        "evidence": true,
-        "public_case": true,
-        "preview": "showcase-materials/ai-workflow-leverage/assets/preview-16x9.png",
-        "short_copy": true,
-        "role_review": true
-      },
-      "required_channels": [
-        "github",
-        "portfolio",
-        "handshake"
-      ],
-      "open_materials": [
-        "credible measured outcome",
-        "hosted no-auth case URL",
-        "external destination readbacks"
-      ],
-      "active_gate": "AL-2: wait for agent-eval-runtime to own an approved append-only event contract before producing a public leverage case.",
-      "next_step": "Park AL-2 from showcase-materials/ai-workflow-leverage/route-plan.md until agent-eval-runtime owns an approved append-only event contract for active work, waits, retries, human touches, failures, and outcome evidence; the local AL-7 material package is complete, so return for the paired receipts and later hosting/readbacks.",
-      "readiness": {
-        "current_stage": "gap_closure",
-        "rehearsal_status": "not_ready",
-        "first_required_closure": "AL-2"
-      },
-      "deferral": {
-        "type": "owner_or_provider_contract",
-        "reason": "Park AL-2 from showcase-materials/ai-workflow-leverage/route-plan.md until agent-eval-runtime owns an approved append-only event contract for active work, waits, retries, human touches, failures, and outcome evidence; the local AL-7 material package is complete, so return for the paired receipts and later hosting/readbacks.",
-        "reentry": "Park AL-2 from showcase-materials/ai-workflow-leverage/route-plan.md until agent-eval-runtime owns an approved append-only event contract for active work, waits, retries, human touches, failures, and outcome evidence; the local AL-7 material package is complete, so return for the paired receipts and later hosting/readbacks."
-      },
-      "external_posting_proof": false
-    },
-    {
-      "repository_name": "marketing-autoresearch",
-      "display_name": "Marketing Autoresearch",
-      "package_path": "showcase-materials/marketing-autoresearch",
-      "release_state": "deferred",
-      "postability_state": "deferred_by_decision",
-      "local_package_complete": true,
-      "artifacts": {
-        "story_route": true,
-        "evidence": true,
-        "public_case": true,
-        "preview": "showcase-materials/marketing-autoresearch/assets/preview-16x9.png",
-        "short_copy": true,
-        "role_review": true
-      },
-      "required_channels": [
-        "github",
-        "portfolio",
-        "handshake"
-      ],
-      "open_materials": [
-        "brief-aware traceable shadow research run",
-        "source-backed report artifact",
-        "runtime publication-refusal receipt",
-        "hosted no-auth case URL",
-        "external destination readbacks"
-      ],
-      "active_gate": "MA-2: wait for a brief-aware source-to-claim receipt contract before rerunning the public portfolio brief.",
-      "next_step": "Return to MA-2 from showcase-materials/marketing-autoresearch/route-plan.md when the owner provides a brief-aware source-to-claim receipt contract; the local MA-7 material package is complete, so then rerun the public portfolio brief before hosting or readbacks.",
-      "readiness": {
-        "current_stage": "gap_closure",
-        "rehearsal_status": "blocked",
-        "first_required_closure": "MA-2"
-      },
-      "deferral": {
-        "type": "owner_or_provider_contract",
-        "reason": "Return to MA-2 from showcase-materials/marketing-autoresearch/route-plan.md when the owner provides a brief-aware source-to-claim receipt contract; the local MA-7 material package is complete, so then rerun the public portfolio brief before hosting or readbacks.",
-        "reentry": "Return to MA-2 from showcase-materials/marketing-autoresearch/route-plan.md when the owner provides a brief-aware source-to-claim receipt contract; the local MA-7 material package is complete, so then rerun the public portfolio brief before hosting or readbacks."
-      },
-      "external_posting_proof": false
-    },
-    {
       "repository_name": "remodelvision",
       "display_name": "RemodelVision",
       "package_path": "showcase-materials/remodelvision",
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -422,23 +533,22 @@
         "handshake"
       ],
       "open_materials": [
-        "contribution approval",
         "current runnable proof",
         "constraint adherence proof",
         "hosted no-auth case URL",
         "external destination readbacks"
       ],
       "active_gate": "RV-1: complete the contribution ledger and explicit owner/collaborator approval record.",
-      "next_step": "Resolve RV-1 from showcase-materials/remodelvision/route-plan.md using the contribution ledger and an explicit owner/collaborator approval record; the RV-6 local candidate package is complete while RV-3 remains separate.",
+      "next_step": "Resolve RV-3 from showcase-materials/remodelvision/route-plan.md with current runtime and direct-surface proof; the scoped RV-1 owner approval and RV-6 local candidate package are complete.",
       "readiness": {
         "current_stage": "gap_closure",
         "rehearsal_status": "not_ready",
-        "first_required_closure": "RV-1"
+        "first_required_closure": "RV-3"
       },
       "deferral": {
-        "type": "rights_or_editorial_authority",
-        "reason": "Resolve RV-1 from showcase-materials/remodelvision/route-plan.md using the contribution ledger and an explicit owner/collaborator approval record; the RV-6 local candidate package is complete while RV-3 remains separate.",
-        "reentry": "Resolve RV-1 from showcase-materials/remodelvision/route-plan.md using the contribution ledger and an explicit owner/collaborator approval record; the RV-6 local candidate package is complete while RV-3 remains separate."
+        "type": "hosting_or_external_readback",
+        "reason": "Resolve RV-3 from showcase-materials/remodelvision/route-plan.md with current runtime and direct-surface proof; the scoped RV-1 owner approval and RV-6 local candidate package are complete.",
+        "reentry": "Resolve RV-3 from showcase-materials/remodelvision/route-plan.md with current runtime and direct-surface proof; the scoped RV-1 owner approval and RV-6 local candidate package are complete."
       },
       "external_posting_proof": false
     },
@@ -449,6 +559,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -490,6 +621,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -531,6 +683,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -570,6 +743,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -609,6 +803,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_live_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -647,6 +862,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -686,6 +922,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -726,6 +983,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -765,6 +1043,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -806,6 +1105,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -845,6 +1165,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -886,6 +1227,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -926,6 +1288,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -966,6 +1349,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -1006,6 +1410,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -1046,6 +1471,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -1086,6 +1532,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -1126,6 +1593,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -1166,6 +1654,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -1206,6 +1715,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -1246,6 +1776,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -1286,6 +1837,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,
@@ -1327,6 +1899,27 @@
       "release_state": "gated",
       "postability_state": "local_packet_ready_with_open_gate",
       "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
       "artifacts": {
         "story_route": true,
         "evidence": true,

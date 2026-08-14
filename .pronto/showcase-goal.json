@@ -220,12 +220,10 @@
       "display_name": "Research Domain Writing",
       "disposition_source": "GitHub profile: Public Releases",
       "missing_materials": [
-        "release-source attestation or rebuild",
-        "human editorial approval",
         "no-auth hosted verification"
       ],
-      "next_step": "Close RDW-0 from showcase-materials/research-domain-writing/route-plan.md: a release owner must bind the installed artifact to the intended source revision; the local RDW-6 material package is complete, so editorial approval and hosting remain separate gates.",
-      "next_step_category": "demo_integration",
+      "next_step": "Complete RDW-5 from showcase-materials/research-domain-writing/route-plan.md: host the no-auth case, verify the hosted page on desktop and mobile, and record destination readbacks; source attestation and editorial approval are closed locally.",
+      "next_step_category": "packaging",
       "product_readiness": {
         "evidence": "Released research-grounded writing pipeline with staged improvements.",
         "score": 4.3,
@@ -234,7 +232,7 @@
       "public_eligibility": "public_showcase",
       "repository_name": "research-domain-writing",
       "work_disposition": "targeted_gap_closure",
-      "work_disposition_summary": "The source packet, unsafe-claim QA path, installed pack behavior, responsive visual package, and reviewed 1600x900 preview are proven locally; exact release provenance, editorial approval, and public hosting remain."
+      "work_disposition_summary": "The source packet, unsafe-claim QA path, installed pack behavior, responsive visual package, reviewed 1600x900 preview, source attestation, and owner editorial approval are proven locally; no-auth hosting and destination readbacks remain."
     },
     {
       "blockers": [],
@@ -550,9 +548,7 @@
       "repository_name": "ai-context-runtime"
     },
     {
-      "blockers": [
-        "AL-2 is parked: paired event measurement belongs to agent-eval-runtime, while ai-workflow-leverage currently exposes only aggregate run and intervention fields."
-      ],
+      "blockers": [],
       "career_signal": {
         "evidence": "Potentially strong AI productivity story once measurement is credible.",
         "score": 4.0,
@@ -564,28 +560,22 @@
         "status": "assessed"
       },
       "display_name": "AI Workflow Leverage",
-      "disposition_source": "GitHub profile: Staged Local Systems",
-      "missing_materials": [
-        "credible measured outcome",
-        "hosted no-auth case URL",
-        "external destination readbacks"
-      ],
-      "next_step": "Park AL-2 from showcase-materials/ai-workflow-leverage/route-plan.md until agent-eval-runtime owns an approved append-only event contract for active work, waits, retries, human touches, failures, and outcome evidence; the local AL-7 material package is complete, so return for the paired receipts and later hosting/readbacks.",
-      "next_step_category": "product",
+      "disposition_source": "Owner decision: excluded from current AI Showcase queue",
+      "missing_materials": [],
+      "next_step": "Keep the local packet as supporting work; do not include this repository in the current AI Showcase queue.",
+      "next_step_category": "content",
       "product_readiness": {
         "evidence": "Evidence-bounded measurement concept has a first slice; outcome proof remains limited.",
         "score": 2.9,
         "status": "assessed"
       },
-      "public_eligibility": "public_showcase",
+      "public_eligibility": "not_applicable",
       "repository_name": "ai-workflow-leverage",
       "work_disposition": "material_build_or_restoration",
-      "work_disposition_summary": "The evidence-bounded protocol and local AL-7 material package exist, but the shared measurement system and prospective paired run must be completed before the leverage claim is demonstrable."
+      "work_disposition_summary": "The evidence-bounded protocol and local AL-7 material package are retained as supporting work; this repository is excluded from the current AI Showcase queue by owner decision."
     },
     {
-      "blockers": [
-        "MA-2 is parked: the current runtime has profile-level market observations but no brief-aware source-to-claim receipt contract; do not add a parallel ledger."
-      ],
+      "blockers": [],
       "career_signal": {
         "evidence": "Strong safety-conscious vertical workflow if outcome quality is shown.",
         "score": 4.0,
@@ -597,25 +587,19 @@
         "status": "assessed"
       },
       "display_name": "Marketing Autoresearch",
-      "disposition_source": "GitHub profile: Staged Local Systems",
-      "missing_materials": [
-        "brief-aware traceable shadow research run",
-        "source-backed report artifact",
-        "runtime publication-refusal receipt",
-        "hosted no-auth case URL",
-        "external destination readbacks"
-      ],
-      "next_step": "Return to MA-2 from showcase-materials/marketing-autoresearch/route-plan.md when the owner provides a brief-aware source-to-claim receipt contract; the local MA-7 material package is complete, so then rerun the public portfolio brief before hosting or readbacks.",
-      "next_step_category": "demo_integration",
+      "disposition_source": "Owner decision: excluded from current AI Showcase queue",
+      "missing_materials": [],
+      "next_step": "Keep the local packet as supporting work; do not include this repository in the current AI Showcase queue.",
+      "next_step_category": "content",
       "product_readiness": {
         "evidence": "Shadow/report-only loop with fail-closed publication boundaries.",
         "score": 3.0,
         "status": "assessed"
       },
-      "public_eligibility": "public_showcase",
+      "public_eligibility": "not_applicable",
       "repository_name": "marketing-autoresearch",
       "work_disposition": "targeted_gap_closure",
-      "work_disposition_summary": "The fail-closed report loop now has a privacy-reviewed real brief and local candidate packet; the shared brief-aware receipt, report, runtime refusal proof, human handoff, hosting, and distribution readbacks remain separate gates."
+      "work_disposition_summary": "The privacy-reviewed brief and local MA-7 packet are retained as supporting work; this repository is excluded from the current AI Showcase queue by owner decision."
     },
     {
       "blockers": [
@@ -650,7 +634,6 @@
     },
     {
       "blockers": [
-        "RV-1 is parked: the repository names a four-person team, but no personal-role or collaborator-approval record authorizes a public case study; do not infer roles from Git authorship.",
         "RV-3 is parked: nine runtime variables are absent, the existing lint baseline has 41 errors, and direct local-surface binding is blocked by listen EPERM; do not claim the core flow is runnable."
       ],
       "career_signal": {
@@ -666,14 +649,13 @@
       "display_name": "RemodelVision",
       "disposition_source": "GitHub profile: Earlier / Collaborative",
       "missing_materials": [
-        "contribution approval",
         "current runnable proof",
         "constraint adherence proof",
         "hosted no-auth case URL",
         "external destination readbacks"
       ],
-      "next_step": "Resolve RV-1 from showcase-materials/remodelvision/route-plan.md using the contribution ledger and an explicit owner/collaborator approval record; the RV-6 local candidate package is complete while RV-3 remains separate.",
-      "next_step_category": "evidence",
+      "next_step": "Resolve RV-3 from showcase-materials/remodelvision/route-plan.md with current runtime and direct-surface proof; the scoped RV-1 owner approval and RV-6 local candidate package are complete.",
+      "next_step_category": "product",
       "product_readiness": {
         "evidence": "Public collaborative project with a legible photo-to-estimate flow; current maintenance status is uncertain.",
         "score": 3.4,
@@ -682,7 +664,7 @@
       "public_eligibility": "public_showcase",
       "repository_name": "remodelvision",
       "work_disposition": "material_build_or_restoration",
-      "work_disposition_summary": "RV-1 is blocked at the collaborator-approval boundary and RV-3 at runtime prerequisites; RV-2 now has a synthetic rights-safe fixture, while the current photo-to-handoff flow still needs direct verification."
+      "work_disposition_summary": "RV-1 is closed for the owner's scoped majority-implementation statement using the synthetic fixture; RV-2 is rights-safe, while RV-3 remains blocked at runtime prerequisites and the current photo-to-handoff flow still needs direct verification."
     },
     {
       "blockers": [],
@@ -1988,5 +1970,5 @@
     "publishable_materials_minimum": 4.0,
     "publishable_product_minimum": 3.5
   },
-  "target_publishable_demo_count": 34
+  "target_publishable_demo_count": 32
 }

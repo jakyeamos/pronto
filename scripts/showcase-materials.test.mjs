@@ -287,6 +287,7 @@ test("public release targets cover exactly the eligible Showcase projects", asyn
     .map((project) => project.repository_name)
     .sort();
   const targetNames = targets.project_targets
+    .filter((project) => project.release_state !== "not_applicable")
     .map((project) => project.repository_name)
     .sort();
   assert.deepEqual(
@@ -310,9 +311,12 @@ test("public release targets cover exactly the eligible Showcase projects", asyn
     "gated",
     "deferred",
     "blocked",
+    "not_applicable",
   ]);
 
-  for (const project of targets.project_targets) {
+  for (const project of targets.project_targets.filter(
+    (candidate) => candidate.release_state !== "not_applicable",
+  )) {
     assert.ok(
       project.active_gate?.trim(),
       `${project.repository_name} needs an active gate`,
@@ -385,12 +389,19 @@ test("release material inventory joins every public project and destination row"
     (total, project) => total + project.missing_materials.length,
     0,
   );
-  const targetRowCount = targets.project_targets.reduce(
+  const targetRowCount = targets.project_targets
+    .filter((project) => project.release_state !== "not_applicable")
+    .reduce(
     (total, project) => total + project.targets.length,
     0,
-  );
+    );
 
-  assert.equal(publicProjects.length, targets.project_targets.length);
+  assert.equal(
+    publicProjects.length,
+    targets.project_targets.filter(
+      (project) => project.release_state !== "not_applicable",
+    ).length,
+  );
   assert.match(
     inventory,
     new RegExp(`\\*\\*${publicProjects.length}\\*\\* active`),
@@ -440,7 +451,7 @@ test("Quality Runner's compact case packet preserves evidence boundaries", async
 });
 
 test("Participant Deduplication PD-1 binds a synthetic workbook to native matcher evidence", async () => {
-  const [fixture, receipt, route, contract, readiness] = await Promise.all([
+  const [fixture, csv, sheetPreview, receipt, route, contract, readiness] = await Promise.all([
     readFile(
       new URL(
         "showcase-materials/participant-deduplication/synthetic-fixture.json",
@@ -448,6 +459,20 @@ test("Participant Deduplication PD-1 binds a synthetic workbook to native matche
       ),
       "utf8",
     ).then(JSON.parse),
+    readFile(
+      new URL(
+        "showcase-materials/participant-deduplication/synthetic-sheet.csv",
+        root,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "showcase-materials/participant-deduplication/synthetic-sheet.html",
+        root,
+      ),
+      "utf8",
+    ),
     readFile(
       new URL(
         "showcase-materials/participant-deduplication/evidence/pd-1-fixture-receipt.json",
@@ -506,6 +531,23 @@ test("Participant Deduplication PD-1 binds a synthetic workbook to native matche
   assert.equal(fixture.expected_review_summary.delete_count_if_approved, 2);
   assert.equal(fixture.negative_cases.length, 3);
   assert.equal(fixture.privacy_review.status, "passed");
+  assert.equal(
+    receipt.verification.fixture_contract.sheet_csv,
+    "synthetic-sheet.csv",
+  );
+  assert.equal(
+    receipt.verification.fixture_contract.sheet_preview,
+    "synthetic-sheet.html",
+  );
+  assert.match(csv, /^_Dedup_ID,/);
+  assert.match(csv, /PD-001/);
+  assert.match(
+    sheetPreview,
+    /Synthetic showcase fixture · no participant data/,
+  );
+  assert.match(sheetPreview, /disposable review material/);
+  assert.match(route, /synthetic-sheet\.csv/);
+  assert.match(route, /synthetic-sheet\.html/);
   assert.ok(
     fixture.claim_boundary.some((claim) => /does not prove/i.test(claim)),
   );
@@ -1107,10 +1149,13 @@ test("Marketing Autoresearch MA-1 binds a public decision brief to privacy and r
   const readinessProject = readiness.projects.find(
     (candidate) => candidate.repository_name === "marketing-autoresearch",
   );
-  assert.equal(project?.next_step_category, "demo_integration");
-  assert.match(project?.next_step ?? "", /MA-2/);
-  assert.equal(readinessProject?.first_required_closure, "MA-2");
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 5);
+  assert.equal(project?.public_eligibility, "not_applicable");
+  assert.equal(project?.next_step_category, "content");
+  assert.match(project?.next_step ?? "", /do not include this repository/i);
+  assert.equal(readinessProject?.showcase_eligible, false);
+  assert.equal(readinessProject?.exclusion_reason, "owner_decision");
+  assert.equal(readinessProject?.first_required_closure, null);
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 0);
   assert.match(route, /MA-1 closure/);
   assert.match(route, /MA-2 blocker/);
   assert.match(route, /source-to-claim receipt/i);
@@ -1202,12 +1247,19 @@ test("Marketing Autoresearch exposes a bounded local candidate without claiming 
   assert.match(route, /runtime refusal receipt/i);
 });
 
-test("RemodelVision parks attribution safely while closing the synthetic fixture gap", async () => {
-  const [ledger, fixture, blocker, runtimeBlocker, route, contract, readiness] =
+test("RemodelVision scopes owner attribution safely while closing the synthetic fixture gap", async () => {
+  const [ledger, approval, fixture, blocker, runtimeBlocker, route, contract, readiness] =
     await Promise.all([
       readFile(
         new URL(
           "showcase-materials/remodelvision/contribution-ledger.json",
+          root,
+        ),
+        "utf8",
+      ).then(JSON.parse),
+      readFile(
+        new URL(
+          "showcase-materials/remodelvision/evidence/owner-approval.json",
           root,
         ),
         "utf8",
@@ -1247,18 +1299,24 @@ test("RemodelVision parks attribution safely while closing the synthetic fixture
     ledger.schema_version,
     "pronto-showcase-remodelvision-contribution-ledger/v1",
   );
-  assert.equal(ledger.status, "review_required");
+  assert.equal(ledger.status, "owner_approved_scoped");
   assert.equal(
     ledger.observed_attribution.project_statement.status,
     "observed",
   );
   assert.equal(
     ledger.boundary_status.personal_contribution_role,
-    "unknown_pending_owner_review",
+    "owner_approved_majority_implementation",
   );
   assert.equal(
     ledger.boundary_status.collaborator_approval_for_public_showcase,
-    "unknown_pending_collaborator_review",
+    "not_required_for_scoped_personal_claim_no_collaborator_claims",
+  );
+  assert.equal(approval.approver, "Jakye Amos");
+  assert.equal(approval.scope.approved_for_local_showcase, true);
+  assert.match(
+    approval.scope.personal_contribution_statement,
+    /implemented most/i,
   );
   assert.match(ledger.claim_boundary.join(" | "), /not proof/i);
 
@@ -1274,14 +1332,13 @@ test("RemodelVision parks attribution safely while closing the synthetic fixture
   assert.match(fixture.display_rules.join(" | "), /synthetic label/i);
 
   assert.equal(blocker.gap, "RV-1");
-  assert.equal(blocker.status, "blocked");
-  assert.equal(blocker.disposition, "parked_pending_collaborator_approval");
-  assert.ok(
-    blocker.missing_contract.required.some((item) =>
-      /collaborator approval/i.test(item),
-    ),
+  assert.equal(blocker.status, "resolved_scoped");
+  assert.equal(blocker.disposition, "owner_approved_scoped_synthetic_case");
+  assert.equal(
+    blocker.resolution.approval_record,
+    "showcase-materials/remodelvision/evidence/owner-approval.json",
   );
-  assert.match(blocker.blocked_action, /Do not publish/i);
+  assert.match(blocker.blocked_action, /Do not publish collaborator roles/i);
 
   assert.equal(runtimeBlocker.gap, "RV-3");
   assert.equal(runtimeBlocker.status, "blocked");
@@ -1300,16 +1357,19 @@ test("RemodelVision parks attribution safely while closing the synthetic fixture
   const readinessProject = readiness.projects.find(
     (candidate) => candidate.repository_name === "remodelvision",
   );
-  assert.equal(project?.next_step_category, "evidence");
-  assert.match(project?.next_step ?? "", /RV-1/);
-  assert.match(project?.blockers?.join(" | ") ?? "", /collaborator-approval/i);
-  assert.equal(readinessProject?.first_required_closure, "RV-1");
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 5);
+  assert.equal(project?.next_step_category, "product");
+  assert.match(project?.next_step ?? "", /RV-3/);
+  assert.doesNotMatch(
+    project?.blockers?.join(" | ") ?? "",
+    /collaborator-approval/i,
+  );
+  assert.equal(readinessProject?.first_required_closure, "RV-3");
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 4);
   assert.equal(
     readinessProject?.rehearsal_disposition,
-    "local_material_package_complete_blocked_attribution_and_runtime_owner_boundary",
+    "local_material_package_complete_scoped_owner_attribution_approved_runtime_owner_boundary_remains",
   );
-  assert.match(route, /RV-1 blocker/);
+  assert.match(route, /RV-1 scoped closure/);
   assert.match(route, /RV-2 closure/);
   assert.match(route, /RV-3 blocker/);
   assert.match(route, /rights-safe-fixture\.svg/);
@@ -2573,11 +2633,18 @@ test("RDW's real case preserves the semantic and deterministic gate boundary", a
   assert.match(unsafeStop.forbidden_inference, /independently inferred/i);
 });
 
-test("RDW's publication candidate keeps release and deployment claims gated", async () => {
-  const [manifest, provenance, page, description, checkpoint, preview] = await Promise.all([
+test("RDW's publication candidate keeps hosting and deployment claims gated", async () => {
+  const [manifest, approval, provenance, page, description, checkpoint, preview] = await Promise.all([
     readFile(
       new URL(
         "showcase-materials/research-domain-writing/final-package.json",
+        root,
+      ),
+      "utf8",
+    ).then(JSON.parse),
+    readFile(
+      new URL(
+        "showcase-materials/research-domain-writing/evidence/editorial-approval.json",
         root,
       ),
       "utf8",
@@ -2616,8 +2683,8 @@ test("RDW's publication candidate keeps release and deployment claims gated", as
     ),
   ]);
 
-  assert.equal(manifest.status, "publication_candidate_provenance_gated");
-  assert.equal(manifest.checks.release_provenance_claim_allowed, false);
+  assert.equal(manifest.status, "publication_candidate_hosting_gated");
+  assert.equal(manifest.checks.release_provenance_claim_allowed, true);
   assert.equal(manifest.checks.deployment_claim_allowed, false);
   assert.equal(description.trim().length <= 500, true);
   assert.equal(
@@ -2630,8 +2697,15 @@ test("RDW's publication candidate keeps release and deployment claims gated", as
   );
   assert.equal(
     provenance.disposition.release_artifact_to_source_revision,
-    "not_verified",
+    "verified_attested",
   );
+  assert.equal(
+    provenance.disposition.rdw_0_status,
+    "closed_by_owner_attestation",
+  );
+  assert.equal(provenance.asset_manifest.all_installed_assets_match, true);
+  assert.equal(approval.approver, "Jakye Amos");
+  assert.equal(approval.review.human_publication_boundary_preserved, true);
   assert.match(page, /Plausible is not proven/);
   assert.match(page, /Human decision required/);
   assert.match(page, /data-material-status="candidate-local"/);
@@ -2642,7 +2716,7 @@ test("RDW's publication candidate keeps release and deployment claims gated", as
     "1600x900",
   );
   assert.match(preview, /data-material-status="candidate-local"/);
-  assert.match(page, /release provenance and deployment not\s+yet verified/i);
+  assert.match(page, /hosting and deployment not\s+yet\s+verified/i);
 });
 
 test("the AI Code Quality Stack concept keeps layer ownership and proof state explicit", async () => {
@@ -3778,7 +3852,7 @@ test("postability ledger covers every eligible project without inventing publica
   ]);
 
   assert.equal(ledger.schema_version, "pronto-showcase-postability/v1");
-  assert.equal(ledger.summary.public_project_count, 34);
+  assert.equal(ledger.summary.public_project_count, 32);
   assert.equal(ledger.summary.publication_receipts_recorded, 0);
   assert.equal(ledger.summary.externally_postable_count, 0);
 
@@ -3792,6 +3866,7 @@ test("postability ledger covers every eligible project without inventing publica
   assert.deepEqual(ledgerNames, publicNames);
 
   const targetNames = targets.project_targets
+    .filter((project) => project.release_state !== "not_applicable")
     .map((project) => project.repository_name)
     .sort();
   assert.deepEqual(targetNames, ledgerNames);
@@ -3822,6 +3897,25 @@ test("postability ledger covers every eligible project without inventing publica
     );
     assert.ok(project.active_gate?.trim());
     assert.ok(project.next_step?.trim());
+    assert.deepEqual(
+      project.local_fix.required,
+      [
+        "story_route",
+        "evidence",
+        "public_case",
+        "preview",
+        "short_copy",
+        "role_review",
+      ],
+    );
+    assert.deepEqual(
+      [...project.local_fix.applied, ...project.local_fix.remaining].sort(),
+      [...project.local_fix.required].sort(),
+    );
+    assert.equal(
+      project.local_fix.state,
+      project.local_package_complete ? "complete" : "partial",
+    );
     if (project.postability_state === "local_packet_ready") {
       assert.equal(project.local_package_complete, true);
       assert.equal(project.deferral, null);

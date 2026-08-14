@@ -540,58 +540,58 @@
     {
       "repository_name": "ai-workflow-leverage",
       "profile": "productized_workflow",
-      "release_state": "deferred",
+      "release_state": "not_applicable",
       "primary_sequence": ["github", "portfolio", "linkedin", "handshake"],
-      "active_gate": "AL-2: wait for agent-eval-runtime to own an approved append-only event contract before producing a public leverage case.",
+      "active_gate": "Excluded by owner decision from the current AI Showcase queue; retain the local packet as supporting work.",
       "targets": [
         {
           "channel": "github",
           "requirement": "required",
-          "status": "planned",
+          "status": "not_applicable",
           "artifact": "Public repository and workflow contract."
         },
         {
           "channel": "portfolio",
           "requirement": "required",
-          "status": "deferred",
-          "artifact": "Before/after leverage case with waits, retries, human touches, failures, and outcome evidence after AL-2; local candidate page remains separate."
+          "status": "not_applicable",
+          "artifact": "Supporting local packet retained; no current AI Showcase case is requested."
         },
         {
           "channel": "dev_to",
           "requirement": "conditional",
-          "status": "deferred",
-          "artifact": "Technical article only after AL-2 produces a source-aligned trace."
+          "status": "not_applicable",
+          "artifact": "Supporting technical material retained outside the current queue."
         },
         {
           "channel": "daily_dev",
           "requirement": "conditional",
-          "status": "deferred",
-          "artifact": "Direct post only after the evidence contract is real."
+          "status": "not_applicable",
+          "artifact": "Supporting post concept retained outside the current queue."
         },
         {
           "channel": "product_hunt",
           "requirement": "conditional",
-          "status": "deferred",
-          "artifact": "Product launch only after a stable, user-facing flow exists."
+          "status": "not_applicable",
+          "artifact": "No current launch target; supporting packet retained."
         },
         {
           "channel": "linkedin",
           "requirement": "recommended",
-          "status": "deferred",
-          "artifact": "AI workflow leverage result post."
+          "status": "not_applicable",
+          "artifact": "No current result post; supporting packet retained."
         },
         {
           "channel": "handshake",
           "requirement": "required",
-          "status": "deferred",
-          "artifact": "AI Showcase package after AL-2, hosted no-auth verification, and destination readbacks."
+          "status": "not_applicable",
+          "artifact": "Supporting packet retained outside the current AI Showcase queue."
         }
       ]
     },
     {
       "repository_name": "marketing-autoresearch",
       "profile": "research_case",
-      "release_state": "deferred",
+      "release_state": "not_applicable",
       "primary_sequence": [
         "github",
         "portfolio",
@@ -600,49 +600,49 @@
         "linkedin",
         "handshake"
       ],
-      "active_gate": "MA-2: wait for a brief-aware source-to-claim receipt contract before rerunning the public portfolio brief.",
+      "active_gate": "Excluded by owner decision from the current AI Showcase queue; retain the local packet as supporting work.",
       "targets": [
         {
           "channel": "github",
           "requirement": "required",
-          "status": "planned",
+          "status": "not_applicable",
           "artifact": "Public repository and research/brief contract."
         },
         {
           "channel": "portfolio",
           "requirement": "required",
-          "status": "deferred",
-      "artifact": "Local candidate source-aware brief case with explicit attribution and claim provenance; report and runtime refusal remain after MA-2."
+          "status": "not_applicable",
+          "artifact": "Supporting local packet retained; no current AI Showcase case is requested."
         },
         {
           "channel": "dev_to",
           "requirement": "recommended",
-          "status": "deferred",
-          "artifact": "Technical article on brief-aware research automation after MA-2."
+          "status": "not_applicable",
+          "artifact": "Supporting technical material retained outside the current queue."
         },
         {
           "channel": "daily_dev",
           "requirement": "recommended",
-          "status": "deferred",
-          "artifact": "Direct post for the source-to-brief case."
+          "status": "not_applicable",
+          "artifact": "Supporting post concept retained outside the current queue."
         },
         {
           "channel": "product_hunt",
           "requirement": "conditional",
-          "status": "deferred",
-          "artifact": "Launch only if the public workflow becomes a stable user-facing product."
+          "status": "not_applicable",
+          "artifact": "No current launch target; supporting packet retained."
         },
         {
           "channel": "linkedin",
           "requirement": "recommended",
-          "status": "deferred",
-          "artifact": "Research automation result post."
+          "status": "not_applicable",
+          "artifact": "No current result post; supporting packet retained."
         },
         {
           "channel": "handshake",
           "requirement": "required",
-          "status": "deferred",
-          "artifact": "AI Showcase package after MA-2, hosted no-auth verification, and external destination readbacks."
+          "status": "not_applicable",
+          "artifact": "Supporting packet retained outside the current AI Showcase queue."
         }
       ]
     },

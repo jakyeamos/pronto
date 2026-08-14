@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Participant Deduplication · Synthetic Sheet</title>
+    <style>
+      :root { color-scheme: dark; --bg: #0b1118; --panel: #152535; --line: #33485b; --text: #f5f7fa; --muted: #aab8c5; --mint: #8ed8c1; --amber: #ffd27f; }
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 48px 24px; color: var(--text); background: radial-gradient(circle at 85% 0, #294766, transparent 34rem), var(--bg); font: 15px/1.5 Inter, ui-sans-serif, system-ui, sans-serif; }
+      main { width: min(1280px, 100%); margin: 0 auto; }
+      .eyebrow { color: var(--mint); font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+      h1 { margin: 12px 0 8px; font-size: clamp(2rem, 5vw, 4rem); letter-spacing: -.05em; line-height: 1; }
+      p { color: var(--muted); }
+      .notice { margin: 28px 0; padding: 18px 20px; border: 1px solid #6a5631; background: rgba(77, 56, 22, .42); color: #ffe2a8; }
+      .table-wrap { overflow-x: auto; border: 1px solid var(--line); background: rgba(21, 37, 53, .9); }
+      table { width: 100%; border-collapse: collapse; min-width: 980px; }
+      th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+      th { color: var(--mint); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+      tr:last-child td { border-bottom: 0; }
+      footer { margin-top: 22px; color: var(--muted); font-size: .85rem; }
+      code { color: #d8e7ff; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Participant Deduplication · PD-1</div>
+      <h1>Synthetic review sheet</h1>
+      <p>Eight invented rows exercise exact, fuzzy, shared-household, and conflicting-DOB cases.</p>
+      <div class="notice"><strong>Synthetic showcase fixture · no participant data.</strong> This sheet is disposable review material. It is not an authenticated Google Sheet, does not contain real contacts, and must never be used as an apply target.</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>First</th><th>Middle</th><th>Last</th><th>DOB</th><th>Address</th><th>City</th><th>State</th><th>ZIP</th><th>Email</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr><td>PD-001</td><td>Lume</td><td></td><td>Vask</td><td>04/12/1986</td><td>18 Aldercroft St</td><td>Wexbury</td><td>MA</td><td>01001</td><td>lume.vask@example.test</td><td>intake-a</td></tr>
+            <tr><td>PD-002</td><td>Lume</td><td></td><td>Vask</td><td>04/12/1986</td><td>18 Aldercroft St</td><td>Wexbury</td><td>MA</td><td>01001</td><td>lume.vask@example.test</td><td>intake-a</td></tr>
+            <tr><td>PD-003</td><td>Tavi</td><td></td><td>Corv</td><td>09/08/1991</td><td>42 Brindlewood Ave</td><td>Karnhollow</td><td>NY</td><td>10002</td><td>tavi.corv@example.test</td><td>intake-a</td></tr>
+            <tr><td>PD-004</td><td>Tavii</td><td></td><td>Corv</td><td>09/08/1991</td><td>42 Brindlewood Ave</td><td>Karnhollow</td><td>NY</td><td>10002</td><td>tavi.corv@example.test</td><td>intake-a</td></tr>
+            <tr><td>PD-005</td><td>Pell</td><td></td><td>Mert</td><td>01/01/1900</td><td>77 Cindervale Rd</td><td>Orindale</td><td>OH</td><td>43003</td><td>shared.house@example.test</td><td>intake-b</td></tr>
+            <tr><td>PD-006</td><td>Wyn</td><td></td><td>Mert</td><td>01/01/1900</td><td>77 Cindervale Rd</td><td>Orindale</td><td>OH</td><td>43003</td><td>shared.house@example.test</td><td>intake-b</td></tr>
+            <tr><td>PD-007</td><td>Kesh</td><td></td><td>Pral</td><td>02/14/1988</td><td>9 Duskmere Ln</td><td>Pelmoor</td><td>CA</td><td>90004</td><td>kesh.pral@example.test</td><td>intake-c</td></tr>
+            <tr><td>PD-008</td><td>Kesh</td><td></td><td>Pral</td><td>10/31/1992</td><td>9 Juniper Hollow Way</td><td>Pelmoor</td><td>CA</td><td>90004</td><td>kesh.pral@example.test</td><td>intake-c</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <footer>Source: <code>synthetic-fixture.json</code> · expected matcher outcomes remain in <code>evidence/pd-1-fixture-receipt.json</code>.</footer>
+    </main>
+  </body>
+</html>
