@@ -718,30 +718,26 @@
       "work_disposition_summary": "DS-0 now defines the reusable decision contract; the current repository still implements only its narrower research-issue profile and needs adapters and scenario proof."
     },
     {
-      "blockers": [
-        "BK-1 is blocked pending an approved chapter authorship/permission record, track-level soundtrack rights, font provenance, and an AI-versus-human contribution statement."
-      ],
+      "blockers": [],
       "career_signal": {
         "evidence": "Shows full-stack product work, creative interaction design, audio orchestration, content tooling, and operational thinking.",
         "score": 3.8,
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "A product README and runnable local flow exist. The BK-1 contribution ledger and rights-safe synthetic appendix now have a shareable no-auth preview, but the real chapter, soundtrack, hosted behavior, and short walkthrough remain unproven.",
-        "score": 1.8,
+        "evidence": "An owner-approved synthetic case uses invented text, an original copyright-free music motif, original visuals, a bounded claim ledger, no-auth source page, and reviewed 16:9 binary; direct reader proof, hosting, and readbacks remain open.",
+        "score": 2.5,
         "status": "assessed"
       },
       "display_name": "Book",
       "disposition_source": "Repository audit: owned interactive reading product; not listed as client work",
       "missing_materials": [
-        "approved chapter and asset rights/attribution ledger",
-        "rights-cleared 16:9 product preview",
-        "500-character Handshake description",
-        "public no-auth reader demo or case study",
-        "clear AI and human role statement"
+        "fresh direct reader proof",
+        "hosted no-auth case URL",
+        "external destination readbacks"
       ],
-      "next_step": "Clear BK-1 from showcase-materials/book/route-plan.md: select one representative chapter and complete its rights and attribution ledger.",
-      "next_step_category": "evidence",
+      "next_step": "Continue at BK-2 in showcase-materials/book/route-plan.md: author the full transformation arc for the selected synthetic case, then prove the direct reader surface before hosting.",
+      "next_step_category": "content",
       "product_readiness": {
         "evidence": "The repository documents a working reader and authenticated admin editor with manifest-driven chapters, motion, layered audio, Postgres persistence, Render configuration, and a full-stack smoke path; hosted behavior was not claimed.",
         "score": 3.8,
@@ -750,7 +746,7 @@
       "public_eligibility": "public_showcase",
       "repository_name": "Book",
       "work_disposition": "largely_product_ready",
-      "work_disposition_summary": "The reader and authoring model are substantially present; remaining work centers on one cleared chapter, direct-surface proof, and public packaging."
+      "work_disposition_summary": "The reader and authoring model are substantially present. The selected synthetic case resolves the local material-rights choice without using the real book or music; remaining work centers on transformation-arc content, direct-surface proof, and public packaging."
     },
     {
       "blockers": [],

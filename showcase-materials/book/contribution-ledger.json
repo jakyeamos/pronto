@@ -2,8 +2,18 @@
   "schema_version": "pronto-showcase-book-contribution-ledger/v1",
   "project": "book",
   "observed_at": "2026-08-13T17:37:05Z",
-  "status": "review_required",
+  "status": "scoped_synthetic_case",
   "publication_ready": false,
+  "showcase_scope": {
+    "mode": "synthetic_only",
+    "approval_record": "evidence/bk-1-synthetic-scope-approval.json",
+    "real_repository_chapter_used": false,
+    "real_repository_audio_used": false,
+    "real_repository_font_used": false,
+    "synthetic_text": "The Signal Room",
+    "synthetic_music": "Original copyright-free Signal Room motif generated from deterministic tone tokens",
+    "claim_boundary": "This scope is approved for local showcase material only; it is not rights clearance for the real Book assets."
+  },
   "observed_surface": {
     "repository": "Book",
     "remote": "https://github.com/jakyeamos/Book.git",
@@ -80,6 +90,7 @@
       "evidence_limit": "A bot commit identity may indicate tooling involvement but does not establish which creative or technical work was AI-assisted."
     }
   ],
+  "required_decisions_scope": "These decisions apply only if the showcase later switches from the approved synthetic case to real repository assets.",
   "required_decisions": [
     "Confirm whether the selected chapter is owner-authored or licensed for public excerpt use.",
     "Record public-use permission and credits for every soundtrack file, or replace the soundtrack with cleared/synthetic audio.",
@@ -89,14 +100,14 @@
   ],
   "synthetic_appendix": {
     "path": "synthetic-fixture.json",
-    "role": "rights_safe_reproducibility_appendix_only",
-    "does_not_clear_bk_1": true
+    "role": "owner_approved_synthetic_showcase_case",
+    "does_not_clear_real_asset_path": true
   },
   "claim_boundary": [
     "The repository implements a manifest-driven interactive reader with chapter-specific motion, layered audio cues, and reader controls.",
     "The local checkout is clean at the observed commit.",
-    "No public chapter, soundtrack, font, AI-role, or hosted behavior clearance is claimed.",
-    "The synthetic appendix is not the product chapter and must stay labeled when shown."
+    "No rights clearance for the real chapter, soundtrack, font, AI-role, or hosted behavior is claimed.",
+    "The synthetic case is approved for local showcase material and must stay labeled when shown."
   ],
-  "next_gap": "BK-1"
+  "next_gap": "BK-2"
 }

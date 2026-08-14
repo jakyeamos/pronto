@@ -3,8 +3,8 @@
   "project": "book",
   "gap": "BK-1",
   "observed_at": "2026-08-13T17:37:05Z",
-  "status": "blocked",
-  "disposition": "parked_pending_chapter_and_asset_rights_record",
+  "status": "resolved_scoped",
+  "disposition": "owner_approved_scoped_synthetic_case",
   "observed_surface": {
     "repository": "Book",
     "checkout": {
@@ -41,18 +41,23 @@
       "No task-level record explains whether AI assistance affected writing, art, audio, or implementation."
     ]
   },
-  "blocked_action": "Do not publish a real chapter excerpt, soundtrack-backed capture, or unqualified AI/human authorship claim until the rights and attribution record is approved.",
+  "blocked_action": "Do not publish a real chapter excerpt, soundtrack-backed capture, or unqualified AI/human authorship claim. The selected synthetic case is approved for local showcase material only.",
   "synthetic_fallback": {
     "path": "showcase-materials/book/synthetic-fixture.json",
-    "status": "available",
+    "status": "replaced_by_approved_synthetic_case",
     "label_required": true,
-    "does_not_clear_bk_1": true
+    "does_not_clear_real_asset_path": true
   },
-  "next_action": "Return to BK-1 with an approved chapter and asset ledger, or explicitly choose a synthetic-only case study; then proceed to BK-2 transformation-arc authoring.",
+  "resolution": {
+    "approval_record": "showcase-materials/book/evidence/bk-1-synthetic-scope-approval.json",
+    "selected_mode": "synthetic_only",
+    "real_asset_path": "blocked_out_of_scope"
+  },
+  "next_action": "Proceed to BK-2 transformation-arc authoring for the selected synthetic case. Reopen real-asset review only if the showcase later switches away from synthetic material.",
   "claim_boundary": [
     "The source supports a local product capability claim for manifest-driven reading, motion, layered audio, and reader controls.",
-    "The rights-safe appendix supports material planning only.",
-    "No public rights clearance, hosted behavior, or AI product role is claimed."
+    "The owner-approved synthetic case supports local showcase material only.",
+    "No rights clearance for real repository assets, hosted behavior, or AI product role is claimed."
   ],
-  "next_gap": "BK-1"
+  "next_gap": "BK-2"
 }
