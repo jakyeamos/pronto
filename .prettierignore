@@ -9,3 +9,4 @@ docs/pronto-behavior-spec.xlsx
 .pre-cr/**
 .pronto/**
 .pytest_cache/**
+showcase-materials/**

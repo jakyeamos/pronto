@@ -3,7 +3,13 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["node_modules/**", "out/**", "dist/**", "src-tauri/target/**"],
+    ignores: [
+      "node_modules/**",
+      "out/**",
+      "dist/**",
+      "src-tauri/target/**",
+      "showcase-materials/fleet-radar/site/**",
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
