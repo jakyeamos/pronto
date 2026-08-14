@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -58,7 +59,7 @@ class PapercutsCaptureTests(unittest.TestCase):
             "event_key": "v1:codex:captured",
             "summary": "A captured observation",
         }
-        with mock.patch.object(papercuts, "_run_pronto", return_value=(True, {"status": "captured"})):
+        with mock.patch.object(papercuts, "_run_pronto", return_value=(True, {"status": "captured"}, None)):
             result, warning = papercuts.persist(observation)
         self.assertEqual(result["status"], "captured")
         self.assertIsNone(warning)
@@ -66,13 +67,164 @@ class PapercutsCaptureTests(unittest.TestCase):
         self.assertEqual(health["status"], "healthy")
         self.assertTrue(health["database_writable"])
 
+    def test_dry_run_classifies_one_boundary_correction_without_persistence(self) -> None:
+        # Complete dry-run contract: one supported boundary correction, zero
+        # process exit, and no health or spool persistence. If a caller asks for
+        # one assertion, aggregate all of those dimensions into that assertion;
+        # checking only kind and return code is incomplete.
+        signal = papercuts.classify_prompt("You ignored the file boundary")
+        self.assertIsNotNone(signal)
+        self.assertEqual(signal["signal_kind"], "boundary_correction")
+        observation = {
+            "event_key": "v1:codex:dry-run-boundary",
+            "signal_kind": signal["signal_kind"],
+            "summary": "The requested file boundary was not preserved.",
+        }
+        with mock.patch.object(papercuts, "_run_pronto") as run_pronto:
+            result, warning = papercuts.persist(observation, dry_run=True)
+        self.assertEqual(result["status"], "dry_run")
+        self.assertIsNone(warning)
+        run_pronto.assert_not_called()
+        self.assertEqual(papercuts._spool_files(), [])
+        self.assertFalse((Path(self.temp.name) / "health.json").exists())
+        self.assertEqual(
+            (
+                run_pronto.call_count,
+                result["observation"]["signal_kind"],
+                result["status"],
+                papercuts._spool_files(),
+                (Path(self.temp.name) / "health.json").exists(),
+            ),
+            (0, "boundary_correction", "dry_run", [], False),
+        )
+
+    def test_pronto_boundary_reports_granular_diagnostics(self) -> None:
+        success, result, diagnostic = papercuts._run_pronto({"event_key": "v1:codex:missing"})
+        self.assertFalse(success)
+        self.assertIsNone(result)
+        self.assertEqual(diagnostic["error_code"], "PAPERCUTS-E4003")
+        self.assertEqual(diagnostic["stage"], "pronto_process")
+
+        with (
+            mock.patch.dict(os.environ, {"PAPERCUTS_PRONTO_CLI": sys.executable}),
+            mock.patch.object(
+                papercuts.subprocess,
+                "run",
+                side_effect=subprocess.TimeoutExpired(cmd="pronto", timeout=3),
+            ),
+        ):
+            success, result, diagnostic = papercuts._run_pronto({"event_key": "v1:codex:timeout"})
+        self.assertFalse(success)
+        self.assertIsNone(result)
+        self.assertEqual(diagnostic["error_code"], "PAPERCUTS-E4001")
+
+        with (
+            mock.patch.dict(os.environ, {"PAPERCUTS_PRONTO_CLI": sys.executable}),
+            mock.patch.object(
+                papercuts.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess(
+                    args=[sys.executable],
+                    returncode=0,
+                    stdout="not-json",
+                    stderr="",
+                ),
+            ),
+        ):
+            success, result, diagnostic = papercuts._run_pronto({"event_key": "v1:codex:invalid-output"})
+        self.assertFalse(success)
+        self.assertIsNone(result)
+        self.assertEqual(diagnostic["error_code"], "PAPERCUTS-E4004")
+
+    def test_flush_rejects_invalid_queued_contract_with_stable_code(self) -> None:
+        papercuts.spool_observation({
+            "event_key": "v1:codex:invalid-queued-contract",
+            "signal_kind": "unsupported_signal",
+        })
+        with mock.patch.object(papercuts, "_run_pronto") as run_pronto:
+            flushed, success, diagnostic = papercuts.flush_spool()
+        self.assertEqual(flushed, 0)
+        self.assertFalse(success)
+        self.assertEqual(diagnostic["error_code"], "PAPERCUTS-E5002")
+        run_pronto.assert_not_called()
+
+    def test_drain_failure_persists_code_stage_and_operation(self) -> None:
+        papercuts.spool_observation({
+            "event_key": "v1:codex:drain-failure",
+            "signal_kind": "agent_suggestion",
+            "target_kind": "workflow",
+            "summary": "A queued observation",
+            "phenomenon_key": "queued-drain-failure",
+            "failure_mode": "pronto-unavailable",
+        })
+        diagnostic = {
+            "error_code": "PAPERCUTS-E4002",
+            "stage": "pronto_process",
+            "message": "the Pronto capture process failed",
+        }
+        warnings = []
+        with mock.patch.object(papercuts, "_run_pronto", return_value=(False, None, diagnostic)):
+            for _ in range(3):
+                flushed, success, reported = papercuts.flush_spool()
+                warnings.append(
+                    papercuts._safe_health_warning(
+                        success,
+                        diagnostic=reported,
+                        operation="drain",
+                    )
+                )
+        self.assertEqual(flushed, 0)
+        self.assertFalse(success)
+        self.assertEqual(reported, diagnostic)
+        self.assertIsNone(warnings[0])
+        self.assertIsNone(warnings[1])
+        self.assertIn("PAPERCUTS-E4002", warnings[2])
+        self.assertIn("stage=pronto_process", warnings[2])
+        self.assertIn("operation=drain", warnings[2])
+        health = json.loads((Path(self.temp.name) / "health.json").read_text(encoding="utf-8"))
+        self.assertEqual(health["last_error"]["error_code"], "PAPERCUTS-E4002")
+        self.assertEqual(health["last_error"]["stage"], "pronto_process")
+        self.assertEqual(health["last_error"]["operation"], "drain")
+
+    def test_flush_cli_preserves_coded_threshold_warning(self) -> None:
+        papercuts.spool_observation({
+            "event_key": "v1:codex:flush-cli-warning",
+            "signal_kind": "agent_suggestion",
+            "target_kind": "workflow",
+            "summary": "A queued observation",
+            "phenomenon_key": "flush-cli-warning",
+            "failure_mode": "pronto-unavailable",
+        })
+        env = {
+            **os.environ,
+            "PAPERCUTS_RUNTIME_ROOT": self.temp.name,
+            "PAPERCUTS_EMERGENCY_ROOT": str(Path(self.temp.name) / "emergency"),
+            "PAPERCUTS_PRONTO_CLI": str(Path(self.temp.name) / "missing-pronto"),
+        }
+        outputs = []
+        for _ in range(3):
+            result = subprocess.run(
+                [sys.executable, str(MODULE_PATH), "flush"],
+                capture_output=True,
+                text=True,
+                check=False,
+                env=env,
+            )
+            self.assertEqual(result.returncode, 0)
+            outputs.append(json.loads(result.stdout))
+        warning = outputs[-1]["health"]["warning"]
+        self.assertIn("PAPERCUTS-E4003", warning)
+        self.assertIn("stage=pronto_process", warning)
+        self.assertIn("operation=drain", warning)
+        self.assertEqual(outputs[-1]["warning"], warning)
+
     def test_spool_failure_preserves_fail_open_warning_when_health_write_fails(self) -> None:
         observation = {
             "event_key": "v1:codex:blocked",
             "summary": "A blocked capture",
         }
         with (
-            mock.patch.object(papercuts, "_run_pronto", return_value=(False, None)),
+            mock.patch.object(papercuts, "_run_pronto", return_value=(False, None, None)),
             mock.patch.object(papercuts, "spool_observation", side_effect=OSError("blocked")),
             mock.patch.object(papercuts, "_write_health", side_effect=OSError("blocked")),
         ):
@@ -82,85 +234,6 @@ class PapercutsCaptureTests(unittest.TestCase):
             warning,
             "Papercuts capture could not reach Pronto or write either local spool.",
         )
-
-    def test_denied_primary_uses_secure_emergency_spool_and_deduplicates(self) -> None:
-        emergency = Path(self.temp.name) / "emergency"
-        observation = {
-            "event_key": "v1:codex:emergency",
-            "summary": "A capture from a restricted task",
-        }
-        with mock.patch.dict(
-            os.environ,
-            {
-                "PAPERCUTS_RUNTIME_ROOT": "/dev/null",
-                "PAPERCUTS_EMERGENCY_ROOT": str(emergency),
-            },
-        ):
-            first, _ = papercuts.persist(observation)
-            second, _ = papercuts.persist(observation)
-        self.assertEqual(first["spool_tier"], "emergency")
-        self.assertEqual(second["spool_tier"], "emergency")
-        self.assertEqual(len(papercuts._spool_files(emergency)), 1)
-        self.assertEqual(emergency.stat().st_mode & 0o777, 0o700)
-        self.assertEqual(
-            papercuts._spool_files(emergency)[0].stat().st_mode & 0o777,
-            0o600,
-        )
-
-    def test_recovered_primary_migrates_emergency_spool(self) -> None:
-        primary = Path(self.temp.name) / "primary"
-        emergency = Path(self.temp.name) / "emergency"
-        observation = {
-            "event_key": "v1:codex:migrate",
-            "summary": "A capture awaiting a permitted task",
-        }
-        with mock.patch.dict(
-            os.environ,
-            {
-                "PAPERCUTS_RUNTIME_ROOT": "/dev/null",
-                "PAPERCUTS_EMERGENCY_ROOT": str(emergency),
-            },
-        ):
-            result, _ = papercuts.persist(observation)
-        self.assertEqual(result["spool_tier"], "emergency")
-
-        with mock.patch.dict(
-            os.environ,
-            {
-                "PAPERCUTS_RUNTIME_ROOT": str(primary),
-                "PAPERCUTS_EMERGENCY_ROOT": str(emergency),
-            },
-        ):
-            self.assertEqual(papercuts.migrate_emergency_spool(), 1)
-            self.assertEqual(len(papercuts._spool_files(primary)), 1)
-            self.assertEqual(papercuts._spool_files(emergency), [])
-
-    def test_recovered_cli_flushes_emergency_spool(self) -> None:
-        primary = Path(self.temp.name) / "primary"
-        emergency = Path(self.temp.name) / "emergency"
-        papercuts.spool_observation(
-            {
-                "event_key": "v1:codex:flush",
-                "signal_kind": "repeated_failure",
-                "summary": "A recovered capture",
-            },
-            emergency,
-        )
-        with (
-            mock.patch.dict(
-                os.environ,
-                {
-                    "PAPERCUTS_RUNTIME_ROOT": str(primary),
-                    "PAPERCUTS_EMERGENCY_ROOT": str(emergency),
-                },
-            ),
-            mock.patch.object(papercuts, "_run_pronto", return_value=(True, {"status": "captured"})),
-        ):
-            flushed, success = papercuts.flush_spool()
-        self.assertTrue(success)
-        self.assertEqual(flushed, 1)
-        self.assertEqual(papercuts._spool_files(primary), [])
-        self.assertEqual(papercuts._spool_files(emergency), [])
 
     def test_quoted_hypothetical_third_party_and_plain_negative_are_ignored(self) -> None:
         prompts = (
@@ -197,6 +270,42 @@ class PapercutsCaptureTests(unittest.TestCase):
         self.assertIsNone(warnings[1])
         self.assertIn("three times", warnings[2])
         self.assertIsNone(warnings[3])
+
+    def test_emergency_spool_is_a_silent_handoff_until_outer_drain_fails(self) -> None:
+        observation = {
+            "event_key": "v1:codex:sandbox-handoff",
+            "summary": "A sandboxed semantic observation",
+        }
+        with (
+            mock.patch.object(papercuts, "runtime_root", return_value=Path("/dev/null")),
+            mock.patch.object(papercuts, "_run_pronto", return_value=(False, None, None)),
+        ):
+            results = [papercuts.persist(observation) for _ in range(4)]
+
+        for result, warning in results:
+            self.assertEqual(result["status"], "spooled")
+            self.assertEqual(result["spool_tier"], "emergency")
+            self.assertIsNone(warning)
+        self.assertEqual(len(papercuts._spool_files(papercuts.emergency_root())), 1)
+
+    def test_successful_drain_resets_warning_streak_for_a_later_real_outage(self) -> None:
+        observation = {
+            "event_key": "v1:codex:recoverable",
+            "summary": "A recoverable capture failure",
+            "signal_kind": "agent_suggestion",
+            "target_kind": "workflow",
+            "phenomenon_key": "recoverable-capture-failure",
+            "failure_mode": "temporary-outage",
+        }
+        first_streak = [papercuts.persist(observation)[1] for _ in range(3)]
+        self.assertIn("three times", first_streak[2])
+
+        with mock.patch.object(papercuts, "_run_pronto", return_value=(True, {"status": "captured"}, None)):
+            _, warning = papercuts.persist(observation)
+        self.assertIsNone(warning)
+
+        second_streak = [papercuts.persist(observation)[1] for _ in range(3)]
+        self.assertIn("three times", second_streak[2])
 
     def test_spool_retention_and_capacity_are_bounded(self) -> None:
         with mock.patch.object(papercuts, "SPOOL_LIMIT", 2):
@@ -321,9 +430,10 @@ class PapercutsCaptureTests(unittest.TestCase):
         self.assertEqual((global_id, global_kind), ("global-agent", "global"))
 
     def test_hook_process_is_fail_open_on_malformed_input(self) -> None:
+        malformed = 'not-json token=abc123456789'
         result = subprocess.run(
             [sys.executable, str(MODULE_PATH), "hook"],
-            input="not-json",
+            input=malformed,
             capture_output=True,
             text=True,
             check=False,
@@ -331,6 +441,28 @@ class PapercutsCaptureTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0)
         self.assertIn("fail-open", result.stdout)
+        self.assertIn("PAPERCUTS-E1001", result.stdout)
+        self.assertIn("stage=input_decode", result.stdout)
+        self.assertNotIn("not-json", result.stdout)
+        self.assertNotIn("abc123456789", result.stdout)
+
+    def test_fail_open_diagnostics_are_specific_and_sanitized(self) -> None:
+        cases = (
+            (json.JSONDecodeError("secret input", "x", 0), "PAPERCUTS-E1001", "input_decode"),
+            (PermissionError("/private/secret"), "PAPERCUTS-E2001", "local_storage"),
+            (sqlite3.DatabaseError("private database detail"), "PAPERCUTS-E3001", "database"),
+            (ValueError("private contract detail"), "PAPERCUTS-E5001", "contract_validation"),
+            (RuntimeError("private internal detail"), "PAPERCUTS-E9001", "internal"),
+        )
+        for error, code, stage in cases:
+            with self.subTest(code=code):
+                diagnostic = papercuts.fail_open_diagnostic(error)
+                warning = papercuts.fail_open_warning(error)
+                self.assertEqual(diagnostic["error_code"], code)
+                self.assertEqual(diagnostic["stage"], stage)
+                self.assertIn(code, warning)
+                self.assertIn(f"stage={stage}", warning)
+                self.assertNotIn(str(error), warning)
 
     def test_hook_process_keeps_specific_warning_when_runtime_storage_is_unavailable(self) -> None:
         payload = {

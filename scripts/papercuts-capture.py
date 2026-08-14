@@ -56,6 +56,7 @@ CAPABILITY_WORDS = re.compile(
 VALID_SIGNAL_KINDS = {
     "dissatisfaction",
     "correction",
+    "boundary_correction",
     "failure_report",
     "failed_verification",
     "repeated_failure",
@@ -80,6 +81,110 @@ PRIORITY_ALIASES = {
     "normal": "P2",
     "low": "P3",
 }
+
+# Stable public diagnostics for the fail-open process boundary. These codes are
+# intentionally more specific than the process exit status (which remains zero
+# for hook safety) and never include exception messages or user-controlled data.
+FAIL_OPEN_ERROR_CODES = {
+    "input_json_invalid": ("PAPERCUTS-E1001", "input_decode", "input was not valid JSON"),
+    "input_encoding_invalid": ("PAPERCUTS-E1002", "input_decode", "input was not valid UTF-8 text"),
+    "storage_permission_denied": (
+        "PAPERCUTS-E2001",
+        "local_storage",
+        "collector storage permission was denied",
+    ),
+    "storage_path_missing": (
+        "PAPERCUTS-E2002",
+        "local_storage",
+        "a required collector storage path was missing",
+    ),
+    "database_failure": ("PAPERCUTS-E3001", "database", "collector database access failed"),
+    "child_process_timeout": (
+        "PAPERCUTS-E4001",
+        "pronto_process",
+        "the Pronto capture process timed out",
+    ),
+    "child_process_failure": (
+        "PAPERCUTS-E4002",
+        "pronto_process",
+        "the Pronto capture process failed",
+    ),
+    "pronto_cli_unavailable": (
+        "PAPERCUTS-E4003",
+        "pronto_process",
+        "the Pronto capture executable was unavailable",
+    ),
+    "pronto_output_invalid": (
+        "PAPERCUTS-E4004",
+        "pronto_process",
+        "the Pronto capture process returned invalid JSON",
+    ),
+    "contract_invalid": (
+        "PAPERCUTS-E5001",
+        "contract_validation",
+        "the capture contract was invalid",
+    ),
+    "spooled_contract_invalid": (
+        "PAPERCUTS-E5002",
+        "contract_validation",
+        "a spooled observation failed contract validation",
+    ),
+    "io_failure": ("PAPERCUTS-E6001", "io", "collector I/O failed"),
+    "spool_read_failure": (
+        "PAPERCUTS-E6002",
+        "io",
+        "the collector could not read a spooled observation",
+    ),
+    "spool_delete_failure": (
+        "PAPERCUTS-E6003",
+        "io",
+        "the collector could not remove a flushed spool file",
+    ),
+    "unexpected": (
+        "PAPERCUTS-E9001",
+        "internal",
+        "an unexpected collector error occurred",
+    ),
+}
+
+
+def diagnostic_for(key: str) -> dict[str, str]:
+    code, stage, message = FAIL_OPEN_ERROR_CODES[key]
+    return {"error_code": code, "stage": stage, "message": message}
+
+
+def fail_open_diagnostic(error: BaseException) -> dict[str, str]:
+    """Return a sanitized, stable diagnostic for an unexpected top-level error."""
+    if isinstance(error, json.JSONDecodeError):
+        key = "input_json_invalid"
+    elif isinstance(error, UnicodeError):
+        key = "input_encoding_invalid"
+    elif isinstance(error, PermissionError):
+        key = "storage_permission_denied"
+    elif isinstance(error, FileNotFoundError):
+        key = "storage_path_missing"
+    elif isinstance(error, sqlite3.Error):
+        key = "database_failure"
+    elif isinstance(error, subprocess.TimeoutExpired):
+        key = "child_process_timeout"
+    elif isinstance(error, subprocess.SubprocessError):
+        key = "child_process_failure"
+    elif isinstance(error, (KeyError, TypeError, ValueError)):
+        key = "contract_invalid"
+    elif isinstance(error, OSError):
+        key = "io_failure"
+    else:
+        key = "unexpected"
+    return diagnostic_for(key)
+
+
+def fail_open_warning(error: BaseException) -> str:
+    diagnostic = fail_open_diagnostic(error)
+    return (
+        "Papercuts capture remained fail-open "
+        f"[{diagnostic['error_code']}; stage={diagnostic['stage']}]: "
+        f"{diagnostic['message']}."
+    )
 
 
 def runtime_root() -> Path:
@@ -238,7 +343,7 @@ def classify_prompt(prompt: str) -> dict[str, str] | None:
     text = " ".join(prompt.casefold().split())
     correction = re.search(
         r"\b(?:you(?:'re| are| were) wrong|that(?:'s| is| was) (?:wrong|incorrect)|"
-        r"your (?:answer|response) is (?:wrong|incorrect)|you missed|i (?:said|asked for) .{0,80} not|"
+        r"your (?:answer|response) is (?:wrong|incorrect)|you (?:missed|ignored)|i (?:said|asked for) .{0,80} not|"
         r"no,? (?:i meant|that is not|you need to)|let me correct you)\b",
         text,
     )
@@ -253,7 +358,8 @@ def classify_prompt(prompt: str) -> dict[str, str] | None:
         text,
     )
     if correction:
-        kind, mode = "correction", "incorrect_output"
+        kind = "boundary_correction" if re.search(r"\b(?:boundary|scope|path)\b", text) else "correction"
+        mode = "boundary_not_preserved" if kind == "boundary_correction" else "incorrect_output"
     elif failure:
         kind, mode = "failure_report", "reported_not_working"
     elif dissatisfaction:
@@ -267,6 +373,7 @@ def classify_prompt(prompt: str) -> dict[str, str] | None:
         "failure_mode": mode,
         "summary": {
             "correction": "User explicitly corrected the current interaction outcome.",
+            "boundary_correction": "User explicitly corrected a scope or file-boundary violation.",
             "failure_report": "User explicitly reported that the current outcome does not work.",
             "dissatisfaction": "User explicitly expressed dissatisfaction with the current outcome.",
         }[kind],
@@ -623,11 +730,26 @@ def migrate_emergency_spool() -> int:
     return migrated
 
 
-def _run_pronto(observation: dict[str, Any], dry_run: bool = False) -> tuple[bool, dict[str, Any] | None]:
+def _load_spooled_observation(path: Path) -> tuple[dict[str, Any] | None, dict[str, str] | None]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError):
+        return None, diagnostic_for("spool_read_failure")
+    except json.JSONDecodeError:
+        return None, diagnostic_for("spooled_contract_invalid")
+    if not isinstance(value, dict):
+        return None, diagnostic_for("spooled_contract_invalid")
+    return value, None
+
+
+def _run_pronto(
+    observation: dict[str, Any],
+    dry_run: bool = False,
+) -> tuple[bool, dict[str, Any] | None, dict[str, str] | None]:
     configured = os.environ.get("PAPERCUTS_PRONTO_CLI")
     executable = Path(configured).expanduser() if configured else DEFAULT_CLI
     if not executable.is_file() or not os.access(executable, os.X_OK):
-        return False, None
+        return False, None, diagnostic_for("pronto_cli_unavailable")
     command = [str(executable), "papercuts", "observe", "--stdin", "--json"]
     if dry_run:
         command.append("--dry-run")
@@ -641,17 +763,25 @@ def _run_pronto(observation: dict[str, Any], dry_run: bool = False) -> tuple[boo
             check=False,
         )
         if result.returncode != 0:
-            return False, None
+            return False, None, diagnostic_for("child_process_failure")
         value = json.loads(result.stdout)
-        return isinstance(value, dict), value if isinstance(value, dict) else None
-    except (OSError, subprocess.SubprocessError, json.JSONDecodeError):
-        return False, None
+        if not isinstance(value, dict):
+            return False, None, diagnostic_for("pronto_output_invalid")
+        return True, value, None
+    except subprocess.TimeoutExpired:
+        return False, None, diagnostic_for("child_process_timeout")
+    except (OSError, subprocess.SubprocessError):
+        return False, None, diagnostic_for("child_process_failure")
+    except (UnicodeError, json.JSONDecodeError):
+        return False, None, diagnostic_for("pronto_output_invalid")
 
 
 def _write_health(
     success: bool,
     warning: str | None = None,
     root: Path | None = None,
+    diagnostic: dict[str, str] | None = None,
+    operation: str | None = None,
 ) -> dict[str, Any]:
     path = _health_path(root)
     health = load_json(path, {})
@@ -660,11 +790,20 @@ def _write_health(
     oldest = None
     if paths:
         oldest = datetime.fromtimestamp(paths[0].stat().st_mtime, timezone.utc).isoformat().replace("+00:00", "Z")
+    if diagnostic:
+        health["last_error"] = {
+            **diagnostic,
+            "operation": operation or "unknown",
+            "observed_at": now_iso(),
+        }
     health.update({
         "schema_version": SCHEMA_VERSION,
         "status": "healthy" if success and not paths else ("degraded" if failures < 3 else "failing"),
         "database_writable": success,
         "consecutive_failures": failures,
+        # A warning is emitted once per uninterrupted failure streak. Reset the
+        # marker only after a successful drain so a later real outage can warn.
+        "last_warned_failure_count": 0 if success else int(health.get("last_warned_failure_count", 0)),
         "spooled_events": len(paths),
         "oldest_spool_at": oldest,
         "last_success_at": now_iso() if success else health.get("last_success_at"),
@@ -675,14 +814,35 @@ def _write_health(
     return health
 
 
-def _threshold_warning(health: dict[str, Any], root: Path | None = None) -> str | None:
+def _diagnostic_suffix(
+    diagnostic: dict[str, str] | None,
+    operation: str | None = None,
+) -> str:
+    if not diagnostic:
+        return ""
+    return (
+        f" [{diagnostic['error_code']}; stage={diagnostic['stage']}; "
+        f"operation={operation or 'unknown'}]"
+    )
+
+
+def _threshold_warning(
+    health: dict[str, Any],
+    root: Path | None = None,
+    diagnostic: dict[str, str] | None = None,
+    operation: str | None = None,
+) -> str | None:
     failures = int(health.get("consecutive_failures", 0))
     if failures < 3:
         return None
     last_warned = int(health.get("last_warned_failure_count", 0))
     if last_warned >= 3:
         return None
-    warning = "Papercuts capture has failed to flush three times; observations remain locally spooled."
+    warning = (
+        "Papercuts capture has failed to flush three times"
+        f"{_diagnostic_suffix(diagnostic, operation)}; "
+        "observations remain locally spooled."
+    )
     health["last_warned_failure_count"] = failures
     health["warning"] = warning
     atomic_json(_health_path(root), health)
@@ -693,63 +853,108 @@ def _safe_health_warning(
     success: bool,
     warning: str | None = None,
     fallback: str | None = None,
+    diagnostic: dict[str, str] | None = None,
+    operation: str | None = None,
 ) -> str | None:
     """Keep health bookkeeping fail-open when its storage is unavailable."""
     for root in spool_roots():
         try:
-            return _threshold_warning(_write_health(success, warning, root), root)
+            return _threshold_warning(
+                _write_health(success, warning, root, diagnostic, operation),
+                root,
+                diagnostic,
+                operation,
+            )
         except (OSError, TypeError, ValueError):
             continue
     return fallback
 
 
-def flush_spool(limit: int = 100) -> tuple[int, bool]:
+def flush_spool(limit: int = 100) -> tuple[int, bool, dict[str, str] | None]:
     migrate_emergency_spool()
     flushed = 0
     all_success = True
     for root in spool_roots():
         prune_spool(root)
     for path in _all_spool_files()[:limit]:
-        observation = load_json(path, {})
+        observation, diagnostic = _load_spooled_observation(path)
+        if diagnostic:
+            return flushed, False, diagnostic
         try:
             observation = normalize_semantic_contract(observation)
         except ValueError:
-            all_success = False
-            break
-        success, _ = _run_pronto(observation)
+            return flushed, False, diagnostic_for("spooled_contract_invalid")
+        success, _, diagnostic = _run_pronto(observation)
         if not success:
-            all_success = False
-            break
+            return flushed, False, diagnostic
         try:
             path.unlink()
         except OSError:
-            all_success = False
-            break
+            return flushed, False, diagnostic_for("spool_delete_failure")
         flushed += 1
-    return flushed, all_success
+    return flushed, all_success, None
+
+
+def _with_diagnostic(
+    result: dict[str, Any],
+    diagnostic: dict[str, str] | None,
+) -> dict[str, Any]:
+    if not diagnostic:
+        return result
+    return {**result, "diagnostic": diagnostic}
 
 
 def persist(observation: dict[str, Any], dry_run: bool = False) -> tuple[dict[str, Any], str | None]:
-    migrate_emergency_spool()
-    success, result = _run_pronto(observation, dry_run=dry_run)
     if dry_run:
-        return result or {"status": "dry_run", "observation": observation}, None
+        # Dry-run is a pure contract check: normalize the observation locally
+        # and return the plan without migrating spools, writing health state, or
+        # invoking the Pronto process.
+        normalized = normalize_semantic_contract(dict(observation))
+        return {"status": "dry_run", "observation": normalized}, None
+    migrate_emergency_spool()
+    success, result, diagnostic = _run_pronto(observation, dry_run=dry_run)
     if success:
-        _, flush_success = flush_spool()
-        return result or {"status": "captured"}, _safe_health_warning(flush_success)
+        _, flush_success, flush_diagnostic = flush_spool()
+        return _with_diagnostic(
+            result or {"status": "captured"},
+            flush_diagnostic,
+        ), _safe_health_warning(
+            flush_success,
+            diagnostic=flush_diagnostic,
+            operation="drain",
+        )
     for tier, root in (("primary", runtime_root()), ("emergency", emergency_root())):
         try:
             spool_observation(observation, root)
-            return {
+            return _with_diagnostic({
                 "status": "spooled",
                 "spooled": True,
                 "spool_tier": tier,
-            }, _safe_health_warning(False)
+            }, diagnostic), (
+                _safe_health_warning(
+                    False,
+                    diagnostic=diagnostic,
+                    operation="capture",
+                )
+                if tier == "primary"
+                # Repository-sandboxed semantic capture cannot always write
+                # Pronto Application Support. Its emergency spool is a normal
+                # handoff to the outer PostToolUse hook, which owns the drain
+                # attempt and shared failure accounting.
+                else None
+            )
         except OSError:
             continue
     warning = "Papercuts capture could not reach Pronto or write either local spool."
-    _safe_health_warning(False, warning, fallback=warning)
-    return {"status": "failed_open", "spooled": False}, warning
+    warning = f"{warning[:-1]}{_diagnostic_suffix(diagnostic, 'capture')}." if diagnostic else warning
+    _safe_health_warning(
+        False,
+        warning,
+        fallback=warning,
+        diagnostic=diagnostic,
+        operation="capture",
+    )
+    return _with_diagnostic({"status": "failed_open", "spooled": False}, diagnostic), warning
 
 
 def hook_warning(event: str, warning: str) -> None:
@@ -780,10 +985,15 @@ def handle_hook(payload: dict[str, Any]) -> None:
         has_spool = False
     if not observations and has_spool:
         try:
-            _, success = flush_spool(20)
+            _, success, diagnostic = flush_spool(20)
         except (OSError, TypeError, ValueError):
             success = False
-        warning = _safe_health_warning(success)
+            diagnostic = diagnostic_for("io_failure")
+        warning = _safe_health_warning(
+            success,
+            diagnostic=diagnostic,
+            operation="drain",
+        )
     if warning:
         hook_warning(event, warning)
 
@@ -830,16 +1040,28 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if args.mode == "flush":
-        flushed, success = flush_spool(SPOOL_LIMIT)
+        flushed, success, diagnostic = flush_spool(SPOOL_LIMIT)
         health = None
+        warning = None
         for root in spool_roots():
             try:
-                health = _write_health(success, root=root)
+                health = _write_health(
+                    success,
+                    root=root,
+                    diagnostic=diagnostic,
+                    operation="drain",
+                )
+                warning = _threshold_warning(health, root, diagnostic, "drain")
                 break
-            except OSError:
+            except (OSError, TypeError, ValueError):
                 continue
         health = health or {"status": "unavailable", "database_writable": False}
-        print(json.dumps({"status": "ok" if success else "degraded", "flushed": flushed, "health": health}))
+        payload = {"status": "ok" if success else "degraded", "flushed": flushed, "health": health}
+        if diagnostic:
+            payload["diagnostic"] = diagnostic
+        if warning:
+            payload["warning"] = warning
+        print(json.dumps(payload))
         return 0
     payload = json.load(sys.stdin)
     if not isinstance(payload, dict):
@@ -858,12 +1080,12 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except SystemExit:
         raise
-    except Exception:
+    except Exception as error:
         # Hooks are deliberately fail-open. If even the health/spool path is
-        # unusable, emit one concise warning and still exit successfully.
+        # unusable, emit one sanitized coded warning and still exit successfully.
         try:
             event = "UserPromptSubmit"
-            hook_warning(event, "Papercuts capture encountered an internal error and remained fail-open.")
+            hook_warning(event, fail_open_warning(error))
         except Exception:
             pass
         raise SystemExit(0)
