@@ -16,6 +16,7 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::migrates_schema_v1_for_action_audits",
         "pnpm typecheck"
       ],
       "status": "applicable"
