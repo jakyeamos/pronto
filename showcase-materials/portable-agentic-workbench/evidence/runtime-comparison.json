@@ -1,0 +1,116 @@
+{
+  "schema_version": "pronto-showcase-portable-workbench-runtime-comparison/v1",
+  "project": "portable-agentic-workbench",
+  "case_id": "PW-1-safe-tool-guards",
+  "captured_on": "2026-08-13",
+  "policy": {
+    "network": "deny",
+    "provider_calls": "not_allowed",
+    "host_registration": "not_allowed",
+    "source_contract": "workflows/safe-tool-guards/CONTRACT.md"
+  },
+  "overall": {
+    "status": "blocked",
+    "reason_code": "host_behavior_requires_unpermitted_runtime_execution",
+    "claim": "No host-runtime equivalence claim is made."
+  },
+  "runtime_probes": [
+    {
+      "id": "generic",
+      "target": "generic",
+      "executable": null,
+      "availability": "unavailable",
+      "reason_code": "adapter_has_no_executable_runtime",
+      "evidence": "adapters/generic/WORKBENCH.md declares no external runtime dependency."
+    },
+    {
+      "id": "codex",
+      "target": "codex",
+      "executable": "codex",
+      "availability": "available",
+      "version": "codex-cli 0.147.0-alpha.6.5",
+      "probe_commands": [
+        {
+          "command": "codex --version",
+          "status": "pass",
+          "output_sha256": "5ec54e99ca12824e33408d74dbae1c57771c3257607b1e7d390f44ab11609704"
+        },
+        {
+          "command": "codex exec --help",
+          "status": "pass",
+          "output_sha256": "54a02c40dfc9a9277aa9dbf99ea94777168535d429d96e46817c92111a3daf6a"
+        }
+      ],
+      "execution": {
+        "status": "blocked",
+        "reason_code": "provider_execution_not_permitted",
+        "evidence": "The available non-interactive path is provider-backed; no local OSS provider executable is installed."
+      }
+    }
+  ],
+  "local_provider_fallback": {
+    "ollama": {
+      "status": "unavailable",
+      "reason_code": "executable_missing"
+    },
+    "lmstudio": {
+      "status": "unavailable",
+      "reason_code": "executable_missing"
+    }
+  },
+  "scenarios": [
+    {
+      "id": "positive-bounded-action",
+      "trigger": "A bounded read-only or reversible action is presented with explicit targets.",
+      "generic": {
+        "status": "unavailable",
+        "reason_code": "adapter_has_no_executable_runtime"
+      },
+      "codex": {
+        "status": "blocked",
+        "reason_code": "provider_execution_not_permitted"
+      },
+      "comparison_status": "blocked"
+    },
+    {
+      "id": "negative-unsafe-scope",
+      "trigger": "An unresolved, out-of-scope, or credential-bearing action is presented.",
+      "generic": {
+        "status": "unavailable",
+        "reason_code": "adapter_has_no_executable_runtime"
+      },
+      "codex": {
+        "status": "blocked",
+        "reason_code": "provider_execution_not_permitted"
+      },
+      "comparison_status": "blocked"
+    },
+    {
+      "id": "boundary-manual-registration",
+      "trigger": "A hook or host configuration change would require registration after staging.",
+      "generic": {
+        "status": "unavailable",
+        "reason_code": "adapter_has_no_executable_runtime"
+      },
+      "codex": {
+        "status": "blocked",
+        "reason_code": "host_registration_not_permitted"
+      },
+      "comparison_status": "blocked"
+    }
+  ],
+  "supported_by_this_probe": [
+    "The generic and Codex executables can be distinguished from the portable install projection.",
+    "The Codex CLI is present, but its provider-backed execution path is outside the public workbench validation policy.",
+    "The existing installer and recovery receipts remain the only exercised behavior for this showcase case."
+  ],
+  "not_supported_by_this_probe": [
+    "Equivalent agent decisions or tool calls across generic and Codex.",
+    "Host hook registration, approval prompts, provider responses, or model quality.",
+    "Rollback of host-managed registration or provider runtime state."
+  ],
+  "next_action": {
+    "owner": "runtime/provider owner",
+    "required": "Provide a documented offline host adapter or separately authorize provider-backed execution while preserving the no-registration boundary."
+  }
+}

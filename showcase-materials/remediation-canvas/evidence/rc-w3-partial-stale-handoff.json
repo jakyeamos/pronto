@@ -1,0 +1,47 @@
+{
+  "schema_version": "remediation-canvas-showcase-evidence-v0.1",
+  "project": "remediation-canvas",
+  "source_repository": "remediation-canvas",
+  "source_revision": "d79c57462de81dab7714fac0f96789f09c1144ed",
+  "fixture_target_revision": "05cfd22ce693c2008f6f0128dccba3daa51f8ce8",
+  "observed_at": "2026-08-13T23:42:00Z",
+  "source": {
+    "producer": "quality-lens",
+    "path": ".remediation-canvas/findings.json",
+    "authority_copied": false
+  },
+  "fresh_handoff": {
+    "init_status": "initialized",
+    "refresh_status": "fresh",
+    "finding_fingerprint": "5a26b51ccf531e1d",
+    "group": {
+      "finding_ids": ["QL-FIX-001", "QL-FIX-002", "QL-FIX-003"],
+      "intent": "Needs a focused fixture before apply",
+      "dispositions": {
+        "QL-FIX-001": "resolved",
+        "QL-FIX-002": "blocked",
+        "QL-FIX-003": "unresolved"
+      },
+      "next_action": "QL-FIX-001"
+    }
+  },
+  "stale_refresh": {
+    "status": "stale",
+    "previous_fingerprint": "5a26b51ccf531e1d",
+    "current_fingerprint": "b39b7d6ddf0c1368",
+    "changed_source": "QL-FIX-003 replaced by QL-FIX-004",
+    "partial_work_preserved": true,
+    "original_group_still_visible": ["QL-FIX-001", "QL-FIX-002", "QL-FIX-003"]
+  },
+  "negative_contracts": {
+    "unknown_disposition_rejected": "verified_by_unit_test",
+    "change_before_canvas_blocked": "verified_by_unit_test",
+    "changed_finding_set_marks_stale": "verified_by_fixture"
+  },
+  "privacy": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local Quality Lens reference fixture"
+  },
+  "claim_boundary": "This receipt proves stable references, human intent, partial dispositions, and stale refresh for one local fixture. It does not claim Quality Lens or review-tool integration, automatic resolution, hosting, or publication."
+}

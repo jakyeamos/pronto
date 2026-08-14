@@ -1,0 +1,322 @@
+{
+  "schema_version": "pronto-showcase-agent-router-gap-receipt/v1",
+  "project": "agent-router",
+  "gaps": ["AR-2", "AR-3"],
+  "observed_at": "2026-08-13T18:46:13Z",
+  "status": "passed_as_native_replay_candidate_evidence",
+  "source": {
+    "repository": "agent-router",
+    "branch": "dev",
+    "commit": "4f0c7db5405caaf1915a972c8c6eb9806a3209e6",
+    "checkout_status": "clean_at_inspection",
+    "package_manager": "pnpm@10.12.4",
+    "runtime_entrypoints": [
+      "packages/core/src/catalog.ts#createReplayCatalog",
+      "packages/core/src/router.ts#createTaskPlan",
+      "packages/core/src/router.ts#makeCandidate",
+      "packages/schemas/src/index.ts#CandidateScoreSchema"
+    ]
+  },
+  "case": {
+    "case_id": "ar-1-launch-readiness",
+    "fixture": "../replay-case.json",
+    "source_kind": "synthetic_reproducibility_appendix",
+    "role": "candidate_comparison_appendix",
+    "reason_for_synthetic_case": "The replay fixture is the repository's safe evidence seam; no real provider-backed launch request or provider invocation is authorized for this showcase packet.",
+    "provider_invocations": 0,
+    "provider_execution_claim": false
+  },
+  "verification": {
+    "options": {
+      "require_available": true,
+      "quality_floor": 0.62,
+      "capacity_preference": true,
+      "fixed_now": "2026-08-13T18:44:00.000Z"
+    },
+    "repository_quality": [
+      {
+        "command": "pnpm install --frozen-lockfile",
+        "status": "passed",
+        "evidence": "Lockfile was current and the seven-package workspace was already up to date."
+      },
+      {
+        "command": "pnpm run test -- --coverage",
+        "status": "passed",
+        "tests": "4 files, 15 tests"
+      },
+      {
+        "command": "pnpm run typecheck",
+        "status": "passed"
+      },
+      {
+        "command": "pnpm run lint",
+        "status": "passed"
+      },
+      {
+        "command": "pnpm run quality:contract",
+        "status": "passed",
+        "checks": [
+          "8 context packets present",
+          "strict TypeScript enabled",
+          "0 tracked secret paths",
+          "required Pre-CR adapter present"
+        ]
+      }
+    ],
+    "native_probe": {
+      "status": "passed",
+      "intent_id": "ar-1-launch-readiness",
+      "subtask_ids": [
+        "ar-1-launch-readiness-plan",
+        "ar-1-launch-readiness-execute",
+        "ar-1-launch-readiness-verify"
+      ],
+      "winner_by_subtask": {
+        "ar-1-launch-readiness-plan": "codex",
+        "ar-1-launch-readiness-execute": "codex",
+        "ar-1-launch-readiness-verify": "codex"
+      },
+      "winner_confidence_by_subtask": {
+        "ar-1-launch-readiness-plan": "high",
+        "ar-1-launch-readiness-execute": "high",
+        "ar-1-launch-readiness-verify": "high"
+      },
+      "candidate_order_stable_across_subtasks": true,
+      "score_precision": "Projected scores are rounded to six decimal places; eligibility and ordering come from the native result."
+    }
+  },
+  "candidate_packet": {
+    "decision_scope": "ar-1-launch-readiness-plan",
+    "subtask_ids_covered": [
+      "ar-1-launch-readiness-plan",
+      "ar-1-launch-readiness-execute",
+      "ar-1-launch-readiness-verify"
+    ],
+    "score_factors": {
+      "quality_weight": 0.62,
+      "capability_weight": 0.18,
+      "reasoning_weight": 0.15,
+      "capacity_weight": 0.08,
+      "exploration_weight": 0.05
+    },
+    "quality_floor": 0.62,
+    "cost_signal": "Observed usagePerTask is a relative usage proxy only; no currency cost is claimed.",
+    "candidates": [
+      {
+        "provider_id": "codex",
+        "model_id": "codex-default",
+        "eligible": true,
+        "score": 0.93935,
+        "quality_estimate": 0.8925,
+        "capability_fit": 1,
+        "reasoning_fit": 1,
+        "evidence_confidence": "high",
+        "capacity_signal": 0.7,
+        "exploration_signal": 0,
+        "availability": "available",
+        "supports_native_execution": true,
+        "supports_task_type": true,
+        "observed_task_evidence": {
+          "task_type": "repo_edit_with_tests",
+          "quality_score": 0.91,
+          "success_rate": 0.95,
+          "usage_per_task": 0.62,
+          "sample_count": 8,
+          "confidence": "high",
+          "provisional": false
+        },
+        "disqualifiers": [],
+        "rationale": "Selected: highest eligible quality-adjusted score with high-confidence task evidence and confirmed replay availability."
+      },
+      {
+        "provider_id": "cursor",
+        "model_id": "cursor-default",
+        "eligible": true,
+        "score": 0.8908,
+        "quality_estimate": 0.79,
+        "capability_fit": 1,
+        "reasoning_fit": 1,
+        "evidence_confidence": "low",
+        "capacity_signal": 0.85,
+        "exploration_signal": 0.06,
+        "availability": "available",
+        "supports_native_execution": true,
+        "supports_task_type": true,
+        "observed_task_evidence": {
+          "task_type": "repo_edit_with_tests",
+          "quality_score": 0.79,
+          "success_rate": 0.83,
+          "usage_per_task": 0.61,
+          "sample_count": 2,
+          "confidence": "low",
+          "provisional": true
+        },
+        "disqualifiers": [],
+        "rationale": "Credible eligible alternative, but its lower quality estimate and low-confidence sample leave it below Codex despite stronger replay capacity."
+      },
+      {
+        "provider_id": "antigravity",
+        "model_id": "antigravity-default",
+        "eligible": true,
+        "score": 0.800552,
+        "quality_estimate": 0.6396,
+        "capability_fit": 1,
+        "reasoning_fit": 1,
+        "evidence_confidence": "unknown",
+        "capacity_signal": 0.85,
+        "exploration_signal": 0.12,
+        "availability": "available",
+        "supports_native_execution": true,
+        "supports_task_type": true,
+        "observed_task_evidence": null,
+        "disqualifiers": [],
+        "rationale": "Eligible exploration alternative only: the profile supports the task but has no direct repo_edit_with_tests observation, so the quality estimate remains declared and weakly evidenced."
+      },
+      {
+        "provider_id": "manual",
+        "model_id": "human",
+        "eligible": false,
+        "score": 0.79356,
+        "quality_estimate": 0.738,
+        "capability_fit": 1,
+        "reasoning_fit": 1,
+        "evidence_confidence": "unknown",
+        "capacity_signal": null,
+        "exploration_signal": 0.12,
+        "availability": "available",
+        "supports_native_execution": false,
+        "supports_task_type": true,
+        "observed_task_evidence": null,
+        "disqualifiers": ["native_execution_unavailable"],
+        "rationale": "Excluded from the native route because manual fallback is not a provider execution surface."
+      },
+      {
+        "provider_id": "luna",
+        "model_id": "luna-max",
+        "eligible": false,
+        "score": 0.773224,
+        "quality_estimate": 0.7052,
+        "capability_fit": 1,
+        "reasoning_fit": 1,
+        "evidence_confidence": "unknown",
+        "capacity_signal": null,
+        "exploration_signal": 0.12,
+        "availability": "unknown",
+        "supports_native_execution": false,
+        "supports_task_type": true,
+        "observed_task_evidence": null,
+        "disqualifiers": [
+          "availability_not_confirmed",
+          "native_execution_unavailable"
+        ],
+        "rationale": "Excluded because replay availability is unconfirmed and the profile does not provide native execution."
+      },
+      {
+        "provider_id": "claude",
+        "model_id": "claude-default",
+        "eligible": false,
+        "score": 0.73759,
+        "quality_estimate": 0.589662,
+        "capability_fit": 1,
+        "reasoning_fit": 1,
+        "evidence_confidence": "unknown",
+        "capacity_signal": 0.45,
+        "exploration_signal": 0.12,
+        "availability": "available",
+        "supports_native_execution": true,
+        "supports_task_type": false,
+        "observed_task_evidence": null,
+        "disqualifiers": ["below_quality_floor"],
+        "rationale": "Excluded by the high-risk quality floor: no direct repo_edit_with_tests evidence and task-fit penalty reduce the estimate below 0.62."
+      },
+      {
+        "provider_id": "shell",
+        "model_id": "shell",
+        "eligible": false,
+        "score": 0.505559,
+        "quality_estimate": 0.381546,
+        "capability_fit": 0.25,
+        "reasoning_fit": 1,
+        "evidence_confidence": "unknown",
+        "capacity_signal": 0.85,
+        "exploration_signal": 0.12,
+        "availability": "available",
+        "supports_native_execution": true,
+        "supports_task_type": false,
+        "observed_task_evidence": null,
+        "disqualifiers": ["capability_mismatch", "below_quality_floor"],
+        "rationale": "Excluded because generic shell lacks the planning capability and task-type quality floor for this high-risk subtask."
+      }
+    ]
+  },
+  "selection_trace": [
+    {
+      "candidate": "codex",
+      "decision": "selected",
+      "evidence_refs": [
+        "packages/core/src/catalog.ts#createReplayCatalog",
+        "packages/core/src/router.ts#makeCandidate",
+        "packages/core/src/core.test.ts#adaptive router"
+      ],
+      "reason": "The native score is highest among eligible candidates; the high-confidence eight-sample quality record is the strongest task-specific evidence in the catalog."
+    },
+    {
+      "candidate": "cursor",
+      "decision": "eligible_alternative_not_selected",
+      "evidence_refs": [
+        "packages/core/src/catalog.ts#createDefaultCatalog",
+        "packages/core/src/router.ts#makeCandidate"
+      ],
+      "reason": "Its score trails Codex by 0.04855 because the quality weight dominates the capacity bonus; the two-sample evidence is explicitly low confidence."
+    },
+    {
+      "candidate": "antigravity",
+      "decision": "eligible_exploration_alternative_not_selected",
+      "evidence_refs": [
+        "packages/core/src/catalog.ts#createDefaultCatalog",
+        "packages/core/src/router.ts#makeCandidate"
+      ],
+      "reason": "No direct task-type observation exists, so the profile is retained as an inspectable alternative but not presented as proven quality."
+    },
+    {
+      "candidate": "claude",
+      "decision": "excluded",
+      "evidence_refs": [
+        "packages/core/src/catalog.ts#createDefaultCatalog",
+        "packages/core/src/router.ts#makeCandidate"
+      ],
+      "reason": "The native disqualifier is below_quality_floor after the missing task-type evidence and task-fit penalty."
+    },
+    {
+      "candidate": "luna",
+      "decision": "excluded",
+      "evidence_refs": [
+        "packages/core/src/catalog.ts#createReplayCatalog",
+        "packages/core/src/router.ts#makeCandidate"
+      ],
+      "reason": "The native disqualifiers are availability_not_confirmed and native_execution_unavailable."
+    },
+    {
+      "candidate": "shell",
+      "decision": "excluded",
+      "evidence_refs": [
+        "packages/core/src/catalog.ts#createDefaultCatalog",
+        "packages/core/src/router.ts#makeCandidate"
+      ],
+      "reason": "The native disqualifiers are capability_mismatch and below_quality_floor."
+    },
+    {
+      "candidate": "manual",
+      "decision": "excluded_from_native_route",
+      "evidence_refs": ["packages/core/src/router.ts#makeCandidate"],
+      "reason": "Manual remains a fallback path, not a provider execution candidate."
+    }
+  ],
+  "claim_boundary": [
+    "AR-2 is closed for the replay/spec slice: two eligible alternatives carry observed task evidence, relative usage signals, quality estimates, capability fit, and risk/availability inputs; Antigravity remains explicitly weakly evidenced.",
+    "AR-3 is closed for the replay/spec slice: every material candidate score or exclusion is tied to a source rule, catalog input, or explicit unknown.",
+    "The candidate packet is synthetic and native-only. No provider ran, no currency cost was measured, no worktree was changed, and no real launch-readiness outcome is claimed.",
+    "AR-4 still owns bounded execution or an explicitly labeled replay receipt; AR-5 and AR-6 still own conflict synthesis and cross-receipt reconciliation."
+  ],
+  "next_gap": "AR-4"
+}

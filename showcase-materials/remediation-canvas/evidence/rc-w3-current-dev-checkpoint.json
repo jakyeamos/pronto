@@ -1,0 +1,54 @@
+{
+  "schema_version": "remediation-canvas-showcase-evidence-v0.1",
+  "project": "remediation-canvas",
+  "source_repository": "remediation-canvas",
+  "source_branch": "dev",
+  "source_revision": "d79c57462de81dab7714fac0f96789f09c1144ed",
+  "observed_at": "2026-08-14T03:31:21Z",
+  "checks": {
+    "test": { "status": "passed", "count": 3 },
+    "lint": { "status": "passed" },
+    "package": { "status": "passed" }
+  },
+  "fixture_scope": "temporary local Quality Lens reference fixture; no external writes or credentials",
+  "source": {
+    "producer": "quality-lens",
+    "path": ".remediation-canvas/findings.json",
+    "authority_copied": false
+  },
+  "fresh_handoff": {
+    "init_status": "initialized",
+    "finding_fingerprint": "5a26b51ccf531e1d",
+    "group": {
+      "finding_ids": ["QL-FIX-001", "QL-FIX-002", "QL-FIX-003"],
+      "intent": "Needs a focused fixture before apply",
+      "dispositions": {
+        "QL-FIX-001": "resolved",
+        "QL-FIX-002": "blocked",
+        "QL-FIX-003": "unresolved"
+      },
+      "next_action": "QL-FIX-001"
+    },
+    "refresh_status": "fresh"
+  },
+  "stale_refresh": {
+    "status": "stale",
+    "previous_fingerprint": "5a26b51ccf531e1d",
+    "current_fingerprint": "b39b7d6ddf0c1368",
+    "changed_source": "QL-FIX-003 replaced by QL-FIX-004",
+    "partial_work_preserved": true,
+    "original_group_still_visible": ["QL-FIX-001", "QL-FIX-002", "QL-FIX-003"]
+  },
+  "negative_contracts": {
+    "unknown_disposition_rejected": "verified_by_unit_test",
+    "change_before_canvas_blocked": "verified_by_unit_test",
+    "changed_finding_set_marks_stale": "verified_by_headless_flow_and_unit_test",
+    "source_payload_copied": false
+  },
+  "privacy_boundary": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local Quality Lens reference fixture"
+  },
+  "claim_boundary": "This checkpoint proves current dev source checks and one local fresh handoff plus stale refresh with partial work preserved. It does not prove Quality Lens or review-tool integration, automatic resolution, hosting, or publication."
+}

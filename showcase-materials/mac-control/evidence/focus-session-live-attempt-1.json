@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "proof_level": "installed_live",
+  "captured_at": "2026-08-12",
+  "runtime": {
+    "daemon_pid": 63925,
+    "signed_bundle": true,
+    "identity_matched_launch_agent": true
+  },
+  "plan": {
+    "digest": "b5dd1435a9b453cff8839042cff13c7e71434c63fbe5388dab2be3002b023616",
+    "approval_surface": "native_approval_hud",
+    "approval_consumed": true
+  },
+  "result": {
+    "state": "blocked",
+    "failure": "task_action_failed",
+    "verified_steps": ["open-brief"],
+    "stopped_step": "open-scratchpad",
+    "step_index": 1,
+    "cumulative_attempts": 3,
+    "last_route": "native"
+  },
+  "public_fixture_observation": {
+    "directory_class": "daemon_temporary_directory",
+    "brief_sha256": "e9ca775169766dcf39f56672862ae3938d5b8f170d1dae37de2a71823b81651d",
+    "scratchpad_sha256": "834370b9fb96ed7199c47ecaba614c670e42983deab681d03269926f90a67b21",
+    "brief_exists": true,
+    "scratchpad_exists": true,
+    "preview_running": true,
+    "textedit_running": true,
+    "scratchpad_window_visible_in_accessibility_tree": true
+  },
+  "disposition": {
+    "classification": "demo_integration",
+    "status": "durable_verifier_fix_required",
+    "evidence": "The scratchpad visibly opened and its public-safe fixture existed, but the strict focused-window identity postcondition did not pass. No retry was attempted with the consumed approval."
+  }
+}

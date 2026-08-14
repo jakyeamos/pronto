@@ -1,0 +1,63 @@
+{
+  "schema_version": "automation-flight-recorder-showcase-evidence-v0.1",
+  "project": "automation-flight-recorder",
+  "source_repository": "automation-flight-recorder",
+  "source_branch": "dev",
+  "source_revision": "51b29f55276422313c54dd99b0d07cb3e388e389",
+  "observed_at": "2026-08-14T03:31:21Z",
+  "checks": {
+    "test": { "status": "passed", "count": 3 },
+    "lint": { "status": "passed" },
+    "package": { "status": "passed" }
+  },
+  "fixture_scope": "temporary local workflow fixtures; no external writes or credentials",
+  "headless_runs": {
+    "pass": {
+      "status": "recorded",
+      "trace_status": "passed",
+      "workflow_id": "gateboard-quality-check-pass",
+      "steps": [
+        { "id": "prepare", "status": "passed", "parent_id": "gateboard-quality-check-pass" },
+        { "id": "tests", "status": "passed", "parent_id": "gateboard-quality-check-pass", "redacted": true },
+        { "id": "package", "status": "passed", "parent_id": "gateboard-quality-check-pass" }
+      ],
+      "omissions": ["unlisted processes", "environment", "network bodies"],
+      "rerun": { "eligible": true, "authority": "review each step declaration before rerun" }
+    },
+    "failure": {
+      "status": "recorded",
+      "trace_status": "failed",
+      "workflow_id": "gateboard-quality-check-fail",
+      "steps": [
+        { "id": "prepare", "status": "passed" },
+        { "id": "tests", "status": "failed", "exit_code": 3, "redacted": true },
+        { "id": "package", "status": "not_run", "blocker": "previous step failed" }
+      ],
+      "omissions": ["unlisted processes", "environment", "network bodies"]
+    },
+    "cancellation": {
+      "status": "recorded",
+      "trace_status": "cancelled",
+      "workflow_id": "gateboard-quality-check-cancel",
+      "steps": [{ "id": "slow", "status": "cancelled", "exit_code": null }],
+      "rerun": { "eligible": true, "authority": "review each step declaration before rerun" }
+    },
+    "inspect": {
+      "pass": "ready",
+      "failure": "ready",
+      "cancellation": "ready"
+    }
+  },
+  "negative_contracts": {
+    "redaction": "verified_by_headless_run_and_unit_test",
+    "failed_child_stops_later_steps": "verified_by_headless_run_and_unit_test",
+    "timeout_to_cancelled": "verified_by_headless_run_and_unit_test",
+    "inspect_is_read_only": "verified_by_cli_flow"
+  },
+  "privacy_boundary": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local workflow fixtures"
+  },
+  "claim_boundary": "This checkpoint proves current dev source checks and bounded local pass, failure, cancellation, redaction, omission, and inspect flows. It does not prove Gateboard integration, complete recovery coverage, rerun authorization, hosting, or publication."
+}

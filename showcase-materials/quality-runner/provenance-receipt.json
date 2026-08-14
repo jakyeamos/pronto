@@ -1,0 +1,56 @@
+{
+  "schema_version": "pronto-showcase-provenance-receipt/v1",
+  "project": "quality-runner",
+  "case_id": "tenure-semantic-reconciliation-2026-08-10",
+  "repository": {
+    "name": "tenure",
+    "origin": "https://github.com/LayerC0de/tenure.git"
+  },
+  "scan_source": {
+    "revision": "83b1318e8f264131d4d393619da720633edafaca",
+    "tree": "5f7fecf8edc3857e0fc915f8f98d0f94da072bda",
+    "run_id": "tenure-dev-semantic-83b1318e-full-20260810",
+    "quality_runner_version": "0.6.0",
+    "mode": "inspect",
+    "implementation_allowed": false,
+    "manifest_path": "docs/reconciliation/quality-runner/tenure-dev-semantic-83b1318e-full-20260810/run-manifest.json",
+    "manifest_sha256": "77666ab6baaaf91ce1dedae884f7486a7a94a997e74f377af0f324379af8d32d"
+  },
+  "verified_candidate": {
+    "revision": "83b1318e8f264131d4d393619da720633edafaca",
+    "evidence_level": "source_test_and_build",
+    "evidence_source": "docs/reconciliation/main-dev-semantic-reconciliation-2026-08-10.md",
+    "observation_type": "historical_canonical_report",
+    "reported_gates": [
+      "format",
+      "lint_zero_warnings",
+      "typecheck",
+      "dead_code",
+      "smoke",
+      "vitest",
+      "webpack_build"
+    ],
+    "deployment_verified": false
+  },
+  "recorded_branch": {
+    "branch": "dev",
+    "revision": "e3b81e1a68bb872a04a512551a83fe5561be4ea1",
+    "tree": "c41505550587198a68f1ea55959eb10aa1400bef",
+    "contains_candidate": true,
+    "ancestry_check": "git merge-base --is-ancestor",
+    "provider_readback": "git ls-remote --heads origin dev",
+    "provider_readback_status": "verified",
+    "observed_at": "2026-08-12T18:02:09Z"
+  },
+  "deployment": {
+    "status": "not_verified",
+    "revision": null,
+    "claim_allowed": false
+  },
+  "claim_boundaries": [
+    "scan_source_is_not_branch_identity",
+    "historical_gates_are_not_a_fresh_rerun",
+    "branch_identity_is_not_deployment",
+    "candidate_counts_are_not_confirmed_defects"
+  ]
+}

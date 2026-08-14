@@ -1,0 +1,64 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "remediation-canvas",
+  "case_id": "remediation-canvas-w3-handoff-001",
+  "reviewed_at": "2026-08-14T03:31:21Z",
+  "levels": [
+    {
+      "id": "handoff",
+      "label": "Partial remediation handoff",
+      "status": "verified_local",
+      "status_display": "Intent and dispositions preserved",
+      "allowed_claim": "A canvas can keep stable finding references, human intent, mixed dispositions, and a next action together.",
+      "forbidden_inference": "The finding has been fixed or verified automatically.",
+      "public_claim_allowed": true,
+      "evidence_refs": [
+        "evidence/rc-w3-partial-stale-handoff.json#/fresh_handoff",
+        "evidence/rc-w3-current-dev-checkpoint.json#/fresh_handoff"
+      ]
+    },
+    {
+      "id": "authority",
+      "label": "Source authority",
+      "status": "verified_local",
+      "status_display": "References only; payload not copied",
+      "allowed_claim": "The local canvas records Quality Lens reference IDs and producer identity without copying the authoritative payload.",
+      "forbidden_inference": "The canvas is a second authoritative finding store.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/rc-w3-partial-stale-handoff.json#/source", "evidence/rc-w3-current-dev-checkpoint.json#/source"]
+    },
+    {
+      "id": "stale",
+      "label": "Stale refresh",
+      "status": "verified_local",
+      "status_display": "Source drift remains visible",
+      "allowed_claim": "A changed finding set marks the canvas stale while preserving the prior partial work.",
+      "forbidden_inference": "The old plan still represents the current source set.",
+      "public_claim_allowed": true,
+      "evidence_refs": [
+        "evidence/rc-w3-partial-stale-handoff.json#/stale_refresh",
+        "evidence/rc-w3-current-dev-checkpoint.json#/stale_refresh"
+      ]
+    },
+    {
+      "id": "integration",
+      "label": "Cross-tool handoff",
+      "status": "open",
+      "status_display": "Quality Lens/review parity pending",
+      "allowed_claim": "The receipt leaves a seam for downstream source-authority and review handoff.",
+      "forbidden_inference": "Quality Lens or Review Attention Map has consumed this exact canvas.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["../route-plan.md#3-build-gap-specification"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "not_verified",
+      "status_display": "No hosted or posted proof",
+      "allowed_claim": "Hosting and external publication remain unverified.",
+      "forbidden_inference": "The canvas case is live on GitHub, portfolio, or Handshake.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["case-study.json#open_gates"]
+    }
+  ]
+}

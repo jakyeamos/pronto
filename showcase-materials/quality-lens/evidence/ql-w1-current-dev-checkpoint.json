@@ -1,0 +1,42 @@
+{
+  "schema": "pronto-showcase-evidence/v1",
+  "project": "quality-lens",
+  "case_id": "quality-lens-w1-fixture-001",
+  "verified_at": "2026-08-14T02:37:08Z",
+  "source": {
+    "repository": "../../../projects/quality-lens",
+    "branch": "dev",
+    "revision": "6a2318ac4f17eea65307d8492375e6016203fd95",
+    "dirty_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "working_tree": "clean"
+  },
+  "product_slice": {
+    "status": "verified_headlessly",
+    "commands": [
+      "pnpm test (5 passing)",
+      "pnpm lint (passed)",
+      "pnpm package (contract passed)",
+      "node src/cli.cjs inspect fixtures/sample-quality-runner-report.json --json",
+      "node src/cli.cjs normalize fixtures/sample-quality-runner-report.json --out <model>"
+    ],
+    "observations": [
+      "The supported Quality Runner report becomes one stable finding: QL-FIX-001 at fixtures/example.js:4.",
+      "The report's fixture revision differs from the current checkout, so freshness is not silently promoted to fresh.",
+      "The repository tests verify stale detection, unsupported-schema refusal, and disposition reconciliation by finding id."
+    ]
+  },
+  "binary_preview": {
+    "path": "assets/preview-16x9.png",
+    "source": "assets/preview-16x9.svg",
+    "width": 1600,
+    "height": 900,
+    "encoding": "PNG 8-bit RGB",
+    "sha256": "8f0d950778aad605532e8ec85029309f4da866218aa078058c5969cc547e0356",
+    "visual_review": "Verified at 1600x900; headline, stale badge, finding identity, disposition, and rerun line remain legible without crop."
+  },
+  "remaining_gates": [
+    "Direct VS Code Problems-panel and disposition readback.",
+    "Hosted credentialless case URL and external destination readbacks."
+  ],
+  "claim_boundary": "This checkpoint proves the current clean dev checkout's headless W1 workflow and a local binary preview. It does not prove direct IDE acceptance, hosting, or publication."
+}

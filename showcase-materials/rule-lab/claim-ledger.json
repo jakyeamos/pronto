@@ -1,0 +1,58 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "rule-lab",
+  "case_id": "rule-lab-w2-fixture-001",
+  "reviewed_at": "2026-08-14T02:49:09Z",
+  "levels": [
+    {
+      "id": "finding",
+      "label": "Explainable finding",
+      "status": "verified_local",
+      "status_display": "Rule, risk, and fixture named",
+      "allowed_claim": "The case starts from a bounded rule finding with an explicit risk and fixture.",
+      "forbidden_inference": "Every finding is automatically correct or ready for repair.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/rl-w2-current-dev-checkpoint.json#/headless_flow", "evidence/rl-w2-fixture-comparison.json#/rule"]
+    },
+    {
+      "id": "comparison",
+      "label": "Counterexample-safe comparison",
+      "status": "verified_local",
+      "status_display": "Positive and negative fixtures preserved",
+      "allowed_claim": "The canonical rule and isolated draft produce the same expected match/no-match outcomes in the W2 suite.",
+      "forbidden_inference": "The draft is universally safe or has passed every possible fixture.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/rl-w2-current-dev-checkpoint.json#/headless_flow/comparison", "evidence/rl-w2-fixture-comparison.json#/comparison"]
+    },
+    {
+      "id": "receipt",
+      "label": "Target-bound receipt",
+      "status": "verified_local",
+      "status_display": "Fresh local receipt",
+      "allowed_claim": "A local receipt records the target revision, engine version, and fresh verification result.",
+      "forbidden_inference": "The receipt is a hosted or externally accepted release artifact.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/rl-w2-current-dev-checkpoint.json#/headless_flow/receipt", "evidence/rl-w2-fixture-comparison.json#/receipt"]
+    },
+    {
+      "id": "integration",
+      "label": "Producer and IDE handoff",
+      "status": "open",
+      "status_display": "Cross-producer and direct IDE proof pending",
+      "allowed_claim": "The repository documents seams for Evidence Replay and a read-only VS Code projection.",
+      "forbidden_inference": "A direct IDE readback or downstream receipt handoff has passed.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["../route-plan.md#3-build-gap-specification", "evidence/rl-w2-current-dev-checkpoint.json#/open_gates"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "not_verified",
+      "status_display": "No hosted or posted proof",
+      "allowed_claim": "Hosting and external publication remain unverified.",
+      "forbidden_inference": "The Rule Lab case is live on GitHub, portfolio, or Handshake.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["evidence/rl-w2-current-dev-checkpoint.json#/open_gates", "case-study.json#open_gates"]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+packet_id: mac-control-showcase
+last_updated: "2026-08-12T15:12:30Z"
+missing:
+  - id: public-case-study-url
+    status: unknown
+    impact: "Blocks the public low-friction access gate."
+    next_safe_step: "Choose an approved no-auth host after the case-study content is reviewed."
+  - id: redacted-live-capture
+    status: blocked
+    impact: "Blocks the real preview image, recording, and current authorization/outcome proof."
+    blocker: "The restricted agent runtime cannot reach the installed daemon's owner-only socket; the live release check did not pass."
+    next_safe_step: "Run the reviewed capture sequence in the user's external macOS session after permissions and daemon connectivity are confirmed."
+  - id: public-repository-url
+    status: unknown
+    impact: "Prevents adding a repository call to action to public copy."
+    next_safe_step: "Confirm the repository and disclosure boundary before publishing."

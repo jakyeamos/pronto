@@ -1,0 +1,46 @@
+{
+  "schema_version": "pronto-showcase-integrated-quality-case/v1",
+  "case_id": "pronto-generic-analytics-label-stack-target",
+  "status": "real_case_selected_integrated_execution_open",
+  "source": {
+    "repository": "pronto",
+    "revision": "133ff8b741a206721a94ca80e1f8fe556a8e0dc0",
+    "file": "src/renderer/src/components/RepositoryAnalyticsPanel.tsx",
+    "git_blob": "b5e3fa6551fef5e98ebf62d6a44e5d8d619a5a30",
+    "line": 39
+  },
+  "reviewed_problem": {
+    "rule": "anti-slop/no-generic-stat-label",
+    "reported_label": "Analytics",
+    "diagnostic": "Generic label `Analytics` detected. Prefer domain-specific wording.",
+    "review_disposition": "accepted",
+    "reason": "The label does not name the repository health, delivery, quality, and release signals shown beneath it.",
+    "safe_direction": "Use a domain label such as Repository trends or Repository health and delivery."
+  },
+  "target_trace": [
+    {
+      "layer": "detect",
+      "state": "source_evidence_available",
+      "target_output": "One exact-line Anti-Slop diagnostic with rationale and safe direction."
+    },
+    {
+      "layer": "enforce",
+      "state": "integration_not_yet_executed",
+      "target_output": "One attributable failing Pre-CR changed-file receipt."
+    },
+    {
+      "layer": "contextualize",
+      "state": "integration_not_yet_executed",
+      "target_output": "One normalized Quality Runner finding with repository context and remediation order."
+    }
+  ],
+  "boundaries": [
+    "combined_story_does_not_replace_standalone_product_demos",
+    "candidate_requires_human_accept_or_reject_review",
+    "pre_cr_pass_is_not_merge_approval",
+    "quality_runner_must_not_duplicate_canonical_anti_slop_evidence",
+    "concept_surface_is_not_integrated_execution_proof"
+  ],
+  "supporting_case": "../eslint-anti-slop/pronto-case.json",
+  "next_gap": "QS-0"
+}

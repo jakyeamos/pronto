@@ -1,0 +1,62 @@
+{
+  "schema_version": "change-integration-simulator-showcase-evidence-v0.1",
+  "project": "change-integration-simulator",
+  "source_repository": "change-integration-simulator",
+  "source_revision": "5b07ed441e1e662dc7c08c948a444f6f04fac0cc",
+  "fixture_target_revision": "e1698765844205b72e3cf88479efb33f8f3e5aa8",
+  "observed_at": "2026-08-13T23:54:55Z",
+  "simulations": {
+    "clean": {
+      "status": "mergeable",
+      "source": {
+        "ref": "clean-source",
+        "commit": "b62ab016e40c70a0ae0feb9d876b60a4c25eebe9"
+      },
+      "target": {
+        "ref": "clean-target",
+        "commit": "6ff18ef37376f0ddee6743ddd2027afedcd06def"
+      },
+      "merge_base": "6f0d14d621e7435224a59d83cbbbf034ba727477",
+      "tree": "2559527795e4116a3c63dcd31d04745420437983",
+      "output_sha256": "aae8f0c406b7ddc091bd6d76d8b0f0339af0fc8ca2ded2d1fddf8c8d3b419910"
+    },
+    "conflict": {
+      "status": "conflict",
+      "source": {
+        "ref": "conflict-source^",
+        "commit": "00267488486f5c0e1cd7ac51d334e622b1a84aa7"
+      },
+      "target": {
+        "ref": "conflict-target",
+        "commit": "e1698765844205b72e3cf88479efb33f8f3e5aa8"
+      },
+      "merge_base": "6f0d14d621e7435224a59d83cbbbf034ba727477",
+      "conflict_file": "shared.txt",
+      "output_sha256": "43d99fd67cbbfaa19e4af003df45de2ec6b6ebb705992cf1d1bc1cf9e685166a"
+    }
+  },
+  "gate_probe": {
+    "status": "passed_local_unintegrated",
+    "command": "git diff-tree --check -r clean-target",
+    "target_commit": "6ff18ef37376f0ddee6743ddd2027afedcd06def",
+    "exit_code": 0,
+    "integration_status": "Workflow Gateboard handoff is not implemented by this product."
+  },
+  "safety": {
+    "refs_before_after_same": true,
+    "primary_checkout_ref_mutation": false,
+    "limitations": [
+      "no remote CI",
+      "no hosted services",
+      "environment differences",
+      "behavior beyond selected local gate",
+      "stale movement, cancellation, and retained-workspace cases not exercised"
+    ]
+  },
+  "privacy": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local Git fixture"
+  },
+  "claim_boundary": "This receipt proves immutable local clean/conflict merge-tree outcomes and a separate local gate probe. It does not claim Workflow Gateboard integration, remote CI, stale/cancellation recovery, hosting, or publication."
+}

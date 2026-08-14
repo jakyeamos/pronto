@@ -1,0 +1,13 @@
+Quality Runner’s job isn’t to make a warning count disappear. It helps decide what should actually change.
+
+In this Tenure case, a branch comparison produced 684 candidates. Those were a review surface, not 684 confirmed defects.
+
+The tempting route was a bulk cleanup. We rehearsed that route on a disposable snapshot: 127 files changed, 15 integration or type errors, and stronger behavior disappeared. So the shortcut was rejected before merge.
+
+Instead, the work moved through semantic triage and five bounded repair lanes, each tied to regression evidence.
+
+The final candidate at 83b1318e has seven gates recorded in the canonical historical report. A later provider readback recorded the dev branch at e3b81e1a containing that candidate.
+
+Those proof levels stay separate. The case-study surface rendered locally at desktop and mobile widths, but that is not browser proof of the Tenure product. Deployment is still not verified.
+
+The result isn’t a cleaner score. It’s a safer engineering decision with an auditable reason.

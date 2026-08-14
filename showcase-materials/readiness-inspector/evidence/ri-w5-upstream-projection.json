@@ -1,0 +1,74 @@
+{
+  "schema_version": "pronto-showcase-readiness-inspector-w5/v1",
+  "project": "readiness-inspector",
+  "status": "candidate_local",
+  "observed_at": "2026-08-14T00:04:42Z",
+  "source_revision": "2efa5ed66d74cd0b71ae060b3ca6b78558f9bb0d",
+  "fixture_revision": "c78de51eeab74cc92f721ec35243d732297feddb",
+  "goal": "release-candidate handoff",
+  "individual_checks": [
+    {
+      "id": "tests",
+      "owner": "repository",
+      "predicate": "the bounded test command passes",
+      "outcome": "passed",
+      "evidence": "readiness-check-receipt-v0.1",
+      "target": "c78de51eeab74cc92f721ec35243d732297feddb",
+      "next_action": "retain the passing receipt"
+    },
+    {
+      "id": "dependency-audit",
+      "owner": "release",
+      "predicate": "the dependency audit is available",
+      "outcome": "failed",
+      "evidence": "readiness-check-receipt-v0.1; audit unavailable",
+      "target": "c78de51eeab74cc92f721ec35243d732297feddb",
+      "next_action": "provide the dependency audit receipt"
+    },
+    {
+      "id": "publish",
+      "owner": "release",
+      "predicate": "publishing is explicitly authorized",
+      "outcome": "blocked",
+      "evidence": "mutating checks require separate explicit authority",
+      "target": "c78de51eeab74cc92f721ec35243d732297feddb",
+      "next_action": "request explicit publishing authority"
+    },
+    {
+      "id": "profile",
+      "owner": "repository",
+      "predicate": "a versioned readiness profile is present",
+      "outcome": "ready",
+      "evidence": "profile version 1 loaded by inspect",
+      "target": "c78de51eeab74cc92f721ec35243d732297feddb",
+      "next_action": "keep the profile bound to the target revision"
+    }
+  ],
+  "state_boundary": {
+    "passing": "tests",
+    "failed": "dependency-audit",
+    "blocked": "publish",
+    "unsupported": "missing profile remains explicit",
+    "not_applicable": "not claimed",
+    "stale": "profile-version and current-target matrix remains open"
+  },
+  "continuity": {
+    "quality_setup_receipt": "not_projected",
+    "evidence_replay_receipt": "not_projected",
+    "native_follow_up": "not_captured"
+  },
+  "verification": {
+    "source_tests": "passed: 3",
+    "source_lint": "passed",
+    "source_package": "passed",
+    "fixture_refs_unchanged": true,
+    "fixture_generated_receipts_removed_after_capture": true
+  },
+  "open_gates": [
+    "Project Quality Setup and Evidence Replay receipts as owner-bound individual checks.",
+    "Capture profile-version, stale, contradictory, and not-applicable state matrix.",
+    "Directly open each failed check's native evidence and next action.",
+    "Capture a crop-safe preview, hosted no-auth case, and external destination readbacks."
+  ],
+  "claim_boundary": "This packet proves a local goal-specific check and state-separation slice; it does not claim upstream projection, hosted proof, or publication."
+}

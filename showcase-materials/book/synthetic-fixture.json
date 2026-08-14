@@ -1,0 +1,81 @@
+{
+  "schema_version": "pronto-showcase-book-synthetic-fixture/v1",
+  "project": "book",
+  "gap": "BK-1",
+  "observed_at": "2026-08-13T17:37:05Z",
+  "source_kind": "synthetic_original",
+  "role": "rights_safe_reproducibility_appendix_only",
+  "fixture_policy": {
+    "created_for_showcase": true,
+    "real_book_excerpt": false,
+    "real_people_or_places": false,
+    "third_party_text": false,
+    "third_party_audio": false,
+    "provider_output": false,
+    "external_mutations": 0
+  },
+  "chapter": {
+    "id": "synthetic-chapter-1",
+    "title": "The Signal Room",
+    "author_label": "Synthetic showcase fixture — not product authorship",
+    "prose": [
+      "At dusk, the room kept one small promise: the signal would return.",
+      "A quiet page became a threshold when the first light moved across the line.",
+      "The scene gathered around the sentence, then softened when the reader asked it to."
+    ],
+    "beats": [
+      {
+        "id": "quiet",
+        "purpose": "reader meets the prose before enhancement",
+        "start_line": 1,
+        "end_line": 1
+      },
+      {
+        "id": "threshold",
+        "purpose": "motion and sound enter at a deliberate narrative turn",
+        "start_line": 2,
+        "end_line": 2
+      },
+      {
+        "id": "transformation",
+        "purpose": "the audiovisual layer peaks without replacing the text",
+        "start_line": 3,
+        "end_line": 3
+      },
+      {
+        "id": "exit",
+        "purpose": "the reader regains a calm, controllable surface",
+        "start_line": 3,
+        "end_line": 3
+      }
+    ]
+  },
+  "media_plan": {
+    "visual": {
+      "kind": "original_css_gradient_and_particles",
+      "rights": "original_synthetic_work_owned_for_this_showcase_material"
+    },
+    "audio": {
+      "kind": "synthetic_sine_tone_tokens",
+      "asset_files": [],
+      "rights": "generated_for_reproducibility_appendix; not a product soundtrack"
+    },
+    "controls": [
+      "mute",
+      "reduced_motion",
+      "keyboard_chapter_navigation",
+      "font_scale"
+    ]
+  },
+  "display_rules": [
+    "Keep the synthetic-fixture label visible in every preview, capture, or narrated walkthrough.",
+    "Do not present this prose, timing, or audio plan as a shipped Book chapter.",
+    "Do not mix this appendix with unreviewed repository text, soundtrack files, or external fonts.",
+    "Use the appendix to explain the intended transformation arc while BK-1 rights evidence is pending."
+  ],
+  "claim_boundary": [
+    "This fixture proves only that a rights-safe chapter-to-media material can be specified.",
+    "It does not prove Book's live synchronization, hosted reader, authoring workflow, or accessibility behavior."
+  ],
+  "next_gap": "BK-1"
+}

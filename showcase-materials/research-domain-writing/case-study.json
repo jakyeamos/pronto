@@ -1,0 +1,46 @@
+{
+  "schema_version": "pronto-showcase-case/v1",
+  "project": "research-domain-writing",
+  "case_id": "tatum-2023-24-claim-boundary",
+  "case_status": "publication_candidate_release_provenance_gated",
+  "headline_case": {
+    "entity": "Jayson Tatum",
+    "period": "2023-24 NBA regular season",
+    "input": "source-packet.yaml",
+    "unsafe_draft": "unsafe-draft.md",
+    "source_count": 2,
+    "independent_owner_count": 2
+  },
+  "supported_claim": "Jayson Tatum played 74 regular-season games in 2023-24 and averaged 26.9 points, 8.1 rebounds, and 4.9 assists per game.",
+  "unsupported_claim": "Those numbers prove that he was an elite two-way engine.",
+  "unsupported_terms": ["prove", "elite", "two-way engine"],
+  "missing_evidence": [
+    "efficiency",
+    "matchup or tracking",
+    "on-off context",
+    "all-in-one impact evidence"
+  ],
+  "target_repair": "Across 74 regular-season games in 2023-24, Tatum averaged 26.9 points, 8.1 rebounds, and 4.9 assists per game. Those figures describe recorded scoring, rebounding, and assist volume; they do not measure efficiency, defensive impact, or total player value.",
+  "proof_state": {
+    "source_packet": "strict_mature_and_research_readiness_passed",
+    "unsafe_claim_stop": "agent_qa_reproduced_and_exact_draft_receipt_validated",
+    "corrected_final": "claim_ledger_validated_and_style_preserved",
+    "basketball_pack": "installed_validation_passed_release_revision_not_bound",
+    "visual_trace": "built_local_candidate",
+    "public_no_auth_surface": "not_yet_verified"
+  },
+  "run_evidence": {
+    "task_contract": "rdw-run/task-contract.yaml",
+    "unsafe_qa": "rdw-run/unsafe-qa.yaml",
+    "repaired_qa": "rdw-run/repaired-qa.yaml",
+    "final": "rdw-run/final.md",
+    "validation_record": "rdw-run/validation-record.json",
+    "provenance_receipt": "rdw-0-provenance.json",
+    "public_candidate": "public/index.html"
+  },
+  "deterministic_gate_boundary": "The agent performs semantic Domain QA; RDW validates exact draft binding, prose-block coverage, fact linkage, and coherent rejection or pass state.",
+  "reproducibility_appendix": {
+    "repository_path": "examples/fixtures/basketball-vertical-slice.yaml",
+    "role": "appendix_only"
+  }
+}

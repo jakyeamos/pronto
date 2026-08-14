@@ -1,0 +1,75 @@
+{
+  "schema_version": "pronto-showcase-codex-browser-control-gap-receipt/v1",
+  "project": "browser-control",
+  "gap": "CB-2",
+  "observed_at": "2026-08-13T19:02:19Z",
+  "status": "blocked_installed_round_trip",
+  "disposition": "parked_pending_reviewed_extension_reload_and_protocol_match",
+  "source": {
+    "repository": "/Users/jakyeamos/projects/browser-control",
+    "branch": "dev",
+    "commit": "29d364e062af163abaf625f0596a7108a0706c10",
+    "checkout_status": "dirty_at_inspection",
+    "dirty_paths": [
+      "README.md",
+      "docs/protocol.md",
+      "src/extension/service-worker-state.ts",
+      "src/extension/service-worker.ts",
+      "src/protocol/index.ts",
+      "src/provider/client.ts",
+      "src/provider/mcp.ts",
+      "src/provider/native-host.ts",
+      "test/extension-authority.test.ts",
+      "test/mcp-smoke.mjs",
+      "test/protocol.test.ts"
+    ],
+    "runtime": {
+      "node": "v22.14.0",
+      "package_manager": "pnpm@11.9.0",
+      "cli_version_after_build": "codex-browser-control 0.2.0 (protocol 1.1.0)"
+    },
+    "source_quality": {
+      "command": "corepack pnpm@11.9.0 check",
+      "status": "passed",
+      "tests": "37 passed across 8 files",
+      "mcp_smoke": "passed"
+    }
+  },
+  "installed_probe": {
+    "doctor_command": "node dist/bin/browser-control.mjs doctor --json",
+    "doctor_execution": "escalated_read_only",
+    "configured": true,
+    "registered": true,
+    "connected": true,
+    "provider_instance_id": "profile_53362aa10a8b4e8593cb940ca1587e90",
+    "connected_extension_version": "0.3.0",
+    "connected_chrome_version": "150.0.7871.184",
+    "current_installed_chrome_version": "151.0.7922.109",
+    "round_trip_verified": false,
+    "round_trip_error_code": "internal_error",
+    "round_trip_error": "The connected provider returned a response that failed schema validation: id, providerInstanceId, and state were missing, the protocolVersion field failed the 1.1.0 literal check, and error was an unrecognized key.",
+    "side_panel_plan_receipt": "not_captured",
+    "installed_observe_to_plan": "not_proven"
+  },
+  "missing_contract": {
+    "required": [
+      "reviewed extension reload or install of the current built dist/extension",
+      "native host and side panel restarted against the same source revision",
+      "successful doctor round trip with a valid v1.1.0 response",
+      "redacted observe-to-plan receipt bound to the synthetic local origin"
+    ],
+    "why_current_evidence_is_insufficient": [
+      "The current source build passes its check, but the connected Chrome provider reports extension version 0.3.0 while the current built CLI is 0.2.0.",
+      "The escalated doctor can reach the owner-only socket, yet the round-trip response fails schema validation before any browser observation or plan receipt is available.",
+      "Reloading or reinstalling the extension and native host changes persistent per-user Chrome/Codex state and requires explicit deployment approval under the repository contract."
+    ]
+  },
+  "blocked_action": "Do not claim installed observe-to-plan, exact approval, apply, verify, or stale-state behavior from this checkout until the reviewed extension/native-host pair is reloaded or installed and a valid synthetic round trip is captured.",
+  "next_action": "Circle back to CB-2 after explicit deployment approval; reload the current built extension and native host together, rerun doctor, then capture CB-2/CB-3 on the disposable local fixture.",
+  "claim_boundary": [
+    "The current source checkout passes its documented lint, typecheck, unit-test, build, and MCP smoke gates.",
+    "Per-user configuration, native registration, and a connected provider are present in the observed installation.",
+    "No valid installed browser observation, plan, approval, mutation, verification, or stale-state refusal is proven."
+  ],
+  "next_gap": "CB-2"
+}

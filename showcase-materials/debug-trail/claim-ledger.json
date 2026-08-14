@@ -1,0 +1,68 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "debug-trail",
+  "case_id": "debug-trail-w1-fixture-001",
+  "reviewed_at": "2026-08-14T02:37:08Z",
+  "levels": [
+    {
+      "id": "candidate",
+      "label": "Local pilot",
+      "status": "local_w1",
+      "status_display": "One continuation receipt",
+      "allowed_claim": "The W1 pilot binds a human hypothesis to a declared command and exports a local continuation receipt.",
+      "forbidden_inference": "The pilot is a hosted incident platform or an AI-agent requirement.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/debug-trail-w1-receipt.json", "evidence/dt-w1-current-dev-checkpoint.json#product_slice"]
+    },
+    {
+      "id": "authorization",
+      "label": "Bounded action",
+      "status": "verified_local",
+      "status_display": "Preview then authorize",
+      "allowed_claim": "The fixture command is previewed as read-only and requires explicit human authorization before execution.",
+      "forbidden_inference": "Every repository command or mutation is automatically safe.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/debug-trail-w1-receipt.json#action_preview", "evidence/dt-w1-current-dev-checkpoint.json#product_slice"]
+    },
+    {
+      "id": "evidence",
+      "label": "Receipt continuity",
+      "status": "verified_local",
+      "status_display": "Passed, redacted, target-bound",
+      "allowed_claim": "The local receipt preserves a passed result, bounded redacted excerpt, output hash, target identity, omission, disposition, and rerun interface.",
+      "forbidden_inference": "The bounded excerpt is the complete command output or a cross-machine handoff proof.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/debug-trail-w1-receipt.json#experiment", "evidence/dt-w1-current-dev-checkpoint.json#product_slice"]
+    },
+    {
+      "id": "preview",
+      "label": "Binary preview",
+      "status": "verified_local",
+      "status_display": "1600 × 900 PNG reviewed",
+      "allowed_claim": "The candidate packet includes a crop-safe 1600 × 900 PNG preview whose hypothesis, bounded command, outcome, and continuation line remain legible.",
+      "forbidden_inference": "A polished preview proves direct IDE continuity or a hosted case page.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/dt-w1-current-dev-checkpoint.json#binary_preview"]
+    },
+    {
+      "id": "ide",
+      "label": "Direct IDE continuity",
+      "status": "open",
+      "status_display": "Not directly verified",
+      "allowed_claim": "The repository contains a thin VS Code command surface that still needs direct continuity readback.",
+      "forbidden_inference": "An inheritor has resumed the trail through an installed VS Code host.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["../route-plan.md#3-build-gap-specification"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "not_verified",
+      "status_display": "No hosted or posted proof",
+      "allowed_claim": "Deployment and external publication remain unverified.",
+      "forbidden_inference": "The case is live on GitHub, portfolio, or Handshake.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["case-study.json#open_gates"]
+    }
+  ]
+}

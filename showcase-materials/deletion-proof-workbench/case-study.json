@@ -1,0 +1,32 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "deletion-proof-workbench",
+  "status": "candidate_local",
+  "title": "Deletion Proof Workbench: unknown is a result",
+  "audience": "Developers who need to remove one export without confusing bounded static evidence with universal non-use.",
+  "promise": "Inspect one symbol, separate known references from unknown consumer classes, require explicit apply, and keep a recovery reference.",
+  "story": [
+    "An exported function is previewed with no bounded static references and a package export map still visible.",
+    "Explicit apply removes only that declaration and records the original text for recovery.",
+    "A second export with a known consumer is refused instead of being silently deleted.",
+    "Dynamic, reflective, generated, external, and stale-candidate boundaries remain explicit unknowns."
+  ],
+  "evidence": [
+    "evidence/dpw-w4-bounded-deletion.json",
+    "../../../projects/deletion-proof-workbench/README.md",
+    "../../../projects/deletion-proof-workbench/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Real temporary TypeScript fixture with one bounded deletion and one known consumer.",
+    "Explicit apply writes a recovery reference and changes only the candidate declaration.",
+    "Known static consumer blocks apply and package export map remains an unknown boundary.",
+    "Source tests, lint, and package checks pass."
+  ],
+  "open_gates": [
+    "Exercise stale-candidate, generated, reflective, and failing-test negative fixtures.",
+    "Connect the receipt to Change Radius and Contract Watch without copying authority.",
+    "Capture a crop-safe image preview and verify a hosted no-auth case.",
+    "Record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves a local W4 bounded-deletion and refusal slice; it does not claim universal non-use, complete consumer coverage, hosting, or publication."
+}

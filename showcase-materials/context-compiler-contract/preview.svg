@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Context Compiler Contract: invalid to valid</title>
+  <desc id="desc">A real AIOS compile result passes, two contract mutations fail with exact paths, and the corrected result passes.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#202a32"/>
+      <stop offset="0.55" stop-color="#101316"/>
+      <stop offset="1" stop-color="#0d1012"/>
+    </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3a2026"/>
+      <stop offset="1" stop-color="#181d22"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17382d"/>
+      <stop offset="1" stop-color="#181d22"/>
+    </linearGradient>
+    <style>
+      .eyebrow { fill: #b9c8ff; font: 700 20px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 3px; }
+      .title { fill: #eef2f3; font: 700 66px ui-sans-serif, system-ui, sans-serif; letter-spacing: -3px; }
+      .lede { fill: #9eaab1; font: 400 24px ui-sans-serif, system-ui, sans-serif; }
+      .step { fill: #9eaab1; font: 700 16px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 2px; }
+      .card-title { fill: #eef2f3; font: 700 28px ui-sans-serif, system-ui, sans-serif; }
+      .card-copy { fill: #9eaab1; font: 400 18px ui-sans-serif, system-ui, sans-serif; }
+      .code { fill: #eef2f3; font: 500 16px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .error { fill: #ff8f8f; font: 500 15px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .ok { fill: #8ee0b1; font: 500 15px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <text x="84" y="88" class="eyebrow">CONTEXT COMPILER CONTRACT · CC-1</text>
+  <text x="84" y="164" class="title">Make context fail before it</text>
+  <text x="84" y="230" class="title">becomes agent behavior.</text>
+  <text x="84" y="282" class="lede">Real baseline. Two exact failures. One bounded correction.</text>
+
+  <rect x="84" y="344" width="452" height="300" rx="24" fill="#181d22" stroke="#334049" stroke-width="2"/>
+  <text x="116" y="388" class="step">01 · BASELINE</text>
+  <text x="116" y="440" class="card-title">Real compile result</text>
+  <text x="116" y="480" class="card-copy">AIOS selected context with</text>
+  <text x="116" y="508" class="card-copy">deterministic reasons.</text>
+  <rect x="116" y="538" width="388" height="60" rx="10" fill="#0d1012"/>
+  <text x="136" y="563" class="code">loaded: 26 · skipped: 10</text>
+  <text x="136" y="585" class="ok">shape accepted</text>
+
+  <rect x="574" y="344" width="452" height="300" rx="24" fill="url(#red)" stroke="#6f3a44" stroke-width="2"/>
+  <text x="606" y="388" class="step">02 · MUTATION A</text>
+  <text x="606" y="440" class="card-title">Provenance is missing</text>
+  <text x="606" y="480" class="card-copy">A source has no selection reason.</text>
+  <rect x="606" y="538" width="388" height="60" rx="10" fill="#0d1012"/>
+  <text x="626" y="563" class="code">loaded[0].reason = &lt;missing&gt;</text>
+  <text x="626" y="585" class="error">exact path · exact rule</text>
+
+  <rect x="1064" y="344" width="452" height="300" rx="24" fill="url(#green)" stroke="#2c7255" stroke-width="2"/>
+  <text x="1096" y="388" class="step">03 · CORRECTED</text>
+  <text x="1096" y="440" class="card-title">Route-compatible result</text>
+  <text x="1096" y="480" class="card-copy">Restore the reason and boundary flag.</text>
+  <rect x="1096" y="538" width="388" height="60" rx="10" fill="#0d1012"/>
+  <text x="1116" y="563" class="code">route_compatible = true</text>
+  <text x="1116" y="585" class="ok">passed: true · issues: []</text>
+
+  <line x1="84" y1="720" x2="1516" y2="720" stroke="#334049" stroke-width="2"/>
+  <text x="84" y="774" class="step">OWNERSHIP BOUNDARY</text>
+  <text x="84" y="818" class="lede">Validation here. Source selection and execution remain in AIOS.</text>
+  <text x="1516" y="818" text-anchor="end" class="step">BASELINE: AIOS COMMIT a9fafac</text>
+</svg>

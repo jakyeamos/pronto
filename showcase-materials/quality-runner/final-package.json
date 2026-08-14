@@ -1,0 +1,77 @@
+{
+  "schema_version": "pronto-showcase-final-package/v1",
+  "project": "quality-runner",
+  "case_id": "tenure-quality-values-burndown-2026-07",
+  "status": "static_local_review_ready",
+  "refreshed_at": "2026-08-12T22:38:16Z",
+  "public_claim": "Quality Runner turns repository-specific standards into explainable findings, then works with a reviewing agent to reconcile fixes, accepted intentional code, false positives, and unresolved work without confusing raw detector output with actionable defects.",
+  "current_materials": {
+    "public_page": "public/index.html",
+    "public_evidence": [
+      "public/evidence/case-study.json",
+      "public/evidence/finding-drivers.json",
+      "public/evidence/burndown.json",
+      "public/evidence/claim-ledger.json"
+    ],
+    "public_description": "public-description.txt",
+    "preview_16x9": "preview-16x9.png",
+    "desktop_capture": "case-study-desktop.png",
+    "mobile_capture": "case-study-mobile.png",
+    "case_surface_source": "../../src/renderer/src/components/QualityRunnerCaseStudy.tsx",
+    "local_preview": "../../quality-runner-case-preview.html"
+  },
+  "capture_receipts": {
+    "public_page_sha256": "7d6bbab2d0a670432e76dcb989c1be5aa951cb2b9464143371ee8d4e80d1a457",
+    "preview_16x9": {
+      "viewport": "1600x900",
+      "sha256": "63dfe309ef08d86037aa7c98d95d6ccdbb5d685d0bd31919ede8742d270e0db1"
+    },
+    "desktop": {
+      "viewport": "1488x981",
+      "document": "1488x5763",
+      "sha256": "833ac21794b6e40a7a494a994a9ecc084d05d58ac9114be6c432d769261d3258"
+    },
+    "mobile": {
+      "viewport": "390x844",
+      "document": "390x9261",
+      "sha256": "a292376f83bb5ffa18c50e6738545a47b30c26896e372c04dea2e82626a23af7"
+    }
+  },
+  "package_tracks": {
+    "static_case_study": {
+      "status": "local_browser_verified",
+      "open_gates": [
+        "host_page_without_authentication",
+        "verify_hosted_page_on_desktop_and_mobile",
+        "obtain_owner_approval_for_public_copy"
+      ]
+    },
+    "video": {
+      "status": "deferred",
+      "open_gates": [
+        "rehearse_corrected_45_to_90_second_story",
+        "record_final_human_delivery",
+        "check_captions_against_final_delivery"
+      ]
+    }
+  },
+  "superseded_materials": {
+    "reason": "These optional video artifacts still tell the smaller August branch-reconciliation story and are excluded until the corrected Tenure headline case is rehearsed.",
+    "paths": [
+      "captions.vtt",
+      "rehearsal.json",
+      "rehearsal.md",
+      "rehearsal-narration.txt"
+    ]
+  },
+  "open_gates": [
+    "host_page_without_authentication",
+    "verify_hosted_page_on_desktop_and_mobile",
+    "obtain_owner_approval_for_public_copy"
+  ],
+  "deferred_gates": [
+    "rehearse_corrected_45_to_90_second_story",
+    "record_final_human_delivery",
+    "check_captions_against_final_delivery"
+  ]
+}

@@ -1,0 +1,1265 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A historical Quality Runner case study showing how repository-defined standards became 4,022 explainable findings and a bounded remediation plan."
+    />
+    <meta name="theme-color" content="#07111e" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Quality Runner × Tenure — Values-driven repository debt"
+    />
+    <meta
+      property="og:description"
+      content="How eight repository-relevant standards packs turned a 4,022-row historical baseline into bounded, defensible engineering work."
+    />
+    <title>Quality Runner × Tenure — Values-driven repository debt</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --navy: #07111e;
+        --navy-soft: #0a1727;
+        --panel: #0d1c2f;
+        --panel-soft: rgba(13, 28, 47, 0.64);
+        --text: #f3f6fb;
+        --muted: #a7b6ca;
+        --faint: #74869e;
+        --mint: #68d6b1;
+        --mint-bright: #b8f1dd;
+        --coral: #f08e8e;
+        --line: rgba(171, 193, 224, 0.14);
+        --line-mint: rgba(104, 214, 177, 0.25);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        background: var(--navy);
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background:
+          radial-gradient(
+            circle at 88% 4%,
+            rgba(240, 142, 142, 0.09),
+            transparent 30rem
+          ),
+          var(--navy);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      a {
+        color: var(--mint-bright);
+        text-underline-offset: 4px;
+      }
+
+      :focus-visible {
+        outline: 3px solid var(--mint);
+        outline-offset: 4px;
+      }
+
+      main {
+        overflow: hidden;
+      }
+
+      .wrap {
+        width: min(1180px, calc(100% - 48px));
+        margin: 0 auto;
+      }
+
+      .kicker {
+        margin: 0 0 14px;
+        color: var(--mint);
+        font-size: 0.72rem;
+        font-weight: 780;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .site-nav {
+        position: relative;
+        z-index: 2;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .site-nav .wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 54px;
+        gap: 24px;
+      }
+
+      .site-nav strong,
+      .site-nav span {
+        font-size: 0.76rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .site-nav span {
+        color: var(--faint);
+      }
+
+      .hero {
+        padding: clamp(72px, 9vw, 132px) 0 clamp(74px, 9vw, 122px);
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.03fr) minmax(350px, 0.82fr);
+        gap: clamp(44px, 7vw, 96px);
+        align-items: center;
+      }
+
+      h1,
+      h2 {
+        text-wrap: balance;
+      }
+
+      h1 {
+        max-width: 780px;
+        margin: 0 0 28px;
+        font-size: clamp(3.2rem, 7vw, 6.2rem);
+        font-weight: 690;
+        letter-spacing: -0.055em;
+        line-height: 0.94;
+      }
+
+      .lede {
+        max-width: 62ch;
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(1rem, 1.5vw, 1.2rem);
+        line-height: 1.65;
+      }
+
+      .hero-note {
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        max-width: 620px;
+        margin: 30px 0 0;
+        padding-top: 20px;
+        border-top: 1px solid var(--line-mint);
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.55;
+      }
+
+      .hero-note strong {
+        flex: 0 0 auto;
+        color: var(--mint-bright);
+      }
+
+      .baseline-card {
+        padding: clamp(26px, 4vw, 42px);
+        border: 1px solid var(--line-mint);
+        border-radius: 18px 4px 18px 4px;
+        background: linear-gradient(
+          145deg,
+          rgba(27, 73, 71, 0.35),
+          rgba(13, 28, 47, 0.78)
+        );
+        box-shadow:
+          -7px 0 0 rgba(104, 214, 177, 0.7),
+          0 28px 76px rgba(0, 0, 0, 0.25);
+      }
+
+      .baseline-card > div:first-child {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        color: var(--muted);
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .baseline-card > div:first-child strong {
+        color: var(--mint-bright);
+      }
+
+      .pack-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1px;
+        margin: 24px 0;
+        overflow: hidden;
+        border: 1px solid rgba(104, 214, 177, 0.15);
+        border-radius: 9px;
+        background: rgba(104, 214, 177, 0.15);
+      }
+
+      .pack-grid span {
+        min-width: 0;
+        padding: 11px 12px;
+        overflow: hidden;
+        background: rgba(7, 17, 30, 0.92);
+        font-size: 0.78rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .baseline-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.6;
+      }
+
+      .section {
+        padding: clamp(76px, 9vw, 128px) 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .section-heading {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.95fr) minmax(300px, 0.68fr);
+        gap: clamp(36px, 8vw, 120px);
+        align-items: end;
+        margin-bottom: 54px;
+      }
+
+      h2 {
+        max-width: 760px;
+        margin: 0;
+        font-size: clamp(2.5rem, 5.4vw, 5rem);
+        font-weight: 680;
+        letter-spacing: -0.05em;
+        line-height: 0.98;
+      }
+
+      .section-heading > p:last-child,
+      .section-copy {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .value-section {
+        background:
+          radial-gradient(
+            circle at 80% 10%,
+            rgba(104, 214, 177, 0.11),
+            transparent 34%
+          ),
+          rgba(10, 23, 39, 0.55);
+      }
+
+      .value-flow {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        margin: 0;
+        padding: 0;
+        border-block: 1px solid var(--line);
+        list-style: none;
+      }
+
+      .value-flow li {
+        min-width: 0;
+        padding: 24px 20px 26px;
+        border-left: 1px solid var(--line);
+      }
+
+      .value-flow li:first-child {
+        border-left: 0;
+      }
+
+      .value-flow span,
+      .value-flow small {
+        display: block;
+        color: var(--mint);
+        font-size: 0.68rem;
+        font-weight: 760;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .value-flow small {
+        margin-top: 8px;
+        color: #8eaad0;
+      }
+
+      .value-flow strong {
+        display: block;
+        margin: 10px 0 9px;
+        font-size: 0.95rem;
+        line-height: 1.35;
+      }
+
+      .value-flow p {
+        margin: 0;
+        color: var(--faint);
+        font-size: 0.78rem;
+        line-height: 1.55;
+      }
+
+      .value-example {
+        margin-top: 50px;
+      }
+
+      .value-example > span {
+        display: block;
+        margin-bottom: 13px;
+        color: var(--faint);
+        font-size: 0.7rem;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .value-example-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        overflow: hidden;
+        border: 1px solid rgba(143, 173, 218, 0.26);
+        border-radius: 12px;
+      }
+
+      .value-example-grid article {
+        min-width: 0;
+        padding: 24px 20px;
+        border-left: 1px solid var(--line);
+      }
+
+      .value-example-grid article:first-child {
+        border-left: 0;
+      }
+
+      .value-example-grid small {
+        display: block;
+        margin-bottom: 12px;
+        color: #8eaad0;
+        font-size: 0.68rem;
+        font-weight: 760;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .value-example-grid strong {
+        font-size: 0.92rem;
+        line-height: 1.45;
+      }
+
+      .ingest-boundary {
+        margin: 42px 0 0;
+        padding: 4px 0 4px 18px;
+        border-left: 2px solid rgba(104, 214, 177, 0.62);
+        color: var(--faint);
+        font-size: 0.82rem;
+        line-height: 1.65;
+      }
+
+      .ingest-boundary strong {
+        color: var(--mint-bright);
+      }
+
+      .driver-layout,
+      .burndown-layout {
+        display: grid;
+        grid-template-columns: minmax(250px, 0.42fr) minmax(0, 1fr);
+        gap: clamp(44px, 8vw, 108px);
+      }
+
+      .compact-heading h2 {
+        margin-bottom: 20px;
+        font-size: clamp(2.4rem, 4.2vw, 4.1rem);
+      }
+
+      .mechanism {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        margin: 0;
+        padding: 0;
+        border-block: 1px solid var(--line);
+        list-style: none;
+      }
+
+      .mechanism li {
+        padding: 24px 16px;
+        border-left: 1px solid var(--line);
+      }
+
+      .mechanism li:first-child {
+        border-left: 0;
+      }
+
+      .mechanism span {
+        display: block;
+        margin-bottom: 22px;
+        color: var(--mint);
+        font-size: 0.68rem;
+      }
+
+      .mechanism strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 0.86rem;
+        line-height: 1.4;
+      }
+
+      .mechanism p {
+        margin: 0;
+        color: var(--faint);
+        font-size: 0.75rem;
+        line-height: 1.55;
+      }
+
+      .driver-result {
+        display: grid;
+        gap: 8px;
+        margin-top: 32px;
+        padding: 22px 24px;
+        border-left: 3px solid var(--mint);
+        background: rgba(104, 214, 177, 0.06);
+      }
+
+      .driver-result small {
+        color: var(--faint);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .driver-result strong {
+        font-size: clamp(1.1rem, 2vw, 1.6rem);
+      }
+
+      .chart {
+        display: grid;
+        gap: 18px;
+        align-content: center;
+      }
+
+      .bar {
+        display: grid;
+        grid-template-columns: 112px minmax(0, 1fr) 62px;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .bar span,
+      .bar strong {
+        font-size: 0.8rem;
+      }
+
+      .bar span {
+        color: var(--faint);
+      }
+
+      .bar strong {
+        text-align: right;
+      }
+
+      .track {
+        height: 7px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(171, 193, 224, 0.08);
+      }
+
+      .track i {
+        display: block;
+        width: var(--width);
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #5b8edb, var(--mint));
+      }
+
+      .resolution {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 30px;
+        align-items: center;
+        margin-top: 58px;
+        padding: 32px;
+        border: 1px solid var(--line-mint);
+        border-radius: 14px;
+        background: var(--panel-soft);
+      }
+
+      .resolution > div {
+        display: grid;
+        gap: 8px;
+      }
+
+      .resolution strong {
+        font-size: clamp(3.4rem, 6vw, 5.6rem);
+        letter-spacing: -0.05em;
+        line-height: 0.9;
+      }
+
+      .resolution span {
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      .resolution > span {
+        color: var(--coral);
+        font-size: 2rem;
+      }
+
+      .resolution p {
+        grid-column: 1 / -1;
+        margin: 0;
+        padding-top: 22px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .disposition-model {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--line);
+      }
+
+      .resolution .disposition-model > div {
+        display: block;
+        padding: 16px;
+        background: rgba(7, 17, 30, 0.82);
+      }
+
+      .disposition-model small {
+        display: block;
+        margin-bottom: 7px;
+        color: var(--mint);
+        font-size: 0.65rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .disposition-model b {
+        font-size: 0.84rem;
+        font-weight: 650;
+        line-height: 1.45;
+      }
+
+      .vignette {
+        background: rgba(43, 23, 34, 0.28);
+      }
+
+      .vignette-grid {
+        display: grid;
+        grid-template-columns: minmax(280px, 1fr) minmax(380px, 0.8fr);
+        gap: clamp(48px, 9vw, 118px);
+        align-items: center;
+      }
+
+      .vignette h2 {
+        font-size: clamp(2.6rem, 4.8vw, 4.5rem);
+      }
+
+      .vignette .section-copy {
+        margin-top: 24px;
+      }
+
+      .vignette-numbers {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border: 1px solid rgba(240, 142, 142, 0.28);
+        border-radius: 12px;
+      }
+
+      .vignette-numbers div {
+        padding: 24px 18px;
+        border-left: 1px solid rgba(240, 142, 142, 0.18);
+      }
+
+      .vignette-numbers div:first-child {
+        border-left: 0;
+      }
+
+      .vignette-numbers strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: clamp(2rem, 4vw, 3.6rem);
+        letter-spacing: -0.04em;
+      }
+
+      .vignette-numbers span {
+        color: var(--muted);
+        font-size: 0.78rem;
+        line-height: 1.45;
+      }
+
+      .receipt {
+        background: rgba(13, 28, 47, 0.42);
+      }
+
+      .receipt-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1px;
+        background: var(--line);
+      }
+
+      .receipt-grid article {
+        min-width: 0;
+        padding: 25px;
+        background: var(--panel);
+      }
+
+      .receipt-grid small {
+        display: block;
+        margin-bottom: 16px;
+        color: var(--faint);
+        font-size: 0.67rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .receipt-grid strong {
+        display: block;
+        margin-bottom: 9px;
+        font-size: 1rem;
+      }
+
+      .receipt-grid p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.83rem;
+        line-height: 1.55;
+      }
+
+      .receipt-grid .unverified strong {
+        color: #ffc0c0;
+      }
+
+      .critical-boundary {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 12px 18px;
+        margin-top: 42px;
+        padding: 22px 24px;
+        border: 1px solid var(--line-mint);
+        border-radius: 10px;
+      }
+
+      .critical-boundary strong {
+        color: var(--mint-bright);
+      }
+
+      .critical-boundary p {
+        grid-column: 2;
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .proof-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px 28px;
+        margin-top: 34px;
+        font-size: 0.9rem;
+      }
+
+      footer {
+        padding: 42px 0 56px;
+        border-top: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 0.84rem;
+        line-height: 1.65;
+      }
+
+      footer .wrap {
+        display: flex;
+        justify-content: space-between;
+        gap: 30px;
+      }
+
+      @media (min-width: 1200px) and (max-height: 950px) {
+        .hero {
+          display: grid;
+          min-height: calc(100vh - 54px);
+          padding: 66px 0 70px;
+          align-items: center;
+        }
+
+        h1 {
+          margin-bottom: 20px;
+          font-size: 4.9rem;
+        }
+
+        .lede {
+          max-width: 56ch;
+          font-size: 1rem;
+          line-height: 1.55;
+        }
+
+        .hero-note {
+          margin-top: 18px;
+          padding-top: 15px;
+        }
+
+        .baseline-card {
+          padding: 30px;
+        }
+
+        .pack-grid {
+          margin: 18px 0;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .hero-grid,
+        .section-heading,
+        .driver-layout,
+        .burndown-layout,
+        .vignette-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .value-flow,
+        .mechanism {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .value-flow li:nth-child(odd),
+        .mechanism li:nth-child(odd) {
+          border-left: 0;
+        }
+
+        .value-flow li:nth-child(n + 3),
+        .mechanism li:nth-child(n + 3) {
+          border-top: 1px solid var(--line);
+        }
+
+        .value-example-grid,
+        .receipt-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .value-example-grid article:nth-child(odd),
+        .receipt-grid article:nth-child(3n + 1) {
+          border-left: 0;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .wrap {
+          width: min(100% - 30px, 1180px);
+        }
+
+        .site-nav span {
+          display: none;
+        }
+
+        .hero {
+          padding-top: 62px;
+        }
+
+        h1 {
+          font-size: clamp(3rem, 16vw, 4.3rem);
+        }
+
+        .hero-note {
+          display: grid;
+        }
+
+        .pack-grid,
+        .value-flow,
+        .value-example-grid,
+        .mechanism,
+        .receipt-grid,
+        .vignette-numbers {
+          grid-template-columns: 1fr;
+        }
+
+        .value-flow li,
+        .value-flow li:nth-child(odd),
+        .value-example-grid article,
+        .mechanism li,
+        .mechanism li:nth-child(odd),
+        .receipt-grid article,
+        .receipt-grid article:nth-child(3n + 1),
+        .vignette-numbers div {
+          border-left: 0;
+          border-top: 1px solid var(--line);
+        }
+
+        .value-flow li:first-child,
+        .value-example-grid article:first-child,
+        .mechanism li:first-child,
+        .receipt-grid article:first-child,
+        .vignette-numbers div:first-child {
+          border-top: 0;
+        }
+
+        .bar {
+          grid-template-columns: 88px minmax(0, 1fr) 50px;
+          gap: 10px;
+        }
+
+        .resolution {
+          grid-template-columns: 1fr;
+        }
+
+        .disposition-model {
+          grid-template-columns: 1fr;
+        }
+
+        .resolution > span {
+          transform: rotate(90deg);
+          justify-self: start;
+        }
+
+        .critical-boundary,
+        footer .wrap {
+          grid-template-columns: 1fr;
+        }
+
+        .critical-boundary p {
+          grid-column: 1;
+        }
+
+        footer .wrap {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="site-nav" aria-label="Case-study context">
+      <div class="wrap">
+        <strong>Quality Runner × Tenure</strong>
+        <span>Historical case · July 17–28, 2026</span>
+      </div>
+    </nav>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div class="wrap hero-grid">
+          <div>
+            <p class="kicker">Values-driven repository debt</p>
+            <h1 id="page-title">
+              4,022 findings, driven by what this codebase values.
+            </h1>
+            <p class="lede">
+              Quality Runner selected the standards relevant to Tenure, kept
+              each finding tied to its reason and scope, and turned an
+              overwhelming historical baseline into bounded, reviewable
+              engineering work.
+            </p>
+            <p class="hero-note">
+              <strong>8 of 12 packs selected</strong>
+              <span
+                >from repository signals—not one generic definition of
+                quality.</span
+              >
+            </p>
+          </div>
+
+          <aside class="baseline-card" aria-label="Baseline configuration">
+            <div>
+              <span>Actual baseline configuration</span>
+              <strong>50 coverage entries</strong>
+            </div>
+            <div class="pack-grid">
+              <span>Copy Specificity</span>
+              <span>Data Integrity</span>
+              <span>Developer Experience</span>
+              <span>PR Risk</span>
+              <span>Release Readiness</span>
+              <span>Test Strategy</span>
+              <span>UI Foundations</span>
+              <span>UI Specificity</span>
+            </div>
+            <p>
+              Owners can override selection, activate local skills, change rule
+              scope and thresholds, and exclude surfaces that should not be
+              judged.
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section value-section" aria-labelledby="value-title">
+        <div class="wrap">
+          <div class="section-heading">
+            <div>
+              <p class="kicker">What this means for your team</p>
+              <h2 id="value-title">
+                The standards that guide your agents can audit what they
+                produce.
+              </h2>
+            </div>
+            <p>
+              Skills and agent rules already describe the output and execution
+              your team values. Their implied failure modes can become concrete
+              checks, giving you a measurable debt ledger and a plan to improve
+              the repository against your own definition of quality.
+            </p>
+          </div>
+
+          <ol class="value-flow">
+            <li>
+              <span>01</span>
+              <small>Your standard</small>
+              <strong>Name what good looks like</strong>
+              <p>
+                Skills, guides, and agent rules express the output quality and
+                execution behavior your team values.
+              </p>
+            </li>
+            <li>
+              <span>02</span>
+              <small>Prevented outcome</small>
+              <strong>Make the failure explicit</strong>
+              <p>
+                Reviewed ingest identifies concrete negatives such as generic
+                copy, missing states, or unsafe boundaries.
+              </p>
+            </li>
+            <li>
+              <span>03</span>
+              <small>Checkable contract</small>
+              <strong>Choose how to inspect it</strong>
+              <p>
+                Low-noise standards become deterministic rules; judgment-heavy
+                standards become bounded review rubrics.
+              </p>
+            </li>
+            <li>
+              <span>04</span>
+              <small>Concrete findings</small>
+              <strong>Measure the gap in the repo</strong>
+              <p>
+                Results retain their skill, rule, file, line, evidence,
+                severity, scope, and coverage.
+              </p>
+            </li>
+            <li>
+              <span>05</span>
+              <small>Remediation plan</small>
+              <strong>Turn debt into bounded work</strong>
+              <p>
+                Findings are grouped by standard, risk, and surface, then
+                verified against the value that created them.
+              </p>
+            </li>
+          </ol>
+
+          <div class="value-example">
+            <span>Tenure · one value traced through the system</span>
+            <div class="value-example-grid">
+              <article>
+                <small>Value</small>
+                <strong
+                  >Interfaces should feel intentional, legible, and
+                  complete</strong
+                >
+              </article>
+              <article>
+                <small>Prevent</small>
+                <strong
+                  >Generic UI, unclear states, and structural design
+                  shortcuts</strong
+                >
+              </article>
+              <article>
+                <small>Measure</small>
+                <strong
+                  >192 UI-foundations + 179 UI-specificity findings</strong
+                >
+              </article>
+              <article>
+                <small>Plan</small>
+                <strong
+                  >Scoped findings grouped into reviewable remediation
+                  slices</strong
+                >
+              </article>
+            </div>
+          </div>
+
+          <p class="ingest-boundary">
+            <strong>Reviewed compilation, not arbitrary execution.</strong>
+            An ingest agent can propose a conservative pack from a Skill, guide,
+            or preference document; a human reviews it; Quality Runner validates
+            the non-executable pack and records its exact version and content
+            hash. It does not run arbitrary Skill code, call a model, or
+            silently invent rules during a scan.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="driver-title">
+        <div class="wrap driver-layout">
+          <div class="compact-heading">
+            <p class="kicker">What drives a finding</p>
+            <h2 id="driver-title">Values become inspectable evidence.</h2>
+            <p class="section-copy">
+              The interesting part is not the warning count. It is the chain
+              from repository signal to selected standard, scoped rule, finding,
+              and coverage receipt.
+            </p>
+          </div>
+          <div>
+            <ol class="mechanism">
+              <li>
+                <span>01</span>
+                <strong>Read repository signals</strong>
+                <p>Infer relevance from the codebase and its declared work.</p>
+              </li>
+              <li>
+                <span>02</span>
+                <strong>Select relevant packs</strong>
+                <p>Activate only the standards that fit the repository.</p>
+              </li>
+              <li>
+                <span>03</span>
+                <strong>Evaluate scoped rules</strong>
+                <p>Inspect only the files and patterns owned by each pack.</p>
+              </li>
+              <li>
+                <span>04</span>
+                <strong>Keep provenance attached</strong>
+                <p>Record pack, rule, evidence, scope, and coverage.</p>
+              </li>
+              <li>
+                <span>05</span>
+                <strong>Review before changing code</strong>
+                <p>
+                  Resolve each row through a fix, disposition, or open work.
+                </p>
+              </li>
+            </ol>
+            <div class="driver-result">
+              <small>Tenure baseline output</small>
+              <strong>192 UI-foundations + 179 UI-specificity findings</strong>
+              <span class="section-copy"
+                >alongside structural categories such as hardening,
+                simplification, integration, and deduplication.</span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="burndown-title">
+        <div class="wrap burndown-layout">
+          <div class="compact-heading">
+            <p class="kicker">The burndown</p>
+            <h2 id="burndown-title">
+              A large baseline, reconciled in bounded slices.
+            </h2>
+            <p class="section-copy">
+              Full scans re-established the baseline after roughly 100 net
+              findings or any material scope change. Changed-surface scans kept
+              each repair slice small.
+            </p>
+          </div>
+          <div>
+            <div
+              class="chart"
+              aria-label="Historical raw findings by checkpoint"
+            >
+              <div class="bar">
+                <span>Initial baseline</span>
+                <div class="track"><i style="--width: 100%"></i></div>
+                <strong>4,022</strong>
+              </div>
+              <div class="bar">
+                <span>Phase 111</span>
+                <div class="track"><i style="--width: 60.2%"></i></div>
+                <strong>2,422</strong>
+              </div>
+              <div class="bar">
+                <span>Phase 118</span>
+                <div class="track"><i style="--width: 56.3%"></i></div>
+                <strong>2,265</strong>
+              </div>
+              <div class="bar">
+                <span>Scheduled</span>
+                <div class="track"><i style="--width: 26.4%"></i></div>
+                <strong>1,060</strong>
+              </div>
+              <div class="bar">
+                <span>Refresh 11</span>
+                <div class="track"><i style="--width: 17.3%"></i></div>
+                <strong>694</strong>
+              </div>
+              <div class="bar">
+                <span>Refresh 22</span>
+                <div class="track"><i style="--width: 14.1%"></i></div>
+                <strong>566</strong>
+              </div>
+              <div class="bar">
+                <span>Refresh 35</span>
+                <div class="track"><i style="--width: 13.4%"></i></div>
+                <strong>537</strong>
+              </div>
+            </div>
+
+            <div class="resolution">
+              <div>
+                <strong>537</strong>
+                <span>raw code-quality rows remained</span>
+              </div>
+              <span aria-hidden="true">≠</span>
+              <div>
+                <strong>0</strong>
+                <span>open actionable findings</span>
+              </div>
+              <div
+                class="disposition-model"
+                aria-label="Agent reconciliation outcomes"
+              >
+                <div>
+                  <small>Fixed</small>
+                  <b>Source changed and rechecked</b>
+                </div>
+                <div>
+                  <small>Accepted</small>
+                  <b>Intentional tradeoff, reason preserved</b>
+                </div>
+                <div>
+                  <small>False positive</small>
+                  <b>Source-evidenced disposition recorded</b>
+                </div>
+              </div>
+              <p>
+                Quality Runner gives the reviewing agent the finding evidence
+                and durable ledger needed to distinguish a fix from intentional
+                code or a false positive. The 537 rows still existed as raw
+                detector output, but their meaning had been reconciled; none
+                remained open and actionable.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section vignette" aria-labelledby="review-title">
+        <div class="wrap vignette-grid">
+          <div>
+            <p class="kicker">Second proof · August reconciliation</p>
+            <h2 id="review-title">Why review remains essential.</h2>
+            <p class="section-copy">
+              A later 684-candidate comparison rehearsed the apparent bulk
+              route. Changing 127 files produced 15 integration or type errors,
+              so the shortcut was rejected before merge.
+            </p>
+          </div>
+          <div class="vignette-numbers" aria-label="Rejected shortcut evidence">
+            <div><strong>684</strong><span>candidates reviewed</span></div>
+            <div><strong>127</strong><span>files rehearsed</span></div>
+            <div><strong>15</strong><span>errors; route rejected</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section receipt" aria-labelledby="receipt-title">
+        <div class="wrap">
+          <div class="section-heading">
+            <div>
+              <p class="kicker">The receipt</p>
+              <h2 id="receipt-title">Historical evidence, explicit limits.</h2>
+            </div>
+            <p>
+              The baseline was dirty, the final run directory is not retained,
+              and gate execution remained blocked without consent. The tracked
+              final state at its exact evidence commit is the historical
+              receipt.
+            </p>
+          </div>
+
+          <div class="receipt-grid">
+            <article>
+              <small>Raw baseline</small>
+              <strong>4,022 raw rows</strong>
+              <p>The July 17 run recorded a pack-driven review surface.</p>
+            </article>
+            <article>
+              <small>Disposition state</small>
+              <strong>0 open</strong>
+              <p>
+                Refresh 35 retained 537 raw rows and zero open actionable items.
+              </p>
+            </article>
+            <article>
+              <small>QR gate execution</small>
+              <strong>Consent not supplied</strong>
+              <p>
+                The case preserves historical inspect evidence, not a fresh
+                passing gate.
+              </p>
+            </article>
+            <article>
+              <small>Evidence revision</small>
+              <strong>8b395b2d</strong>
+              <p>
+                The exact tracked historical state records the final checkpoint.
+              </p>
+            </article>
+            <article>
+              <small>Showcase surface</small>
+              <strong>Responsive render</strong>
+              <p>
+                The static page was reviewed locally at desktop and mobile
+                widths.
+              </p>
+            </article>
+            <article class="unverified">
+              <small>Deployment</small>
+              <strong>Not verified</strong>
+              <p>
+                No public URL, provider, deployment ID, or hosted-page receipt
+                is recorded.
+              </p>
+            </article>
+          </div>
+
+          <div class="critical-boundary">
+            <strong>Critical boundary</strong>
+            <span aria-hidden="true">↳</span>
+            <p>
+              This is a historical Tenure case with exact provenance. It is not
+              proof of the current checkout, a fresh gate run, or production
+              deployment.
+            </p>
+          </div>
+
+          <nav class="proof-links" aria-label="Public case evidence">
+            <a href="evidence/case-study.json">Case packet</a>
+            <a href="evidence/finding-drivers.json">Finding drivers</a>
+            <a href="evidence/burndown.json">Burndown receipt</a>
+            <a href="evidence/claim-ledger.json">Claim ledger</a>
+          </nav>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span
+          >The synthetic <code>partial-js</code> fixture remains a
+          reproducibility appendix.</span
+        >
+        <span>The real Tenure reconciliation is the headline case.</span>
+      </div>
+    </footer>
+  </body>
+</html>

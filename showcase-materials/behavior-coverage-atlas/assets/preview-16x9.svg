@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Behavior Coverage Atlas — know what the test proves</title>
+  <desc id="desc">A current development fixture shows verified, execution-only, failed, unknown, duplicate, and stale behavior evidence states.</desc>
+  <defs>
+    <radialGradient id="glow" cx="84%" cy="8%" r="55%"><stop offset="0" stop-color="#b7a4ff" stop-opacity=".2"/><stop offset="1" stop-color="#13121d" stop-opacity="0"/></radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#302c50"/><stop offset="1" stop-color="#242339"/></linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="#13121d"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <g font-family="Inter,Arial,sans-serif" fill="#f5f2ff">
+    <text x="112" y="148" font-size="22" font-weight="800" letter-spacing="3" fill="#b7a4ff">BEHAVIOR COVERAGE ATLAS · DEV</text>
+    <text x="112" y="286" font-size="76" font-weight="700">Know what the</text>
+    <text x="112" y="378" font-size="76" font-weight="700">test proves.</text>
+    <text x="112" y="456" font-size="26" fill="#c7c2d9">Map named behavior to evidence, then leave weak, stale,</text>
+    <text x="112" y="496" font-size="26" fill="#c7c2d9">failed, missing, and duplicate links impossible to miss.</text>
+  </g>
+  <g transform="translate(842 142)">
+    <rect width="644" height="616" rx="24" fill="url(#card)" stroke="#e9e1ff" stroke-opacity=".25"/>
+    <g font-family="Inter,Arial,sans-serif">
+      <text x="42" y="58" font-size="16" fill="#c7c2d9" letter-spacing="2">MANIFEST · FRESH RUN</text>
+      <text x="602" y="58" text-anchor="end" font-size="16" fill="#9fe6bd" font-weight="700">TARGET-BOUND</text>
+      <rect x="42" y="96" width="560" height="292" fill="#13121d" fill-opacity=".72" stroke="#e9e1ff" stroke-opacity=".25"/>
+      <text x="70" y="134" font-size="16" fill="#b7a4ff" font-weight="700">BEHAVIOR</text><text x="350" y="134" font-size="16" fill="#b7a4ff" font-weight="700">EVIDENCE STATE</text>
+      <text x="70" y="178" font-size="18" fill="#f5f2ff">checkout</text><text x="350" y="178" font-size="17" fill="#9fe6bd" font-weight="700">VERIFIED ASSERTION</text>
+      <text x="70" y="224" font-size="18" fill="#f5f2ff">profile</text><text x="350" y="224" font-size="17" fill="#ffca80" font-weight="700">EXECUTION ONLY</text>
+      <text x="70" y="270" font-size="18" fill="#f5f2ff">billing</text><text x="350" y="270" font-size="17" fill="#ff9f9f" font-weight="700">FAILED ASSERTION</text>
+      <text x="70" y="316" font-size="18" fill="#f5f2ff">search</text><text x="350" y="316" font-size="17" fill="#c7c2d9" font-weight="700">UNKNOWN / MISSING</text>
+      <text x="70" y="362" font-size="16" fill="#c7c2d9">duplicate checkout.test link · count 2</text>
+      <rect x="42" y="418" width="560" height="92" fill="#13121d" fill-opacity=".72" stroke="#e9e1ff" stroke-opacity=".25"/>
+      <text x="70" y="454" font-size="16" fill="#b7a4ff" font-weight="700">FRESHNESS CHECK</text>
+      <text x="70" y="486" font-size="17" fill="#ffca80">target mismatch → every historical entry becomes STALE</text>
+      <text x="42" y="566" font-size="17" fill="#c7c2d9">Current local proof · review handoff, hosting, and publication remain open</text>
+    </g>
+  </g>
+  <text x="112" y="790" font-family="Inter,Arial,sans-serif" font-size="18" fill="#858099" letter-spacing="1">BEHAVIOR COVERAGE ATLAS / CANDIDATE LOCAL MATERIAL</text>
+</svg>

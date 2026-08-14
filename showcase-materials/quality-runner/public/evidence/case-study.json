@@ -1,0 +1,86 @@
+{
+  "schema_version": "pronto-showcase-case/v1",
+  "project": "quality-runner",
+  "case_id": "tenure-quality-values-burndown-2026-07",
+  "headline_case": {
+    "repository": "tenure",
+    "period": "2026-07-17/2026-07-28",
+    "baseline_run": "qr060-tenure-20260717-capabilities-verify",
+    "baseline_revision": "0702be6ce94d845dc281a19c881f9a742846a33d",
+    "terminal_evidence_commit": "8b395b2dcc4dbed5221a3b1626f711388f163352",
+    "archive_commit": "f4d9d1d130f1c8b2d0e640f298c90ab3330551a2"
+  },
+  "finding_drivers": {
+    "packet": "finding-drivers.json",
+    "role": "actual_tenure_baseline",
+    "tenure_attribution": true,
+    "customer_value_contract": "value_execution_loop",
+    "purpose": "Show how reviewed ingest turns customer standards into prevented outcomes, checks or rubrics, concrete findings, and a debt plan; then show how Tenure signals selected eight packs for the 4,022-row baseline."
+  },
+  "burndown": {
+    "packet": "burndown.json",
+    "baseline_raw": 4022,
+    "terminal_raw": 537,
+    "terminal_open_actionable": 0
+  },
+  "stages": [
+    {
+      "id": "values",
+      "label": "Repository-defined quality",
+      "fact": "Quality Runner selected eight of twelve eligible standards packs from Tenure's repository signals.",
+      "interpretation": "The codebase was evaluated against relevant standards rather than one universal warning list."
+    },
+    {
+      "id": "baseline",
+      "label": "Explainable baseline",
+      "fact": "The July 17 scan recorded 4,022 raw code-quality findings across 886 files, with 50 pack-coverage entries.",
+      "interpretation": "Pack, rule, category, scope, and coverage made the large result navigable; raw findings were candidates for review, not 4,022 confirmed defects."
+    },
+    {
+      "id": "classification",
+      "label": "Debt classification",
+      "fact": "Quality Runner classified the result as broad debt requiring a roadmap, not a one-shot cleanup.",
+      "interpretation": "The plan organized work by behavior and risk before implementation."
+    },
+    {
+      "id": "cadence",
+      "label": "Bounded burndown",
+      "fact": "Changed-surface scans supported individual slices, with full refreshes after roughly 100 net findings and on provenance, scope, policy, configuration, or pack changes.",
+      "interpretation": "Each batch could be verified without letting the baseline silently go stale."
+    },
+    {
+      "id": "disposition",
+      "label": "Source review, not count chasing",
+      "fact": "Rows closed only through a source change with proof or an exact source-evidenced disposition.",
+      "interpretation": "The system distinguished actionable work from detector output that correctly described intentional code."
+    },
+    {
+      "id": "terminal",
+      "label": "Zero open, not zero raw",
+      "fact": "Refresh 35 recorded 537 raw code-quality rows and 0 open actionable findings in the exact disposition comparison.",
+      "interpretation": "Quality Runner preserved raw detector evidence while the reviewing agent distinguished fixes, accepted intentional code, source-evidenced false positives, and unresolved work. The outcome was reconciled evidence, not a cosmetically empty scanner."
+    }
+  ],
+  "supporting_case": {
+    "case_id": "tenure-semantic-reconciliation-2026-08-10",
+    "role": "consequence_vignette",
+    "summary": "A later 684-candidate branch comparison rehearsed a 127-file shortcut, produced 15 integration or type errors, and rejected the unsafe route before merge.",
+    "artifacts": ["change-ledger.json", "provenance-receipt.json"]
+  },
+  "boundaries": [
+    "historical_baseline_was_dirty",
+    "raw_instruction_sources_require_reviewed_ingest",
+    "quality_runner_does_not_execute_arbitrary_skill_code",
+    "raw_findings_are_not_confirmed_defects",
+    "zero_actionable_is_not_zero_raw",
+    "final_run_directory_is_not_retained",
+    "gate_verification_was_blocked_without_execution_consent",
+    "historical_evidence_is_not_current_checkout_or_deployment_proof"
+  ],
+  "reproducibility_appendix": {
+    "repository": "quality-runner",
+    "path": "fixtures/corpus/partial-js",
+    "role": "appendix_only",
+    "purpose": "Replay the evidence model deterministically without replacing the real Tenure case."
+  }
+}

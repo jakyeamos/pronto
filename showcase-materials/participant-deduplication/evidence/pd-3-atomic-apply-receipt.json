@@ -1,0 +1,66 @@
+{
+  "schema_version": "pronto-showcase-participant-dedup-atomic-apply-receipt/v1",
+  "project": "participant-dedup",
+  "gap": "PD-3",
+  "observed_at": "2026-08-13T18:27:00Z",
+  "status": "passed_as_local_behavior_fixture",
+  "source": {
+    "repository": "participant-dedup",
+    "path": "/Users/jakyeamos/projects/participant-dedup",
+    "branch": "dev",
+    "commit": "81569f4bff60e4f2d52cb0a401289ca1c5d80ff8",
+    "checkout_status": "clean_at_inspection",
+    "fixture": "test/support/participantFixture.ts",
+    "gateway": "FakeSheetsGateway; in-memory only"
+  },
+  "verification": {
+    "targeted_tests": {
+      "command": "node_modules/.bin/vitest run test/server/apply/applyDecisions.test.ts test/server/apply/preflight.test.ts test/server/review/mergePlan.test.ts test/server/review/decisions.test.ts",
+      "test_files": 4,
+      "tests_passed": 66,
+      "status": "passed"
+    },
+    "apply_probe": {
+      "status": "passed",
+      "challenge_summary": {
+        "cluster_count": 2,
+        "retained_count": 2,
+        "deletion_row_count": 3,
+        "fill_count": 1
+      },
+      "confirmation_text": "confirm",
+      "participant_digest_unchanged_before_confirm": true,
+      "apply_result": {
+        "deleted_rows": 3,
+        "filled_fields": 1,
+        "audit_written": 7
+      },
+      "before_rows": 9,
+      "after_rows": 6,
+      "retained_row_notes": "alpha",
+      "deleted_ids_absent": true,
+      "unselected_singletons_preserved": true,
+      "audit_event_counts": {
+        "ROW_DELETED": 3,
+        "FIELD_FILLED": 1,
+        "CLUSTER_APPLIED": 2,
+        "APPLY_COMPLETED": 1,
+        "APPLY_ATTEMPTED": 1
+      }
+    },
+    "installed_surface": {
+      "status": "not_proven",
+      "authenticated_google_sheet": "not exercised",
+      "apps_script_sidebar": "not captured",
+      "deployed_backend": "not exercised",
+      "public_case": "not hosted"
+    }
+  },
+  "claim_boundary": [
+    "PD-3 is closed for the repository's deterministic local gateway and atomic request path.",
+    "The local fixture is not authenticated Google Sheets or deployed-backend proof.",
+    "The original PD-1 workbook remains a material fixture; this receipt uses the repository-owned Ann/Bob behavior fixture for apply semantics.",
+    "PD-4 and PD-5 provide the adjacent stale-state and copy-recovery closures."
+  ],
+  "next_gap": "PD-4"
+}

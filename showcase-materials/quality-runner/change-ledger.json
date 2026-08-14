@@ -1,0 +1,105 @@
+{
+  "schema_version": "pronto-showcase-change-ledger/v1",
+  "project": "quality-runner",
+  "case_id": "tenure-semantic-reconciliation-2026-08-10",
+  "comparison": {
+    "baseline_revision": "b3af98660928966ff56fbaaa183af2ac8a74ede5",
+    "candidate_revision": "83b1318e8f264131d4d393619da720633edafaca",
+    "raw_finding_delta_is_outcome_proof": false,
+    "outcome_model": "semantic_lane_plus_applicable_regression_proof"
+  },
+  "lanes": [
+    {
+      "id": "security_boundaries",
+      "improvement": "Sign Microsoft 365 OAuth state and constrain pipeline upload object keys.",
+      "commits": [
+        "9bbb8ef0f27f4aa43e8ebd37a5c85e09a7ec2120",
+        "89139619da3d97e7a0958beddcbd788e975f1486"
+      ],
+      "regression_proof": [
+        "lib/connectors/ms365/__tests__/state-cookie.test.ts",
+        "app/api/connectors/[provider]/callback/__tests__/callback-persistence.itest.ts",
+        "lib/pipeline/__tests__/storage-object-name.test.ts"
+      ]
+    },
+    {
+      "id": "ingestion_reliability",
+      "improvement": "Preserve ingestion grounding, locator recovery, telemetry, failure diagnostics, reliability, deduplication, and prompt-cache cost semantics.",
+      "commits": [
+        "69fef073268c373c3bf3c79e2bc8b4e1bd0615a1",
+        "456e94d6adc4a5810b173ca2070f9bf1ddc5b533",
+        "5d367706f2db3966c5c4bd836356f9e35b82d418",
+        "da990370afeb404cc9d11d70a1c5840423dd2565",
+        "71ca6b11d7a8fd7c234413486a14b4e9c934d3ef"
+      ],
+      "regression_proof": [
+        "lib/ingest/__tests__/locator-recovery.test.ts",
+        "lib/pipeline/__tests__/grounding.test.ts",
+        "lib/pipeline/__tests__/stage-failure.test.ts",
+        "lib/pipeline/__tests__/telemetry-adapter.test.ts",
+        "packages/crystallization-engine/src/reduce/dedup.test.ts",
+        "lib/pipeline/__tests__/compute-cost.test.ts",
+        "lib/pipeline/__tests__/production-path-identity.test.ts"
+      ]
+    },
+    {
+      "id": "relationship_paths",
+      "improvement": "Reconcile relationship-path rejection, extraction, cost, evaluation, persistence, and pipeline behavior as one end-to-end slice.",
+      "commits": [
+        "e16c8cf2b64eb2a97ad12d663c42ae1a5c89da7e",
+        "ae9982167e7cc936946e294281e8c5710405ef38",
+        "a2efd6cbe6dab48b4e6abc4bcf4d90348dff6dc3",
+        "f79a3f03f4ddaadd709bbc0378ca1429f42261f9",
+        "7a868e299ee8390d8a8fda0be522c5c190987136",
+        "e99a36929bdd1d469ff2d01fdb9718171c2b443a"
+      ],
+      "regression_proof": [
+        "lib/relationship-paths/__tests__/actions.itest.ts",
+        "packages/crystallization-engine/src/pipeline/schemas/__tests__/relationship-paths.test.ts",
+        "packages/crystallization-engine/src/reduce/relationship-paths/__tests__/verify.test.ts",
+        "scorers/__tests__/path-metrics.test.ts",
+        "scripts/__tests__/build-path-fixtures.test.ts",
+        "inngest/functions/__tests__/claude-pipeline-layer6.test.ts"
+      ]
+    },
+    {
+      "id": "observatory_semantics",
+      "improvement": "Reconcile Observatory persistence, stage and model semantics, test-only scope, and database-pinned prompt versions.",
+      "commits": [
+        "adb7105a6b5a7f4892725abe3e59575f5735c93c",
+        "9fbdd1e456d587076769a37c4a42464ea831d9f3",
+        "f745280d1a87707d16899b768d18b355c457ae8a",
+        "062ac3b3fe1f6ec465b88a533dd4d0c9425c3ccd"
+      ],
+      "regression_proof": [
+        "inngest/utils/__tests__/pipeline-test-write-scope.test.ts",
+        "__tests__/unit/internal/run-route.test.ts",
+        "packages/crystallization-engine/src/pipeline/__tests__/stage-model.test.ts",
+        "lib/pipeline/__tests__/test-scope.test.ts",
+        "lib/pipeline/__tests__/prompt-resolution.test.ts"
+      ]
+    },
+    {
+      "id": "runtime_review_interactions",
+      "improvement": "Preserve active-engagement semantics and stronger review-workspace behavior while reducing review queue responsibility and closing structural findings.",
+      "commits": [
+        "effc8709adc21773f6876249583794f970eb2d73",
+        "8f86dcc5a78ba1682223b4cbc2baaa53a982cba3",
+        "a2b0aa33a2bdbdedd365c96aac53a0adac9918d5",
+        "83b1318e8f264131d4d393619da720633edafaca"
+      ],
+      "regression_proof": [
+        "lib/admin/engagements/__tests__/engagement-active-status.test.ts",
+        "app/__tests__/globals-token-collision.test.ts",
+        "app/(admin)/review/_components/__tests__/ConfidenceTooltip.test.tsx",
+        "app/(admin)/review/_components/__tests__/QueueShell.optimistic.test.tsx",
+        "final_repository_verification_ladder"
+      ]
+    }
+  ],
+  "canonical_sources": [
+    "docs/reconciliation/main-dev-semantic-reconciliation-2026-08-10.md",
+    "docs/reconciliation/main-dev-semantic-ledger-2026-08-10.json",
+    "docs/reconciliation/quality-runner-comparison-2026-08-10.json"
+  ]
+}

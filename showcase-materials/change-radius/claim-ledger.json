@@ -1,0 +1,68 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "change-radius",
+  "case_id": "change-radius-w2-typescript-001",
+  "reviewed_at": "2026-08-14T03:12:21Z",
+  "levels": [
+    {
+      "id": "known-edges",
+      "label": "Provider-named static edges",
+      "status": "verified_local",
+      "status_display": "Two bounded imports found",
+      "allowed_claim": "The fixture exposes direct static consumer and test edges with a bounded-regex provider.",
+      "forbidden_inference": "Every runtime consumer has been found.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/cr-w2-typescript-radius.json#/edges"]
+    },
+    {
+      "id": "unknowns",
+      "label": "Explicit blind spots",
+      "status": "verified_local",
+      "status_display": "Dynamic import stays unknown",
+      "allowed_claim": "Dynamic loading is retained as an explicit unknown class rather than a known static edge.",
+      "forbidden_inference": "Unknown classes are empty or harmless.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/cr-w2-typescript-radius.json#/unknowns"]
+    },
+    {
+      "id": "receipt",
+      "label": "Source-bound next action",
+      "status": "verified_local",
+      "status_display": "Target and next review linked",
+      "allowed_claim": "The receipt records the target revision, limitations, and a next test review action.",
+      "forbidden_inference": "The map is a merge verdict or complete risk score.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/cr-w2-typescript-radius.json#/target"]
+    },
+    {
+      "id": "current_dev",
+      "label": "Current dev checkpoint",
+      "status": "verified_local",
+      "status_display": "Fixture graph and checks reproduce on dev",
+      "allowed_claim": "The current dev head passes its local checks and reproduces provider-named static edges with a dynamic-import unknown.",
+      "forbidden_inference": "The current dev head has complete runtime, generated, external, or downstream parity coverage.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/cr-w3-current-dev-checkpoint.json"]
+    },
+    {
+      "id": "integration",
+      "label": "Downstream parity",
+      "status": "open",
+      "status_display": "Deletion/contract handoff pending",
+      "allowed_claim": "The receipt leaves a seam for downstream review tools.",
+      "forbidden_inference": "Deletion Proof and Contract Watch have consumed this exact receipt.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["../route-plan.md#3-build-gap-specification"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "not_verified",
+      "status_display": "No hosted or posted proof",
+      "allowed_claim": "Hosting and external publication remain unverified.",
+      "forbidden_inference": "The graph case is live on GitHub, portfolio, or Handshake.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["case-study.json#open_gates"]
+    }
+  ]
+}

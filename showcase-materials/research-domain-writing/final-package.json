@@ -1,0 +1,52 @@
+{
+  "schema_version": "pronto-showcase-final-package/v1",
+  "project": "research-domain-writing",
+  "case_id": "tatum-2023-24-claim-boundary",
+  "status": "publication_candidate_provenance_gated",
+  "assembled_at": "2026-08-12T22:10:00Z",
+  "public_claim": "Research Domain Writing binds fluent prose to an explicit source packet, stops unsupported inference through agent-performed Domain QA, and preserves human publication authority.",
+  "materials": {
+    "page_candidate": "public/index.html",
+    "short_description": "public-description.txt",
+    "draft_captions": "captions.vtt",
+    "recording": null,
+    "case_packet": "case-study.json",
+    "claim_ledger": "claim-ledger.json",
+    "source_packet": "source-packet.yaml",
+    "validation_record": "rdw-run/validation-record.json",
+    "provenance_receipt": "rdw-0-provenance.json"
+  },
+  "checks": {
+    "description_under_500_characters": true,
+    "public_copy_uses_reviewed_claims_only": true,
+    "installed_pack_validation": "pass_specialized_production",
+    "release_provenance_claim_allowed": false,
+    "deployment_claim_allowed": false,
+    "local_browser_desktop": {
+      "viewport": "1488x981",
+      "document_width": 1488,
+      "horizontal_overflow": false,
+      "claim_selector_interaction": "passed",
+      "console_errors_or_warnings": 0
+    },
+    "local_browser_mobile": {
+      "viewport": "390x844",
+      "document_width": 390,
+      "horizontal_overflow": false,
+      "all_claim_tabs_visible": true,
+      "claim_detail_within_viewport": true,
+      "human_badge_within_viewport": true
+    }
+  },
+  "open_gates": [
+    "reconcile_release_artifact_to_source_revision",
+    "complete_side_by_side_editorial_review",
+    "host_page_without_authentication",
+    "verify_hosted_page_on_desktop_and_mobile",
+    "obtain_owner_approval_for_public_copy"
+  ],
+  "optional_enhancements": [
+    "record_narrated_walkthrough",
+    "check_captions_against_final_delivery"
+  ]
+}

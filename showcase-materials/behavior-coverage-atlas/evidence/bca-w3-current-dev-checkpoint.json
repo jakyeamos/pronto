@@ -1,0 +1,56 @@
+{
+  "schema_version": "behavior-coverage-atlas-showcase-evidence-v0.1",
+  "project": "behavior-coverage-atlas",
+  "source_repository": "behavior-coverage-atlas",
+  "source_branch": "dev",
+  "source_revision": "8c052b143eab95e0aa7f75b09bfca6382f2c6d6c",
+  "observed_at": "2026-08-14T03:12:21Z",
+  "checks": {
+    "test": { "status": "passed", "command": "pnpm test", "tests": 3 },
+    "lint": { "status": "passed", "command": "pnpm lint" },
+    "package": { "status": "passed", "command": "pnpm package" }
+  },
+  "headless_flow": {
+    "command": "node src/cli.mjs /private/tmp/showcase-behavior-atlas-fixture-20260814 --json",
+    "fixture_target_revision": "40f738b1055010b23f230fc10457dd80174b6e4d",
+    "fresh_run": {
+      "status": "ready",
+      "target": "40f738b1055010b23f230fc10457dd80174b6e4d",
+      "results_target": "40f738b1055010b23f230fc10457dd80174b6e4d",
+      "entries": [
+        { "id": "checkout", "status": "verified", "evidence_class": "assertion", "tests": ["checkout.test"] },
+        { "id": "profile", "status": "exercised_without_assertion", "evidence_class": "execution", "tests": ["profile.test", "checkout.test"] },
+        { "id": "billing", "status": "failed", "evidence_class": "assertion", "tests": ["billing.test"] },
+        { "id": "search", "status": "unknown", "evidence_class": "none", "tests": ["missing.test"] }
+      ],
+      "diagnostics": [
+        { "kind": "duplicate-link", "test": "checkout.test", "count": 2 }
+      ],
+      "unknowns": ["inferred behaviors", "unmodeled runtime paths"]
+    },
+    "stale_run": {
+      "status": "ready",
+      "target": "40f738b1055010b23f230fc10457dd80174b6e4d",
+      "results_target": "0000000000000000000000000000000000000000",
+      "entry_statuses": {
+        "checkout": "stale",
+        "profile": "stale",
+        "billing": "stale",
+        "search": "stale"
+      },
+      "evidence_class": "historical"
+    }
+  },
+  "negative_contracts": {
+    "duplicate_link": "verified_by_fixture_run",
+    "missing_test": "verified_by_fixture_run",
+    "failed_assertion": "verified_by_fixture_run",
+    "stale_result": "verified_by_fixture_run"
+  },
+  "privacy": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local behavior fixture"
+  },
+  "claim_boundary": "Current dev checks and a fresh behavior fixture prove verified, execution-only, failed, unknown, duplicate, and stale states. This checkpoint is not line coverage, a complete runtime map, Review Attention Map integration, hosting, or publication proof."
+}

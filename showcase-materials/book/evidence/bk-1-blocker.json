@@ -1,0 +1,58 @@
+{
+  "schema_version": "pronto-showcase-book-gap-receipt/v1",
+  "project": "book",
+  "gap": "BK-1",
+  "observed_at": "2026-08-13T17:37:05Z",
+  "status": "blocked",
+  "disposition": "parked_pending_chapter_and_asset_rights_record",
+  "observed_surface": {
+    "repository": "Book",
+    "checkout": {
+      "path": "/Users/jakyeamos/projects/Book",
+      "branch": "dev",
+      "commit": "c18a00b9bac630444af5ec4fed0b12abfece1da0",
+      "status": "clean_at_inspection"
+    },
+    "route_status": "Ready",
+    "candidate": {
+      "chapter": "chapter1 / The Ritual",
+      "text": "chapters/ch01.html",
+      "config": "chapters/config.js",
+      "audio": [
+        "assets/music/Eva_Angelina.mp3",
+        "assets/music/Mojo_Pin.mp3",
+        "assets/music/Rose_Parade.mp3"
+      ],
+      "fonts": "styles.css:1 external Google Fonts import"
+    }
+  },
+  "missing_contract": {
+    "required": [
+      "chapter authorship or license statement",
+      "track-level music permission/license and public credit",
+      "font provenance and public display decision",
+      "separate AI-assistance and human-contribution statement",
+      "sensitive-content review for the selected excerpt"
+    ],
+    "why_current_evidence_is_insufficient": [
+      "Git author identities show repository history but do not establish complete authorship or publication permission.",
+      "The runtime references three MP3 files without a repository-owned credit or license record.",
+      "The external font import is not accompanied by a pinned provenance or license note.",
+      "No task-level record explains whether AI assistance affected writing, art, audio, or implementation."
+    ]
+  },
+  "blocked_action": "Do not publish a real chapter excerpt, soundtrack-backed capture, or unqualified AI/human authorship claim until the rights and attribution record is approved.",
+  "synthetic_fallback": {
+    "path": "showcase-materials/book/synthetic-fixture.json",
+    "status": "available",
+    "label_required": true,
+    "does_not_clear_bk_1": true
+  },
+  "next_action": "Return to BK-1 with an approved chapter and asset ledger, or explicitly choose a synthetic-only case study; then proceed to BK-2 transformation-arc authoring.",
+  "claim_boundary": [
+    "The source supports a local product capability claim for manifest-driven reading, motion, layered audio, and reader controls.",
+    "The rights-safe appendix supports material planning only.",
+    "No public rights clearance, hosted behavior, or AI product role is claimed."
+  ],
+  "next_gap": "BK-1"
+}

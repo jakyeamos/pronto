@@ -1,0 +1,76 @@
+{
+  "schema_version": "pronto-showcase-remodelvision-contribution-ledger/v1",
+  "project": "remodelvision",
+  "gap": "RV-1",
+  "observed_at": "2026-08-13T17:24:41Z",
+  "status": "review_required",
+  "source": {
+    "repository": "github.com/alec-angello/remodelvision",
+    "checkout_commit": "8c2e3bb375587389204165fc290cd6599c2fa416",
+    "checkout_branch": "qr/triage-parallel-20260702T200935Z",
+    "checkout_status": "clean_at_inspection",
+    "public_sources": ["README.md", "PRESENTATION.md"],
+    "history_scope": "git shortlog --all and commits touching the AI pipeline"
+  },
+  "observed_attribution": {
+    "project_statement": {
+      "names": ["Alec Angello", "Jakye Amos", "Adam Hamilton", "Sean Donahue"],
+      "source_refs": ["README.md:5", "PRESENTATION.md:4", "PRESENTATION.md:14"],
+      "status": "observed"
+    },
+    "git_identities": [
+      {
+        "identity": "jakyeamos <82969225+jakyeamos@users.noreply.github.com>",
+        "commit_count": 72,
+        "status": "observed",
+        "role": "unknown"
+      },
+      {
+        "identity": "Jakye Amos <jakye.amos@gmail.com>",
+        "commit_count": 16,
+        "status": "observed",
+        "role": "unknown"
+      },
+      {
+        "identity": "alec-angello <awa43@case.edu>",
+        "commit_count": 16,
+        "status": "observed",
+        "role": "unknown"
+      },
+      {
+        "identity": "Sean Donahue <seandonahue@Seans-MacBook-Pro-210.local>",
+        "commit_count": 2,
+        "status": "observed",
+        "role": "unknown"
+      },
+      {
+        "identity": "Sean Donahue <89647722+SeanDonahue04@users.noreply.github.com>",
+        "commit_count": 1,
+        "status": "observed",
+        "role": "unknown"
+      }
+    ],
+    "ai_pipeline_history": {
+      "observed_authors": ["Jakye Amos", "alec-angello", "Sean Donahue"],
+      "source_refs": [
+        "git log --all -- src/lib/agents src/lib/tools src/app/api",
+        "PRESENTATION.md:124-129"
+      ],
+      "status": "observed",
+      "interpretation": "Commit authorship shows repository activity, not a complete personal role or ownership statement."
+    }
+  },
+  "boundary_status": {
+    "personal_contribution_role": "unknown_pending_owner_review",
+    "collaborator_approval_for_public_showcase": "unknown_pending_collaborator_review",
+    "third_party_asset_rights": "unknown_pending_asset_manifest",
+    "model_generated_output_rights": "unknown_pending_provider_and_asset_review",
+    "public_attribution_decision": "blocked_pending_human_review"
+  },
+  "claim_boundary": [
+    "The repository and presentation establish a four-person senior-project attribution.",
+    "Git history is evidence of authored changes, not proof of each person's product role or permission to publish a case study.",
+    "No collaborator approval, provider-rights decision, private-location clearance, or public attribution release is claimed."
+  ],
+  "next_action": "Obtain an explicit contribution and public-showcase approval record from the project owner and collaborators before making personal or team claims public."
+}

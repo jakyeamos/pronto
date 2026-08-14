@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dsci-proj · decision contract preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #f4f6fb;
+        --muted: #9ba8bd;
+        --dim: #6c7890;
+        --line: rgba(183, 199, 228, 0.15);
+        --panel: rgba(18, 26, 42, 0.82);
+        --panel-strong: #141e32;
+        --canvas: #0b101b;
+        --mint: #8ee8c3;
+        --blue: #9ebeff;
+        --amber: #f2c77c;
+        --rose: #f2a9b9;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        color: var(--ink);
+        background:
+          radial-gradient(
+            circle at 85% 0%,
+            rgba(74, 111, 190, 0.22),
+            transparent 34rem
+          ),
+          radial-gradient(
+            circle at 5% 55%,
+            rgba(43, 140, 115, 0.12),
+            transparent 28rem
+          ),
+          var(--canvas);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.45;
+      }
+
+      .page {
+        width: min(1180px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 28px 0 60px;
+      }
+      .topbar,
+      .meta,
+      .flow-head,
+      .panel-head,
+      .card-head,
+      .boundary-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .topbar {
+        margin-bottom: 62px;
+      }
+      .eyebrow,
+      .section-label,
+      .micro,
+      .status,
+      .source-type,
+      .claim-label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+      .eyebrow {
+        color: var(--mint);
+      }
+      .badge {
+        border: 1px solid rgba(142, 232, 195, 0.35);
+        border-radius: 999px;
+        color: var(--mint);
+        padding: 7px 11px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+      }
+      .hero {
+        max-width: 760px;
+        margin-bottom: 46px;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        max-width: 720px;
+        margin-top: 12px;
+        font-size: clamp(42px, 7vw, 78px);
+        letter-spacing: -0.065em;
+        line-height: 0.98;
+      }
+      .lede {
+        max-width: 660px;
+        margin-top: 22px;
+        color: var(--muted);
+        font-size: clamp(17px, 2.2vw, 21px);
+      }
+      .meta {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        margin-top: 26px;
+        color: var(--dim);
+        font-size: 12px;
+      }
+      .meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .meta span::before {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--blue);
+        content: "";
+      }
+      .meta span:nth-child(2)::before {
+        background: var(--amber);
+      }
+      .meta span:nth-child(3)::before {
+        background: var(--rose);
+      }
+
+      .flow {
+        margin: 0 0 24px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(11, 16, 27, 0.44);
+      }
+      .flow-head {
+        margin-bottom: 16px;
+      }
+      .flow-head h2,
+      .panel-head h2 {
+        font-size: 16px;
+        letter-spacing: -0.025em;
+      }
+      .flow-head p {
+        color: var(--dim);
+        font-size: 12px;
+      }
+      .stage-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+      }
+      .stage {
+        position: relative;
+        min-height: 74px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(20, 30, 50, 0.68);
+      }
+      .stage:not(:last-child)::after {
+        position: absolute;
+        top: 32px;
+        right: -13px;
+        z-index: 2;
+        color: var(--dim);
+        content: "→";
+      }
+      .stage .num {
+        color: var(--mint);
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .stage strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 13px;
+      }
+      .stage small {
+        display: block;
+        margin-top: 3px;
+        color: var(--dim);
+        font-size: 11px;
+      }
+
+      .workbench {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: linear-gradient(
+          145deg,
+          rgba(20, 30, 50, 0.9),
+          var(--panel)
+        );
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.16);
+      }
+      .panel-pad {
+        padding: 24px;
+      }
+      .panel-head {
+        align-items: flex-start;
+        margin-bottom: 22px;
+      }
+      .panel-head h2 {
+        margin-top: 7px;
+        font-size: 22px;
+      }
+      .panel-head p {
+        max-width: 260px;
+        color: var(--muted);
+        font-size: 12px;
+        text-align: right;
+      }
+      .source-list {
+        display: grid;
+        gap: 10px;
+      }
+      .source-card {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(11, 16, 27, 0.42);
+      }
+      .source-card .card-head {
+        align-items: flex-start;
+      }
+      .source-type {
+        color: var(--blue);
+        font-size: 10px;
+      }
+      .source-card h3 {
+        margin-top: 8px;
+        font-size: 16px;
+        letter-spacing: -0.02em;
+      }
+      .source-card p {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .source-id {
+        color: var(--dim);
+        font:
+          11px ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .evidence {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 13px;
+      }
+      .evidence span {
+        padding: 4px 7px;
+        border-radius: 6px;
+        background: rgba(158, 190, 255, 0.1);
+        color: var(--blue);
+        font-size: 10px;
+      }
+      .source-foot {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 16px;
+        color: var(--dim);
+        font-size: 11px;
+      }
+      .source-foot::before {
+        width: 7px;
+        height: 7px;
+        border: 1px solid var(--mint);
+        border-radius: 50%;
+        content: "";
+      }
+
+      .contract-shell {
+        display: grid;
+        gap: 13px;
+      }
+      .contract-line {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 12px;
+        align-items: center;
+        padding: 11px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .contract-line:last-child {
+        border-bottom: 0;
+      }
+      .contract-line code {
+        color: var(--mint);
+        font:
+          11px ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .contract-line span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .criteria {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      .criterion {
+        display: grid;
+        grid-template-columns: 100px 1fr 42px;
+        gap: 12px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .bar {
+        height: 6px;
+        overflow: hidden;
+        border-radius: 99px;
+        background: rgba(183, 199, 228, 0.13);
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--mint);
+      }
+      .criterion:nth-child(2) .bar i {
+        background: var(--blue);
+      }
+      .criterion:nth-child(3) .bar i {
+        background: var(--amber);
+      }
+      .criterion:nth-child(4) .bar i {
+        background: #c7a6ff;
+      }
+      .criterion:nth-child(5) .bar i {
+        background: var(--rose);
+      }
+      .criterion b {
+        color: var(--ink);
+        font-size: 11px;
+        text-align: right;
+      }
+      .ownership {
+        margin-top: 19px;
+        padding: 12px;
+        border: 1px solid rgba(142, 232, 195, 0.2);
+        border-radius: 12px;
+        background: rgba(142, 232, 195, 0.06);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .ownership strong {
+        color: var(--mint);
+      }
+
+      .bottom-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 16px;
+        margin-top: 16px;
+      }
+      .queue-list {
+        display: grid;
+        gap: 10px;
+      }
+      .queue-card {
+        display: grid;
+        grid-template-columns: 38px 1fr auto;
+        gap: 13px;
+        align-items: center;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(11, 16, 27, 0.42);
+      }
+      .rank {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 9px;
+        background: rgba(142, 232, 195, 0.1);
+        color: var(--mint);
+        font-weight: 800;
+      }
+      .queue-card h3 {
+        font-size: 14px;
+      }
+      .queue-card p {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .queue-card .state {
+        color: var(--amber);
+        font-size: 10px;
+        font-weight: 700;
+        text-align: right;
+        text-transform: uppercase;
+      }
+      .illustrative {
+        display: inline-block;
+        margin-bottom: 15px;
+        padding: 5px 8px;
+        border-radius: 6px;
+        background: rgba(242, 199, 124, 0.1);
+        color: var(--amber);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .explain {
+        display: grid;
+        gap: 12px;
+      }
+      .explain-row {
+        padding: 13px;
+        border-left: 2px solid var(--blue);
+        background: rgba(158, 190, 255, 0.06);
+      }
+      .explain-row:nth-child(2) {
+        border-left-color: var(--amber);
+        background: rgba(242, 199, 124, 0.06);
+      }
+      .explain-row:nth-child(3) {
+        border-left-color: var(--rose);
+        background: rgba(242, 169, 185, 0.06);
+      }
+      .explain-row strong {
+        display: block;
+        font-size: 12px;
+      }
+      .explain-row span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .boundary {
+        margin-top: 16px;
+        padding: 20px 24px;
+        border: 1px solid rgba(242, 169, 185, 0.22);
+        border-radius: 22px;
+        background: linear-gradient(
+          135deg,
+          rgba(55, 31, 46, 0.55),
+          rgba(20, 30, 50, 0.72)
+        );
+      }
+      .boundary-head {
+        align-items: flex-start;
+      }
+      .boundary-head h2 {
+        margin-top: 6px;
+        font-size: 18px;
+      }
+      .claim-label {
+        color: var(--rose);
+      }
+      .boundary p {
+        max-width: 780px;
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .boundary ul {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px 22px;
+        margin: 18px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .boundary li {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .boundary li::before {
+        margin-right: 7px;
+        color: var(--rose);
+        content: "×";
+        font-weight: 800;
+      }
+      .next {
+        display: inline-flex;
+        margin-top: 20px;
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .next::after {
+        margin-left: 8px;
+        color: var(--mint);
+        content: "→";
+      }
+
+      @media (max-width: 820px) {
+        .page {
+          width: min(100% - 28px, 680px);
+          padding-top: 20px;
+        }
+        .topbar {
+          margin-bottom: 42px;
+        }
+        .stage-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .stage:not(:last-child)::after {
+          content: "";
+        }
+        .workbench,
+        .bottom-grid {
+          grid-template-columns: 1fr;
+        }
+        .boundary ul {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 46px;
+        }
+        .stage-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .stage {
+          min-height: 66px;
+        }
+        .panel-pad {
+          padding: 18px;
+        }
+        .panel-head p {
+          display: none;
+        }
+        .contract-line {
+          grid-template-columns: 90px 1fr;
+        }
+        .criterion {
+          grid-template-columns: 84px 1fr 36px;
+          gap: 8px;
+        }
+        .queue-card {
+          grid-template-columns: 32px 1fr;
+        }
+        .queue-card .state {
+          grid-column: 2;
+          text-align: left;
+        }
+        .boundary {
+          padding: 18px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="topbar">
+        <div class="eyebrow">Dsci-proj · decision support</div>
+        <div class="badge">Synthetic contract appendix</div>
+      </header>
+
+      <section class="hero" aria-labelledby="title">
+        <div class="eyebrow">Choose what moves next — and show why</div>
+        <h1 id="title">
+          A backlog is only useful when its judgment is visible.
+        </h1>
+        <p class="lede">
+          Two different kinds of work enter the same decision contract. Criteria
+          stay editable, evidence stays attached, and the final queue remains a
+          human-owned recommendation.
+        </p>
+        <div class="meta" aria-label="Preview boundaries">
+          <span>Synthetic showcase fixture · not current product output</span>
+          <span>No credentials or external assets</span>
+          <span>DS-1 adapter proof remains open</span>
+        </div>
+      </section>
+
+      <section class="flow" aria-labelledby="flow-title">
+        <div class="flow-head">
+          <h2 id="flow-title">The target decision path</h2>
+          <p>Backlog → criteria → ranking → explanation → scenario → handoff</p>
+        </div>
+        <div class="stage-grid">
+          <div class="stage">
+            <span class="num">01</span><strong>Import</strong
+            ><small>bring the work in</small>
+          </div>
+          <div class="stage">
+            <span class="num">02</span><strong>Normalize</strong
+            ><small>one item model</small>
+          </div>
+          <div class="stage">
+            <span class="num">03</span><strong>Rank</strong
+            ><small>evidence-bound score</small>
+          </div>
+          <div class="stage">
+            <span class="num">04</span><strong>Explain</strong
+            ><small>show the drivers</small>
+          </div>
+          <div class="stage">
+            <span class="num">05</span><strong>Compare</strong
+            ><small>test an assumption</small>
+          </div>
+          <div class="stage">
+            <span class="num">06</span><strong>Handoff</strong
+            ><small>export provenance</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="workbench" aria-label="Synthetic decision contract">
+        <article class="panel panel-pad">
+          <div class="panel-head">
+            <div>
+              <div class="section-label">01 — Inputs</div>
+              <h2>Two backlog shapes</h2>
+            </div>
+            <p>Different source vocabulary, same reviewable item contract.</p>
+          </div>
+          <div class="source-list">
+            <div class="source-card">
+              <div class="card-head">
+                <div>
+                  <div class="source-type">Research issue backlog</div>
+                  <h3>Cache invalidation bug</h3>
+                  <p>Evidence from activity, priority, and predicted effort.</p>
+                </div>
+                <span class="source-id">next.js#101</span>
+              </div>
+              <div class="evidence">
+                <span>14 reactions</span><span>6 commenters</span
+                ><span>1.4d predicted</span>
+              </div>
+            </div>
+            <div class="source-card">
+              <div class="card-head">
+                <div>
+                  <div class="source-type">Product backlog</div>
+                  <h3>Add export audit trail</h3>
+                  <p>Evidence from segment, reach, deadline, and confidence.</p>
+                </div>
+                <span class="source-id">PLAT-43</span>
+              </div>
+              <div class="evidence">
+                <span>regulated team</span><span>9d deadline</span
+                ><span>0.92 confidence</span>
+              </div>
+            </div>
+          </div>
+          <div class="source-foot">
+            Provenance stays attached to every imported item.
+          </div>
+        </article>
+
+        <article class="panel panel-pad">
+          <div class="panel-head">
+            <div>
+              <div class="section-label">02 — Contract</div>
+              <h2>One canonical item</h2>
+            </div>
+            <p>
+              The shape makes the decision portable without hiding its
+              assumptions.
+            </p>
+          </div>
+          <div class="contract-shell">
+            <div class="contract-line">
+              <code>identity</code><span>id · title · state · source_type</span>
+            </div>
+            <div class="contract-line">
+              <code>evidence</code
+              ><span>raw values plus normalization metadata</span>
+            </div>
+            <div class="contract-line">
+              <code>provenance</code
+              ><span>source reference required for review</span>
+            </div>
+            <div class="contract-line">
+              <code>handoff</code
+              ><span>queue · contract version · decision owner</span>
+            </div>
+          </div>
+          <div class="section-label" style="margin-top: 22px">
+            Criteria remain user-owned
+          </div>
+          <div class="criteria" aria-label="Illustrative default weights">
+            <div class="criterion">
+              <span>Impact</span>
+              <div class="bar"><i style="width: 35%"></i></div>
+              <b>35%</b>
+            </div>
+            <div class="criterion">
+              <span>Urgency</span>
+              <div class="bar"><i style="width: 20%"></i></div>
+              <b>20%</b>
+            </div>
+            <div class="criterion">
+              <span>Effort</span>
+              <div class="bar"><i style="width: 20%"></i></div>
+              <b>20%</b>
+            </div>
+            <div class="criterion">
+              <span>Strategic fit</span>
+              <div class="bar"><i style="width: 15%"></i></div>
+              <b>15%</b>
+            </div>
+            <div class="criterion">
+              <span>Confidence</span>
+              <div class="bar"><i style="width: 10%"></i></div>
+              <b>10%</b>
+            </div>
+          </div>
+          <div class="ownership">
+            <strong>Human handoff:</strong> the system recommends; the user
+            chooses, edits, or defers.
+          </div>
+        </article>
+      </section>
+
+      <section class="bottom-grid" aria-label="Target output and explanation">
+        <article class="panel panel-pad">
+          <div class="panel-head">
+            <div>
+              <div class="section-label">03 — Target output</div>
+              <h2>A queue that can be inspected</h2>
+            </div>
+            <p>Illustrative target layout, not a current engine result.</p>
+          </div>
+          <span class="illustrative"
+            >Illustrative contract view · no ranking run claimed</span
+          >
+          <div class="queue-list">
+            <div class="queue-card">
+              <div class="rank">01</div>
+              <div>
+                <h3>Add export audit trail</h3>
+                <p>PLAT-43 · recommended after criteria review</p>
+              </div>
+              <div class="state">needs evidence</div>
+            </div>
+            <div class="queue-card">
+              <div class="rank">02</div>
+              <div>
+                <h3>Cache invalidation bug</h3>
+                <p>next.js#101 · strong impact, small effort</p>
+              </div>
+              <div class="state">recommended</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel panel-pad">
+          <div class="panel-head">
+            <div>
+              <div class="section-label">04 — Explain</div>
+              <h2>Show the decision drivers</h2>
+            </div>
+          </div>
+          <div class="explain">
+            <div class="explain-row">
+              <strong>What moved the item?</strong
+              ><span
+                >Criterion contributions point back to supplied evidence, not an
+                opaque label.</span
+              >
+            </div>
+            <div class="explain-row">
+              <strong>What is still unknown?</strong
+              ><span
+                >Missing inputs reduce confidence and remain visible in the
+                handoff.</span
+              >
+            </div>
+            <div class="explain-row">
+              <strong>What changed?</strong
+              ><span
+                >A scenario comparison shows before/after rank and contribution
+                deltas.</span
+              >
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="boundary" aria-labelledby="boundary-title">
+        <div class="boundary-head">
+          <div>
+            <div class="claim-label">What this preview proves</div>
+            <h2 id="boundary-title">
+              The intended product story is concrete and rights-safe.
+            </h2>
+          </div>
+          <div class="status">Material only · DS-0</div>
+        </div>
+        <p>
+          This self-contained page renders the versioned decision contract and
+          its synthetic appendix as a shareable target. It deliberately does not
+          turn a concept into a product claim.
+        </p>
+        <ul>
+          <li>does not prove the DS-1 adapters</li>
+          <li>does not prove configurable ranking</li>
+          <li>does not prove a current dashboard run</li>
+          <li>does not claim cross-backlog generalization</li>
+          <li>does not claim hosted behavior</li>
+          <li>does not use credentials or external assets</li>
+        </ul>
+        <span class="next"
+          >Next durable step: implement DS-1 without source-specific engine
+          changes</span
+        >
+      </section>
+    </main>
+  </body>
+</html>

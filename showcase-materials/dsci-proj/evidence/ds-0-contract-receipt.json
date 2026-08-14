@@ -1,0 +1,74 @@
+{
+  "schema_version": "pronto-showcase-dsci-proj-gap-receipt/v1",
+  "project": "Dsci-proj",
+  "gap": "DS-0",
+  "observed_at": "2026-08-13T17:31:20Z",
+  "status": "passed_as_product_contract",
+  "source": {
+    "repository": "Dsci-proj",
+    "branch": "codex/doi-research-readiness",
+    "commit": "e32f810b7475d470e816d20374bb871ab7477b5e",
+    "checkout_status": "clean_at_inspection",
+    "evidence_refs": [
+      "README.md#running-the-dashboard-with-sample-data",
+      "pipeline/src/triage/impact_formula.py",
+      "pipeline/src/triage/difficulty_formula.py",
+      "pipeline/src/triage/roi_ranking.py",
+      "pipeline/src/triage/quadrants.py",
+      "pipeline/src/explainability/render_why_bullets.py"
+    ]
+  },
+  "contract_checks": [
+    {
+      "id": "versioned-item-model",
+      "status": "passed",
+      "evidence": "decision-contract.json names required identity, source type, evidence, and provenance fields."
+    },
+    {
+      "id": "configurable-criteria-and-weights",
+      "status": "passed",
+      "evidence": "The product contract defines editable criteria, directions, weights, normalization, and invalid-weight refusal."
+    },
+    {
+      "id": "constraints-and-missing-inputs",
+      "status": "passed",
+      "evidence": "The contract defines user-owned constraints and labels unknown evidence instead of treating it as positive signal."
+    },
+    {
+      "id": "explanation-and-uncertainty",
+      "status": "passed",
+      "evidence": "Every queue item requires criterion contributions, source refs, missing inputs, uncertainty, and assumptions."
+    },
+    {
+      "id": "scenario-and-handoff",
+      "status": "passed",
+      "evidence": "Before/after scenario outputs and an exportable decision contract are explicitly specified."
+    }
+  ],
+  "implementation_comparison": {
+    "native_current_surface": [
+      "fixed impact components",
+      "difficulty formula",
+      "ROI and quadrant ranking",
+      "deterministic why bullets"
+    ],
+    "implementation_gap": [
+      "editable weights and criteria",
+      "second backlog adapter",
+      "scenario comparison",
+      "decision-contract export"
+    ],
+    "status": "not_yet_proven"
+  },
+  "synthetic_appendix": {
+    "path": "synthetic-fixture.json",
+    "negative_cases": 3,
+    "role": "appendix_only"
+  },
+  "claim_boundary": [
+    "DS-0 closes the specification gap, not the implementation gap.",
+    "The original GitHub issue backlog remains the real use case; the product-backlog schema is a synthetic adapter target.",
+    "No generalized ranking result or scenario comparison was run."
+  ],
+  "next_gap": "DS-1"
+}

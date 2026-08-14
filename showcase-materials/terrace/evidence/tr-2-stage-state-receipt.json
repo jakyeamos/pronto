@@ -1,0 +1,139 @@
+{
+  "schema_version": "pronto-showcase-terrace-evidence/v1",
+  "project": "Terrace",
+  "gap_id": "TR-2",
+  "generated_at": "2026-08-13T15:30:29Z",
+  "disposition": "integrated_verified",
+  "source": {
+    "worktree": "/Users/jakyeamos/.codex/worktrees/terrace-tr2-stage-state",
+    "branch": "codex/terrace-durable-stage-state",
+    "base_branch": "dev",
+    "base_commit": "6d3450bebb99e16d3ed798b0531687e29163fec4",
+    "worktree_state": "clean, committed source candidate; fast-forwarded into local dev",
+    "preserved_workspace": "/Users/jakyeamos/projects/Terrace remains clean on codex/terrace-adoption-measure with six unpublished commits"
+  },
+  "runtime": {
+    "node_path": "/Users/jakyeamos/.local/share/mise/shims/node",
+    "node_version": "v22.14.0",
+    "pnpm_path": "/Users/jakyeamos/.local/share/mise/shims/pnpm",
+    "pnpm_version": "11.7.0",
+    "git_path": "/usr/bin/git",
+    "git_version": "2.50.1 (Apple Git-155)"
+  },
+  "architecture": {
+    "selected": "Terrace-owned versioned stage snapshot plus append-only stage transition events",
+    "dependency_added": false,
+    "stage_order": ["plan", "execute", "validate", "review", "complete"],
+    "statuses": ["pending", "active", "passed", "failed", "blocked"],
+    "invariants": [
+      "A stage cannot become active until every predecessor has passed.",
+      "Passed stages are skipped when an interrupted phase workflow resumes.",
+      "Failed and blocked stages can be retried without rewriting prior evidence.",
+      "The append-only event log repairs a stale JSON snapshot by deterministic replay.",
+      "State replacement uses a same-directory temporary file and atomic rename."
+    ],
+    "screened_alternatives": [
+      "XState persisted actor snapshots",
+      "Temporal workflow event history",
+      "LangGraph checkpoints and pending writes",
+      "Restate execution journal",
+      "Trigger.dev checkpointed runs",
+      "Inngest durable steps"
+    ],
+    "rejection_reason": "Each external runtime is materially broader than Terrace's existing local JSON and JSONL storage contract; TR-2 needs the persistence semantics, not a new orchestration service."
+  },
+  "implementation": {
+    "stage_state_module_sha256": "8567107e50669db8c25f1fa31af6e55343b8eaba9aa5657f56f6d8962d6f8e7c",
+    "core_state_test_sha256": "a8600fe9dfcec0a6266adbe15961f8752c5f03d021f4b607151a4bf3fb9f77dc",
+    "workflow_test_sha256": "1f62c2d764ef4f219f1c042f00fac9b0af17ea95c67820ac8da7a50b38062fc8",
+    "surfaces": [
+      "terrace execute-phase-complete <phase-id> returns stage_run",
+      "terrace resume returns and repairs stage_run",
+      ".terrace/state.json stores the latest snapshot",
+      ".terrace/events.jsonl stores ordered stage_run_started and stage_transition events",
+      "README and generated Codex and Claude skill contracts describe recovery semantics"
+    ]
+  },
+  "integration": {
+    "receipt": "evidence/integration-receipt.json",
+    "target_branch": "dev",
+    "integrated_commit": "9ac360b0f246aa91c85a15183cf9de10c94330b0",
+    "method": "fast_forward",
+    "verified": true
+  },
+  "verification": {
+    "focused_stage_and_workflow_tests": {
+      "command": "pnpm exec vitest run tests/core-state.test.ts tests/workflow-commands.test.ts",
+      "exit_code": 0,
+      "test_files_passed": 2,
+      "tests_passed": 44
+    },
+    "contract_tests": {
+      "command": "pnpm exec vitest run tests/agent-contract.test.ts tests/product-readiness.test.ts tests/schemas.test.ts --reporter=dot",
+      "exit_code": 0,
+      "test_files_passed": 3,
+      "tests_passed": 26
+    },
+    "full_ci": {
+      "command": "pnpm run ci",
+      "exit_code": 0,
+      "gates": ["typecheck", "lint", "tests", "coverage", "package dry-run"]
+    },
+    "package_dry_run": {
+      "command": "pnpm run package:dry-run",
+      "exit_code": 0,
+      "stage_state_module_in_tarball": true
+    },
+    "cli_restart_proof": {
+      "first_command": "terrace execute-phase-complete phase-proof --json",
+      "second_process_command": "terrace resume --json",
+      "first_exit_code": 0,
+      "second_exit_code": 0,
+      "snapshot_revision": 4,
+      "statuses_before_restart": [
+        "passed",
+        "blocked",
+        "pending",
+        "pending",
+        "pending"
+      ],
+      "statuses_after_restart": [
+        "passed",
+        "blocked",
+        "pending",
+        "pending",
+        "pending"
+      ],
+      "same_run_id": true
+    },
+    "replay_proof": {
+      "fixture": "tests/core-state.test.ts: recovers a stale stage snapshot by replaying the append-only event log",
+      "stale_revision": 2,
+      "recovered_revision": 4,
+      "recovered_statuses": [
+        "passed",
+        "blocked",
+        "pending",
+        "pending",
+        "pending"
+      ]
+    }
+  },
+  "acceptance": {
+    "pending_survives": true,
+    "active_survives": true,
+    "passed_survives": true,
+    "failed_survives": true,
+    "blocked_survives": true,
+    "restart_consistent": true,
+    "replay_consistent": true,
+    "tr_2_source_candidate_verified": true,
+    "tr_2_integrated_into_dev": true,
+    "tr_2_closed": true
+  },
+  "limitations": [
+    "The integrated commit is present on local Terrace dev; the source branch remains local-only because no remote push was authorized.",
+    "TR-4's bounded trace proves a correction resumes from the blocked checkpoint in a complete execution trace.",
+    "The disposable CLI fixture was synthetic; the historical TR-1 regression remains the representative showcase case."
+  ]
+}

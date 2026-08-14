@@ -1,0 +1,63 @@
+{
+  "schema_version": "pronto-showcase-participant-dedup-explanation-receipt/v1",
+  "project": "participant-dedup",
+  "gap": "PD-2",
+  "observed_at": "2026-08-13T18:24:00Z",
+  "status": "passed_as_source_aligned_queue_fixture",
+  "source": {
+    "repository": "participant-dedup",
+    "path": "/Users/jakyeamos/projects/participant-dedup",
+    "branch": "dev",
+    "commit": "81569f4bff60e4f2d52cb0a401289ca1c5d80ff8",
+    "checkout_status": "clean_at_inspection"
+  },
+  "verification": {
+    "native_matcher_probe": {
+      "status": "passed",
+      "fixture": "synthetic-fixture.json",
+      "candidate_pair_count": 4,
+      "truncated": false,
+      "field_components_captured": true,
+      "confidence_order": ["HIGH", "HIGH", "LOW", "EXCLUDED"]
+    },
+    "explanation_checks": [
+      {
+        "check": "every candidate has field contributions",
+        "status": "passed"
+      },
+      {
+        "check": "every candidate has total score and confidence",
+        "status": "passed"
+      },
+      {
+        "check": "valid DOB and address conflicts remain visible",
+        "status": "passed"
+      },
+      {
+        "check": "household context is labeled non-identity",
+        "status": "passed"
+      },
+      {
+        "check": "approved, keep-all, and unresolved reviewer outcomes remain distinct",
+        "status": "passed"
+      },
+      {
+        "check": "packet contains no mutating action or live provider identifier",
+        "status": "passed"
+      }
+    ],
+    "installed_surface": {
+      "status": "not_proven",
+      "authenticated_google_sheet": "not exercised",
+      "apps_script_sidebar": "not captured",
+      "live_apply": "not exercised",
+      "public_case": "not hosted"
+    }
+  },
+  "claim_boundary": [
+    "The explanation review proves source-aligned presentation semantics, not installed UI behavior.",
+    "No Google account, workbook ID, participant export, or external mutation is included.",
+    "PD-3 must provide row-level apply evidence before any deletion outcome is presented as executed."
+  ],
+  "next_gap": "PD-3"
+}

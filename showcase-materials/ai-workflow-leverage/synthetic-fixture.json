@@ -1,0 +1,42 @@
+{
+  "schema_version": "pronto-showcase-ai-workflow-leverage-synthetic-fixture/v1",
+  "case_id": "AL-1-tenure-review-task-state-observability",
+  "role": "short_reproducibility_appendix",
+  "baseline": {
+    "queue_count": 2,
+    "selected_item": "review-item-001",
+    "surfaces": ["review-session", "review-workspace", "capture-popup"]
+  },
+  "valid_contract": {
+    "review_session": {
+      "control_id": "tenure.review.session",
+      "task_state": "queue_ready"
+    },
+    "approve": {
+      "control_id": "tenure.review.approve",
+      "task_state": "approval_ready"
+    },
+    "capture_popup": {
+      "control_id": "tenure.popup.start",
+      "task_state": "idle"
+    }
+  },
+  "mutations": [
+    {
+      "id": "missing-review-state",
+      "operation": "remove",
+      "path": "review_session.task_state",
+      "expected": "fail_closed",
+      "reason": "A route cannot safely target a review surface without an observable queue state."
+    },
+    {
+      "id": "invalid-approval-state",
+      "operation": "replace",
+      "path": "approve.task_state",
+      "value": "completed-ish",
+      "expected": "fail_closed",
+      "reason": "State values must stay inside the reviewed task-state vocabulary."
+    }
+  ],
+  "claim_boundary": "Synthetic contract behavior is illustrative and supplies no timing, quality, or production evidence."
+}

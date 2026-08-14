@@ -1,0 +1,64 @@
+{
+  "schema_version": "pronto-showcase-participant-dedup-public-case-receipt/v1",
+  "project": "participant-dedup",
+  "gap": "PD-7",
+  "observed_at": "2026-08-13T18:38:00Z",
+  "status": "passed_as_local_static_case",
+  "material": {
+    "path": "showcase-materials/participant-deduplication/case-study.html",
+    "no_auth_required": true,
+    "external_resources": [],
+    "visible_synthetic_label": "Synthetic showcase fixture · no participant data",
+    "mutating_controls": false
+  },
+  "verification": {
+    "static_marker_review": {
+      "status": "passed",
+      "required_markers": [
+        "Synthetic showcase fixture · no participant data",
+        "SELECT_RECORDS",
+        "KEEP_ALL",
+        "UNRESOLVED",
+        "STALE_ROW",
+        "Original digest",
+        "PD-6 is parked"
+      ],
+      "queue_case_count": 4,
+      "proof_panel_count": 4,
+      "timeline_step_count": 5
+    },
+    "local_rendered_surface": {
+      "status": "blocked",
+      "browser": "Google Chrome 151.0.7922.109",
+      "attempt": "headless dump-dom against the local file surface",
+      "observation": "Chrome exited with status 134 before emitting DOM output",
+      "claim_effect": "static marker review is source-level; no rendered screenshot or hosted readback is claimed"
+    },
+    "source_receipts": {
+      "pd_1_fixture": "evidence/pd-1-fixture-receipt.json",
+      "pd_2_reasoning": "evidence/pd-2-explanation-review.json",
+      "pd_3_atomic_apply": "evidence/pd-3-atomic-apply-receipt.json",
+      "pd_4_stale_state": "evidence/pd-4-stale-state-receipt.json",
+      "pd_5_copy_recovery": "evidence/pd-5-copy-recovery-receipt.json"
+    },
+    "hosted_surface": {
+      "status": "not_proven",
+      "public_url": "not selected",
+      "responsive_hosted_readback": "not run"
+    },
+    "live_provider": {
+      "status": "not_proven",
+      "authenticated_google_sheet": "not exercised",
+      "apps_script_sidebar": "not captured",
+      "deployed_backend": "not exercised"
+    }
+  },
+  "claim_boundary": [
+    "PD-7 is closed as a local no-auth static case material package.",
+    "The page is labeled synthetic and contains no participant data or external resources.",
+    "The proof panel summarizes local PD-3–PD-5 behavior receipts; it does not claim live provider execution.",
+    "The local Chrome render attempt aborted before DOM output, so rendered browser evidence remains unproven.",
+    "Hosted publication, responsive hosted readback, and authenticated live-sheet UAT remain open under PD-6."
+  ],
+  "next_gap": "PD-6"
+}

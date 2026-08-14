@@ -1,0 +1,73 @@
+{
+  "schema_version": "pronto-showcase-terrace-evidence/v1",
+  "project": "Terrace",
+  "gap_id": "TR-5",
+  "generated_at": "2026-08-13T15:30:29Z",
+  "disposition": "integrated_verified",
+  "source": {
+    "worktree": "/Users/jakyeamos/.codex/worktrees/terrace-tr2-stage-state",
+    "branch": "codex/terrace-durable-stage-state",
+    "base_branch": "dev",
+    "base_commit": "6d3450bebb99e16d3ed798b0531687e29163fec4",
+    "worktree_state": "clean, committed source candidate; fast-forwarded into local dev",
+    "preserved_workspace": "/Users/jakyeamos/projects/Terrace remains clean on codex/terrace-adoption-measure with six unpublished commits"
+  },
+  "threat_boundary": {
+    "covered": [
+      "manual edits to the derived .terrace/state.json snapshot",
+      "an injected stage_transition event that attempts pending complete -> passed",
+      "skipping required predecessor gates during event replay"
+    ],
+    "not_claimed": "This is workflow-integrity enforcement for unsupported local state/event edits, not protection against an attacker who can coherently rewrite Terrace source code and the complete event history."
+  },
+  "implementation": {
+    "stage_state_sha256": "0e7e17c8f2e27d1763d68cd852c0cd49abc30ffd050cbfea7ce9564138de08d7",
+    "workflow_sha256": "8abce6de39bd884277b0e484deee91fe38b8c8b3308ee2beadf6a37f1e3d9474",
+    "events_sha256": "c02eaee0d448b5f346d58d89b0b6a62637feb5967d6471cace7895eda3a8d679",
+    "core_state_test_sha256": "cdc68e8a2a0b24bbfa9d6a34a682cb296f5c5bec31faa11861494798172ea2f6"
+  },
+  "integration": {
+    "receipt": "evidence/integration-receipt.json",
+    "target_branch": "dev",
+    "integrated_commit": "9ac360b0f246aa91c85a15183cf9de10c94330b0",
+    "method": "fast_forward",
+    "verified": true
+  },
+  "verification": {
+    "focused_tests": {
+      "command": "pnpm exec vitest run tests/core-state.test.ts tests/workflow-commands.test.ts --reporter=dot",
+      "exit_code": 0,
+      "test_files_passed": 2,
+      "tests_passed": 48
+    },
+    "full_ci": {
+      "command": "pnpm run ci",
+      "exit_code": 0,
+      "test_files_passed": 40,
+      "test_files_skipped": 1,
+      "tests_passed": 314,
+      "tests_skipped": 1,
+      "gates": ["typecheck", "lint", "tests", "coverage", "package dry-run"]
+    },
+    "negative_paths": {
+      "forged_terminal_snapshot_repaired_from_events": true,
+      "authoritative_blocked_state_restored": true,
+      "injected_complete_pending_to_passed_event_rejected": true,
+      "skipped_predecessor_gates_remain_pending": true,
+      "rejection": "Illegal stage transition: complete pending -> passed"
+    }
+  },
+  "acceptance": {
+    "manual_status_edit_cannot_create_passing_terminal_state": true,
+    "skipped_gate_event_cannot_create_passing_terminal_state": true,
+    "negative_path_evidence_recorded": true,
+    "tr_5_source_candidate_verified": true,
+    "tr_5_integrated_into_dev": true,
+    "tr_5_closed": true
+  },
+  "limitations": [
+    "The integrated commit is present on local Terrace dev; the source branch remains local-only because no remote push was authorized.",
+    "The event ledger is authoritative but is not cryptographically signed or stored outside the repository.",
+    "The proof intentionally covers unsupported edits and illegal transitions rather than claiming resistance to a fully privileged source-and-history rewrite."
+  ]
+}

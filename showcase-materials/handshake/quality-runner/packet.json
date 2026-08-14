@@ -1,0 +1,60 @@
+{
+  "schema_version": "pronto-handshake-packet/v1",
+  "project": "quality-runner",
+  "display_name": "Quality Runner × Tenure",
+  "status": "posted_repo_link",
+  "prepared_at": "2026-08-13",
+  "publication": {
+    "posted": true,
+    "posted_at": "2026-08-13",
+    "handshake_project_url": "https://github.com/jakyeamos/quality-runner",
+    "preview_source": "handshake_auto_preview",
+    "public_demo_url": null,
+    "host_status": "repo_link_only"
+  },
+  "handshake": {
+    "title": "Quality Runner × Tenure: Values-driven repository debt",
+    "description": "description.txt",
+    "description_characters": 473,
+    "preview": {
+      "path": "preview-16x9.png",
+      "format": "png",
+      "dimensions": "1600x900",
+      "source_material": "../../quality-runner/preview-16x9.png"
+    },
+    "demo_page": {
+      "local_path": "../../quality-runner/public/index.html",
+      "public_url": null,
+      "status": "local_only"
+    },
+    "skills": [
+      "AI tooling",
+      "developer tools",
+      "code quality",
+      "evidence contracts"
+    ]
+  },
+  "roles": {
+    "creator": "The team owns what quality means, which standards are active, where they apply, and the repair policy.",
+    "system_or_ai": "Quality Runner evaluates reviewed standards, preserves finding provenance, and organizes bounded remediation. A reviewing agent participates in the historical case.",
+    "human": "The human owns semantic dispositions, source repair, and release decisions."
+  },
+  "evidence": [
+    "../../quality-runner/case-study.md",
+    "../../quality-runner/case-study.json",
+    "../../quality-runner/finding-drivers.json",
+    "../../quality-runner/burndown.json",
+    "../../quality-runner/provenance-receipt.json",
+    "../../quality-runner/claim-boundary-review.md",
+    "../../quality-runner/public/evidence/claim-ledger.json"
+  ],
+  "claim_boundary": [
+    "The headline case is the historical Tenure reconciliation: 4,022 raw findings became 537 retained raw rows and 0 open actionable findings.",
+    "The baseline was dirty and historical; it is not a current passing gate or deployment receipt.",
+    "The synthetic partial-js fixture remains a reproducibility appendix, not the headline case."
+  ],
+  "open_gates": [
+    "Choose and verify a public no-auth host for the responsive case study if replacing the repository link.",
+    "Verify the replacement page at desktop and mobile widths before updating the profile."
+  ]
+}

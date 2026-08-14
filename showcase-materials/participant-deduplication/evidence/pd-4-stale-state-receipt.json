@@ -1,0 +1,47 @@
+{
+  "schema_version": "pronto-showcase-participant-dedup-stale-state-receipt/v1",
+  "project": "participant-dedup",
+  "gap": "PD-4",
+  "observed_at": "2026-08-13T18:28:00Z",
+  "status": "passed_as_local_behavior_fixture",
+  "source": {
+    "repository": "participant-dedup",
+    "path": "/Users/jakyeamos/projects/participant-dedup",
+    "branch": "dev",
+    "commit": "81569f4bff60e4f2d52cb0a401289ca1c5d80ff8",
+    "checkout_status": "clean_at_inspection",
+    "fixture": "test/support/participantFixture.ts",
+    "gateway": "FakeSheetsGateway; in-memory only"
+  },
+  "verification": {
+    "targeted_tests": {
+      "command": "node_modules/.bin/vitest run test/server/apply/applyDecisions.test.ts test/server/apply/preflight.test.ts test/server/review/mergePlan.test.ts test/server/review/decisions.test.ts",
+      "test_files": 4,
+      "tests_passed": 66,
+      "status": "passed"
+    },
+    "stale_probe": {
+      "status": "passed",
+      "mutation": "D3 ZIP 01234 → 09999 on an affected deletion row",
+      "expected_error": "STALE_ROW",
+      "observed_error": "STALE_ROW",
+      "rows_unchanged_by_guard": true,
+      "deleted_row_still_present": true,
+      "before_digest": "adfda415b98550176f7c47e8826ebe6b55dc40a3b12defe21b63a521904bef04",
+      "after_digest": "bfc79cb5ae7323d5e6e5ebe6192c78246703c13c181f5957c581396ebc27dc3d",
+      "digest_changed_only_by_reviewer_edit": true
+    },
+    "installed_surface": {
+      "status": "not_proven",
+      "authenticated_google_sheet": "not exercised",
+      "apps_script_sidebar": "not captured",
+      "deployed_backend": "not exercised"
+    }
+  },
+  "claim_boundary": [
+    "PD-4 is closed for the local preflight guard: an affected row edit produces STALE_ROW before apply.",
+    "The changed digest is the reviewer's mutation; the guard leaves the row present and performs no deletion.",
+    "This does not claim live Apps Script or Google Sheets transport behavior."
+  ],
+  "next_gap": "PD-5"
+}

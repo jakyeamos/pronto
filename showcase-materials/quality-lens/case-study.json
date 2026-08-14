@@ -1,0 +1,34 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "quality-lens",
+  "status": "candidate_local",
+  "title": "Quality Lens: one finding without an opaque score",
+  "audience": "Developers and reviewers who need quality findings to stay inspectable and actionable.",
+  "promise": "Turn a Quality Runner finding into a human-owned inspection, disposition, and rerun path.",
+  "story": [
+    "A report contains one named finding with a source location.",
+    "Quality Lens preserves the finding identity and exposes that the report is stale.",
+    "A human records an explicit disposition rather than letting a score decide.",
+    "The disposition is reconciled into a rerun model for the same finding."
+  ],
+  "evidence": [
+    "evidence/ql-w1-normalized-model.json",
+    "evidence/ql-w1-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
+    "../../../projects/quality-lens/README.md",
+    "../../../projects/quality-lens/test/model.test.cjs"
+  ],
+  "verified_locally": [
+    "W1 normalization accepts the declared Quality Runner report schema.",
+    "The stale target state remains visible.",
+    "A human disposition is preserved across rerun reconciliation.",
+    "The current clean dev checkout passes the repository test, lint, and package checks.",
+    "The 1600×900 PNG preview is visually reviewed and legible at the target crop."
+  ],
+  "open_gates": [
+    "Directly exercise the VS Code Problems-panel and disposition flow.",
+    "Verify a hosted no-auth case page.",
+    "Record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves the current clean dev checkout's W1 headless pilot, evidence contract, and local binary preview; it does not prove direct IDE acceptance, hosting, or publication."
+}

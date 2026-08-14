@@ -1,0 +1,33 @@
+{
+  "schema_version": "pronto-showcase-source-verification-evidence/v1",
+  "checked_at": "2026-08-12T19:16:42Z",
+  "gap_id": "MC-3",
+  "proof_level": "source_build",
+  "source_repository": "/Users/jakyeamos/projects/mac-control",
+  "source_commit": "e66c608dc88fc3ab72056fa7c6ce93c2a7473645",
+  "working_tree_state": "dirty_preserved",
+  "plan_digest": "22c4bbe245b375ee99a5d44aa2d7376956a5b3d4ed87ee346d46b82e4118723e",
+  "contract": {
+    "records": ["open-brief", "open-scratchpad", "arrange-workspace"],
+    "observers": [
+      "fixture_digest+accessibility_window",
+      "accessibility_window_frames"
+    ],
+    "dispatch_result_accepted_as_observation": false,
+    "raw_titles_paths_or_document_contents_retained": false,
+    "stale_plan_behavior": "all_records_fail"
+  },
+  "validation": {
+    "command": "swift test --filter FocusSessionPlanTests",
+    "resolved_swift": "/usr/bin/swift",
+    "swift_version": "Apple Swift version 6.3.3",
+    "tests": 5,
+    "failures": 0
+  },
+  "limitations": [
+    "The passing observations are deterministic test fixtures, not observations from Preview or TextEdit.",
+    "No live verification record or installed-build receipt exists yet.",
+    "The focus-session preview remains non-executable until its bounded document-open and window-layout routes exist."
+  ],
+  "disposition": "source_contract_passed_live_observation_required"
+}

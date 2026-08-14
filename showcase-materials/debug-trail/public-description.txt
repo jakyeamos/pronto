@@ -1,0 +1,1 @@
+Debug Trail is a local-first investigation workbench for leaving behind a hypothesis, one bounded experiment, redacted evidence, and a rerunnable next step. Its W1 pilot exports a target-bound continuation receipt so another developer can resume without reconstructing the author's mental state. Human authorization, privacy boundaries, and uncertainty remain visible.

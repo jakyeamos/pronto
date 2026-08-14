@@ -1,0 +1,96 @@
+{
+  "schema_version": "pronto-showcase-burndown/v1",
+  "project": "quality-runner",
+  "case_id": "tenure-quality-values-burndown-2026-07",
+  "period": { "start": "2026-07-17", "end": "2026-07-28" },
+  "baseline": {
+    "run_id": "qr060-tenure-20260717-capabilities-verify",
+    "revision": "0702be6ce94d845dc281a19c881f9a742846a33d",
+    "dirty": true,
+    "raw_code_quality_findings": 4022,
+    "active_pack_count": 8,
+    "coverage_entries": 50
+  },
+  "checkpoints": [
+    {
+      "label": "Initial baseline",
+      "date": "2026-07-17",
+      "raw_code_quality_findings": 4022
+    },
+    {
+      "label": "Phase 111",
+      "date": "2026-07-26",
+      "raw_code_quality_findings": 2422
+    },
+    {
+      "label": "Phase 118",
+      "date": "2026-07-27",
+      "raw_code_quality_findings": 2265
+    },
+    {
+      "label": "Scheduled refresh",
+      "date": "2026-07-27",
+      "raw_code_quality_findings": 1060
+    },
+    {
+      "label": "Refresh 7",
+      "date": "2026-07-28",
+      "raw_code_quality_findings": 804
+    },
+    {
+      "label": "Refresh 11",
+      "date": "2026-07-28",
+      "raw_code_quality_findings": 694
+    },
+    {
+      "label": "Refresh 22",
+      "date": "2026-07-28",
+      "raw_code_quality_findings": 566
+    },
+    {
+      "label": "Refresh 32",
+      "date": "2026-07-28",
+      "raw_code_quality_findings": 538
+    },
+    {
+      "label": "Refresh 35",
+      "date": "2026-07-28",
+      "raw_code_quality_findings": 537,
+      "open_actionable_findings": 0
+    }
+  ],
+  "operating_model": {
+    "full_refresh_cadence": "after roughly 100 net findings",
+    "immediate_refresh_triggers": [
+      "Quality Runner version change",
+      "corpus or pack change",
+      "policy or configuration change",
+      "scope change",
+      "final zero-actionable decision"
+    ],
+    "between_refreshes": "bounded changed-surface scans",
+    "resolution_types": [
+      "source change with focused proof",
+      "source-evidenced false-positive disposition",
+      "retained unresolved work"
+    ]
+  },
+  "terminal_checkpoint": {
+    "evidence_commit": "8b395b2dcc4dbed5221a3b1626f711388f163352",
+    "archive_commit": "f4d9d1d130f1c8b2d0e640f298c90ab3330551a2",
+    "quality_runner_version": "0.6.0",
+    "corpus_version": "2026.07.22",
+    "active_pack_count": 10,
+    "raw_code_quality_findings": 537,
+    "raw_security_candidates": 1165,
+    "open_code_quality_findings": 0,
+    "open_security_findings": 0,
+    "gate_verification": "blocked_execution_consent_not_supplied"
+  },
+  "interpretation": {
+    "allowed_claim": "The historical Tenure ledger resolved every actionable item in the final comparison while 537 raw code-quality rows remained.",
+    "forbidden_claim": "Quality Runner reduced detector output to zero or proved every raw row was a defect.",
+    "why_raw_remained": "Exact source review retained detector output that represented test-harness control flow, file-local fixture helpers, UI primitive wrappers, or documented environment accessors."
+  },
+  "evidence_boundary": "The final run directory is not retained in the current checkout; the exact tracked STATE.md at the evidence and archive commits is the canonical historical receipt."
+}

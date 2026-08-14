@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A 16:9 showcase preview of Pre-CR's standalone IDE workflow: return, recall, act, and prove."
+    />
+    <title>Pre-CR Suite · Return, recall, act, prove</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b1012;
+        --panel: #141b1e;
+        --panel-strong: #182125;
+        --text: #f2f5f3;
+        --muted: #a7b1ad;
+        --line: #33413b;
+        --green: #91e2b8;
+        --amber: #f0c77a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+      }
+      body {
+        color: var(--text);
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      .artboard {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        gap: clamp(18px, 2.2vw, 34px);
+        width: 100vw;
+        min-height: 100vh;
+        padding: clamp(28px, 3.6vw, 58px) clamp(30px, 4.5vw, 72px);
+        overflow: hidden;
+        background:
+          radial-gradient(
+            circle at 88% 8%,
+            rgba(145, 226, 184, 0.13),
+            transparent 26%
+          ),
+          linear-gradient(135deg, #0b1012 0%, #0d1315 58%, #10191a 100%);
+      }
+      .artboard::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-image: linear-gradient(
+          rgba(255, 255, 255, 0.025) 1px,
+          transparent 1px
+        );
+        background-size: 100% 72px;
+      }
+      header,
+      .headline,
+      .content,
+      footer {
+        position: relative;
+        z-index: 1;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .brand,
+      .proof {
+        font-size: clamp(11px, 0.85vw, 14px);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .brand {
+        color: var(--green);
+      }
+      .proof {
+        color: var(--muted);
+      }
+      .proof::before {
+        content: "";
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        margin-right: 10px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 0 5px rgba(145, 226, 184, 0.1);
+      }
+      h1 {
+        max-width: 1040px;
+        margin: 0;
+        font-size: clamp(42px, 5vw, 80px);
+        font-weight: 650;
+        letter-spacing: -0.055em;
+        line-height: 0.94;
+        text-wrap: balance;
+      }
+      .subhead {
+        max-width: 760px;
+        margin: clamp(14px, 1.4vw, 22px) 0 0;
+        color: var(--muted);
+        font-size: clamp(15px, 1.25vw, 20px);
+        line-height: 1.45;
+      }
+      .content {
+        display: grid;
+        grid-template-columns: minmax(330px, 0.72fr) minmax(560px, 1.28fr);
+        gap: clamp(24px, 3vw, 48px);
+        min-height: 0;
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1px;
+        align-self: stretch;
+        border: 1px solid var(--line);
+        background: var(--line);
+      }
+      .step {
+        padding: clamp(18px, 1.8vw, 28px);
+        background: var(--panel);
+      }
+      .step-number {
+        color: var(--green);
+        font:
+          700 12px/1 ui-monospace,
+          monospace;
+      }
+      .step h2 {
+        margin: 24px 0 6px;
+        font-size: clamp(20px, 1.7vw, 28px);
+      }
+      .step p {
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(12px, 0.95vw, 15px);
+        line-height: 1.45;
+      }
+      .evidence {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        min-height: 0;
+      }
+      figure {
+        display: grid;
+        grid-template-rows: 1fr auto;
+        min-width: 0;
+        margin: 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background: var(--panel-strong);
+      }
+      figure img {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        object-fit: cover;
+        object-position: center;
+        filter: saturate(0.86) contrast(1.04);
+      }
+      figcaption {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 13px 15px;
+        color: var(--muted);
+        font-size: clamp(11px, 0.8vw, 13px);
+      }
+      figcaption strong {
+        color: var(--text);
+      }
+      .before {
+        color: var(--amber);
+      }
+      .after {
+        color: var(--green);
+      }
+      footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+      .commands {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+      }
+      .command {
+        padding: 8px 11px;
+        border: 1px solid var(--line);
+        color: #dce2df;
+        font:
+          700 clamp(10px, 0.78vw, 12px)/1 ui-monospace,
+          monospace;
+      }
+      .receipt {
+        color: var(--muted);
+        font-size: clamp(10px, 0.8vw, 13px);
+        text-align: right;
+      }
+      .receipt strong {
+        color: var(--green);
+      }
+      @media (max-aspect-ratio: 4/3) {
+        .artboard {
+          min-height: 900px;
+        }
+        .content {
+          grid-template-columns: 1fr;
+        }
+        .flow {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        .step h2 {
+          margin-top: 14px;
+        }
+      }
+      @media (max-width: 700px) {
+        .artboard {
+          padding: 24px;
+        }
+        header,
+        footer {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+        .flow,
+        .evidence {
+          grid-template-columns: 1fr;
+        }
+        .receipt {
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="artboard">
+      <header>
+        <span class="brand">Pre-CR Suite · Standalone IDE workflow</span>
+        <span class="proof">Installed extension evidence</span>
+      </header>
+      <section class="headline">
+        <h1>Come back to the exact work. Leave with proof.</h1>
+        <p class="subhead">
+          Recover interrupted branch context, take the next useful action inside
+          the editor, and close the changed-line gap before review.
+        </p>
+      </section>
+      <section class="content" aria-label="Return, recall, act, and prove">
+        <div class="flow">
+          <article class="step">
+            <span class="step-number">01</span>
+            <h2>Return</h2>
+            <p>Open the interrupted branch.</p>
+          </article>
+          <article class="step">
+            <span class="step-number">02</span>
+            <h2>Recall</h2>
+            <p>Restore files and cursor with Where Was I?</p>
+          </article>
+          <article class="step">
+            <span class="step-number">03</span>
+            <h2>Act</h2>
+            <p>Run the useful path from Quick Actions.</p>
+          </article>
+          <article class="step">
+            <span class="step-number">04</span>
+            <h2>Prove</h2>
+            <p>Add the focused test and rerun Pre-CR Check.</p>
+          </article>
+        </div>
+        <div class="evidence">
+          <figure>
+            <img
+              src="evidence/pcr-3-uncovered-line.png"
+              alt="Pre-CR showing one uncovered changed line in VS Code"
+            />
+            <figcaption>
+              <strong>One changed line</strong
+              ><span class="before">0% covered</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="evidence/pcr-3-passing-check.png"
+              alt="Pre-CR showing a passing 100 percent changed-line check in VS Code"
+            />
+            <figcaption>
+              <strong>Focused repair</strong
+              ><span class="after">100% covered</span>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+      <footer>
+        <div class="commands" aria-label="Core command path">
+          <span class="command">Where Was I?</span>
+          <span class="command">Quick Actions</span>
+          <span class="command">Pre-CR Check</span>
+        </div>
+        <div class="receipt">
+          <strong>0 → 1 → 0</strong> problems · installed VS Code proof
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>

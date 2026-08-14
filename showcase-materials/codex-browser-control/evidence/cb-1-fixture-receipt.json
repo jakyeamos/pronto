@@ -1,0 +1,134 @@
+{
+  "schema_version": "pronto-showcase-codex-browser-control-gap-receipt/v1",
+  "project": "browser-control",
+  "gap": "CB-1",
+  "observed_at": "2026-08-13T18:00:24Z",
+  "status": "passed_as_synthetic_fixture",
+  "source": {
+    "repository": "browser-control",
+    "path": "/Users/jakyeamos/projects/browser-control",
+    "branch": "dev",
+    "commit": "29d364e062af163abaf625f0596a7108a0706c10",
+    "checkout_status": "dirty_at_inspection",
+    "dirty_paths": [
+      "README.md",
+      "docs/protocol.md",
+      "src/extension/service-worker-state.ts",
+      "src/extension/service-worker.ts",
+      "src/protocol/index.ts",
+      "src/provider/client.ts",
+      "src/provider/mcp.ts",
+      "src/provider/native-host.ts",
+      "test/extension-authority.test.ts",
+      "test/mcp-smoke.mjs",
+      "test/protocol.test.ts"
+    ],
+    "runtime": {
+      "node": "v22.14.0",
+      "package_manager": "pnpm@11.9.0"
+    },
+    "source_refs": [
+      "README.md#MCP tools",
+      "README.md#Approval and site access",
+      "docs/protocol.md#Transaction sequence",
+      "src/protocol/index.ts#BrowserActionSchema",
+      "src/extension/content-script.ts#resolveTarget",
+      "src/extension/service-worker.ts#apply",
+      "src/protocol/security.ts#clickPolicy"
+    ]
+  },
+  "verification": {
+    "repository_quality": {
+      "command": "corepack pnpm@11.9.0 check",
+      "status": "passed",
+      "lint": "passed",
+      "typecheck": "passed",
+      "tests": "37 passed across 8 files",
+      "build": "passed",
+      "mcp_smoke": "passed"
+    },
+    "fixture_contract": {
+      "status": "passed",
+      "fixture": "synthetic-fixture.json",
+      "html": "demo-site.html",
+      "checks": [
+        "synthetic label is required",
+        "HTTP(S)-compatible local origin is declared",
+        "select semantic shape is source-aligned",
+        "page_select Window → Aisle is harmless and reversible",
+        "stale mutation changes semantic target name and expects target_changed",
+        "no external mutation, account, payment, submit, or network call is declared"
+      ]
+    },
+    "fixture_surface": {
+      "status": "passed_as_http_fetch",
+      "command": "python3 -m http.server 4173 --bind 127.0.0.1 + curl http://127.0.0.1:4173/demo-site.html",
+      "http_status": 200,
+      "content_type": "text/html",
+      "checked_markers": [
+        "Synthetic showcase fixture",
+        "Seat preference",
+        "User changes itinerary",
+        "Reset fixture"
+      ]
+    },
+    "rendered_capture": {
+      "status": "blocked",
+      "attempt": "Chrome headless dump-dom against the disposable localhost page",
+      "reason": "The installed Chrome process did not complete the headless dump within the bounded check and was stopped; no installed-provider or visual-rendering claim is made.",
+      "disposition": "Carry forward to CB-2/CB-7 when the installed extension capture path is available."
+    },
+    "installed_surface": {
+      "status": "not_proven",
+      "doctor": "not run against an installed provider in this closure",
+      "side_panel": "not captured",
+      "native_bridge": "not exercised",
+      "mcp_round_trip": "not exercised",
+      "live_apply_verify": "not exercised"
+    }
+  },
+  "contract_checks": [
+    {
+      "id": "stable-semantic-target",
+      "status": "passed",
+      "evidence": "The fixture uses a select with role=combobox, accessible name Seat preference, and disabled=false; runtime IDs remain explicitly generated and redacted."
+    },
+    {
+      "id": "harmless-reversible-state",
+      "status": "passed",
+      "evidence": "The only forward action is page_select Window → Aisle on an in-memory control, and Reset fixture restores the original state."
+    },
+    {
+      "id": "stale-target-negative",
+      "status": "passed",
+      "evidence": "The local itinerary mutation changes the semantic accessible name, matching content-script fingerprint validation and the source target_changed refusal path."
+    },
+    {
+      "id": "privacy-boundary",
+      "status": "passed",
+      "evidence": "The page has no network calls, credentials, payment controls, account data, third-party assets, or external mutations."
+    }
+  ],
+  "implementation_comparison": {
+    "native_current_surface": [
+      "typed browser.observe and browser.inspect",
+      "typed page_select validation and execution",
+      "digest-bound side-panel approval with browser.await_approval in the current checkout",
+      "single-use apply with snapshot and semantic-target checks",
+      "independent browser.verify read-back"
+    ],
+    "not_yet_proven": [
+      "installed extension identity and Chrome 133+ round trip",
+      "side-panel visual approval capture",
+      "live plan, apply, verify, and stale-refusal receipts",
+      "public hosted no-auth case page"
+    ],
+    "status": "partial_native"
+  },
+  "claim_boundary": [
+    "CB-1 is closed as a source-backed, labeled synthetic demo fixture.",
+    "The current source quality gate passed on a dirty checkout; this receipt does not convert the uncommitted source edits into a clean release claim.",
+    "The next evidence-bearing work is installed CB-2 observe-to-plan and CB-3 approval presentation."
+  ],
+  "next_gap": "CB-2"
+}

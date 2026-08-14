@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Readiness Inspector preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #111820;
+        --panel: #1d2934;
+        --text: #eef7f3;
+        --muted: #a8b8b5;
+        --mint: #a5e4c5;
+        --amber: #ffd083;
+        --red: #ff9f98;
+        --line: rgba(238, 247, 243, 0.17);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(
+            circle at 12% 4%,
+            rgba(165, 228, 197, 0.16),
+            transparent 34%
+          ),
+          var(--bg);
+        color: var(--text);
+        font:
+          16px/1.5 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      .frame {
+        width: min(1600px, 100vw);
+        aspect-ratio: 16/9;
+        padding: 7vw;
+        display: grid;
+        grid-template-columns: 0.82fr 1.18fr;
+        gap: 6vw;
+        align-items: center;
+      }
+      .kicker {
+        color: var(--mint);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 650px;
+        margin: 16px 0 22px;
+        font-size: clamp(2.8rem, 5.8vw, 6rem);
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+      }
+      .lede {
+        max-width: 50ch;
+        color: var(--muted);
+        font-size: clamp(1rem, 1.5vw, 1.24rem);
+      }
+      .card {
+        padding: clamp(22px, 3vw, 42px);
+        border: 1px solid var(--line);
+        border-radius: 16px 4px 16px 4px;
+        background: linear-gradient(
+          145deg,
+          rgba(37, 53, 65, 0.94),
+          rgba(29, 41, 52, 0.94)
+        );
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.28);
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .states {
+        display: grid;
+        gap: 10px;
+        margin: 26px 0;
+      }
+      .state {
+        padding: 15px;
+        background: rgba(17, 24, 32, 0.74);
+        border: 1px solid var(--line);
+      }
+      .state strong {
+        display: block;
+        color: var(--mint);
+        font-size: 0.82rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .state span {
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+      .state .bad {
+        color: var(--amber);
+      }
+      .state .block {
+        color: var(--red);
+      }
+      .footer {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      @media (max-width: 760px) {
+        .frame {
+          aspect-ratio: auto;
+          min-height: 100vh;
+          grid-template-columns: 1fr;
+          padding: 12vw 8vw;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="frame" data-material-status="candidate-local">
+      <section>
+        <div class="kicker">Readiness Inspector · W5 evidence</div>
+        <h1>Ready for what?</h1>
+        <p class="lede">
+          Declare the goal. Keep every check explainable. Do not average
+          uncertainty away.
+        </p>
+      </section>
+      <section class="card" aria-label="Readiness Inspector preview">
+        <div class="row">
+          <span>release-candidate handoff</span><span>target c78de51</span>
+        </div>
+        <div class="states">
+          <div class="state">
+            <strong>PASSED · tests</strong
+            ><span>repository · bounded test command passes</span>
+          </div>
+          <div class="state">
+            <strong class="bad">FAILED · dependency-audit</strong
+            ><span>release · provide the dependency audit receipt</span>
+          </div>
+          <div class="state">
+            <strong class="block">BLOCKED · publish</strong
+            ><span>release · mutating check needs explicit authority</span>
+          </div>
+          <div class="state">
+            <strong>UNSUPPORTED · missing profile</strong
+            ><span>no versioned goal profile means no inferred readiness</span>
+          </div>
+        </div>
+        <div class="footer">
+          Candidate local material · upstream projection, hosting, and
+          publication remain gated.
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

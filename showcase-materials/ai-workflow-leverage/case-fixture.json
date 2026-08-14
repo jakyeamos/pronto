@@ -1,0 +1,141 @@
+{
+  "schema_version": "pronto-showcase-ai-workflow-leverage-fixture/v1",
+  "project": "ai-workflow-leverage",
+  "case_id": "AL-1-tenure-review-task-state-observability",
+  "source_kind": "real_attributable_maintenance_task",
+  "source_repository": "tenure",
+  "protected_baseline": {
+    "revision": "a304ce866e1bced294a12f9915cae55ac2b65b13",
+    "branch": "codex/tenure-reusable-measurement-telemetry-20260809",
+    "dirty": false,
+    "selection_reason": "The direct parent of the recorded reference implementation provides one fixed starting point for both lanes."
+  },
+  "reference_implementation": {
+    "revision": "5dd52328a1a847466db8a7f12c7e6f71b468182e",
+    "status": "reference_contract_only",
+    "not_measurement_evidence": true,
+    "changed_surfaces": [
+      "app/(admin)/review/_components/ActionBar.tsx",
+      "app/(admin)/review/_components/BulkActionBar.tsx",
+      "app/(admin)/review/_components/QueueShell.tsx",
+      "app/(admin)/review/page.tsx",
+      "extension/popup/index.html",
+      "extension/popup/popup.ts",
+      "extension/__tests__/popup-rehydrate.test.ts"
+    ]
+  },
+  "task": {
+    "title": "Expose Tenure review and capture task-state contracts",
+    "brief": "Expose stable data-mac-control-id and data-task-state values on review-session, review-workspace, approve, bulk-action, export, and capture popup surfaces while preserving existing product semantics.",
+    "input_set": {
+      "baseline_revision": "a304ce866e1bced294a12f9915cae55ac2b65b13",
+      "existing_behavior": [
+        "Review approval and rollback semantics remain unchanged.",
+        "Bulk export and capture popup rehydration remain unchanged.",
+        "The current product has no requirement to expose a public provider or deployment surface for this task."
+      ],
+      "focused_test_files": [
+        "app/(admin)/review/_components/__tests__/QueueShell.optimistic.test.tsx",
+        "extension/__tests__/popup-rehydrate.test.ts"
+      ]
+    },
+    "allowlisted_paths": [
+      "app/(admin)/review/_components/ActionBar.tsx",
+      "app/(admin)/review/_components/BulkActionBar.tsx",
+      "app/(admin)/review/_components/QueueShell.tsx",
+      "app/(admin)/review/page.tsx",
+      "app/(admin)/review/_components/__tests__/QueueShell.optimistic.test.tsx",
+      "extension/popup/index.html",
+      "extension/popup/popup.ts",
+      "extension/__tests__/popup-rehydrate.test.ts"
+    ],
+    "completion_criteria": [
+      "Review session, review workspace, approval controls, bulk actions, export, and capture popup expose stable IDs and explicit state values.",
+      "Focused QueueShell and popup rehydration tests cover the observable contract.",
+      "The implementation preserves existing approval, export, rollback, and capture behavior."
+    ],
+    "exclusions": [
+      "No database migration or remote data mutation.",
+      "No provider-backed execution, deployment, or external publishing.",
+      "No secrets, dependency upgrades, or unrelated UI redesign.",
+      "No claim that the recorded reference revision is the current release or a measured AI outcome."
+    ]
+  },
+  "paired_protocol": {
+    "identical_inputs": true,
+    "identical_completion_criteria": true,
+    "identical_oracle": true,
+    "lanes": [
+      {
+        "id": "manual",
+        "method": "Human-only implementation from the protected baseline.",
+        "assistant_authority": "none"
+      },
+      {
+        "id": "assisted",
+        "method": "Bounded AI implementation with human review before acceptance.",
+        "assistant_authority": "repository-local edits inside the allowlisted paths; no provider deployment or external mutation"
+      }
+    ],
+    "stop_conditions": [
+      "A lane changes an excluded path or cannot identify a protected baseline.",
+      "A required test, receipt, or human review record is missing.",
+      "A lane requires a provider, secret, remote database, deployment, or unbounded retry."
+    ]
+  },
+  "quality_oracle": {
+    "behavioral_contract": [
+      {
+        "id": "review-session-state",
+        "surface": "review-session",
+        "required_signal": "stable control ID plus queue-ready or queue-empty state"
+      },
+      {
+        "id": "review-action-state",
+        "surface": "approve and bulk-action controls",
+        "required_signal": "stable control IDs plus ready, saving, completed, failed, or selection state"
+      },
+      {
+        "id": "capture-popup-state",
+        "surface": "capture popup",
+        "required_signal": "stable workspace/status/control IDs plus state-specific primary target"
+      },
+      {
+        "id": "semantic-preservation",
+        "surface": "review and capture workflows",
+        "required_signal": "existing approval, rollback, export, and rehydration semantics remain intact"
+      }
+    ],
+    "commands": [
+      "pnpm exec vitest run 'app/(admin)/review/_components/__tests__/QueueShell.optimistic.test.tsx' 'extension/__tests__/popup-rehydrate.test.ts'",
+      "pnpm run lint -- app/(admin)/review/_components/ActionBar.tsx app/(admin)/review/_components/BulkActionBar.tsx app/(admin)/review/_components/QueueShell.tsx app/(admin)/review/page.tsx extension/popup/popup.ts"
+    ],
+    "provenance_checks": [
+      "Both lane receipts name the protected baseline revision and final revision.",
+      "Both lane receipts list changed paths and exact command outcomes.",
+      "A human reviewer records the acceptance decision independently of lane self-report."
+    ],
+    "reconciliation_rules": [
+      "Missing timing, quality, retry, or recovery data remains unknown.",
+      "A passing test is not evidence of a speed gain.",
+      "The reference implementation is a contract anchor, not a third lane or a hidden score."
+    ]
+  },
+  "measurement_definitions": {
+    "active_work_seconds": "Wall-clock time spent editing, testing, or reviewing, excluding recorded waits.",
+    "wait_seconds": "Time waiting for commands, tools, or human decisions.",
+    "human_touches": "Distinct human intervention events, including review corrections and acceptance decisions.",
+    "retries": "A repeated command or implementation attempt after a failure or rejection.",
+    "quality_result": "Shared oracle outcome with all required checks and provenance present."
+  },
+  "synthetic_appendix": {
+    "path": "synthetic-fixture.json",
+    "role": "short_reproducibility_appendix",
+    "replaces_real_case": false
+  },
+  "claim_boundary": [
+    "AL-1 is protocol selection, not a completed paired experiment.",
+    "The historical Tenure task and reference revision do not establish AI leverage.",
+    "No deployment, provider parity, or current production claim is included."
+  ]
+}

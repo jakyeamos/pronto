@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A real Research Domain Writing case study showing how a plausible basketball claim is stopped, traced, and repaired to match its evidence."
+    />
+    <title>Research Domain Writing: plausible is not proven</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17201c;
+        --muted: #65706a;
+        --paper: #f4f0e7;
+        --white: #fffdf8;
+        --forest: #153f32;
+        --green: #2a7358;
+        --lime: #d9ed92;
+        --red: #a94235;
+        --red-soft: #f5ddd5;
+        --line: rgba(23, 32, 28, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--paper);
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--paper);
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .wrap {
+        width: min(1160px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      .kicker {
+        margin: 0 0 18px;
+        color: var(--green);
+        font-size: 0.73rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .hero {
+        min-height: 82vh;
+        display: grid;
+        align-items: center;
+        padding: clamp(72px, 10vw, 132px) 0;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 0.82fr) minmax(400px, 1.18fr);
+        gap: clamp(44px, 8vw, 110px);
+        align-items: center;
+      }
+
+      h1 {
+        max-width: 730px;
+        margin: 0 0 26px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(3.4rem, 7vw, 6.7rem);
+        font-weight: 500;
+        letter-spacing: -0.055em;
+        line-height: 0.92;
+        text-wrap: balance;
+      }
+
+      .lede {
+        max-width: 60ch;
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(1rem, 1.5vw, 1.18rem);
+        line-height: 1.7;
+      }
+
+      .draft-card {
+        position: relative;
+        padding: clamp(28px, 5vw, 52px);
+        border: 1px solid rgba(23, 32, 28, 0.1);
+        background: var(--white);
+        box-shadow: 0 32px 80px rgba(39, 46, 37, 0.14);
+      }
+
+      .draft-card::before {
+        content: "Draft 01";
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        color: #8a938d;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .draft-label {
+        margin: 0 0 28px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .draft-line {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(1.75rem, 3.2vw, 3rem);
+        line-height: 1.23;
+      }
+
+      .supported {
+        background: linear-gradient(
+          transparent 66%,
+          rgba(217, 237, 146, 0.9) 66%
+        );
+      }
+
+      .unsupported {
+        color: var(--red);
+        text-decoration: line-through;
+        text-decoration-thickness: 2px;
+      }
+
+      .stop-note {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 12px;
+        margin: 32px 0 0;
+        padding-top: 22px;
+        border-top: 1px solid var(--line);
+        color: var(--red);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      .stop-mark {
+        display: grid;
+        width: 24px;
+        height: 24px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--red);
+        color: white;
+        font-weight: 900;
+      }
+
+      .trace-section {
+        padding: clamp(80px, 10vw, 132px) 0;
+        background: var(--forest);
+        color: #f8f6ee;
+      }
+
+      .trace-heading {
+        display: grid;
+        grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr);
+        gap: clamp(36px, 8vw, 100px);
+        align-items: end;
+        margin-bottom: 48px;
+      }
+
+      h2 {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(2.4rem, 5vw, 4.8rem);
+        font-weight: 500;
+        letter-spacing: -0.045em;
+        line-height: 0.98;
+        text-wrap: balance;
+      }
+
+      .trace-heading p {
+        max-width: 58ch;
+        margin: 0;
+        color: #b9c9c1;
+        line-height: 1.65;
+      }
+
+      .trace-grid {
+        display: grid;
+        grid-template-columns: minmax(240px, 0.6fr) minmax(0, 1.4fr);
+        gap: 1px;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
+      .claim-list,
+      .claim-detail {
+        background: #12382d;
+      }
+
+      .claim-list {
+        padding: 16px;
+      }
+
+      .claim-tab {
+        width: 100%;
+        padding: 18px;
+        border: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        color: #b9c9c1;
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .claim-tab strong,
+      .claim-tab span {
+        display: block;
+      }
+
+      .claim-tab strong {
+        margin-bottom: 5px;
+        color: #f8f6ee;
+        font-size: 0.95rem;
+      }
+
+      .claim-tab span {
+        font-size: 0.78rem;
+      }
+
+      .claim-tab[aria-selected="true"] {
+        background: var(--lime);
+        color: #3c4d44;
+      }
+
+      .claim-tab[aria-selected="true"] strong {
+        color: var(--forest);
+      }
+
+      .claim-detail {
+        min-height: 410px;
+        padding: clamp(28px, 6vw, 68px);
+      }
+
+      .detail-status {
+        display: inline-block;
+        margin-bottom: 28px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: rgba(217, 237, 146, 0.16);
+        color: var(--lime);
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .detail-status.stop {
+        background: rgba(245, 221, 213, 0.12);
+        color: #f4b7aa;
+      }
+
+      .detail-claim {
+        max-width: 850px;
+        margin: 0 0 38px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(1.7rem, 3.5vw, 3.25rem);
+        line-height: 1.18;
+      }
+
+      .detail-meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 22px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
+      .detail-meta dt {
+        margin-bottom: 7px;
+        color: #8fa79c;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .detail-meta dd {
+        margin: 0;
+        color: #e5e9e6;
+        line-height: 1.55;
+      }
+
+      .repair {
+        padding: clamp(80px, 10vw, 132px) 0;
+      }
+
+      .repair-grid {
+        display: grid;
+        grid-template-columns: minmax(250px, 0.45fr) minmax(0, 1fr);
+        gap: clamp(48px, 9vw, 120px);
+      }
+
+      .repair-copy {
+        margin: 22px 0 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .revision {
+        padding: clamp(28px, 5vw, 52px);
+        background: var(--white);
+        box-shadow: 0 24px 70px rgba(39, 46, 37, 0.1);
+      }
+
+      .revision-label {
+        margin: 0 0 24px;
+        color: var(--green);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .revision blockquote {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(1.45rem, 2.7vw, 2.35rem);
+        line-height: 1.35;
+      }
+
+      .boundary-note {
+        margin: 30px 0 0;
+        padding: 20px;
+        border-top: 1px solid rgba(42, 115, 88, 0.35);
+        background: rgba(42, 115, 88, 0.07);
+        color: #435048;
+        line-height: 1.55;
+      }
+
+      .evidence {
+        padding: clamp(72px, 9vw, 110px) 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .evidence-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1px;
+        margin-top: 42px;
+        background: var(--line);
+        border: 1px solid var(--line);
+      }
+
+      .evidence-card {
+        padding: 28px;
+        background: rgba(255, 253, 248, 0.62);
+      }
+
+      .evidence-card small {
+        color: var(--green);
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .evidence-card h3 {
+        margin: 14px 0 10px;
+        font-size: 1.05rem;
+      }
+
+      .evidence-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .evidence-card a {
+        display: inline-block;
+        margin-top: 18px;
+        color: var(--green);
+        font-weight: 700;
+      }
+
+      .publication {
+        padding: 72px 0;
+        background: #e8e2d4;
+      }
+
+      .publication .wrap {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 36px;
+        align-items: center;
+      }
+
+      .publication h2 {
+        font-size: clamp(2.1rem, 4vw, 3.8rem);
+      }
+
+      .publication p {
+        max-width: 65ch;
+        margin: 16px 0 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .human-badge {
+        padding: 14px 18px;
+        border: 1px solid rgba(23, 32, 28, 0.22);
+        color: var(--forest);
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      footer {
+        padding: 28px 0;
+        background: var(--ink);
+        color: #aeb9b3;
+        font-size: 0.78rem;
+      }
+
+      footer .wrap {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      @media (max-width: 800px) {
+        .hero {
+          min-height: 0;
+        }
+
+        .hero-grid,
+        .trace-heading,
+        .trace-grid,
+        .repair-grid,
+        .publication .wrap {
+          grid-template-columns: 1fr;
+        }
+
+        .claim-list {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 1px;
+          padding: 0;
+          overflow-x: auto;
+        }
+
+        .claim-tab {
+          min-width: 170px;
+          border: 0;
+        }
+
+        .detail-meta,
+        .evidence-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .human-badge {
+          justify-self: start;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .wrap {
+          width: min(100% - 28px, 1160px);
+        }
+
+        h1 {
+          font-size: clamp(3.15rem, 17vw, 4.8rem);
+        }
+
+        .draft-card {
+          padding-top: 58px;
+        }
+
+        .claim-list {
+          grid-template-columns: 1fr;
+          overflow-x: visible;
+        }
+
+        .claim-tab {
+          min-width: 0;
+        }
+
+        .claim-detail {
+          min-height: 500px;
+        }
+
+        footer .wrap {
+          display: block;
+        }
+
+        footer span {
+          display: block;
+          margin-top: 8px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="wrap hero-grid">
+          <div>
+            <p class="kicker">Research Domain Writing · Real case</p>
+            <h1>Plausible is not proven.</h1>
+            <p class="lede">
+              A writing workflow that keeps fluent prose from outrunning its
+              sources. This case starts with a real season line, stops one
+              unsupported leap, and preserves what the evidence can honestly
+              say.
+            </p>
+          </div>
+          <article class="draft-card" aria-label="Unsafe draft and QA stop">
+            <p class="draft-label">
+              The sentence sounds finished. The evidence is not.
+            </p>
+            <p class="draft-line">
+              <span class="supported"
+                >Tatum averaged 26.9 points, 8.1 rebounds, and 4.9 assists
+                across 74 games</span
+              >
+              <span class="unsupported"
+                >—proof that he was an elite two-way engine.</span
+              >
+            </p>
+            <div class="stop-note">
+              <span class="stop-mark" aria-hidden="true">!</span>
+              <span
+                ><strong>Claim stopped.</strong> The packet contains box-score
+                volume, not efficiency or defensive-impact evidence.</span
+              >
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="trace-section" id="claim-trace">
+        <div class="wrap">
+          <div class="trace-heading">
+            <div>
+              <p class="kicker">The claim trace</p>
+              <h2>Know what each sentence is allowed to say.</h2>
+            </div>
+            <p>
+              Select a claim to reveal its support, source, and uncertainty. The
+              useful facts survive. The conclusion changes when its evidence
+              runs out.
+            </p>
+          </div>
+
+          <div class="trace-grid">
+            <div class="claim-list" role="tablist" aria-label="Claim trace">
+              <button
+                class="claim-tab"
+                type="button"
+                role="tab"
+                aria-selected="true"
+                data-claim="line"
+              >
+                <strong>Season line</strong>
+                <span>Supported fact</span>
+              </button>
+              <button
+                class="claim-tab"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                data-claim="impact"
+              >
+                <strong>Two-way impact</strong>
+                <span>Unsupported inference</span>
+              </button>
+              <button
+                class="claim-tab"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                data-claim="repair"
+              >
+                <strong>Metric boundary</strong>
+                <span>Supported repair</span>
+              </button>
+            </div>
+            <article class="claim-detail" aria-live="polite">
+              <span class="detail-status" id="detail-status"
+                >Supported · two sources</span
+              >
+              <p class="detail-claim" id="detail-claim">
+                Across 74 regular-season games in 2023–24, Tatum averaged 26.9
+                points, 8.1 rebounds, and 4.9 assists per game.
+              </p>
+              <dl class="detail-meta">
+                <div>
+                  <dt>Support type</dt>
+                  <dd id="detail-type">Recorded box-score fact</dd>
+                </div>
+                <div>
+                  <dt>Source</dt>
+                  <dd id="detail-source">
+                    Boston Celtics game notes + Basketball-Reference
+                  </dd>
+                </div>
+                <div>
+                  <dt>Uncertainty</dt>
+                  <dd id="detail-uncertainty">
+                    None for the reported season line
+                  </dd>
+                </div>
+              </dl>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="repair">
+        <div class="wrap repair-grid">
+          <div>
+            <p class="kicker">The repair</p>
+            <h2>Stop the claim, not the workflow.</h2>
+            <p class="repair-copy">
+              Domain QA identifies the unsupported inference. The revised copy
+              keeps the real numbers, names their limit, and stays useful to a
+              reader.
+            </p>
+          </div>
+          <article class="revision">
+            <p class="revision-label">Draft 02 · exact-draft ledger passed</p>
+            <blockquote>
+              Across 74 regular-season games in 2023–24, Tatum averaged 26.9
+              points, 8.1 rebounds, and 4.9 assists per game. Those figures
+              describe recorded scoring, rebounding, and assist volume; they do
+              not measure efficiency, defensive impact, or total player value.
+            </blockquote>
+            <p class="boundary-note">
+              <strong>What the gate proves:</strong> the QA receipt is bound to
+              the exact draft and its source-linked facts. The agent performs
+              the semantic review; the deterministic CLI verifies the receipt
+              and its coverage.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="evidence">
+        <div class="wrap">
+          <p class="kicker">Evidence packet</p>
+          <h2>Real sources in front. Reproducibility in the appendix.</h2>
+          <div class="evidence-grid">
+            <article class="evidence-card">
+              <small>Primary team document</small>
+              <h3>Boston Celtics game notes</h3>
+              <p>Records the 74-game regular-season line used in this case.</p>
+              <a
+                href="https://cdn.nba.com/teams/uploads/sites/1610612739/2024/05/240511-boscle-notes.pdf"
+                >Open source PDF</a
+              >
+            </article>
+            <article class="evidence-card">
+              <small>Independent reference</small>
+              <h3>Basketball-Reference</h3>
+              <p>Independently records the same games and per-game averages.</p>
+              <a
+                href="https://www.basketball-reference.com/players/t/tatumja01.html"
+                >Open player record</a
+              >
+            </article>
+            <article class="evidence-card">
+              <small>Explicitly missing</small>
+              <h3>Impact evidence</h3>
+              <p>
+                No efficiency, matchup, tracking, on-off, or all-in-one impact
+                data is loaded.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="publication">
+        <div class="wrap">
+          <div>
+            <h2>Research-assisted. Human-published.</h2>
+            <p>
+              Passing the evidence gate makes the draft eligible for human
+              review. It does not authorize publication or turn a narrow fact
+              pattern into a broader claim.
+            </p>
+          </div>
+          <span class="human-badge">Human decision required</span>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <strong>Research Domain Writing</strong>
+        <span
+          >Local publication candidate · release provenance and deployment not
+          yet verified</span
+        >
+      </div>
+    </footer>
+
+    <script>
+      const claims = {
+        line: {
+          status: "Supported · two sources",
+          stop: false,
+          claim:
+            "Across 74 regular-season games in 2023–24, Tatum averaged 26.9 points, 8.1 rebounds, and 4.9 assists per game.",
+          type: "Recorded box-score fact",
+          source: "Boston Celtics game notes + Basketball-Reference",
+          uncertainty: "None for the reported season line",
+        },
+        impact: {
+          status: "Stopped · evidence missing",
+          stop: true,
+          claim: "Those numbers prove that he was an elite two-way engine.",
+          type: "Unsupported inference",
+          source: "No loaded source supports this conclusion",
+          uncertainty:
+            "Efficiency, defensive impact, and total value are unmeasured",
+        },
+        repair: {
+          status: "Supported · bounded conclusion",
+          stop: false,
+          claim:
+            "Those figures describe recorded scoring, rebounding, and assist volume; they do not measure efficiency, defensive impact, or total player value.",
+          type: "Evidence boundary",
+          source: "The same two sources, interpreted within their limits",
+          uncertainty: "Required and stated in the sentence",
+        },
+      };
+
+      const tabs = document.querySelectorAll(".claim-tab");
+      const status = document.querySelector("#detail-status");
+      const claim = document.querySelector("#detail-claim");
+      const type = document.querySelector("#detail-type");
+      const source = document.querySelector("#detail-source");
+      const uncertainty = document.querySelector("#detail-uncertainty");
+
+      for (const tab of tabs) {
+        tab.addEventListener("click", () => {
+          const selected = claims[tab.dataset.claim];
+          for (const candidate of tabs)
+            candidate.setAttribute("aria-selected", String(candidate === tab));
+          status.textContent = selected.status;
+          status.classList.toggle("stop", selected.stop);
+          claim.textContent = selected.claim;
+          type.textContent = selected.type;
+          source.textContent = selected.source;
+          uncertainty.textContent = selected.uncertainty;
+        });
+      }
+    </script>
+  </body>
+</html>

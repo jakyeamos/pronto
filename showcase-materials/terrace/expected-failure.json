@@ -1,0 +1,30 @@
+{
+  "schema_version": "pronto-showcase-expected-failure/v1",
+  "project": "Terrace",
+  "case_id": "TR-1-active-feature-handoff",
+  "observed_at": "2026-08-13T02:03:38Z",
+  "stage": "workflow_routing_validation",
+  "command_exit_code": 1,
+  "test_file_count": 1,
+  "failed_test_count": 1,
+  "skipped_test_count": 38,
+  "expected": {
+    "blocked": true,
+    "command": "terrace workbench status --feature gpt56-modernization",
+    "blocker_code": "ACTIVE_FEATURE_NOT_ROADMAP_PHASE",
+    "feature_id": "gpt56-modernization"
+  },
+  "observed": {
+    "blocked": false,
+    "command": "terrace phase show phase-11-notifications",
+    "blocker_code": null
+  },
+  "attribution": {
+    "single_stage": true,
+    "owning_file": "packages/terrace-core/src/workflow.cjs",
+    "failing_revision": "77f1f5e37160264e913b2df9386e42da4fa51cc4",
+    "reason": "The pre-fix router fell through to the first roadmap phase instead of returning an active-feature handoff before autonomous planning."
+  },
+  "safe_next_step": "Return the structured active-feature handoff and stop before phasePlan can write unrelated workflow state.",
+  "forbidden_bypass": "Do not clear the active feature, select the first roadmap phase, or mark the autonomous run ready."
+}

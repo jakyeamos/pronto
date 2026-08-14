@@ -1,0 +1,107 @@
+{
+  "schema_version": "pronto-showcase-dsci-proj-synthetic-fixture/v1",
+  "project": "Dsci-proj",
+  "gap": "DS-0",
+  "source_kind": "synthetic_reproducibility_appendix",
+  "role": "appendix_only",
+  "contract_ref": "decision-contract.json",
+  "backlogs": [
+    {
+      "id": "research-issues",
+      "source_type": "research_issue_backlog",
+      "items": [
+        {
+          "id": "next.js#101",
+          "title": "Cache invalidation bug",
+          "state": "open",
+          "primary_type": "bug",
+          "evidence": {
+            "reactions_7d_total": 14,
+            "unique_commenters_7d": 6,
+            "has_priority_label": true,
+            "predicted_median_time_to_close_days": 1.4,
+            "reopen_count": 1,
+            "comment_velocity_24h": 3
+          },
+          "source_ref": "synthetic://research-issues/next.js#101"
+        },
+        {
+          "id": "next.js#103",
+          "title": "Feature request for plugin API",
+          "state": "open",
+          "primary_type": "feature",
+          "evidence": {
+            "reactions_7d_total": 20,
+            "unique_commenters_7d": 11,
+            "has_priority_label": false,
+            "predicted_median_time_to_close_days": 6.0,
+            "reopen_count": 0,
+            "comment_velocity_24h": 2
+          },
+          "source_ref": "synthetic://research-issues/next.js#103"
+        }
+      ]
+    },
+    {
+      "id": "product-backlog",
+      "source_type": "product_backlog",
+      "items": [
+        {
+          "id": "PLAT-42",
+          "title": "Reduce onboarding support load",
+          "state": "planned",
+          "customer_segment": "new_team",
+          "evidence": {
+            "reach": 0.72,
+            "support_cost": 0.35,
+            "deadline_days": 18,
+            "model_confidence": 0.8
+          },
+          "source_ref": "synthetic://product-backlog/PLAT-42"
+        },
+        {
+          "id": "PLAT-43",
+          "title": "Add export audit trail",
+          "state": "planned",
+          "customer_segment": "regulated_team",
+          "evidence": {
+            "reach": 0.4,
+            "support_cost": 0.15,
+            "deadline_days": 9,
+            "model_confidence": 0.92
+          },
+          "source_ref": "synthetic://product-backlog/PLAT-43"
+        }
+      ]
+    }
+  ],
+  "expected_mapping": {
+    "id": "source.id",
+    "title": "source.title",
+    "state": "source.state",
+    "source_type": "source.source_type",
+    "evidence": "source.evidence",
+    "provenance": "source.source_ref"
+  },
+  "negative_cases": [
+    {
+      "id": "missing-title",
+      "mutation": "remove title from PLAT-42",
+      "expected": "fail_closed",
+      "reason": "required item identity is missing"
+    },
+    {
+      "id": "invalid-weights",
+      "mutation": "change default weights to sum to 1.2",
+      "expected": "fail_closed",
+      "reason": "weights must sum to one"
+    },
+    {
+      "id": "unlinked-source",
+      "mutation": "remove source_ref from next.js#101",
+      "expected": "fail_closed",
+      "reason": "every recommendation requires evidence provenance"
+    }
+  ],
+  "claim_boundary": "The fixture exercises the contract and refusal rules; it does not prove that the current Dsci-proj engine accepts either schema or supports user-edited scenarios."
+}

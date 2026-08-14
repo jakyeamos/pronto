@@ -1,0 +1,47 @@
+{
+  "schema_version": "pronto-showcase-marketing-autoresearch-privacy-review/v1",
+  "project": "marketing-autoresearch",
+  "case_id": "MA-1-public-ai-showcase-prioritization",
+  "reviewed_on": "2026-08-13",
+  "review_scope": "brief.json and its declared source, audience, exclusion, and publication boundaries",
+  "status": "passed_with_conditions",
+  "checks": [
+    {
+      "id": "client-data",
+      "status": "passed",
+      "finding": "The brief explicitly excludes BidCamp and all private client work; it names only public portfolio lanes."
+    },
+    {
+      "id": "personal-data",
+      "status": "passed",
+      "finding": "No personal contact data, account identifiers, audience lists, or private tracker notes are included."
+    },
+    {
+      "id": "secrets-and-credentials",
+      "status": "passed",
+      "finding": "The brief contains no credentials, tokens, cookies, raw provider payloads, or secret-like values."
+    },
+    {
+      "id": "private-paths",
+      "status": "passed",
+      "finding": "Source references use logical registry IDs and relative logical paths; no local absolute path is exposed."
+    },
+    {
+      "id": "external-authority",
+      "status": "passed",
+      "finding": "The case is shadow/report-only and explicitly excludes publishing, outreach, spend, and target-repository mutation."
+    },
+    {
+      "id": "future-run-redaction",
+      "status": "conditional",
+      "finding": "MA-2 must apply the repository redaction boundary before any provider or source payload becomes a report or public-safe projection."
+    }
+  ],
+  "conditions": [
+    "Keep private run artifacts outside the repository and outside any public package.",
+    "Do not add raw answers, private source text, account identifiers, or absolute paths to the report.",
+    "Treat the publication state as blocked until a human reviews sources, claims, and any later external action."
+  ],
+  "publication_decision": "not_a_publication_candidate",
+  "reviewer_note": "MA-1 is safe to carry into a report-only shadow run. This review does not authorize research-provider access, publication, or outreach."
+}

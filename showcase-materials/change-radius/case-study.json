@@ -1,0 +1,34 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "change-radius",
+  "status": "candidate_local",
+  "title": "Change Radius: blind spots stay visible",
+  "audience": "Reviewers who need bounded consumer and test navigation without a misleading universal blast-radius score.",
+  "promise": "Start from one changed symbol, follow provider-named static consumers and tests, and keep dynamic, generated, reflective, and external boundaries explicit.",
+  "story": [
+    "A TypeScript seed symbol gives the analysis a concrete file and name.",
+    "Static imports produce provider-named consumer edges, including a test edge.",
+    "A dynamic import is reported as an unknown rather than promoted to a known edge.",
+    "The receipt carries the target revision, limitations, and next review action."
+  ],
+  "evidence": [
+    "evidence/cr-w2-typescript-radius.json",
+    "evidence/cr-w3-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
+    "../../../projects/change-radius/README.md",
+    "../../../projects/change-radius/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Real TypeScript fixture with two static edges and one test edge.",
+    "Dynamic-import unknown boundary preserved in the receipt.",
+    "Target-bound receipt records provider, limitations, and next action.",
+    "Current dev tests, lint, and package checks pass at revision a849c8a.",
+    "The 1600×900 PNG preview is visually reviewed and legible at the target crop."
+  ],
+  "open_gates": [
+    "Connect the same symbol and unknown classes to Deletion Proof and Contract Watch.",
+    "Add generated, reflective, external, and negative fixture receipts.",
+    "Verify a hosted no-auth case and record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves the current dev bounded static TypeScript graph slice and local binary preview; it does not claim complete runtime use, downstream parity, a universal blast radius, or publication."
+}

@@ -1,0 +1,207 @@
+{
+  "schema_version": "pronto-showcase-agent-router-execution-replay/v1",
+  "project": "agent-router",
+  "gap": "AR-4",
+  "case_id": "ar-1-launch-readiness",
+  "observed_at": "2026-08-13T18:50:37Z",
+  "source_kind": "synthetic_reproducibility_appendix",
+  "role": "appendix_only",
+  "execution_mode": "bounded_replay",
+  "reason_for_synthetic_case": "The native planner and replay fixtures are available, but no provider invocation or worktree mutation is authorized for this showcase packet.",
+  "selected_route": {
+    "provider_id": "codex",
+    "model_id": "codex-default",
+    "reasoning_tier": "high",
+    "subtask_ids": [
+      "ar-1-launch-readiness-plan",
+      "ar-1-launch-readiness-execute",
+      "ar-1-launch-readiness-verify"
+    ],
+    "selection_receipt": "evidence/ar-2-3-routing-receipt.json"
+  },
+  "worker_receipts": [
+    {
+      "receiptId": "ar-4-replay-plan-codex",
+      "subtaskId": "ar-1-launch-readiness-plan",
+      "taskType": "repo_edit_with_tests",
+      "providerId": "codex",
+      "modelId": "codex-default",
+      "status": "success",
+      "summary": "Produced a bounded plan with scope and approval constraints attached.",
+      "changedFiles": [],
+      "artifactPaths": [".agent-runs/ar-1-launch-readiness/worker/plan.json"],
+      "qualityEvidence": [],
+      "usage": {
+        "providerId": "codex",
+        "sessionId": "synthetic-ar-4-plan",
+        "observedAt": "2026-08-13T18:50:37.000Z",
+        "source": "unknown",
+        "confidence": "unknown",
+        "inputTokens": null,
+        "outputTokens": null,
+        "totalTokens": null,
+        "turns": null,
+        "elapsedMs": null,
+        "interventions": null,
+        "retries": null,
+        "capacityRemaining": null,
+        "availability": "available",
+        "redactionApplied": true,
+        "provenance": ["synthetic-replay"],
+        "notes": ["No provider session was opened."]
+      },
+      "interventionCount": 0,
+      "retryCount": 0,
+      "acceptedByHuman": null,
+      "createdAt": "2026-08-13T18:50:37.000Z"
+    },
+    {
+      "receiptId": "ar-4-replay-execute-codex",
+      "subtaskId": "ar-1-launch-readiness-execute",
+      "taskType": "repo_edit_with_tests",
+      "providerId": "codex",
+      "modelId": "codex-default",
+      "status": "success",
+      "summary": "Applied the bounded parser change in the replay fixture and attached its focused test result.",
+      "changedFiles": ["src/parser.mjs", "test/parser.test.mjs"],
+      "artifactPaths": [
+        ".agent-runs/ar-1-launch-readiness/worker/execute.json"
+      ],
+      "qualityEvidence": [
+        {
+          "evidenceId": "ar-4-execute-fixture-test",
+          "source": "deterministic",
+          "status": "passed",
+          "check": "fixture-test",
+          "details": "The synthetic replay repository's focused parser test passed.",
+          "executionConsent": "not_required",
+          "observedAt": "2026-08-13T18:50:37.000Z"
+        }
+      ],
+      "usage": {
+        "providerId": "codex",
+        "sessionId": "synthetic-ar-4-execute",
+        "observedAt": "2026-08-13T18:50:37.000Z",
+        "source": "unknown",
+        "confidence": "unknown",
+        "inputTokens": null,
+        "outputTokens": null,
+        "totalTokens": null,
+        "turns": null,
+        "elapsedMs": null,
+        "interventions": null,
+        "retries": null,
+        "capacityRemaining": null,
+        "availability": "available",
+        "redactionApplied": true,
+        "provenance": ["synthetic-replay"],
+        "notes": [
+          "The changed files are names from the synthetic replay repository only."
+        ]
+      },
+      "interventionCount": 0,
+      "retryCount": 0,
+      "acceptedByHuman": null,
+      "createdAt": "2026-08-13T18:50:37.000Z"
+    },
+    {
+      "receiptId": "ar-4-replay-verify-codex",
+      "subtaskId": "ar-1-launch-readiness-verify",
+      "taskType": "repo_edit_with_tests",
+      "providerId": "codex",
+      "modelId": "codex-default",
+      "status": "success",
+      "summary": "Verified the replay fixture test and preserved the evidence boundary.",
+      "changedFiles": [],
+      "artifactPaths": [".agent-runs/ar-1-launch-readiness/worker/verify.json"],
+      "qualityEvidence": [
+        {
+          "evidenceId": "ar-4-verify-fixture-test",
+          "source": "deterministic",
+          "status": "passed",
+          "check": "fixture-test",
+          "details": "The synthetic replay repository's focused parser test passed during verification.",
+          "executionConsent": "not_required",
+          "observedAt": "2026-08-13T18:50:37.000Z"
+        }
+      ],
+      "usage": {
+        "providerId": "codex",
+        "sessionId": "synthetic-ar-4-verify",
+        "observedAt": "2026-08-13T18:50:37.000Z",
+        "source": "unknown",
+        "confidence": "unknown",
+        "inputTokens": null,
+        "outputTokens": null,
+        "totalTokens": null,
+        "turns": null,
+        "elapsedMs": null,
+        "interventions": null,
+        "retries": null,
+        "capacityRemaining": null,
+        "availability": "available",
+        "redactionApplied": true,
+        "provenance": ["synthetic-replay"],
+        "notes": ["No live verification or deployment claim is made."]
+      },
+      "interventionCount": 0,
+      "retryCount": 0,
+      "acceptedByHuman": null,
+      "createdAt": "2026-08-13T18:50:37.000Z"
+    }
+  ],
+  "reconciliation": {
+    "selected_subtask_count": 3,
+    "worker_receipt_count": 3,
+    "subtask_ids_match": true,
+    "every_result_attributable": true,
+    "provider_identity_present_on_each_receipt": true,
+    "provider_execution_invocations": 0,
+    "worktree_mutations": 0,
+    "external_mutations": 0,
+    "provider_state": "replay_profile_only"
+  },
+  "replay_matrix": {
+    "status": "passed",
+    "case_count": 5,
+    "cases": [
+      {
+        "case_id": "simple-docs",
+        "actual_task_type": "docs_only",
+        "actual_reasoning_tier": "standard",
+        "actual_provider_id": "claude"
+      },
+      {
+        "case_id": "repo-edit-tests",
+        "actual_task_type": "repo_edit_with_tests",
+        "actual_reasoning_tier": "standard",
+        "actual_provider_id": "codex"
+      },
+      {
+        "case_id": "architecture",
+        "actual_task_type": "architecture_review",
+        "actual_reasoning_tier": "high",
+        "actual_provider_id": "claude"
+      },
+      {
+        "case_id": "high-risk-migration",
+        "actual_task_type": "config_change",
+        "actual_reasoning_tier": "max",
+        "actual_provider_id": "antigravity"
+      },
+      {
+        "case_id": "research",
+        "actual_task_type": "spike_research",
+        "actual_reasoning_tier": "high",
+        "actual_provider_id": "claude"
+      }
+    ]
+  },
+  "claim_boundary": [
+    "AR-4 is closed as a bounded, explicitly labeled replay: each selected subtask has one attributable synthetic worker receipt and the replay matrix passes five routing cases.",
+    "The worker receipts are safe fixtures; their unknown usage fields remain unknown and do not imply a provider session ran.",
+    "No live provider execution, worktree mutation, deployment, or real launch-readiness outcome is claimed.",
+    "AR-5 still owns conflict-aware synthesis, and AR-6 still owns cross-receipt cost, timing, identity, and result reconciliation for a real or richer replay."
+  ],
+  "next_gap": "AR-5"
+}

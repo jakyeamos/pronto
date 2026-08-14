@@ -1,0 +1,57 @@
+{
+  "schema_version": "pronto-handshake-packet/v1",
+  "project": "pre-cr-suite-lsp",
+  "display_name": "Pre-CR Suite",
+  "status": "posted_repo_link",
+  "prepared_at": "2026-08-13",
+  "publication": {
+    "posted": true,
+    "posted_at": "2026-08-13",
+    "handshake_project_url": "https://github.com/jakyeamos/pre-cr-suite",
+    "preview_source": "handshake_auto_preview",
+    "public_demo_url": null,
+    "host_status": "repo_link_only"
+  },
+  "handshake": {
+    "title": "Pre-CR Suite: Return, recall, act, prove",
+    "description": "description.txt",
+    "description_characters": 429,
+    "preview": {
+      "path": "preview-16x9.png",
+      "format": "png",
+      "dimensions": "1600x900",
+      "source_material": "../../pre-cr-suite/preview-16x9.png"
+    },
+    "demo_page": {
+      "local_path": "../../pre-cr-suite/preview.html",
+      "public_url": null,
+      "status": "local_only"
+    },
+    "skills": [
+      "VS Code extensions",
+      "developer tools",
+      "changed-line coverage",
+      "developer experience"
+    ]
+  },
+  "roles": {
+    "creator": "Pre-CR owns developer continuity, editor interaction, changed-line coverage, and pre-review policy.",
+    "system_or_ai": "The installed extension restores context and surfaces the supported actions. This packet makes no autonomous AI-runtime claim.",
+    "human": "The developer owns the focused repair, acceptance, and any merge decision."
+  },
+  "evidence": [
+    "../../pre-cr-suite/evidence/pcr-1-behavior-receipt.json",
+    "../../pre-cr-suite/evidence/pcr-2-command-state-receipt.json",
+    "../../pre-cr-suite/evidence/pcr-3-readiness-receipt.json",
+    "../../pre-cr-suite/claim-ledger.json"
+  ],
+  "claim_boundary": [
+    "The installed local VSIX is verified in VS Code 1.133.0.",
+    "The fixture proves detection and repair; the observed headless CLI warning is not presented as blocking.",
+    "Marketplace publication and general availability are not claimed."
+  ],
+  "open_gates": [
+    "Choose and verify a public no-auth host for the case page if replacing the repository link.",
+    "Verify the replacement link at desktop and mobile widths before updating the profile."
+  ]
+}

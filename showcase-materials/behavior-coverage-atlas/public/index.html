@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Behavior Coverage Atlas maps named behaviors to explicit test evidence without turning line coverage into a correctness score."
+    />
+    <title>Behavior Coverage Atlas · know what the test proves</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #101820;
+        --panel: #1c2b31;
+        --text: #f5f8f4;
+        --muted: #adbfbd;
+        --faint: #7f9895;
+        --mint: #9af0c0;
+        --amber: #ffc779;
+        --line: rgba(210, 240, 230, 0.2);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--text);
+        background:
+          radial-gradient(
+            circle at 84% 2%,
+            rgba(154, 240, 192, 0.13),
+            transparent 30rem
+          ),
+          var(--bg);
+        font:
+          16px/1.6 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      .wrap {
+        width: min(1120px, calc(100% - 44px));
+        margin: 0 auto;
+      }
+      header {
+        border-bottom: 1px solid var(--line);
+      }
+      header .wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 58px;
+        gap: 24px;
+      }
+      header strong,
+      header span {
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      header span {
+        color: var(--faint);
+      }
+      .hero {
+        padding: clamp(74px, 10vw, 132px) 0 90px;
+      }
+      .kicker {
+        color: var(--mint);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1,
+      h2 {
+        text-wrap: balance;
+        letter-spacing: -0.055em;
+        line-height: 0.98;
+      }
+      h1 {
+        max-width: 880px;
+        margin: 18px 0 26px;
+        font-size: clamp(3.2rem, 7vw, 6.5rem);
+      }
+      .lede {
+        max-width: 62ch;
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(1.05rem, 1.7vw, 1.24rem);
+      }
+      .note {
+        max-width: 700px;
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        margin-top: 28px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(154, 240, 192, 0.34);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .note strong {
+        color: var(--amber);
+      }
+      section {
+        padding: 86px 0;
+        border-top: 1px solid var(--line);
+      }
+      h2 {
+        max-width: 680px;
+        margin: 0 0 42px;
+        font-size: clamp(2.4rem, 5vw, 4.4rem);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1px;
+        background: var(--line);
+        border: 1px solid var(--line);
+      }
+      .panel {
+        min-height: 270px;
+        padding: clamp(24px, 4vw, 42px);
+        background: rgba(28, 43, 49, 0.88);
+      }
+      .panel h3 {
+        margin: 0 0 15px;
+        font-size: 1.35rem;
+      }
+      .panel p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .flow {
+        display: grid;
+        gap: 14px;
+        margin-top: 24px;
+      }
+      .flow div {
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      .flow b {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border: 1px solid var(--mint);
+        border-radius: 50%;
+        color: var(--mint);
+        font-size: 0.76rem;
+      }
+      .flow strong {
+        display: block;
+      }
+      .flow span {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .badge {
+        display: inline-block;
+        margin-top: 22px;
+        padding: 5px 9px;
+        border: 1px solid rgba(255, 199, 121, 0.4);
+        border-radius: 999px;
+        color: var(--amber);
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      footer {
+        padding: 30px 0 54px;
+        color: var(--faint);
+        font-size: 0.82rem;
+      }
+      @media (max-width: 760px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        header .wrap {
+          align-items: flex-start;
+          flex-direction: column;
+          justify-content: center;
+          padding: 12px 0;
+          gap: 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <strong>Behavior Coverage Atlas</strong
+        ><span>Candidate local case study · current dev</span>
+      </div>
+    </header>
+    <main data-material-status="candidate-local">
+      <section class="hero">
+        <div class="wrap">
+          <div class="kicker">Behavior-level evidence</div>
+          <h1>Know what the test proves.</h1>
+          <p class="lede">
+            Behavior Coverage Atlas maps named product behaviors to test
+            receipts, then keeps assertion strength, freshness, gaps, and
+            unknowns visible.
+          </p>
+          <p class="note">
+            <strong>Case signal</strong
+            ><span
+              >A fresh four-behavior fixture shows verified, execution-only,
+              failed, and missing evidence; a target mismatch turns the receipt
+              stale.</span
+            >
+          </p>
+        </div>
+      </section>
+      <section>
+        <div class="wrap">
+          <h2>Evidence states stay separate.</h2>
+          <div class="grid">
+            <article class="panel">
+              <h3>What the atlas preserves</h3>
+              <p>
+                The manifest names behaviors and tests. The receipt records what
+                actually ran and whether it asserted the behavior.
+              </p>
+              <div class="flow">
+                <div>
+                  <b>1</b>
+                  <div>
+                    <strong>Declare</strong
+                    ><span>Name the behavior and owner.</span>
+                  </div>
+                </div>
+                <div>
+                  <b>2</b>
+                  <div>
+                    <strong>Link</strong
+                    ><span>Attach test and execution evidence.</span>
+                  </div>
+                </div>
+                <div>
+                  <b>3</b>
+                  <div>
+                    <strong>Classify</strong
+                    ><span>Show strength, gaps, and freshness.</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+            <article class="panel">
+              <h3>What stays visible</h3>
+              <p>
+                Duplicate links, missing tests, failed assertions, stale
+                receipts, and unmodeled runtime paths remain explicit instead of
+                becoming a reassuring score.
+              </p>
+              <span class="badge">local matrix · review handoff pending</span>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section>
+        <div class="wrap">
+          <h2>Behavior proof first, integration later.</h2>
+          <p class="lede">
+            This current packet proves source revision
+            <code>8c052b1</code> against fixture revision <code>40f738b</code>
+            and includes a visually reviewed 1600×900 preview. Review Attention
+            Map integration, hosting, and publication remain separate gates.
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        Behavior Coverage Atlas · local candidate material · no deployment or
+        posting claim
+      </div>
+    </footer>
+  </body>
+</html>

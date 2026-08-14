@@ -1,0 +1,35 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "remediation-canvas",
+  "status": "candidate_local",
+  "title": "Remediation Canvas: keep partial work actionable",
+  "audience": "Developers grouping related quality findings who need human intent and source drift visible in the handoff.",
+  "promise": "Reference authoritative findings, state a human remediation intent, preserve dispositions, and mark the canvas stale when the source set changes.",
+  "story": [
+    "Three Quality Lens finding references enter one canvas without copying their payloads.",
+    "A human marks one finding resolved, one blocked, and leaves one unresolved with a next action.",
+    "A source change replaces one finding and changes the fingerprint.",
+    "Refresh reports stale while preserving the original partial handoff for review."
+  ],
+  "evidence": [
+    "evidence/rc-w3-partial-stale-handoff.json",
+    "evidence/rc-w3-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
+    "../../../projects/remediation-canvas/README.md",
+    "../../../projects/remediation-canvas/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Stable Quality Lens references and human intent/dispositions captured in a local canvas.",
+    "Changed finding set produces a stale refresh without erasing partial work.",
+    "Source tests, lint, and package checks pass.",
+    "Current dev fresh and stale refresh flows were rerun headlessly.",
+    "1600×900 PNG/SVG preview was regenerated and visually reviewed."
+  ],
+  "open_gates": [
+    "Complete one verification receipt and prove source-authority parity with Quality Lens.",
+    "Connect the handoff to the downstream review surface without copying findings.",
+    "Connect the local case to a hosted no-auth URL and verify it.",
+    "Record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves a local W3 partial/stale handoff; it does not claim automatic remediation, source-tool integration, hosting, or publication."
+}

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Change Integration Simulator preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #111a21;
+        --panel: #1d2b33;
+        --text: #f3f6f2;
+        --muted: #aabdb8;
+        --mint: #9be9c1;
+        --amber: #ffca7c;
+        --red: #ff958b;
+        --line: rgba(210, 240, 230, 0.2);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(
+            circle at 8% 10%,
+            rgba(155, 233, 193, 0.15),
+            transparent 34%
+          ),
+          var(--bg);
+        color: var(--text);
+        font:
+          16px/1.5 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      .frame {
+        width: min(1600px, 100vw);
+        aspect-ratio: 16/9;
+        padding: 7vw;
+        display: grid;
+        grid-template-columns: 0.82fr 1.18fr;
+        gap: 6vw;
+        align-items: center;
+      }
+      .kicker {
+        color: var(--mint);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 650px;
+        margin: 16px 0 22px;
+        font-size: clamp(2.8rem, 5.8vw, 6rem);
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+      }
+      .lede {
+        max-width: 50ch;
+        color: var(--muted);
+        font-size: clamp(1rem, 1.5vw, 1.24rem);
+      }
+      .card {
+        padding: clamp(22px, 3vw, 42px);
+        border: 1px solid var(--line);
+        border-radius: 16px 4px 16px 4px;
+        background: linear-gradient(
+          145deg,
+          rgba(37, 67, 68, 0.94),
+          rgba(29, 43, 51, 0.94)
+        );
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.28);
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .states {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1px;
+        margin: 26px 0;
+        background: var(--line);
+        border: 1px solid var(--line);
+      }
+      .state {
+        min-height: 112px;
+        padding: 16px;
+        background: rgba(17, 26, 33, 0.72);
+      }
+      .state strong {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--mint);
+        font-size: 0.82rem;
+        letter-spacing: 0.08em;
+      }
+      .state span {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .state .bad {
+        display: block;
+        margin-top: 7px;
+        color: var(--amber);
+        font-weight: 700;
+      }
+      .footer {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      @media (max-width: 760px) {
+        .frame {
+          aspect-ratio: auto;
+          min-height: 100vh;
+          grid-template-columns: 1fr;
+          padding: 12vw 8vw;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="frame" data-material-status="candidate-local">
+      <section>
+        <div class="kicker">Change Integration Simulator · W4 evidence</div>
+        <h1>Mergeability is not verification.</h1>
+        <p class="lede">
+          Pin source and target commits, simulate the tree, expose conflicts,
+          and keep the branches untouched.
+        </p>
+      </section>
+      <section class="card" aria-label="Change Integration Simulator preview">
+        <div class="row">
+          <span>exact commits</span><span>read-only simulation</span>
+        </div>
+        <div class="states">
+          <div class="state">
+            <strong>CLEAN</strong><span>Merge tree: 2559527…</span>
+          </div>
+          <div class="state">
+            <strong>CONFLICT</strong><span>shared.txt · explicit conflict</span
+            ><span class="bad">no tree produced</span>
+          </div>
+          <div class="state">
+            <strong>GATE</strong><span>diff-tree check passed</span
+            ><span class="bad">separate probe</span>
+          </div>
+          <div class="state">
+            <strong>SAFETY</strong><span>source/target refs unchanged</span>
+          </div>
+        </div>
+        <div class="footer">
+          Candidate local material · Gateboard handoff, hosting, and publication
+          remain gated.
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

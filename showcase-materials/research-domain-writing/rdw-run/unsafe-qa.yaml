@@ -1,0 +1,44 @@
+output_id: rdw-tatum-claim-boundary-unsafe
+pass: false
+confidence_score: 0.99
+needs_human_review: false
+issues:
+  - id: unsupported-impact-inference
+    severity: major
+    category: overclaim
+    description: >-
+      The cited box-score line supports recorded scoring, rebounding, and assist
+      volume, but the sentence turns it into proof of elite status and two-way
+      impact without efficiency, defensive, tracking, matchup, on-off, or total
+      impact evidence.
+    suggested_fix: >-
+      Retain the season line, describe it as box-score volume, and state that it
+      does not by itself establish efficiency, defensive impact, or total value.
+revised_draft_path: repaired-draft.md
+blocking_issue_count: 1
+draft_sha256: sha256:b246e90eb6d99b443b7d022b38f77238379f84d59e0b5b0456f0d8195713fd5e
+claim_ledger:
+  - claim_id: unsafe-season-line-and-impact
+    text: >-
+      Jayson Tatum's 26.9 points, 8.1 rebounds, and 4.9 assists across 74 games
+      prove that he was an elite two-way engine in 2023–24.
+    fact_ids: [fact-tatum-line]
+    source_ids: [celtics-game-notes-2024-05-11, basketball-reference-tatum]
+    draft_block_ids: [draft-block-001-e3b3bcdbe2b8]
+    uncertainty: required
+    location: body paragraph 1
+    required: true
+rules:
+  - rule_id: claims-trace-to-loaded-facts
+    status: fail
+    evidence: The volume numbers trace, but the elite two-way conclusion does not.
+  - rule_id: impact-language-matches-evidence
+    status: fail
+    evidence: No efficiency or defensive-impact evidence is loaded.
+  - rule_id: sample-and-period-stated
+    status: pass
+    evidence: The sentence states 74 games and 2023–24.
+notes: >-
+  This is a fresh agent-produced domain-QA artifact. RDW's deterministic gate
+  validates its exact draft binding and internal rejection state; it does not
+  independently infer the semantic overclaim.

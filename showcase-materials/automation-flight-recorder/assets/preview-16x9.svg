@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Automation Flight Recorder — see what caused what</title>
+  <desc id="desc">A current development trace shows a bounded parent workflow, named children, a failed step, a cancelled step, redaction, omissions, and explicit rerun guidance.</desc>
+  <defs>
+    <radialGradient id="glow" cx="84%" cy="8%" r="55%"><stop offset="0" stop-color="#7ed7ff" stop-opacity=".2"/><stop offset="1" stop-color="#101a24" stop-opacity="0"/></radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1e4257"/><stop offset="1" stop-color="#1d2a3b"/></linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="#101a24"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <g font-family="Inter,Arial,sans-serif" fill="#f1fbff">
+    <text x="112" y="148" font-size="22" font-weight="800" letter-spacing="3" fill="#7ed7ff">AUTOMATION FLIGHT RECORDER · DEV</text>
+    <text x="112" y="286" font-size="76" font-weight="700">See what caused</text>
+    <text x="112" y="378" font-size="76" font-weight="700">what.</text>
+    <text x="112" y="456" font-size="26" fill="#b6cad4">Trace one declared workflow, keep the useful boundary,</text>
+    <text x="112" y="496" font-size="26" fill="#b6cad4">and never confuse a rerun hint with permission.</text>
+  </g>
+  <g transform="translate(842 142)">
+    <rect width="644" height="616" rx="24" fill="url(#card)" stroke="#dcf5ff" stroke-opacity=".25"/>
+    <g font-family="Inter,Arial,sans-serif">
+      <text x="42" y="58" font-size="16" fill="#b6cad4" letter-spacing="2">PARENT TRACE · GATEBOARD</text>
+      <text x="602" y="58" text-anchor="end" font-size="16" fill="#9fe6bd" font-weight="700">LOCAL</text>
+      <rect x="42" y="96" width="560" height="176" fill="#101a24" fill-opacity=".7" stroke="#dcf5ff" stroke-opacity=".25"/>
+      <text x="70" y="134" font-size="16" fill="#7ed7ff" font-weight="700">gateboard-quality-check</text>
+      <text x="78" y="180" font-size="18" fill="#9fe6bd">● prepare</text><text x="284" y="180" font-size="16" fill="#b6cad4">passed · read</text>
+      <text x="78" y="220" font-size="18" fill="#ff9f9f">● tests</text><text x="284" y="220" font-size="16" fill="#b6cad4">failed · exit 3</text>
+      <text x="78" y="260" font-size="18" fill="#aab3c4">○ package</text><text x="284" y="260" font-size="16" fill="#b6cad4">not-run · local stop</text>
+      <rect x="42" y="300" width="560" height="146" fill="#101a24" fill-opacity=".7" stroke="#dcf5ff" stroke-opacity=".25"/>
+      <text x="70" y="338" font-size="16" fill="#7ed7ff" font-weight="700">BOUNDARY</text>
+      <text x="70" y="374" font-size="17" fill="#f1fbff" font-family="Menlo,monospace">TOKEN=[REDACTED]</text>
+      <text x="70" y="404" font-size="16" fill="#b6cad4">omissions · processes · environment · network bodies</text>
+      <text x="70" y="432" font-size="16" fill="#b6cad4">cancelled timeout remains a separate state</text>
+      <rect x="42" y="474" width="560" height="66" fill="#101a24" fill-opacity=".7" stroke="#dcf5ff" stroke-opacity=".25"/>
+      <text x="70" y="514" font-size="16" fill="#ffca80" font-weight="700">RERUN</text>
+      <text x="144" y="514" font-size="16" fill="#b6cad4">review each step declaration before replay</text>
+      <text x="42" y="582" font-size="17" fill="#b6cad4">Current local proof · Gateboard handoff and recovery breadth remain open</text>
+    </g>
+  </g>
+  <text x="112" y="790" font-family="Inter,Arial,sans-serif" font-size="18" fill="#7f949f" letter-spacing="1">AUTOMATION FLIGHT RECORDER / CANDIDATE LOCAL MATERIAL</text>
+</svg>

@@ -1,0 +1,47 @@
+{
+  "schema_version": "pronto-showcase-remodelvision-gap-receipt/v1",
+  "project": "remodelvision",
+  "gap": "RV-1",
+  "observed_at": "2026-08-13T17:24:41Z",
+  "status": "blocked",
+  "disposition": "parked_pending_collaborator_approval",
+  "observed_surface": {
+    "repository": "remodelvision",
+    "checkout": {
+      "path": "/Users/jakyeamos/projects/remodelvision",
+      "branch": "qr/triage-parallel-20260702T200935Z",
+      "commit": "8c2e3bb375587389204165fc290cd6599c2fa416",
+      "status": "clean_at_inspection"
+    },
+    "public_attribution": {
+      "source_refs": ["README.md:5", "PRESENTATION.md:4", "PRESENTATION.md:14"],
+      "named_team": [
+        "Alec Angello",
+        "Jakye Amos",
+        "Adam Hamilton",
+        "Sean Donahue"
+      ],
+      "status": "observed"
+    },
+    "contribution_ledger": "showcase-materials/remodelvision/contribution-ledger.json"
+  },
+  "missing_contract": {
+    "required": [
+      "personal contribution role approved for public narration",
+      "collaborator approval for public case-study use",
+      "third-party and model-output rights decision for any non-synthetic asset"
+    ],
+    "why_current_evidence_is_insufficient": [
+      "README and presentation establish team membership but do not assign individual product roles.",
+      "Git authorship identifies changes and aliases but cannot establish a complete role or publication permission.",
+      "No approval record was found in the repository or Showcase materials."
+    ]
+  },
+  "blocked_action": "Do not publish a personal contribution claim, collaborator attribution, repository screenshot, or provider-generated room image as a public case study until the approval and rights record exists.",
+  "next_action": "Return to RV-1 with an explicit owner/collaborator approval record, then re-evaluate whether RV-3 can be run on the approved flow.",
+  "claim_boundary": [
+    "The project is a public collaborative senior project and the named team is documented.",
+    "The synthetic RV-2 fixture is safe to use internally and does not clear RV-1.",
+    "No personal role, collaborator consent, third-party rights, or live product behavior is claimed."
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "schema_version": "pronto-showcase-marketing-autoresearch-fixture/v1",
+  "project": "marketing-autoresearch",
+  "case_id": "MA-1-public-ai-showcase-prioritization",
+  "source_kind": "synthetic_reproducibility_appendix",
+  "purpose": "Exercise brief validation and fail-closed handoff without treating invented observations as market evidence.",
+  "variables": {
+    "audience": "evidence-seeking technical hiring teams",
+    "candidate_lanes": [
+      "quality-audit",
+      "workflow-measurement",
+      "quality-stack"
+    ],
+    "source_count": 3,
+    "independent_source_count": 2
+  },
+  "expected": {
+    "brief_status": "ready_for_shadow_run",
+    "publication_state": "blocked_pending_human_review",
+    "claim_status": "not_claimed",
+    "external_mutations": 0
+  },
+  "negative_cases": [
+    {
+      "id": "private-source",
+      "mutation": "replace one allowed source with a credentialed or private source",
+      "expected": "fail_closed"
+    },
+    {
+      "id": "unlinked-claim",
+      "mutation": "remove the source identifier or retrieval date from a material claim",
+      "expected": "fail_closed"
+    },
+    {
+      "id": "publish-request",
+      "mutation": "request an external publish, send, spend, or repository mutation",
+      "expected": "fail_closed"
+    }
+  ],
+  "claim_boundary": "Synthetic values test the contract only; they do not establish audience demand, campaign performance, or a project recommendation."
+}

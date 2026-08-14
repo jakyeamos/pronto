@@ -1,0 +1,35 @@
+{
+  "schema_version": "pronto-showcase-rdw-validation/v1",
+  "recorded_at": "2026-08-12",
+  "tool": {
+    "command": "rdw",
+    "resolved_path": "/Users/jakyeamos/.local/bin/rdw",
+    "version": "0.2.0",
+    "installation_source": "file:///Users/jakyeamos/.codex/worktrees/6315/research-domain-writing/dist/research_domain_writing-0.2.0-py3-none-any.whl"
+  },
+  "source_checkout": {
+    "path": "/Users/jakyeamos/projects/research-domain-writing",
+    "branch": "codex/rdw-gpt56-modernization",
+    "head": "3747e6d67f8fa1ce8fb8b7c7b006f2827d043947",
+    "upstream_ahead": 3,
+    "upstream_behind": 15
+  },
+  "checks": {
+    "strict_mature_packet": "pass",
+    "research_readiness": "pass_100_percent_can_draft_confidently",
+    "unsafe_exact_draft_receipt": "pass_receipt_records_rejection",
+    "repaired_exact_draft_claim_ledger": "pass",
+    "style_pass_final_byte_identity": "pass",
+    "basketball_pack_maturity": "pass_specialized_production"
+  },
+  "basketball_pack_provenance": {
+    "installed_domain_config_matches_revision": "aa46b36b2b80eee7f3e8ab67c1a2de681bf0869a",
+    "release_artifact_source_revision": "not_verified",
+    "evidence": "../rdw-0-provenance.json"
+  },
+  "interpretation": {
+    "proven": "The agent-produced unsafe rejection and repaired final are exactly bound to their drafts and source-linked packet facts; the installed basketball pack passes its maturity validator.",
+    "not_proven": "The deterministic CLI independently inferred the semantic overclaim or the installed wheel is bound to the active source checkout.",
+    "next_gate": "Select and attest or rebuild the intended release revision, then complete the human editorial review."
+  }
+}

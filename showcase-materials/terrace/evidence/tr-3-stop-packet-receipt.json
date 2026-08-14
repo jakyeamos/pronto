@@ -1,0 +1,105 @@
+{
+  "schema_version": "pronto-showcase-terrace-evidence/v1",
+  "project": "Terrace",
+  "gap_id": "TR-3",
+  "generated_at": "2026-08-13T15:30:29Z",
+  "disposition": "integrated_verified",
+  "source": {
+    "worktree": "/Users/jakyeamos/.codex/worktrees/terrace-tr2-stage-state",
+    "branch": "codex/terrace-durable-stage-state",
+    "base_branch": "dev",
+    "base_commit": "6d3450bebb99e16d3ed798b0531687e29163fec4",
+    "worktree_state": "clean, committed source candidate; fast-forwarded into local dev",
+    "preserved_workspace": "/Users/jakyeamos/projects/Terrace remains clean on codex/terrace-adoption-measure with six unpublished commits"
+  },
+  "contract": {
+    "schema_version": "terrace-stop-packet/v1",
+    "required_fields": [
+      "command",
+      "evidence_refs",
+      "owner",
+      "safe_next_step",
+      "forbidden_bypass"
+    ],
+    "durability": "The packet is stored in the stage snapshot and append-only transition event, then recovered by terrace resume.",
+    "retry_rule": "A stop packet remains authoritative while its stage is blocked and clears only when that same stage begins a legal retry.",
+    "default_forbidden_bypass": "Do not mark the stage passed, skip later stages, or edit Terrace state or event history by hand."
+  },
+  "implementation": {
+    "guidance_sha256": "2ff1598c831033f09f5be5bfb636a52dcd54086cac0fe869cea2dbe64d9eb2d8",
+    "stage_state_sha256": "0e7e17c8f2e27d1763d68cd852c0cd49abc30ffd050cbfea7ce9564138de08d7",
+    "workflow_sha256": "ba5c73d580abc6d70cd21639cda94bab21a9c22a5a46df67ad1a04a0ad1f5769",
+    "core_state_test_sha256": "a9e2525ae31c04a1bf2e2c944026c9bd62276a02406bb266b9e1c0a93eb341dd",
+    "workflow_test_sha256": "87c7846130e6a793b838706d6fa4df5526b3512b9d467521bc6e52f9639d82de",
+    "surfaces": [
+      "terrace execute-phase-complete <phase-id> returns stop_packet and stage_run.stop_packet",
+      "terrace resume returns top-level blocked status and the recovered stop_packet",
+      ".terrace/state.json stores the active stop packet",
+      ".terrace/events.jsonl stores the packet on the blocked stage transition",
+      "README plus generated Codex and Claude skills require agents to follow the safe action and forbidden-bypass rule"
+    ]
+  },
+  "integration": {
+    "receipt": "evidence/integration-receipt.json",
+    "target_branch": "dev",
+    "integrated_commit": "9ac360b0f246aa91c85a15183cf9de10c94330b0",
+    "method": "fast_forward",
+    "verified": true
+  },
+  "verification": {
+    "focused_tests": {
+      "command": "pnpm exec vitest run tests/core-state.test.ts tests/workflow-commands.test.ts",
+      "exit_code": 0,
+      "test_files_passed": 2,
+      "tests_passed": 45
+    },
+    "full_ci": {
+      "command": "pnpm run ci",
+      "exit_code": 0,
+      "gates": ["typecheck", "lint", "tests", "coverage", "package dry-run"]
+    },
+    "cli_stop_proof": {
+      "fixture": "synthetic blocked migration handoff",
+      "command": "terrace execute-phase-complete phase-proof --json",
+      "exit_code": 0,
+      "result_status": "blocked",
+      "stage_id": "execute",
+      "blocked_command": "terrace phase execute phase-proof",
+      "evidence_refs": [".planning/HANDOFF.json"],
+      "owner": "database_operator",
+      "safe_next_step": "Resolve blocking handoff actions before execution.",
+      "forbidden_bypass_present": true,
+      "later_stage_statuses": ["pending", "pending", "pending"]
+    },
+    "separate_process_resume_proof": {
+      "command": "terrace resume --json",
+      "exit_code": 0,
+      "top_level_status": "blocked",
+      "same_run_revision": 4,
+      "same_stop_packet": true
+    },
+    "negative_path_proof": {
+      "fixture": "tests/core-state.test.ts: retains a stop packet while blocked and clears it only on a legal retry",
+      "later_stage_rejected_while_blocked": true,
+      "packet_clears_on_owning_stage_retry": true
+    }
+  },
+  "acceptance": {
+    "command_named": true,
+    "evidence_named": true,
+    "owner_named": true,
+    "safe_next_step_named": true,
+    "forbidden_bypass_named": true,
+    "packet_survives_restart": true,
+    "later_stages_remain_locked": true,
+    "tr_3_source_candidate_verified": true,
+    "tr_3_integrated_into_dev": true,
+    "tr_3_closed": true
+  },
+  "limitations": [
+    "The integrated commit is present on local Terrace dev; the source branch remains local-only because no remote push was authorized.",
+    "TR-4 proves a bounded correction resumes from this packet and preserves prior stage evidence.",
+    "TR-5 independently proves that manual state or event tampering cannot create a passing terminal state.",
+    "The stop-packet fixture is synthetic; TR-1 remains the representative historical product case."
+  ]
+}

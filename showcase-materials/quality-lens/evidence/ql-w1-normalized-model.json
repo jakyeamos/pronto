@@ -1,0 +1,32 @@
+{
+  "schema": "quality-lens-model-v0.1",
+  "source_repository": "quality-lens",
+  "source_revision": "2fa1384993344cd40a14c697606195fcf5262c01",
+  "report_schema": "quality-runner-review-report-v0.1",
+  "run_id": "quality-lens-fixture-001",
+  "report": "fixtures/sample-quality-runner-report.json",
+  "support": {
+    "status": "supported",
+    "reason": "Supported report schema: quality-runner-review-report-v0.1."
+  },
+  "freshness": {
+    "status": "stale",
+    "reason": "Repository revision changed since the report was produced."
+  },
+  "finding": {
+    "id": "QL-FIX-001",
+    "criterion": "Fixture contract",
+    "severity": "warning",
+    "summary": "The fixture deliberately exposes a reviewable finding.",
+    "location": "fixtures/example.js:4",
+    "recommended_fix": "Inspect the source and choose a human disposition.",
+    "human_confirmation_required": true,
+    "status_after_review": "accepted"
+  },
+  "disposition": {
+    "status": "accepted",
+    "note": "Fixture-only finding reviewed; no source change claimed.",
+    "rerun_reconciled": true
+  },
+  "omissions": ["Remote deployment evidence was not requested."]
+}

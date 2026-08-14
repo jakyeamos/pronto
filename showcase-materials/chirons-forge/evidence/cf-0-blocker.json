@@ -1,0 +1,48 @@
+{
+  "schema_version": "pronto-showcase-chirons-forge-gap-receipt/v1",
+  "project": "chirons-forge",
+  "gap": "CF-0",
+  "observed_at": "2026-08-13T18:41:56Z",
+  "status": "blocked",
+  "disposition": "parked_pending_backing_repository_and_deployment_provenance",
+  "public_surface": {
+    "urls": ["https://www.chironsforge.com/", "https://chironsforge.com/"],
+    "observed_http_status": 200,
+    "observed_title": "Chiron's Forge — Expert AI skills, reports, and rules, verified by an independent judge",
+    "observed_description": "Describe what you need. Chiron's Forge runs multi-AI deep research, then an independent model judges and refines the result until it passes. Skill files, research reports, and Cursor rules — one-time, pay per build.",
+    "deployment_hints": [
+      "The public HTML uses Next.js static asset paths.",
+      "The response exposes a Vercel deployment header."
+    ],
+    "repository_links_found": [],
+    "revision_identifiers_found": [],
+    "authenticated_build_receipt_found": false
+  },
+  "local_provenance_search": {
+    "projects_root": "owner-visible projects root (absolute path intentionally omitted from the public projection)",
+    "matching_directories": [],
+    "pronto_route_registration_matches": [],
+    "result": "no_local_backing_repository_or_route_registration"
+  },
+  "missing_contract": {
+    "required": [
+      "owner-confirmed backing repository or source archive",
+      "exact deployed revision or immutable deployment identifier",
+      "reviewed checkout or source snapshot bound to that revision",
+      "authenticated representative build receipt"
+    ],
+    "why_current_evidence_is_insufficient": [
+      "The landing page proves a live product surface and describes a judge-and-refine promise, but it does not disclose a backing repository or revision.",
+      "A Next/Vercel deployment hint identifies hosting technology, not the reviewed source revision or product ownership boundary.",
+      "No authenticated build, judge scorecard, refinement trace, or downloadable artifact was available for inspection in this route."
+    ]
+  },
+  "blocked_action": "Do not strengthen Chiron's Forge product or showcase claims, create a source-backed case study, or bind a deployment to a reviewed commit until the owner supplies the backing repository and exact deployed revision.",
+  "next_action": "Circle back to CF-0 when the owner provides repository/deployment provenance; then run CF-1 before attempting the authenticated case build.",
+  "claim_boundary": [
+    "The public landing page is live and its stated product promise is recorded as observed marketing copy.",
+    "No repository provenance, deployed revision, authenticated end-to-end build, judge receipt, refinement trace, privacy receipt, or public-safe output excerpt is proven.",
+    "This is an access and provenance blocker, not evidence that the product behavior is absent."
+  ],
+  "next_gap": "CF-0"
+}

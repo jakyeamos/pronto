@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Portable Agentic Workbench — safe-tool-guards</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0e1215;
+        --panel: #171d22;
+        --panel-strong: #202a31;
+        --ink: #f1f5f3;
+        --muted: #9eabb0;
+        --line: #344149;
+        --blue: #a9c7ff;
+        --green: #8fe0b6;
+        --green-bg: #15382c;
+        --amber: #f3c77b;
+        --amber-bg: #3b2d19;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-width: 320px;
+        background: radial-gradient(circle at 85% 0%, #26343c 0, var(--bg) 42%);
+        color: var(--ink);
+        font:
+          15px/1.48 ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+      }
+      main {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 54px 28px 68px;
+      }
+      .eyebrow {
+        color: var(--blue);
+        font:
+          700 12px/1.2 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 850px;
+        margin: 14px 0 14px;
+        font-size: clamp(32px, 5.2vw, 64px);
+        line-height: 0.98;
+        letter-spacing: -0.05em;
+      }
+      .lede {
+        max-width: 770px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 18px;
+      }
+      .source {
+        margin-top: 22px;
+        color: var(--muted);
+        font:
+          12px/1.5 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .source code,
+      code {
+        color: var(--ink);
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 38px;
+      }
+      .card {
+        min-height: 232px;
+        padding: 19px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: color-mix(in srgb, var(--panel) 92%, transparent);
+      }
+      .card.hero {
+        background: linear-gradient(155deg, #263e59, var(--panel));
+        border-color: #496988;
+      }
+      .card.good {
+        background: linear-gradient(155deg, var(--green-bg), var(--panel));
+        border-color: #2b7556;
+      }
+      .card.open {
+        background: linear-gradient(155deg, var(--amber-bg), var(--panel));
+        border-color: #84652f;
+      }
+      .step {
+        color: var(--muted);
+        font:
+          700 11px/1 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      h2 {
+        margin: 17px 0 8px;
+        font-size: 21px;
+        line-height: 1.05;
+        letter-spacing: -0.025em;
+      }
+      p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .field {
+        margin-top: 18px;
+        padding: 10px 11px;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.25);
+        font:
+          12px/1.48 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        overflow-wrap: anywhere;
+      }
+      .ok {
+        margin-top: 12px;
+        color: var(--green);
+        font:
+          12px/1.4 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .warn {
+        margin-top: 12px;
+        color: var(--amber);
+        font:
+          12px/1.4 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .compare {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .compare > div {
+        min-height: 176px;
+        padding: 19px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--panel);
+      }
+      .compare h2 {
+        margin-top: 0;
+      }
+      .hash {
+        margin-top: 15px;
+        color: var(--blue);
+        font:
+          12px/1.5 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .boundary {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .boundary > div {
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--panel);
+      }
+      .boundary h2 {
+        margin-top: 0;
+      }
+      .boundary ul {
+        margin: 12px 0 0;
+        padding-left: 20px;
+        color: var(--muted);
+      }
+      .boundary li + li {
+        margin-top: 7px;
+      }
+      footer {
+        margin-top: 28px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      @media (max-width: 920px) {
+        .flow {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 640px) {
+        main {
+          padding: 34px 18px 46px;
+        }
+        .flow,
+        .compare,
+        .boundary {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Portable Agentic Workbench · PW-1</div>
+      <h1>Carry the safety contract across hosts without hiding the edge.</h1>
+      <p class="lede">
+        One public workflow, one explicit manifest, two clean target roots.
+        Preview first, copy only what is allowlisted, and keep host registration
+        in manual review.
+      </p>
+      <div class="source">
+        Source: <code>safe-tool-guards</code> · clean HEAD
+        <code>4d813b4</code> · generic + Codex
+      </div>
+
+      <section class="flow" aria-label="Portable installation sequence">
+        <article class="card hero">
+          <div class="step">01 · public manifest</div>
+          <h2>Define the behavior once</h2>
+          <p>
+            The portable asset is a contract for classifying, previewing,
+            approving, and recording tool actions.
+          </p>
+          <div class="field">
+            <strong>files</strong><br />CONTRACT.md · WORKFLOW.md<br /><strong
+              >dependencies</strong
+            ><br />[]
+          </div>
+        </article>
+        <article class="card good">
+          <div class="step">02 · dry-run</div>
+          <h2>See the change before installing</h2>
+          <p>
+            Both targets report two allowlisted copies. Neither empty target
+            root changes.
+          </p>
+          <div class="field">
+            <strong>status</strong> ready<br /><strong>actions</strong>
+            would-copy × 2<br /><strong>mutation</strong> none<br /><strong
+              >receipt</strong
+            >
+            would-write
+          </div>
+          <div class="ok">manual review visible</div>
+        </article>
+        <article class="card good">
+          <div class="step">03 · generic</div>
+          <h2>Preserve intent in the first host</h2>
+          <p>
+            The generic projection copies only the two declared files into the
+            explicit target.
+          </p>
+          <div class="field">
+            <strong>status</strong> ready<br /><strong>copied</strong>
+            2<br /><strong>target files</strong> 2<br /><strong>receipt</strong>
+            written
+          </div>
+          <div class="ok">native portable projection</div>
+        </article>
+        <article class="card good">
+          <div class="step">04 · Codex</div>
+          <h2>Adapt without pretending parity</h2>
+          <p>
+            Codex receives the same portable files. A Codex host adapter is not
+            silently registered.
+          </p>
+          <div class="field">
+            <strong>status</strong> ready<br /><strong>copied</strong>
+            2<br /><strong>registration</strong> manual<br /><strong
+              >receipt</strong
+            >
+            written
+          </div>
+          <div class="ok">provider edge stays visible</div>
+        </article>
+        <article class="card open">
+          <div class="step">05 · recovery</div>
+          <h2>Recover what you own</h2>
+          <p>
+            Receipt-scoped uninstall previews and removes the two unchanged
+            files, preserves an unrelated sentinel, and blocks a modified
+            target.
+          </p>
+          <div class="field">
+            <strong>dry-run</strong> would-remove × 2<br /><strong
+              >apply</strong
+            >
+            uninstalled<br /><strong>modified</strong> blocked
+          </div>
+          <div class="ok">receipt-owned · unrelated file preserved</div>
+        </article>
+      </section>
+
+      <section class="compare" aria-label="Projection comparison">
+        <div>
+          <div class="step">same contract</div>
+          <h2>Byte-identical portable files</h2>
+          <p>
+            Generic and Codex share the same relative destinations and source
+            content. That is the part this package can prove locally.
+          </p>
+          <div class="hash">
+            CONTRACT.md · 2b77fd64…<br />WORKFLOW.md · be8531f0…
+          </div>
+        </div>
+        <div>
+          <div class="step">different owner</div>
+          <h2>Registration stays with the host</h2>
+          <p>
+            The workbench stages a reviewable asset. Credentials, provider
+            calls, host hooks, and live registration remain outside the portable
+            projection.
+          </p>
+          <div class="hash">manual_review: required<br />network: not used</div>
+        </div>
+      </section>
+
+      <section class="boundary" aria-label="Claim boundary">
+        <div>
+          <div class="step">what the receipt supports</div>
+          <h2>Portable at the install contract</h2>
+          <ul>
+            <li>public manifest selection with no declared dependencies</li>
+            <li>non-mutating preview in two empty environments</li>
+            <li>explicit copy of two allowlisted files</li>
+            <li>overwrite refusal and parity hashes</li>
+          </ul>
+        </div>
+        <div>
+          <div class="step">not claimed</div>
+          <h2>Host runtime is a declared blocker</h2>
+          <p>
+            The runtime probe found no executable generic host and no permitted
+            offline Codex execution path. The local recovery proof is limited to
+            receipt-owned files; host registration and provider behavior remain
+            outside this projection.
+          </p>
+          <div class="hash">
+            PW-4: blocked · provider calls: denied<br />next owner:
+            runtime/provider
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        Evidence: <code>evidence/validation-receipt.json</code> · claims:
+        <code>evidence/claim-ledger.json</code> · runtime probe:
+        <code>evidence/runtime-comparison.json</code> · browser capture and
+        video are optional follow-ons.
+      </footer>
+    </main>
+  </body>
+</html>

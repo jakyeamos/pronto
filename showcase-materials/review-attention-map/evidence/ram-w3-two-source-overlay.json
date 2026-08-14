@@ -1,0 +1,49 @@
+{
+  "schema_version": "review-attention-map-showcase-evidence-v0.1",
+  "project": "review-attention-map",
+  "source_repository": "review-attention-map",
+  "source_revision": "2f387be0b30f32a37d28cb3fd4d09f7b68cbf787",
+  "fixture_target_revision": "10648940e44723b5f1aa13d61324a3eb4e148f1e",
+  "observed_at": "2026-08-13T23:45:18Z",
+  "fixture": {
+    "diff_identity": "b8070cd39379551a23426717de1e1e95aee706e98d4bd29f1707b0eee3bc95b9",
+    "changed_file": "src/api.ts",
+    "changed_line": 1
+  },
+  "overlay": {
+    "status": "ready",
+    "region_key": "src/api.ts:1",
+    "signal_ids": ["contract-watch:remove-users", "behavior-atlas:load-user"],
+    "evidence_refs": [
+      "contract-watch://receipt/remove-users",
+      "behavior-coverage-atlas://receipt/load-user"
+    ],
+    "source_count": 2,
+    "disposition_before_review": "unreviewed"
+  },
+  "direct_navigation": {
+    "status": "updated",
+    "region_key": "src/api.ts:1",
+    "disposition": "reviewed",
+    "note": "reviewed-by-fixture"
+  },
+  "uncertainty": {
+    "unmatched": [
+      {
+        "signal_id": "stale:other-file",
+        "reason": "signal source is outside the selected diff"
+      }
+    ],
+    "limitations": [
+      "signals not supplied",
+      "generated-file provenance",
+      "unobserved runtime behavior"
+    ]
+  },
+  "privacy": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local signal fixture"
+  },
+  "claim_boundary": "This receipt proves two explicit signals can share a diff region, retain source references, preserve an unmatched signal, and record human review. It does not claim an opaque risk score, merge verdict, runtime coverage, hosting, or publication."
+}

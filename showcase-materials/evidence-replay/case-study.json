@@ -1,0 +1,33 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "evidence-replay",
+  "status": "candidate_local",
+  "title": "Evidence Replay: inspect before you act",
+  "audience": "Developers inheriting a claim who need freshness and omissions visible before rerunning anything.",
+  "promise": "Open a receipt without executing it, classify its target freshness, preview the exact rerun contract, and preserve the producer trail.",
+  "story": [
+    "A Debug Trail receipt opens with its claim, historical outcome, target, and omissions visible.",
+    "The current repository revision makes the old receipt stale instead of silently upgrading it.",
+    "The rerun preview names the command, mutation class, interface, and human authorization requirement.",
+    "Malformed, unsupported, and partially bound receipts fail closed in the same local contract."
+  ],
+  "evidence": [
+    "evidence/er-w2-reader-matrix.json",
+    "evidence/er-w2-current-dev-checkpoint.json",
+    "../../../projects/evidence-replay/README.md",
+    "../../../projects/evidence-replay/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Supported Debug Trail receipt inspection without execution.",
+    "Stale target classification and blocked rerun preview on the current checkout.",
+    "Current dev tests, lint, and package checks pass at revision 780094c.",
+    "Malformed, unsupported, partial-target, and unknown-applicability negative cases in the test suite."
+  ],
+  "open_gates": [
+    "Run the complete Debug Trail/Rule Lab current-stale-unknown-cancelled matrix.",
+    "Bind producer identity, target identity, and omissions through a current shared envelope receipt.",
+    "Capture direct human-facing viewer acceptance and a crop-safe image preview.",
+    "Verify a hosted no-auth case and record external destination readbacks."
+  ],
+  "claim_boundary": "This packet proves the local W2 inspect-only reader slice; it does not claim hosted UI, complete producer coverage, execution, or publication."
+}

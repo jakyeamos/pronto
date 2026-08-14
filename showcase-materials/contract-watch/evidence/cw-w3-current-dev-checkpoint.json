@@ -1,0 +1,50 @@
+{
+  "schema_version": "contract-watch-showcase-evidence-v0.1",
+  "project": "contract-watch",
+  "source_repository": "contract-watch",
+  "source_branch": "dev",
+  "source_revision": "44dba2b28c4c2f0f1a1e0eb15236b7e90f57eab7",
+  "observed_at": "2026-08-14T03:31:21Z",
+  "checks": {
+    "test": { "status": "passed", "count": 3 },
+    "lint": { "status": "passed" },
+    "package": { "status": "passed" }
+  },
+  "fixture_scope": "temporary local OpenAPI fixture; no external writes or credentials",
+  "comparison": {
+    "status": "ready",
+    "contract_family": "openapi",
+    "baseline": {
+      "path": "baseline.json",
+      "digest": "96803530c2981a99febf8c901d77afdef33f88a0d4702cff1d8da7c6f5633e75"
+    },
+    "current": {
+      "path": "current.json",
+      "digest": "7783cfad508659f2476756149f5aaa1c1b351fb7a641c1868cbe590e2d131ed1"
+    },
+    "changes": [
+      { "id": "response:get:/orders", "kind": "response-change", "certainty": "potential", "consequence": "review", "disposition": "unreviewed" },
+      { "id": "add:post:/reports", "kind": "addition", "certainty": "information", "consequence": "review", "disposition": "unreviewed" },
+      { "id": "remove:get:/users", "kind": "removal", "certainty": "definite", "consequence": "breaking", "disposition": "mitigated" },
+      { "id": "deprecate:get:/orders", "kind": "deprecation", "certainty": "information", "consequence": "migration", "disposition": "unreviewed" }
+    ]
+  },
+  "separation": {
+    "certainty_is_policy": false,
+    "human_disposition_required": true,
+    "merge_verdict": null,
+    "release_verdict": null
+  },
+  "negative_contracts": {
+    "non_openapi_input": "unsupported_by_unit_test",
+    "unknown_consumer_scope": "explicit_limitation",
+    "runtime_traffic": "explicit_limitation",
+    "external_references": "explicit_limitation"
+  },
+  "privacy_boundary": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local OpenAPI fixture"
+  },
+  "claim_boundary": "This checkpoint proves current dev source checks and one local OpenAPI semantic comparison with separate certainty, consequence, and human disposition. It does not prove complete consumer coverage, Review Attention Map or Deletion Proof handoff, a merge or release verdict, hosting, or publication."
+}

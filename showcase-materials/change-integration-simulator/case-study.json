@@ -1,0 +1,32 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "change-integration-simulator",
+  "status": "candidate_local",
+  "title": "Change Integration Simulator: mergeability is not verification",
+  "audience": "Reviewers who need exact source/target simulation without moving refs or confusing a clean merge with a passing behavior gate.",
+  "promise": "Pin commits, simulate clean and conflict outcomes, run a separately identified local gate, and leave the branches untouched.",
+  "story": [
+    "A clean source/target pair resolves to a merge tree with exact commit identities.",
+    "A conflicting pair reports the shared file and produces no merge tree.",
+    "A local whitespace gate is recorded against the target commit as a separate probe.",
+    "Stale movement, cancellation, retained workspaces, and remote CI remain explicit limits."
+  ],
+  "evidence": [
+    "evidence/cis-w4-clean-conflict.json",
+    "../../../projects/change-integration-simulator/README.md",
+    "../../../projects/change-integration-simulator/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Clean merge-tree receipt with source, target, merge base, and tree identity.",
+    "Conflict receipt naming the conflicting file without changing refs.",
+    "Separate local gate probe bound to the target commit.",
+    "Source tests, lint, and package checks pass."
+  ],
+  "open_gates": [
+    "Bind a real Workflow Gateboard receipt to the simulated state.",
+    "Exercise stale, cancellation, and retained-workspace boundaries.",
+    "Capture a crop-safe image preview and verify a hosted no-auth case.",
+    "Record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves a local W4 clean/conflict simulation slice and a separate gate probe; it does not claim integrated gate execution, remote CI, hosting, or publication."
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "review-sandbox",
+  "status": "candidate_local",
+  "title": "Review Sandbox: cleanup follows proof",
+  "audience": "Reviewers who need to exercise one repository-declared behavior without touching the primary checkout.",
+  "promise": "Preview a bounded scenario, create disposable Git state, retain failed or dirty work, and remove only a proven clean workspace.",
+  "story": [
+    "A repository-declared scenario previews its source revision, setup command, run command, and cleanup boundary.",
+    "A clean scenario runs and is removed after a clean-worktree proof.",
+    "Conflict and failed-setup paths refuse overwrite or skip the scenario instead of hiding the state.",
+    "A dirty sandbox is retained for recovery; a cancellation-shaped exit is recorded as a current product limitation."
+  ],
+  "evidence": [
+    "evidence/rs-w4-scenario-matrix.json",
+    "../../../projects/review-sandbox/README.md",
+    "../../../projects/review-sandbox/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Preview binds the declared scenario to a target Git revision.",
+    "Clean and failed-setup worktrees are removed only after clean status.",
+    "Occupied paths are blocked and dirty worktrees are retained.",
+    "Source tests, lint, and package checks pass."
+  ],
+  "open_gates": [
+    "Add distinct cancellation and process/port ownership receipts.",
+    "Prove the complete scenario matrix against a current direct surface without mutating the primary checkout.",
+    "Capture a crop-safe image preview and verify a hosted no-auth case.",
+    "Record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves a local W4 disposable-sandbox scenario matrix; it does not claim process ownership, port safety, a distinct cancellation state, hosting, or publication."
+}

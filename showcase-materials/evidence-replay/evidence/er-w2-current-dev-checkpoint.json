@@ -1,0 +1,55 @@
+{
+  "schema_version": "evidence-replay-showcase-evidence-v0.1",
+  "project": "evidence-replay",
+  "source_repository": "evidence-replay",
+  "source_branch": "dev",
+  "source_revision": "780094c8ab2822bfbe5e6645904c0b08373138ea",
+  "observed_at": "2026-08-14T02:58:41Z",
+  "checks": {
+    "test": {
+      "status": "passed",
+      "command": "pnpm test",
+      "tests": 8
+    },
+    "lint": {
+      "status": "passed",
+      "command": "pnpm lint"
+    },
+    "package": {
+      "status": "passed",
+      "command": "pnpm package"
+    }
+  },
+  "headless_flow": {
+    "inspect": {
+      "status": "supported",
+      "command": "node src/cli.mjs inspect --receipt fixtures/debug-trail-receipt.json --repo . --json",
+      "receipt_id": "receipt-fixture-001",
+      "historical_outcome": "passed",
+      "current_outcome": "not-run",
+      "freshness": "stale",
+      "opening_executes": false,
+      "omissions": ["No automatic environment or terminal-history capture."]
+    },
+    "rerun_preview": {
+      "status": "blocked",
+      "command": "node src/cli.mjs rerun-preview --receipt fixtures/debug-trail-receipt.json --repo . --json",
+      "reason": "Repository revision changed since the receipt was produced.",
+      "mutation": "read-only",
+      "authorization": "A human must review the preview and authorize every execution."
+    }
+  },
+  "negative_contracts": {
+    "malformed_json": "verified_by_unit_test",
+    "unsupported_schema": "verified_by_unit_test",
+    "partial_target_binding": "verified_by_unit_test",
+    "unknown_target_applicability": "verified_by_unit_test"
+  },
+  "privacy": {
+    "source": "local fixture",
+    "credentials_collected": false,
+    "external_write": false,
+    "raw_environment_persisted": false
+  },
+  "claim_boundary": "Current dev checks and the inspect-only stale/rerun flow are verified locally. This checkpoint does not claim complete producer coverage, direct viewer acceptance, hosting, or publication."
+}

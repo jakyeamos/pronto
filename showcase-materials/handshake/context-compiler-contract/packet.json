@@ -1,0 +1,58 @@
+{
+  "schema_version": "pronto-handshake-packet/v1",
+  "project": "context-compiler-contract",
+  "display_name": "Context Compiler Contract",
+  "status": "profile_added_showcase_blocked",
+  "prepared_at": "2026-08-13",
+  "publication": {
+    "posted": false,
+    "profile_project_added": true,
+    "profile_project_url": "https://app.joinhandshake.com/profiles/q4zhnv",
+    "public_demo_url": null,
+    "host_status": "not_hosted"
+  },
+  "handshake": {
+    "title": "Context Compiler Contract: Make context fail before it becomes agent behavior",
+    "description": "description.txt",
+    "description_characters": 388,
+    "preview": {
+      "path": "preview-16x9.png",
+      "format": "png",
+      "dimensions": "1600x900",
+      "source_material": "../../context-compiler-contract/preview.svg",
+      "upload_note": "SVG, 8-bit PNG, and JPEG chooser uploads all returned Handshake's generic 'Upload failed, please try again' message in authenticated Chrome. The Chrome file-URL setting was already enabled. The PNG is a locally rendered raster fallback with the same copy and layout; gradients were flattened for the available renderer."
+    },
+    "demo_page": {
+      "local_path": "../../context-compiler-contract/comparison.html",
+      "public_url": null,
+      "status": "local_only"
+    },
+    "skills": [
+      "agent infrastructure",
+      "protocol validation",
+      "JavaScript and TypeScript",
+      "evidence contracts"
+    ]
+  },
+  "roles": {
+    "creator": "The creator owns the contract and validation semantics.",
+    "system_or_ai": "The validator checks the result shape. AIOS owns context selection, ranking, and receipt writing.",
+    "human": "The caller or human owns source choice, remediation, and downstream use."
+  },
+  "evidence": [
+    "../../context-compiler-contract/case-fixture.json",
+    "../../context-compiler-contract/expected-results.json",
+    "../../context-compiler-contract/evidence/validation-receipt.json",
+    "../../context-compiler-contract/evidence/claim-ledger.json"
+  ],
+  "claim_boundary": [
+    "The baseline is a real AIOS compile result; the two invalid states are labelled synthetic mutations.",
+    "The package proves deterministic validator outcomes, not context-selection quality or downstream execution.",
+    "AIOS remains the runtime owner."
+  ],
+  "open_gates": [
+    "Choose and verify a public no-auth host for the comparison page.",
+    "Restore a working Handshake preview upload path or provide a verified public preview URL; do not create a duplicate submission.",
+    "Approve the description and hosted link before posting to the AI showcase."
+  ]
+}

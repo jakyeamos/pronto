@@ -1,0 +1,79 @@
+{
+  "schema_version": "workflow-gateboard-showcase-evidence-v0.1",
+  "project": "workflow-gateboard",
+  "source_repository": "workflow-gateboard",
+  "source_revision": "4ce8f60d21dff44937b4580334d6b10c1fb8d712",
+  "manifest": ".workflow-gates.json",
+  "manifest_status": "ready",
+  "declaration_version": 1,
+  "observed_at": "2026-08-13T23:12:00Z",
+  "target": {
+    "kind": "git",
+    "revision": "4ce8f60d21dff44937b4580334d6b10c1fb8d712",
+    "repository_ref_unchanged": true,
+    "tracked_worktree_unchanged": true
+  },
+  "declared_gates": [
+    {
+      "id": "syntax",
+      "mutation": "read",
+      "depends_on": [],
+      "initial_status": "not_run"
+    },
+    {
+      "id": "tests",
+      "mutation": "read",
+      "depends_on": ["syntax"],
+      "initial_status": "blocked"
+    },
+    {
+      "id": "package",
+      "mutation": "read",
+      "depends_on": ["tests"],
+      "initial_status": "blocked"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "prerequisite_block",
+      "status": "blocked",
+      "reason": "A prerequisite gate has not passed."
+    },
+    { "id": "syntax", "status": "passed", "mutation": "read" },
+    { "id": "tests", "status": "passed", "mutation": "read" },
+    { "id": "package", "status": "passed", "mutation": "read" }
+  ],
+  "receipts": [
+    {
+      "gate_id": "syntax",
+      "schema": "workflow-gate-receipt-v0.1",
+      "outcome": "passed",
+      "target_revision": "4ce8f60d21dff44937b4580334d6b10c1fb8d712"
+    },
+    {
+      "gate_id": "tests",
+      "schema": "workflow-gate-receipt-v0.1",
+      "outcome": "passed",
+      "target_revision": "4ce8f60d21dff44937b4580334d6b10c1fb8d712"
+    },
+    {
+      "gate_id": "package",
+      "schema": "workflow-gate-receipt-v0.1",
+      "outcome": "passed",
+      "target_revision": "4ce8f60d21dff44937b4580334d6b10c1fb8d712"
+    }
+  ],
+  "receipt_artifact": "Each successful run writes a bounded local receipt under .workflow-gateboard/receipts; the receipts are evidence artifacts, not repository policy.",
+  "negative_contracts": {
+    "mutating_declaration": "verified_by_unit_test",
+    "failed_gate": "verified_by_unit_test",
+    "timed_out_gate": "verified_by_unit_test"
+  },
+  "privacy": {
+    "commands": "repository-declared local commands",
+    "external_write": false,
+    "credentials_collected": false,
+    "output_bounded": true
+  },
+  "claim_boundary": "This matrix proves a local declared-gate board, prerequisite block, non-mutating runs, and target-bound receipts. It does not prove hosted CI parity, concurrent refresh recovery, trace integration, or publication."
+}

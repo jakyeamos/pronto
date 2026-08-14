@@ -1,0 +1,121 @@
+{
+  "schema_version": "pronto-showcase-terrace-evidence/v1",
+  "project": "Terrace",
+  "gap_id": "TR-4",
+  "generated_at": "2026-08-13T15:30:29Z",
+  "disposition": "integrated_verified",
+  "source": {
+    "worktree": "/Users/jakyeamos/.codex/worktrees/terrace-tr2-stage-state",
+    "branch": "codex/terrace-durable-stage-state",
+    "base_branch": "dev",
+    "base_commit": "6d3450bebb99e16d3ed798b0531687e29163fec4",
+    "worktree_state": "clean, committed source candidate; fast-forwarded into local dev",
+    "preserved_workspace": "/Users/jakyeamos/projects/Terrace remains clean on codex/terrace-adoption-measure with six unpublished commits"
+  },
+  "contract": {
+    "correction_discovery": "terrace blocker list returns migrated blocking actions with stable IDs",
+    "correction_command": "terrace blocker resolve <id> --owner <owner> --evidence <ref>",
+    "evidence_boundary": "The evidence reference must resolve to an existing repository-local file.",
+    "authority_boundary": "The command records an attributable correction after the named owner performs it; it does not perform external work or waive the blocked gate.",
+    "resume_invariant": "A legal retry reopens only the blocked owning stage. Already-passed stages and their evidence remain unchanged; required successor stages run normally."
+  },
+  "implementation": {
+    "workflow_sha256": "8abce6de39bd884277b0e484deee91fe38b8c8b3308ee2beadf6a37f1e3d9474",
+    "cli_sha256": "b5ac3633bfea92ee8e941f5312b427a7ccb90eeed1e5e7d1faaa5134be0d57ae",
+    "agent_projection_sha256": "170793f048edd8e4c22783473f255a5f0cc9dce8090dd153890cce7b367535a9",
+    "workflow_test_sha256": "7dbf0ecf7bfc3299e6a6a5d2a0ee0bfc07e1af82b8472e03e020ab520cf9bcc2",
+    "surfaces": [
+      "terrace blocker list --json",
+      "terrace blocker resolve <id> --owner <owner> --evidence <ref> --json",
+      "terrace execute-phase-complete <phase-id> --json",
+      ".terrace/state.json blocker resolution and stage snapshot",
+      ".terrace/events.jsonl blocker_resolved and stage_transition events",
+      "README plus generated Codex and Claude command skills"
+    ]
+  },
+  "integration": {
+    "receipt": "evidence/integration-receipt.json",
+    "target_branch": "dev",
+    "integrated_commit": "9ac360b0f246aa91c85a15183cf9de10c94330b0",
+    "method": "fast_forward",
+    "verified": true
+  },
+  "verification": {
+    "focused_tests": {
+      "command": "pnpm exec vitest run tests/workflow-commands.test.ts tests/agent-contract.test.ts tests/product-readiness.test.ts tests/core-state.test.ts --reporter=dot",
+      "exit_code": 0,
+      "test_files_passed": 4,
+      "tests_passed": 62
+    },
+    "full_ci": {
+      "command": "pnpm run ci",
+      "exit_code": 0,
+      "test_files_passed": 40,
+      "test_files_skipped": 1,
+      "tests_passed": 312,
+      "tests_skipped": 1,
+      "gates": ["typecheck", "lint", "tests", "coverage", "package dry-run"]
+    },
+    "direct_cli_trace": {
+      "fixture": "synthetic reproducibility appendix: migrated database handoff in a senior-cycle phase",
+      "run_id": "phase:phase-proof-bounded-resume:2026-08-13T02:55:53.617Z",
+      "blocked_revision": 4,
+      "blocked_stage": "execute",
+      "blocked_stage_attempts": 1,
+      "passed_plan_attempts_before_correction": 1,
+      "passed_plan_evidence_before_correction": [
+        "docs/terrace/phases/phase-proof-bounded-resume/PLAN.md"
+      ],
+      "correction": {
+        "blocker_id": "apply-migration-034-prime-notes-sql",
+        "owner": "database_operator",
+        "evidence": "evidence/migration-034-applied.txt",
+        "event": "blocker_resolved",
+        "resolved_at": "2026-08-13T02:56:03.917Z"
+      },
+      "resumed_revision": 12,
+      "resumed_status": "completed",
+      "passed_plan_attempts_after_resume": 1,
+      "passed_plan_evidence_after_resume": [
+        "docs/terrace/phases/phase-proof-bounded-resume/PLAN.md"
+      ],
+      "passed_execute_attempts_after_resume": 2,
+      "execute_evidence_after_resume": [
+        ".planning/HANDOFF.json",
+        "docs/terrace/phases/phase-proof-bounded-resume/EXECUTION.md"
+      ],
+      "successor_attempts": {
+        "validate": 1,
+        "review": 1,
+        "complete": 1
+      },
+      "stop_packet_after_resume": null,
+      "next_command": "terrace ship check"
+    },
+    "negative_paths": {
+      "missing_owner_rejected": true,
+      "missing_evidence_argument_rejected": true,
+      "nonexistent_evidence_file_rejected": true,
+      "unknown_blocker_id_rejected": true
+    }
+  },
+  "acceptance": {
+    "bounded_correction_recorded": true,
+    "correction_attributable": true,
+    "same_run_resumed": true,
+    "owning_stage_retried": true,
+    "prior_passed_stage_not_rerun": true,
+    "prior_evidence_preserved": true,
+    "required_successors_completed": true,
+    "stop_packet_cleared_on_legal_retry": true,
+    "tr_4_source_candidate_verified": true,
+    "tr_4_integrated_into_dev": true,
+    "tr_4_closed": true
+  },
+  "limitations": [
+    "The integrated commit is present on local Terrace dev; the source branch remains local-only because no remote push was authorized.",
+    "An existing evidence file proves that Terrace recorded the operator's attributable assertion; it does not independently prove the truth of an external database operation.",
+    "TR-5 must independently prove that manual state or event tampering cannot create a passing terminal state.",
+    "The bounded-resume trace is a synthetic reproducibility appendix; TR-1 remains the representative historical product case."
+  ]
+}

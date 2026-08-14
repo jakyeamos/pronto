@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Context Compiler Contract — invalid to valid</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #101316;
+        --panel: #181d22;
+        --panel-strong: #20272e;
+        --ink: #eef2f3;
+        --muted: #9eaab1;
+        --red: #ff8f8f;
+        --red-bg: #3a2026;
+        --green: #8ee0b1;
+        --green-bg: #17382d;
+        --line: #334049;
+        --accent: #b9c8ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-width: 320px;
+        background: radial-gradient(circle at 12% 0%, #202a32 0, var(--bg) 42%);
+        color: var(--ink);
+        font:
+          15px/1.45 ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+      }
+      main {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 54px 28px 64px;
+      }
+      .eyebrow {
+        color: var(--accent);
+        font:
+          700 12px/1.2 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 760px;
+        margin: 12px 0 14px;
+        font-size: clamp(30px, 5vw, 58px);
+        line-height: 0.98;
+        letter-spacing: -0.045em;
+      }
+      .lede {
+        max-width: 700px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 18px;
+      }
+      .source {
+        margin-top: 22px;
+        color: var(--muted);
+        font:
+          12px/1.5 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .source code {
+        color: var(--ink);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 36px;
+      }
+      .card {
+        min-height: 252px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: color-mix(in srgb, var(--panel) 90%, transparent);
+      }
+      .card.invalid {
+        border-color: #6f3a44;
+        background: linear-gradient(155deg, var(--red-bg), var(--panel));
+      }
+      .card.valid {
+        border-color: #2c7255;
+        background: linear-gradient(155deg, var(--green-bg), var(--panel));
+      }
+      .step {
+        color: var(--muted);
+        font:
+          700 11px/1 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      h2 {
+        margin: 18px 0 8px;
+        font-size: 22px;
+        letter-spacing: -0.02em;
+      }
+      .card p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .field {
+        margin-top: 20px;
+        padding: 11px 12px;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.24);
+        font:
+          12px/1.45 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        overflow-wrap: anywhere;
+      }
+      .field strong {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .error {
+        margin-top: 12px;
+        color: var(--red);
+        font:
+          12px/1.45 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .ok {
+        margin-top: 12px;
+        color: var(--green);
+        font:
+          12px/1.45 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .boundary {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .boundary > div {
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--panel);
+      }
+      .boundary h2 {
+        margin-top: 0;
+      }
+      .boundary p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .boundary code {
+        color: var(--accent);
+      }
+      footer {
+        margin-top: 30px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      @media (max-width: 780px) {
+        main {
+          padding: 34px 18px 44px;
+        }
+        .grid,
+        .boundary {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Context Compiler Contract · CC-1</div>
+      <h1>Make context fail before it becomes agent behavior.</h1>
+      <p class="lede">
+        A real AIOS compile result starts valid. Two small mutations show the
+        package stopping at its own boundary, then returning to a portable
+        contract.
+      </p>
+      <div class="source">
+        Baseline: <code>AIOS/tools/context-compile.mjs</code> · compact
+        projection of commit <code>a9fafac</code>
+      </div>
+
+      <section class="grid" aria-label="Validation sequence">
+        <article class="card">
+          <div class="step">01 · baseline</div>
+          <h2>Real compile result</h2>
+          <p>
+            AIOS selected context with a deterministic policy and recorded
+            reasons for loaded and skipped sources.
+          </p>
+          <div class="field">
+            <strong>context_routing_manifest</strong><br />loaded: 26 · skipped:
+            10 · fallback: true
+          </div>
+          <div class="ok">shape accepted · context-compiler-result-v0.1</div>
+        </article>
+
+        <article class="card invalid">
+          <div class="step">02 · mutation A</div>
+          <h2>Provenance goes missing</h2>
+          <p>The source is still named, but its selection reason is removed.</p>
+          <div class="field">
+            <strong>context_sources_loaded[0].reason</strong
+            ><br />&lt;missing&gt;
+          </div>
+          <div class="error">
+            context_sources_loaded[0] must include id, path, and reason
+          </div>
+        </article>
+
+        <article class="card invalid">
+          <div class="step">03 · mutation B</div>
+          <h2>Route boundary breaks</h2>
+          <p>
+            The result no longer declares compatibility with the receiving
+            route.
+          </p>
+          <div class="field">
+            <strong>packet_contract.route_compatible</strong><br />false
+          </div>
+          <div class="error">packet_contract.route_compatible must be true</div>
+        </article>
+      </section>
+
+      <section class="boundary" aria-label="Correction and ownership boundary">
+        <div class="card valid">
+          <div class="step">04 · corrected result</div>
+          <h2>Repair the contract, keep the payload bounded</h2>
+          <p>
+            Restore the source reason and route-compatible flag. The same
+            validator returns a clean result.
+          </p>
+          <div class="field">
+            <strong>reason</strong> = “Bootloader context is always loaded.”<br /><strong
+              >route_compatible</strong
+            >
+            = true
+          </div>
+          <div class="ok">passed: true · issues: []</div>
+        </div>
+        <div>
+          <div class="step">05 · ownership</div>
+          <h2>Validation here. Execution elsewhere.</h2>
+          <p>
+            This package checks result and manifest shape. AIOS still owns
+            source selection, ranking, receipt writing, and downstream
+            execution. See <code>claim-ledger.json</code> for the full boundary.
+          </p>
+        </div>
+      </section>
+
+      <footer>
+        Mutations are synthetic and reproducible. The baseline is a real AIOS
+        compile output. Browser capture and video are optional enhancements.
+      </footer>
+    </main>
+  </body>
+</html>

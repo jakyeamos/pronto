@@ -1,0 +1,73 @@
+{
+  "schema_version": "pronto-showcase-remodelvision-gap-receipt/v1",
+  "project": "remodelvision",
+  "gap": "RV-3",
+  "observed_at": "2026-08-13T17:28:41Z",
+  "status": "blocked",
+  "disposition": "parked_pending_runtime_prerequisites_and_direct_surface",
+  "observed_surface": {
+    "repository": "remodelvision",
+    "checkout": {
+      "path": "/Users/jakyeamos/projects/remodelvision",
+      "branch": "qr/triage-parallel-20260702T200935Z",
+      "commit": "8c2e3bb375587389204165fc290cd6599c2fa416",
+      "status": "clean_after_probe"
+    },
+    "toolchain": {
+      "pnpm": "11.9.0",
+      "node": "v22.14.0",
+      "next": "16.1.6"
+    },
+    "checks": [
+      {
+        "command": "pnpm test -- --run",
+        "status": "passed",
+        "evidence": "7 test files and 26 tests passed"
+      },
+      {
+        "command": "pnpm typecheck",
+        "status": "passed",
+        "evidence": "tsc --noEmit exited 0"
+      },
+      {
+        "command": "pnpm build",
+        "status": "passed",
+        "evidence": "Next production build compiled, typechecked, and generated 14 routes"
+      },
+      {
+        "command": "pnpm lint",
+        "status": "failed",
+        "evidence": "41 errors and 29 warnings across the existing checkout; no lint changes were made"
+      },
+      {
+        "command": "pnpm env:check",
+        "status": "blocked",
+        "evidence": "Nine required variables are missing: database, Clerk, fal.ai, Anthropic, Blob, and Supabase service configuration"
+      },
+      {
+        "command": "pnpm exec next start --hostname 127.0.0.1",
+        "status": "blocked",
+        "evidence": "Sandbox direct-surface probe failed with listen EPERM on 127.0.0.1:3000"
+      }
+    ]
+  },
+  "missing_contract": {
+    "required": [
+      "approved disposable runtime configuration or a repository-owned no-key demo mode",
+      "clean lint baseline or an explicit owner-approved lint disposition",
+      "direct forward-surface access for upload, constraint, concept, edit, and handoff verification"
+    ],
+    "why_static_checks_are_insufficient": [
+      "Tests, typecheck, and build do not execute fal.ai generation, vision analysis, cost estimation, persistence, or the user-facing handoff.",
+      "The repository explicitly requires external service variables and documents provider-backed processing.",
+      "A synthetic illustration can exercise material rights rules but cannot stand in for a live product result."
+    ]
+  },
+  "blocked_action": "Do not claim the RemodelVision core flow is runnable, do not publish a generated before/after or estimate, and do not bypass missing service configuration or direct-surface verification.",
+  "next_action": "Return to RV-3 when the owner supplies an approved disposable runtime or no-key demo path, the lint baseline has a disposition, and direct-surface execution is permitted; then capture the full flow before evaluating RV-4 and RV-5.",
+  "claim_boundary": [
+    "The local codebase has passing tests, typecheck, and build evidence.",
+    "The current checkout has no live service configuration and no direct-surface proof here.",
+    "No generated visual, estimate, persistence result, latency, or end-to-end handoff is claimed."
+  ]
+}

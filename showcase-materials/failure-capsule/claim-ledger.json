@@ -1,0 +1,68 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "failure-capsule",
+  "case_id": "failure-capsule-w2-redaction-001",
+  "reviewed_at": "2026-08-14T03:12:21Z",
+  "levels": [
+    {
+      "id": "capture",
+      "label": "Bounded failure capture",
+      "status": "verified_local",
+      "status_display": "Failed declared command captured",
+      "allowed_claim": "A declared command failure can be captured with target identity, exit code, bounded output, and a next action.",
+      "forbidden_inference": "The capsule reproduces the failure or contains all machine state.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/fc-w2-redacted-failure.json#/capture"]
+    },
+    {
+      "id": "privacy",
+      "label": "Redaction and omissions",
+      "status": "verified_local",
+      "status_display": "Secret-like output removed",
+      "allowed_claim": "Sensitive key/value output is redacted and omitted capture classes are named before persistence.",
+      "forbidden_inference": "All possible secrets or sensitive content are detected.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/fc-w2-redacted-failure.json#/privacy"]
+    },
+    {
+      "id": "inspection",
+      "label": "Inspect-only handoff",
+      "status": "verified_local",
+      "status_display": "Opening does not execute",
+      "allowed_claim": "A saved capsule can be inspected without running the failed command.",
+      "forbidden_inference": "The failure has been repaired or replayed.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/fc-w2-redacted-failure.json#/inspection"]
+    },
+    {
+      "id": "current_dev",
+      "label": "Current dev checkpoint",
+      "status": "verified_local",
+      "status_display": "Capture and checks reproduce on dev",
+      "allowed_claim": "The current dev head passes its local checks and reproduces a redacted failed capture with inspect-only opening.",
+      "forbidden_inference": "The current dev head has complete replay, cancellation, recovery, or hosted coverage.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/fc-w3-current-dev-checkpoint.json"]
+    },
+    {
+      "id": "recovery",
+      "label": "Replay and cancellation matrix",
+      "status": "open",
+      "status_display": "Cross-tool recovery pending",
+      "allowed_claim": "The capsule records an explicit next action for review and rerun.",
+      "forbidden_inference": "Cancellation, replay, and recovery behavior are fully proven.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["../route-plan.md#3-build-gap-specification"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "not_verified",
+      "status_display": "No hosted or posted proof",
+      "allowed_claim": "Hosting and external publication remain unverified.",
+      "forbidden_inference": "The capsule case is live on GitHub, portfolio, or Handshake.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["case-study.json#open_gates"]
+    }
+  ]
+}

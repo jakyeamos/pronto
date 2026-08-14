@@ -1,0 +1,68 @@
+{
+  "schema_version": "behavior-coverage-atlas-showcase-evidence-v0.1",
+  "project": "behavior-coverage-atlas",
+  "source_repository": "behavior-coverage-atlas",
+  "source_revision": "8c052b143eab95e0aa7f75b09bfca6382f2c6d6c",
+  "fixture_target_revision": "a4e0e0425dbcb23cb145dbba2808e9806542c07f",
+  "observed_at": "2026-08-13T23:30:00Z",
+  "fresh_run": {
+    "status": "ready",
+    "target": "a4e0e0425dbcb23cb145dbba2808e9806542c07f",
+    "results_target": "a4e0e0425dbcb23cb145dbba2808e9806542c07f",
+    "entries": [
+      {
+        "id": "checkout",
+        "status": "verified",
+        "evidence_class": "assertion",
+        "tests": ["checkout.test"]
+      },
+      {
+        "id": "profile",
+        "status": "exercised_without_assertion",
+        "evidence_class": "execution",
+        "tests": ["profile.test", "checkout.test"]
+      },
+      {
+        "id": "billing",
+        "status": "failed",
+        "evidence_class": "assertion",
+        "tests": ["billing.test"]
+      },
+      {
+        "id": "search",
+        "status": "unknown",
+        "evidence_class": "none",
+        "tests": ["missing.test"]
+      }
+    ],
+    "diagnostics": [
+      { "kind": "duplicate-link", "test": "checkout.test", "count": 2 }
+    ],
+    "unknowns": ["inferred behaviors", "unmodeled runtime paths"]
+  },
+  "stale_run": {
+    "status": "ready",
+    "target": "a4e0e0425dbcb23cb145dbba2808e9806542c07f",
+    "results_target": "0000000000000000000000000000000000000000",
+    "reason": "The results receipt target differs from the current fixture revision.",
+    "entry_statuses": {
+      "checkout": "stale",
+      "profile": "stale",
+      "billing": "stale",
+      "search": "stale"
+    },
+    "evidence_class": "historical"
+  },
+  "negative_contracts": {
+    "duplicate_link": "verified_by_fixture",
+    "missing_test": "verified_by_fixture",
+    "failed_assertion": "verified_by_fixture",
+    "stale_result": "verified_by_fixture"
+  },
+  "privacy": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local behavior fixture"
+  },
+  "claim_boundary": "This receipt matrix proves explicit behavior states for one local fixture. It is not line coverage, a complete runtime map, a Review Attention Map handoff, or publication proof."
+}

@@ -1,0 +1,56 @@
+schema_version: pronto-showcase-material/v1
+project:
+  title: Mac Control
+  tagline: A local safety and verification layer between AI intent and native macOS action.
+  audience: AI agent developers and operators supervising native macOS automation.
+  problem: Agents can move a GUI without proving who authorized the action, what route ran, or whether the result was verified.
+  outcome: Typed native actions with explicit authority, verification, provider handoff, and redacted evidence.
+  status: working-demo
+
+roles:
+  creator_owned:
+    - Safety model and trust boundaries
+    - Approval and authority semantics
+    - Route-selection and provider-handoff rules
+    - Verification oracles and evidence thresholds
+    - Receipt redaction and retention policy
+  ai_runtime_role:
+    - Submit typed native-control requests
+    - Consume machine-readable outcomes and handoffs
+    - Stop when authority, target identity, or verification is insufficient
+  ai_build_role:
+    - unknown
+  human_review:
+    - Grant or deny macOS privacy permissions
+    - Approve sensitive operations through the native control surface
+    - Review captures, claims, and publication boundaries
+
+demo:
+  starting_state: A terminal, the Mac Control status item, and System Settings are visible with private UI removed.
+  core_transformation: Show the approval lifecycle, then a bounded native action with a machine-readable verified outcome.
+  finished_result: The native state change and its redacted verification result are visible together.
+  synthetic_data: false
+  limitations:
+    - The current installed release check is not passing.
+    - The recorded benchmark covers one named System Settings task.
+    - Browser page content belongs to a separate browser-control provider.
+
+evidence:
+  claims:
+    - fact_ids: [fact-001, fact-002, fact-003]
+      summary: Local owner-only control plane with explicit authority, verification, and redacted evidence.
+    - fact_ids: [fact-004]
+      summary: Project-authored System Settings focus benchmark with a 134.924 ms median across 3/3 passing samples.
+    - fact_ids: [fact-005, fact-006]
+      summary: Blocked benchmark lanes and a non-passing current release check remain visible limitations.
+  sources:
+    - evidence/research-packet.yaml
+    - evidence/qa.yaml
+  repository_url: unknown
+  live_url: unknown
+
+assets:
+  hero_image: capture_pending
+  preview_image: capture_pending
+  flow_images: capture_pending
+  demo_video: capture_pending

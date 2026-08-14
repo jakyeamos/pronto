@@ -1,0 +1,110 @@
+{
+  "schema_version": "pronto-showcase-agent-router-replay-case/v1",
+  "project": "agent-router",
+  "gap": "AR-1",
+  "case_id": "ar-1-launch-readiness",
+  "observed_at": "2026-08-13T17:48:57Z",
+  "source_kind": "synthetic_reproducibility_appendix",
+  "role": "appendix_only",
+  "reason_for_synthetic_case": "No real provider-backed launch request is authorized for this showcase packet; the repository already defines replay fixtures as the safe evidence seam.",
+  "intent": {
+    "id": "ar-1-launch-readiness",
+    "description": "Update the release-readiness parser and add focused tests across the repository while preserving approval boundaries for any write",
+    "requested_outcome": "Update the release-readiness parser and add focused tests across the repository while preserving approval boundaries for any write",
+    "repo_path": "/workspace/launch-readiness",
+    "task_type": "repo_edit_with_tests",
+    "risk_hint": "high",
+    "constraints": [
+      "Read-only inspection may proceed without provider invocation.",
+      "Any repository write requires explicit human approval before apply.",
+      "Keep each subtask attributable to its dependency receipt."
+    ],
+    "metadata": {
+      "showcase_case": "ar-1-launch-readiness",
+      "fixture_label": "synthetic"
+    }
+  },
+  "expected_classification": {
+    "task_type": "repo_edit_with_tests",
+    "complexity": "complex",
+    "risk": "high",
+    "planner_reasoning_tier": "max",
+    "should_route": true
+  },
+  "expected_graph": {
+    "graph_id": "runtime_generated_excluded_from_stable_comparison",
+    "root_task_id": "ar-1-launch-readiness",
+    "subtasks": [
+      {
+        "id": "ar-1-launch-readiness-plan",
+        "title": "Plan the bounded change",
+        "capability": "planning",
+        "dependencies": [],
+        "status": "planned",
+        "expected_verification": ["rule discovery", "scope check"]
+      },
+      {
+        "id": "ar-1-launch-readiness-execute",
+        "title": "Implement the change",
+        "capability": "implementation",
+        "dependencies": ["ar-1-launch-readiness-plan"],
+        "status": "planned",
+        "expected_verification": ["diff review", "targeted tests"]
+      },
+      {
+        "id": "ar-1-launch-readiness-verify",
+        "title": "Verify the delivered result",
+        "capability": "verification",
+        "dependencies": ["ar-1-launch-readiness-execute"],
+        "status": "planned",
+        "expected_verification": ["deterministic tests", "quality evidence"]
+      }
+    ],
+    "edges": [
+      {
+        "from": "ar-1-launch-readiness-plan",
+        "to": "ar-1-launch-readiness-execute"
+      },
+      {
+        "from": "ar-1-launch-readiness-execute",
+        "to": "ar-1-launch-readiness-verify"
+      }
+    ]
+  },
+  "authority_boundary": {
+    "constraints_are_carried_on": "intent.constraints",
+    "required_constraints": [
+      "Read-only inspection may proceed without provider invocation.",
+      "Any repository write requires explicit human approval before apply.",
+      "Keep each subtask attributable to its dependency receipt."
+    ],
+    "current_engine_claim": "The native planner carries these constraints on the typed intent; provider execution and enforcement of approval are not claimed by AR-1."
+  },
+  "negative_cases": [
+    {
+      "id": "missing-approval-constraint",
+      "mutation": "remove the explicit human-approval constraint from intent.constraints",
+      "expected": "fail_closed_in_replay_harness",
+      "reason": "A write-capable route must not be presented without an explicit authority boundary."
+    },
+    {
+      "id": "dependency-cycle",
+      "mutation": "make verify depend on plan while execute depends on verify",
+      "expected": "fail_closed_in_replay_harness",
+      "reason": "A replay must not accept a cyclic task graph."
+    },
+    {
+      "id": "unattributed-provider-output",
+      "mutation": "remove the subtask identity from a worker result",
+      "expected": "fail_closed_in_replay_harness",
+      "reason": "A result without task identity cannot be reconciled into a receipt."
+    }
+  ],
+  "claim_boundary": [
+    "This is a labeled synthetic replay case, not a real launch-readiness engagement.",
+    "The runtime probe proves the current native classifier and planner produce the expected three-node typed graph and preserve intent constraints.",
+    "It does not prove provider execution, approval enforcement, parallel worktree execution, cost reconciliation, or a public visual explorer.",
+    "The negative cases are target acceptance rules for the replay harness; they were not presented as current native-engine failures or passes."
+  ],
+  "next_gap": "AR-2"
+}

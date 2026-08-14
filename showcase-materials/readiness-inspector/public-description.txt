@@ -1,0 +1,1 @@
+Readiness Inspector answers “ready for what?” with a versioned goal, owner-bound checks, evidence, states, and next actions. Its W5 local proof keeps a passing test, failed audit, blocked publish, and unsupported profile distinct without collapsing uncertainty into one score; upstream receipt projection and release hosting remain gated.

@@ -1,0 +1,34 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "behavior-coverage-atlas",
+  "status": "candidate_local",
+  "title": "Behavior Coverage Atlas: know what the test proves",
+  "audience": "Teams that need behavior-level evidence without turning line coverage into a correctness score.",
+  "promise": "Declare named behaviors, link test receipts, distinguish assertion from execution, and keep stale, missing, failed, and duplicate evidence visible.",
+  "story": [
+    "A repository-owned manifest names four product behaviors and their intended tests.",
+    "A fresh receipt separates verified assertion, execution without assertion, failed assertion, and missing evidence.",
+    "A duplicate link remains a diagnostic instead of being silently collapsed.",
+    "When the receipt target changes, historical evidence becomes stale rather than current proof."
+  ],
+  "evidence": [
+    "evidence/bca-w2-fixture-matrix.json",
+    "evidence/bca-w3-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
+    "../../../projects/behavior-coverage-atlas/README.md",
+    "../../../projects/behavior-coverage-atlas/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Fresh four-behavior fixture with verified, weak, failed, unknown, and duplicate-link states.",
+    "Stale target run preserves historical classification across the manifest.",
+    "Source tests, lint, and package checks pass.",
+    "Current dev tests, lint, and package checks pass at revision 8c052b1.",
+    "The 1600×900 PNG preview is visually reviewed and legible at the target crop."
+  ],
+  "open_gates": [
+    "Feed one behavior signal into Review Attention Map with source and freshness.",
+    "Expand parameterized and deleted-test negative fixtures.",
+    "Verify a hosted no-auth case and record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves the current dev behavior-evidence matrix and local binary preview; it does not claim complete runtime coverage, review-tool integration, hosting, or publication."
+}

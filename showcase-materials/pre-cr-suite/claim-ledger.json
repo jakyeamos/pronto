@@ -1,0 +1,69 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "pre-cr-suite-lsp",
+  "case_id": "standalone-ide-return-recall-act-prove-2026-08",
+  "reviewed_at": "2026-08-13T00:20:00Z",
+  "levels": [
+    {
+      "id": "continuity",
+      "label": "Return and recall",
+      "status": "installed_extension_verified",
+      "status_display": "3 restored; 1 skipped explicitly",
+      "evidence_summary": "The installed extension restored three files and the active cursor after an extension-host restart, then reported a missing fixture file instead of hiding the partial restore.",
+      "allowed_claim": "Pre-CR can preserve and restore branch-specific editor context and reports partial restoration explicitly.",
+      "forbidden_inference": "Every editor, workspace type, or stale state has been verified.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/pcr-1-behavior-receipt.json"]
+    },
+    {
+      "id": "command_path",
+      "label": "Act",
+      "status": "installed_extension_verified",
+      "status_display": "Quick Actions path",
+      "evidence_summary": "The installed Quick Actions workspace scope exposed Run Pre-CR Check, Refresh Coverage, and Fix Setup without requiring the command palette.",
+      "allowed_claim": "Pre-CR exposes its core check, coverage, and setup actions directly inside its IDE workflow.",
+      "forbidden_inference": "All 37 registered commands are equally mature or supported.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/pcr-2-command-state-receipt.json"]
+    },
+    {
+      "id": "readiness",
+      "label": "Prove",
+      "status": "installed_extension_verified",
+      "status_display": "0% to 100% changed-line coverage",
+      "evidence_summary": "The installed extension marked one uncovered changed line, cleared the diagnostic after a focused test exercised it, and reported 100% changed-line coverage.",
+      "allowed_claim": "Pre-CR can identify an uncovered changed line and verify the focused repair from the editor.",
+      "forbidden_inference": "The standalone CLI blocked the failing state.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/pcr-3-readiness-receipt.json"]
+    },
+    {
+      "id": "cli_policy",
+      "label": "CLI enforcement",
+      "status": "warning_only_in_fixture",
+      "status_display": "warn; exit 0",
+      "evidence_summary": "In the PCR-3 fixture, the failing headless run returned ok=false with gateDecision=warn and process exit code 0.",
+      "allowed_claim": "The fixture proves detection and repair; CLI enforcement depends on policy.",
+      "forbidden_inference": "The observed failing fixture was blocked by the CLI.",
+      "public_claim_allowed": true,
+      "evidence_refs": [
+        "evidence/pcr-3-readiness-receipt.json#headless_receipt"
+      ]
+    },
+    {
+      "id": "deployment",
+      "label": "Distribution",
+      "status": "local_installed_only",
+      "status_display": "VSIX installed locally",
+      "evidence_summary": "The workflow was verified in VS Code 1.133.0 with jakye.pre-cr-suite@0.1.0 installed locally; marketplace or hosted distribution was not assessed.",
+      "allowed_claim": "The standalone IDE workflow was verified in an installed local VSIX.",
+      "forbidden_inference": "The extension is marketplace-published or generally available.",
+      "public_claim_allowed": true,
+      "evidence_refs": [
+        "evidence/pcr-1-behavior-receipt.json",
+        "evidence/pcr-2-command-state-receipt.json",
+        "evidence/pcr-3-readiness-receipt.json"
+      ]
+    }
+  ]
+}

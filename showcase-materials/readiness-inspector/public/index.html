@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Readiness Inspector keeps goal-specific checks, evidence, and next actions visible without an aggregate score."
+    />
+    <title>Readiness Inspector · ready for what?</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #111820;
+        --panel: #1d2934;
+        --text: #eef7f3;
+        --muted: #a8b8b5;
+        --faint: #788b89;
+        --mint: #a5e4c5;
+        --amber: #ffd083;
+        --red: #ff9f98;
+        --line: rgba(238, 247, 243, 0.17);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--text);
+        background:
+          radial-gradient(
+            circle at 84% 2%,
+            rgba(165, 228, 197, 0.13),
+            transparent 30rem
+          ),
+          var(--bg);
+        font:
+          16px/1.6 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      .wrap {
+        width: min(1120px, calc(100% - 44px));
+        margin: 0 auto;
+      }
+      header {
+        border-bottom: 1px solid var(--line);
+      }
+      header .wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 58px;
+        gap: 24px;
+      }
+      header strong,
+      header span {
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      header span {
+        color: var(--faint);
+      }
+      .hero {
+        padding: clamp(74px, 10vw, 132px) 0 90px;
+      }
+      .kicker {
+        color: var(--mint);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1,
+      h2 {
+        text-wrap: balance;
+        letter-spacing: -0.055em;
+        line-height: 0.98;
+      }
+      h1 {
+        max-width: 880px;
+        margin: 18px 0 26px;
+        font-size: clamp(3.2rem, 7vw, 6.5rem);
+      }
+      .lede {
+        max-width: 62ch;
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(1.05rem, 1.7vw, 1.24rem);
+      }
+      .note {
+        max-width: 700px;
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        margin-top: 28px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(165, 228, 197, 0.34);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .note strong {
+        color: var(--amber);
+      }
+      section {
+        padding: 86px 0;
+        border-top: 1px solid var(--line);
+      }
+      h2 {
+        max-width: 680px;
+        margin: 0 0 42px;
+        font-size: clamp(2.4rem, 5vw, 4.4rem);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1px;
+        background: var(--line);
+        border: 1px solid var(--line);
+      }
+      .panel {
+        min-height: 270px;
+        padding: clamp(24px, 4vw, 42px);
+        background: rgba(29, 41, 52, 0.88);
+      }
+      .panel h3 {
+        margin: 0 0 15px;
+        font-size: 1.35rem;
+      }
+      .panel p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .flow {
+        display: grid;
+        gap: 14px;
+        margin-top: 24px;
+      }
+      .flow div {
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      .flow b {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border: 1px solid var(--mint);
+        border-radius: 50%;
+        color: var(--mint);
+        font-size: 0.76rem;
+      }
+      .flow strong {
+        display: block;
+      }
+      .flow span {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .badge {
+        display: inline-block;
+        margin-top: 22px;
+        padding: 5px 9px;
+        border: 1px solid rgba(255, 208, 131, 0.4);
+        border-radius: 999px;
+        color: var(--amber);
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      footer {
+        padding: 30px 0 54px;
+        color: var(--faint);
+        font-size: 0.82rem;
+      }
+      @media (max-width: 760px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        header .wrap {
+          align-items: flex-start;
+          flex-direction: column;
+          justify-content: center;
+          padding: 12px 0;
+          gap: 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <strong>Readiness Inspector</strong
+        ><span>Candidate local case study · W5 evidence</span>
+      </div>
+    </header>
+    <main data-material-status="candidate-local">
+      <section class="hero">
+        <div class="wrap">
+          <div class="kicker">Goal-specific readiness</div>
+          <h1>Ready for what?</h1>
+          <p class="lede">
+            Readiness Inspector records a versioned goal, owner-bound
+            predicates, individual outcomes, evidence, and next actions without
+            collapsing uncertainty into one score.
+          </p>
+          <p class="note">
+            <strong>Case signal</strong
+            ><span
+              >A passing test, failed audit, blocked publish, and unsupported
+              profile remain separate and target-bound.</span
+            >
+          </p>
+        </div>
+      </section>
+      <section>
+        <div class="wrap">
+          <h2>Every answer has a reason.</h2>
+          <div class="grid">
+            <article class="panel">
+              <h3>Declare the boundary</h3>
+              <p>
+                A release-candidate handoff profile gives the checks a goal and
+                target revision before any result is interpreted.
+              </p>
+              <div class="flow">
+                <div>
+                  <b>1</b>
+                  <div>
+                    <strong>Declare</strong><span>Choose the goal.</span>
+                  </div>
+                </div>
+                <div>
+                  <b>2</b>
+                  <div>
+                    <strong>Inspect</strong
+                    ><span>See owner and predicate.</span>
+                  </div>
+                </div>
+                <div>
+                  <b>3</b>
+                  <div>
+                    <strong>Act</strong><span>Follow the next action.</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+            <article class="panel">
+              <h3>Do not average uncertainty away</h3>
+              <p>
+                Failed, blocked, stale, missing, and not-applicable states are
+                different evidence states. A missing profile stays unsupported.
+              </p>
+              <span class="badge"
+                >local proof · upstream projection pending</span
+              >
+            </article>
+          </div>
+        </div>
+      </section>
+      <section>
+        <div class="wrap">
+          <h2>Evidence before release packaging.</h2>
+          <p class="lede">
+            This candidate packet proves source revision
+            <code>2efa5ed</code> against fixture revision <code>c78de51</code>.
+            Quality Setup/Evidence Replay continuity, hosting, and publication
+            remain separate gates.
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        Readiness Inspector · local candidate material · no deployment or
+        posting claim
+      </div>
+    </footer>
+  </body>
+</html>

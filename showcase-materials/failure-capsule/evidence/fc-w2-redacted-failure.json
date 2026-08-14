@@ -1,0 +1,45 @@
+{
+  "schema_version": "failure-capsule-showcase-evidence-v0.1",
+  "project": "failure-capsule",
+  "source_repository": "failure-capsule",
+  "source_revision": "516f24f6a48117ce080282270245e98f4459367e",
+  "fixture_target_revision": "06d44357bb05adafba6f318ab467ecc37820c4c4",
+  "observed_at": "2026-08-13T23:17:00Z",
+  "capture": {
+    "status": "captured",
+    "schema": "failure-capsule-v0.1",
+    "outcome": "failed",
+    "exit_code": 7,
+    "target": {
+      "kind": "git",
+      "revision": "06d44357bb05adafba6f318ab467ecc37820c4c4"
+    },
+    "output_excerpt": "TOKEN=[REDACTED]\nfailed fixture\n",
+    "secret_value_present": false,
+    "artifact": {
+      "path": "artifacts/report.txt",
+      "size": 23,
+      "sha256": "66d8e3202501d0d62137745648c8defe3b251080cb956f2b254bee17e97a201d",
+      "privacy": "local-private"
+    },
+    "omissions": ["environment", "credentials", "unlisted-files"],
+    "reproduction_next_action": "Review this capsule, then explicitly rerun the declared command."
+  },
+  "inspection": {
+    "status": "ready",
+    "outcome": "failed",
+    "executes_on_open": false
+  },
+  "negative_contracts": {
+    "undeclared_command": "verified_by_unit_test",
+    "timeout_to_cancelled": "verified_by_unit_test",
+    "secret_redaction": "verified_by_fixture_run"
+  },
+  "privacy": {
+    "credentials_collected": false,
+    "environment_persisted": false,
+    "external_write": false,
+    "capture_boundary": "allowlisted artifact and bounded command output"
+  },
+  "claim_boundary": "This evidence proves a local failed-command capsule with redaction, omissions, artifact identity, and inspect-only opening. It does not prove replay success, complete cancellation/recovery coverage, hosting, or publication."
+}

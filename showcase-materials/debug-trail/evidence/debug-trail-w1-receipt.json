@@ -1,0 +1,47 @@
+{
+  "schema": "debug-trail-continuation-receipt-v0.1",
+  "source_repository": "debug-trail",
+  "source_revision": "e4cab3ce05bb00f06011de6041ebd74ba5e69b05",
+  "receipt_id": "receipt-bf54b5bf5b938782",
+  "target": {
+    "status": "fresh",
+    "reason": "Repository target matches the trail binding."
+  },
+  "hypothesis": {
+    "statement": "The deterministic fixture check passes",
+    "expected_result": "Exit zero"
+  },
+  "action_preview": {
+    "command_id": "fixture-check",
+    "title": "Run the deterministic fixture check",
+    "mutation": "read-only",
+    "expected_exit_code": 0,
+    "authorization": "A human must review the preview and authorize every execution."
+  },
+  "experiment": {
+    "result": "passed",
+    "exit_code": 0,
+    "duration_ms": 105,
+    "output_excerpt": "CHECK: deterministic fixture passed\nTOKEN=[REDACTED]\nsrc/example.js:3\n",
+    "output_excerpt_truncated": true,
+    "output_hash": "sha256:fad27a87e69cc2518fdec36b1298ae8697d8eb2e831af4914c9e8874761747f6",
+    "source_locations": ["src/example.js:3"]
+  },
+  "disposition": {
+    "status": "supported",
+    "conclusion": "The deterministic fixture check passed.",
+    "next_step": "Rerun if the target revision or manifest changes."
+  },
+  "privacy": {
+    "storage": "local-only",
+    "redaction": "Sensitive key/value patterns are redacted before persistence.",
+    "excluded": [
+      "environment variables",
+      "credentials",
+      "raw screenshots",
+      "network captures",
+      "unbounded command output"
+    ]
+  },
+  "omissions": ["No automatic environment or terminal-history capture."]
+}

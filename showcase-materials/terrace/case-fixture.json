@@ -1,0 +1,31 @@
+{
+  "schema_version": "pronto-showcase-terrace-fixture/v1",
+  "project": "Terrace",
+  "case_id": "TR-1-active-feature-handoff",
+  "source_repository": "/Users/jakyeamos/projects/Terrace",
+  "source_kind": "historical_product_regression",
+  "fixed_commit": "cd44e3b0c634eb2c25820dcd2f2b6857c82aa0cb",
+  "failing_parent_commit": "77f1f5e37160264e913b2df9386e42da4fa51cc4",
+  "test_file": "tests/workflow-commands.test.ts",
+  "test_name": "keeps a gate-complete active senior feature outside the roadmap as a non-mutating handoff",
+  "owning_file": "packages/terrace-core/src/workflow.cjs",
+  "owning_stage": "workflow_routing_validation",
+  "scenario": {
+    "active_feature": "gpt56-modernization",
+    "active_feature_kind": "senior_cycle_feature_outside_roadmap",
+    "unrelated_roadmap_phase": "phase-11-notifications",
+    "required_blocker_code": "ACTIVE_FEATURE_NOT_ROADMAP_PHASE",
+    "required_next_command": "terrace workbench status --feature gpt56-modernization",
+    "forbidden_mutations": [
+      ".terrace/state.json",
+      "docs/terrace/phases/phase-11-notifications/PLAN.md"
+    ]
+  },
+  "reproduction": {
+    "runtime": "node v22.14.0",
+    "test_runner": "vitest 4.1.2",
+    "fixture_strategy": "Archive the fixed commit, then overlay only the parent revision of the owning workflow file for the failing run.",
+    "focused_command": "/Users/jakyeamos/projects/Terrace/node_modules/.bin/vitest run tests/workflow-commands.test.ts -t 'keeps a gate-complete active senior feature outside the roadmap as a non-mutating handoff'"
+  },
+  "claim_boundary": "This fixture proves a real workflow-routing regression and its bounded repair. It does not prove restart-safe stage persistence or general replay semantics."
+}

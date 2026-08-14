@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Quality Lens: one finding with a reason to act</title>
+  <desc id="desc">A crop-safe showcase frame showing a stale Quality Runner finding and a human disposition carried into a rerun.</desc>
+  <defs>
+    <radialGradient id="glow" cx="78%" cy="8%" r="48%">
+      <stop offset="0" stop-color="#1d5c62" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#07111e" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#153948"/>
+      <stop offset="1" stop-color="#102238"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="#07111e"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <g font-family="Helvetica" fill="#f4f7fb">
+    <text x="112" y="154" fill="#71e0b7" font-size="22" font-weight="700" letter-spacing="4">QUALITY LENS · W1 PILOT</text>
+    <text x="112" y="274" text-anchor="start" font-size="72" font-weight="700">One finding.</text>
+    <text x="112" y="366" text-anchor="start" font-size="72" font-weight="700">A reason to act.</text>
+    <text x="112" y="442" fill="#a9bad0" font-size="25">Keep the source, freshness state, and human decision</text>
+    <text x="112" y="480" fill="#a9bad0" font-size="25">together instead of collapsing quality into an opaque score.</text>
+    <text x="112" y="700" fill="#70839d" font-size="18" letter-spacing="1">CANDIDATE LOCAL MATERIAL · IDE READBACK OPEN</text>
+  </g>
+  <g transform="translate(870 132)">
+    <rect width="606" height="636" rx="24" fill="url(#card)" stroke="#8ba8c4" stroke-opacity="0.25"/>
+    <text x="42" y="58" fill="#a9bad0" font-family="Helvetica" font-size="16" letter-spacing="2">QUALITY RUNNER REPORT</text>
+    <text x="492" y="58" text-anchor="end" fill="#f4c76d" font-family="Helvetica" font-size="16" font-weight="700">STALE · VISIBLE</text>
+    <rect x="42" y="96" width="522" height="242" rx="8" fill="#07111e" fill-opacity="0.62" stroke="#f4c76d" stroke-opacity="0.7"/>
+    <rect x="42" y="96" width="5" height="242" rx="2" fill="#f4c76d"/>
+    <text x="72" y="148" fill="#f4f7fb" font-family="Helvetica" font-size="24" font-weight="700">Fixture contract</text>
+    <text x="72" y="190" fill="#71e0b7" font-family="SFMono-Regular" font-size="17">QL-FIX-001 · fixtures/example.js:4</text>
+    <text x="72" y="236" fill="#a9bad0" font-family="Helvetica" font-size="18">One reviewable warning. Inspect the source,</text>
+    <text x="72" y="266" fill="#a9bad0" font-family="Helvetica" font-size="18">choose a disposition, and rerun the finding.</text>
+    <line x1="42" y1="382" x2="564" y2="382" stroke="#8ba8c4" stroke-opacity="0.25"/>
+    <text x="42" y="430" fill="#a9bad0" font-family="Helvetica" font-size="15" letter-spacing="1">HUMAN DISPOSITION</text>
+    <text x="42" y="470" fill="#71e0b7" font-family="Helvetica" font-size="22" font-weight="700">accepted · fixture-only review</text>
+    <text x="42" y="534" fill="#a9bad0" font-family="Helvetica" font-size="15" letter-spacing="1">RERUN RECONCILIATION</text>
+    <text x="42" y="574" fill="#f4f7fb" font-family="Helvetica" font-size="20">Same finding identity · decision carried forward</text>
+    <text x="42" y="610" fill="#70839d" font-family="Helvetica" font-size="14">Local W1 headless evidence · no source change claimed</text>
+  </g>
+</svg>

@@ -1,0 +1,83 @@
+{
+  "schema_version": "pronto-showcase-anti-slop-case/v1",
+  "case_id": "pronto-committed-ui-audit-2026-08-12",
+  "project": "eslint-plugin-anti-slop",
+  "status": "reviewed_case_selected",
+  "source": {
+    "repository": "pronto",
+    "revision": "133ff8b741a206721a94ca80e1f8fe556a8e0dc0",
+    "mode": "exact_head_content",
+    "working_tree_substitution_allowed": false,
+    "files": [
+      {
+        "path": "src/renderer/src/components/PreparationDrawer.tsx",
+        "git_blob": "ceb4c353b0cdbb17863043b9cbbbb5fe9e3a51ed"
+      },
+      {
+        "path": "src/renderer/src/components/RepositoryAnalyticsPanel.tsx",
+        "git_blob": "b5e3fa6551fef5e98ebf62d6a44e5d8d619a5a30"
+      },
+      {
+        "path": "src/renderer/src/components/ShowcaseSurface.tsx",
+        "git_blob": "3a21aa51dc5fcf2bf5918179a2d227083863f9f9"
+      }
+    ]
+  },
+  "tool": {
+    "repository": "eslint-plugin-anti-slop",
+    "revision": "b32e3d9080c540097870d9b83d089e84c75765e0",
+    "package_version": "0.5.0",
+    "runtime": "node v22.14.0",
+    "audit_method": "ESLint.lintText against exact Git objects using the repository Anti-Slop audit config",
+    "audited_rule_paths_unmodified": true,
+    "rule_blobs": {
+      "require-empty-state-action": "5dc691efa7f4ee628bdb9da7c02a7cd58ae43265",
+      "no-generic-stat-label": "a1f26bb0c6e794972ae8b0f95ccab8aff9850dd0",
+      "no-defensive-guard-sprawl": "a155bc91208a97e27b3bdb7d344116008d77ec9a"
+    }
+  },
+  "candidate_summary": {
+    "reported": 3,
+    "accepted": 2,
+    "rejected_false_positive": 1
+  },
+  "candidates": [
+    {
+      "id": "AS-C1",
+      "rule_id": "anti-slop/require-empty-state-action",
+      "file": "src/renderer/src/components/PreparationDrawer.tsx",
+      "line": 178,
+      "message": "Empty state text found without actionable wording or a usable control in its local UI block.",
+      "review_disposition": "rejected_false_positive",
+      "review_rationale": "The matched text is a pull-request push-state value, not an empty-state message or action boundary.",
+      "next_action": "Narrow the rule so status-value text such as Unknown or No upstream does not trigger the empty-state heuristic."
+    },
+    {
+      "id": "AS-C2",
+      "rule_id": "anti-slop/no-generic-stat-label",
+      "file": "src/renderer/src/components/RepositoryAnalyticsPanel.tsx",
+      "line": 39,
+      "message": "Generic label `Analytics` detected. Prefer domain-specific wording.",
+      "review_disposition": "accepted",
+      "review_rationale": "Analytics repeats the surrounding navigation concept without naming the repository signals shown in the panel.",
+      "safe_direction": "Use a domain label such as Repository trends or Repository health and delivery."
+    },
+    {
+      "id": "AS-C3",
+      "rule_id": "anti-slop/no-defensive-guard-sprawl",
+      "file": "src/renderer/src/components/ShowcaseSurface.tsx",
+      "line": 58,
+      "message": "This function stacks 3 defensive null/record guards. Centralize shape validation in a small helper instead.",
+      "review_disposition": "accepted",
+      "review_rationale": "The inline comparator repeats null handling and ranking policy, making the visible sort contract harder to read and test.",
+      "safe_direction": "Extract a named comparison helper that preserves null-last ordering and the alphabetical tie break."
+    }
+  ],
+  "boundaries": [
+    "lint_candidates_are_not_confirmed_defects",
+    "human_review_owns_accept_or_reject",
+    "no_behavior_preservation_claim_until_as_3",
+    "working_tree_changes_are_not_part_of_this_case"
+  ],
+  "next_gap": "AS-2"
+}

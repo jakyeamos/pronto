@@ -1,0 +1,37 @@
+{
+  "schema_version": "pronto-showcase-dsci-proj-material-receipt/v1",
+  "project": "Dsci-proj",
+  "gap": "DS-0",
+  "observed_at": "2026-08-13T19:13:42Z",
+  "status": "passed_as_synthetic_contract_preview",
+  "source_kind": "synthetic_original",
+  "artifact": {
+    "path": "showcase-materials/dsci-proj/synthetic-preview.html",
+    "fixture": "showcase-materials/dsci-proj/synthetic-fixture.json",
+    "label_required": true,
+    "label": "Synthetic contract appendix · not current product output",
+    "network": "none",
+    "external_assets": false,
+    "credentials": false
+  },
+  "surface_probe": {
+    "status": "passed_as_static_http_fetch",
+    "command": "python3 -m http.server 4176 --bind 127.0.0.1 + curl http://127.0.0.1:4176/showcase-materials/dsci-proj/synthetic-preview.html",
+    "http_status": 200,
+    "content_type": "text/html",
+    "markers": [
+      "Synthetic showcase fixture · not current product output",
+      "Two backlog shapes",
+      "One canonical item",
+      "What this preview proves",
+      "DS-1 adapter proof remains open"
+    ]
+  },
+  "claim_boundary": [
+    "This page is a shareable visual target for the DS-0 decision contract.",
+    "The synthetic fixture is a reproducibility appendix, not a current product result.",
+    "The preview does not prove DS-1 adapters, configurable ranking, scenario execution, cross-backlog generalization, or hosted dashboard behavior.",
+    "No credentials, third-party assets, or external network calls are used."
+  ],
+  "next_gap": "DS-1"
+}

@@ -1,0 +1,38 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "rule-lab",
+  "status": "candidate_local",
+  "title": "Rule Lab: a fix must keep its counterexample",
+  "audience": "Teams that need quality rules to be explainable, testable, and safe to change.",
+  "promise": "Start from a finding, edit an isolated rule, compare positive and negative fixtures, and save a receipt bound to the target and engine.",
+  "story": [
+    "A concrete finding names the rule, risk, and fixture that motivated the edit.",
+    "A canonical rule and an isolated draft run against the same positive and negative suite.",
+    "The comparison shows no gained or lost matches, preserving the counterexample.",
+    "A fresh receipt records the target revision, engine version, and bounded result."
+  ],
+  "evidence": [
+    "evidence/rl-w2-fixture-comparison.json",
+    "evidence/rl-w2-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
+    "assets/preview-16x9.svg",
+    "../../../projects/rule-lab/README.md",
+    "../../../projects/rule-lab/docs/fixture-format.md"
+  ],
+  "verified_locally": [
+    "Current dev branch is clean at bcddbe0f7615d654c9d0866c603955e67db380e5; pytest, Ruff, and extension tests pass.",
+    "Canonical and draft rules compared against positive and negative fixtures.",
+    "Gained and lost matches are empty and the counterexample remains intact.",
+    "Receipt saved locally and re-checked as fresh against the fixture target.",
+    "A crop-safe 1600x900 SVG/PNG preview is visually inspected."
+  ],
+  "open_gates": [
+    "Move a receipt through the Quality Lens and Evidence Replay producer seam.",
+    "Capture direct VS Code acceptance with the same rule, fixture, and result.",
+    "Add stale and malformed scenario captures to the public evidence matrix.",
+    "Resolve the eight current pyright type errors or record an accepted typecheck boundary.",
+    "Verify a hosted no-auth case.",
+    "Record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves the current dev W2 headless fixture-comparison slice and fresh local receipt; it does not claim IDE parity, cross-producer acceptance, universal type health, automatic repair, hosting, or publication."
+}

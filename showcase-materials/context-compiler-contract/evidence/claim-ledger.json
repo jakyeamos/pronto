@@ -1,0 +1,55 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "context-compiler-contract",
+  "case_id": "CC-1-real-aios-result-boundary",
+  "review_status": "ready_for_local_package_review",
+  "claims": [
+    {
+      "id": "CC-5-01",
+      "claim": "The public package validates compiled result and context-routing-manifest shapes.",
+      "evidence": [
+        "case-fixture.json#contract",
+        "expected-results.json#valid-baseline",
+        "/Users/jakyeamos/projects/context-compiler-contract/index.mjs"
+      ],
+      "status": "supported"
+    },
+    {
+      "id": "CC-5-02",
+      "claim": "The baseline payload comes from an AIOS context compile; the two invalid inputs are deterministic mutations for the demo.",
+      "evidence": [
+        "case-fixture.json#source_command",
+        "case-fixture.json#source_commit",
+        "expected-results.json#missing-source-reason",
+        "expected-results.json#route-boundary-mismatch"
+      ],
+      "status": "supported"
+    },
+    {
+      "id": "CC-5-03",
+      "claim": "AIOS owns source selection, ranking, receipt writing, and execution; the contract package does not.",
+      "evidence": [
+        "case-fixture.json#claim_boundary",
+        "/Users/jakyeamos/projects/context-compiler-contract/README.md",
+        "/Users/jakyeamos/projects/AIOS/tools/context-compile.mjs"
+      ],
+      "status": "supported"
+    },
+    {
+      "id": "CC-5-04",
+      "claim": "A passing validation result is not proof that source permissions, policy, or downstream execution are safe.",
+      "evidence": [
+        "case-fixture.json#claim_boundary",
+        "case-fixture.json#fixture_strategy"
+      ],
+      "status": "boundary"
+    }
+  ],
+  "not_claimed": [
+    "general context-scope enforcement",
+    "source authorization or privacy review",
+    "context selection quality",
+    "downstream agent execution",
+    "hosted or browser-rendered capture"
+  ]
+}

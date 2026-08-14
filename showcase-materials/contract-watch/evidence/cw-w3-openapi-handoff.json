@@ -1,0 +1,69 @@
+{
+  "schema_version": "contract-watch-showcase-evidence-v0.1",
+  "project": "contract-watch",
+  "source_repository": "contract-watch",
+  "source_revision": "44dba2b28c4c2f0f1a1e0eb15236b7e90f57eab7",
+  "fixture_target_revision": "96e214f2128a04e7171acfdeae4142d1624d3383",
+  "observed_at": "2026-08-13T23:42:00Z",
+  "contract_family": "openapi",
+  "baseline": {
+    "path": "baseline.json",
+    "digest": "339e49831a290cb8e962d7d26f434d667294581ae09dc73fe9ef0032244d8e8f"
+  },
+  "current": {
+    "path": "current.json",
+    "digest": "c9de0c374043e8989cd7e45f51a390e502c5c7bc64f1ed8d71b8d0d5f437bc42"
+  },
+  "status": "ready",
+  "changes": [
+    {
+      "id": "response:get:/orders",
+      "kind": "response-change",
+      "certainty": "potential",
+      "consequence": "review",
+      "location": "/orders",
+      "disposition": "verified"
+    },
+    {
+      "id": "add:post:/reports",
+      "kind": "addition",
+      "certainty": "information",
+      "consequence": "review",
+      "location": "/reports",
+      "disposition": "unreviewed"
+    },
+    {
+      "id": "remove:get:/users",
+      "kind": "removal",
+      "certainty": "definite",
+      "consequence": "breaking",
+      "location": "/users",
+      "disposition": "mitigated"
+    },
+    {
+      "id": "deprecate:get:/orders",
+      "kind": "deprecation",
+      "certainty": "information",
+      "consequence": "migration",
+      "location": "/orders",
+      "disposition": "unreviewed"
+    }
+  ],
+  "separation": {
+    "certainty_is_policy": false,
+    "human_disposition_required": true,
+    "merge_verdict": null,
+    "release_verdict": null
+  },
+  "limitations": [
+    "undocumented consumers",
+    "runtime traffic",
+    "external references"
+  ],
+  "privacy": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local OpenAPI fixture"
+  },
+  "claim_boundary": "This receipt proves bounded OpenAPI semantic changes with separate certainty and human disposition. It does not prove undocumented-consumer coverage, Review Attention Map or Deletion Proof handoff, a merge verdict, hosting, or publication."
+}

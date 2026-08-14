@@ -1,0 +1,39 @@
+{
+  "approval_digest": "22c4bbe245b375ee99a5d44aa2d7376956a5b3d4ed87ee346d46b82e4118723e",
+  "blocked_by": ["MC-2", "MC-3"],
+  "effects": [
+    {
+      "effect": "Open the bundled synthetic brief in a visible Preview window",
+      "id": "open-brief",
+      "risk": "reversible",
+      "rollback": "Close the synthetic brief without saving changes",
+      "target": "Synthetic Research Brief in Preview",
+      "title": "Open the research brief",
+      "verification": "Read back the fixture identity and visible brief window"
+    },
+    {
+      "effect": "Open the bundled synthetic scratchpad in a visible TextEdit window",
+      "id": "open-scratchpad",
+      "risk": "reversible",
+      "rollback": "Close the synthetic scratchpad without saving changes",
+      "target": "Synthetic Research Scratchpad in TextEdit",
+      "title": "Open the research scratchpad",
+      "verification": "Read back the fixture identity and visible scratchpad window"
+    },
+    {
+      "effect": "Place the brief and scratchpad windows in the bounded research layout",
+      "id": "arrange-workspace",
+      "risk": "reversible",
+      "rollback": "Restore both windows to their captured pre-session frames",
+      "target": "Preview and TextEdit windows",
+      "title": "Arrange the research workspace",
+      "verification": "Read back both window frames against the bounded layout targets"
+    }
+  ],
+  "executable": false,
+  "fixture_id": "synthetic-research-brief-v1",
+  "name": "Research focus session",
+  "request": "Prepare my research session",
+  "schema_version": "macctl-focus-session-plan-preview/v1",
+  "status": "preview_only"
+}

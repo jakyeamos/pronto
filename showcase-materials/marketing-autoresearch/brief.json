@@ -1,0 +1,118 @@
+{
+  "schema_version": "pronto-showcase-marketing-autoresearch-brief/v1",
+  "project": "marketing-autoresearch",
+  "case_id": "MA-1-public-ai-showcase-prioritization",
+  "source_kind": "real_public_portfolio_maintenance_question",
+  "status": "ready_for_shadow_run",
+  "captured_on": "2026-08-13",
+  "profile_set": "marketed-v1",
+  "primary_profile": "portfolio",
+  "decision": {
+    "owner": "portfolio owner",
+    "question": "Which public AI Showcase story should be foregrounded next for evidence-seeking technical hiring teams, and what proof gap most limits trust in that story?",
+    "decision_window": "the next public Showcase material slot",
+    "candidate_lanes": [
+      "Quality Runner: a real repository audit, remediation plan, and evidence receipt",
+      "AI Workflow Leverage: a measured, paired task story with explicit uncertainty",
+      "AI Code Quality Stack: Anti-Slop detection, Pre-CR enforcement, and Quality Runner context"
+    ],
+    "success_definition": "The report recommends one lane, names the evidence that supports the recommendation, identifies at least one contradiction or uncertainty, and proposes one bounded next experiment without inventing an outcome or implying publication."
+  },
+  "audience": {
+    "primary_segment": "engineering managers, applied-AI leaders, and forward-deployed hiring teams evaluating technical execution",
+    "job_to_be_done": "Decide whether a portfolio project demonstrates trustworthy AI-enabled delivery rather than only AI-assisted activity.",
+    "underserved_question": "What evidence lets a reviewer distinguish a useful AI workflow from an attractive but unmeasured automation claim?",
+    "excluded_segments": [
+      "private clients or client procurement teams",
+      "audiences requiring account-level campaign targeting",
+      "any audience whose personal data is not already public and approved"
+    ]
+  },
+  "research_scope": {
+    "mode": "shadow_report_only",
+    "allowed_source_registry": [
+      {
+        "id": "portfolio-readme",
+        "kind": "approved_local_source",
+        "logical_path": "portfolio/README.md",
+        "fields": ["public scope", "status language", "canonical commands"]
+      },
+      {
+        "id": "portfolio-project-records",
+        "kind": "approved_local_source",
+        "logical_path": "portfolio/src/content/currentProjects.ts",
+        "fields": [
+          "title",
+          "summary",
+          "portfolio update",
+          "tags",
+          "last updated"
+        ]
+      },
+      {
+        "id": "public-project-documentation",
+        "kind": "public_source",
+        "logical_path": "canonical public repository README or documentation",
+        "fields": [
+          "documented behavior",
+          "public commands",
+          "explicit limitations"
+        ]
+      }
+    ],
+    "search_lanes": [
+      "applied AI engineering portfolio evidence",
+      "AI code quality workflow proof",
+      "AI productivity measurement and uncertainty",
+      "developer-tooling case study trust signals"
+    ],
+    "required_evidence_rules": [
+      "Every material report claim names a source identifier and retrieval date.",
+      "Observed source language, analyst inference, and unresolved unknowns remain separate.",
+      "No project outcome, adoption number, customer result, or deployment state is inferred from a repository name or concept brief.",
+      "If the approved source set cannot answer the decision, the run reports insufficient evidence instead of filling the gap."
+    ],
+    "exclusions": [
+      "BidCamp or any client work",
+      "Soundscape Showcase materials, which are excluded by owner decision",
+      "private tracker notes, credentials, cookies, raw provider payloads, and local absolute paths",
+      "claims about a live deployment, marketplace listing, hiring outcome, or AI speed gain without current linked proof",
+      "publication, outreach, ad spend, email, social posting, or mutation of any target repository"
+    ]
+  },
+  "report_contract": {
+    "format": "one_page_markdown_and_machine_readable_receipt",
+    "required_sections": [
+      "recommendation and rejected alternatives",
+      "source-linked evidence",
+      "contradiction or limitation",
+      "unknowns and confidence",
+      "one bounded next experiment",
+      "human handoff and publication state"
+    ],
+    "minimum_source_count": 3,
+    "minimum_independent_source_count": 2,
+    "publication_state": "blocked_pending_human_review",
+    "human_handoff": [
+      "review factual source links and evidence labels",
+      "approve or revise the recommendation and audience language",
+      "decide whether a later publication candidate is appropriate"
+    ]
+  },
+  "stop_conditions": [
+    "A source requires credentials, private account access, or an unapproved provider.",
+    "A source contains client, personal, secret, or private-path data that cannot be redacted safely.",
+    "The run cannot preserve source-to-claim links or current retrieval dates.",
+    "Any requested action would publish, send, spend, or mutate external state."
+  ],
+  "synthetic_appendix": {
+    "path": "synthetic-fixture.json",
+    "role": "short_reproducibility_appendix",
+    "replaces_real_case": false
+  },
+  "claim_boundary": [
+    "This brief selects a real public portfolio decision question; it is not a market result.",
+    "MA-1 does not claim that any lane wins, that the audience is measured, or that a campaign is ready to publish.",
+    "The shadow run must preserve missing evidence and fail closed at the publication boundary."
+  ]
+}

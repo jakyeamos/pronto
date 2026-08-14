@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rule Lab preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0f1020;
+        --panel: #1b1b33;
+        --text: #f7f5ff;
+        --muted: #b8b5cf;
+        --cyan: #7ee7e2;
+        --violet: #c9a7ff;
+        --amber: #f4c76d;
+        --line: rgba(226, 220, 255, 0.2);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(
+            circle at 15% 12%,
+            rgba(126, 231, 226, 0.13),
+            transparent 30%
+          ),
+          radial-gradient(
+            circle at 90% 80%,
+            rgba(201, 167, 255, 0.15),
+            transparent 34%
+          ),
+          var(--bg);
+        color: var(--text);
+        font:
+          16px/1.5 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      .frame {
+        width: min(1600px, 100vw);
+        aspect-ratio: 16 / 9;
+        padding: 7vw;
+        display: grid;
+        grid-template-columns: 0.95fr 1.05fr;
+        gap: 6vw;
+        align-items: center;
+      }
+      .kicker {
+        color: var(--cyan);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 720px;
+        margin: 16px 0 22px;
+        font-size: clamp(2.7rem, 5.6vw, 6.1rem);
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+      }
+      .lede {
+        max-width: 54ch;
+        color: var(--muted);
+        font-size: clamp(1rem, 1.55vw, 1.25rem);
+      }
+      .card {
+        padding: clamp(22px, 3vw, 42px);
+        border: 1px solid var(--line);
+        border-radius: 5px 18px 5px 18px;
+        background: linear-gradient(
+          145deg,
+          rgba(46, 39, 84, 0.92),
+          rgba(27, 27, 51, 0.92)
+        );
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3);
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .badge {
+        color: var(--amber);
+      }
+      .compare {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        margin: 26px 0;
+        background: var(--line);
+        border: 1px solid var(--line);
+      }
+      .case {
+        min-height: 142px;
+        padding: 20px;
+        background: rgba(15, 16, 32, 0.74);
+      }
+      .case strong {
+        display: block;
+        margin-bottom: 12px;
+        color: var(--violet);
+        font-size: 0.84rem;
+      }
+      .case span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .pass {
+        margin-top: 12px;
+        color: var(--cyan) !important;
+        font-weight: 700;
+      }
+      .footer {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      @media (max-width: 760px) {
+        .frame {
+          aspect-ratio: auto;
+          min-height: 100vh;
+          grid-template-columns: 1fr;
+          padding: 12vw 8vw;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="frame" data-material-status="candidate-local">
+      <section>
+        <div class="kicker">Rule Lab · W2 verification</div>
+        <h1>A fix must keep its counterexample.</h1>
+        <p class="lede">
+          Start from a finding, change one isolated rule, compare positive and
+          negative fixtures, and save the reasoning as a target-bound receipt.
+        </p>
+      </section>
+      <section class="card" aria-label="Rule Lab preview">
+        <div class="row">
+          <span>no-clickable-div · warning</span
+          ><span class="badge">receipt fresh</span>
+        </div>
+        <div class="compare">
+          <div class="case">
+            <strong>Positive fixture</strong><span>clickable div → match</span
+            ><span class="pass">✓ preserved</span>
+          </div>
+          <div class="case">
+            <strong>Negative fixture</strong
+            ><span>semantic button → no match</span
+            ><span class="pass">✓ preserved</span>
+          </div>
+        </div>
+        <div class="footer">
+          Candidate local material · IDE parity, handoff, and hosting remain
+          open.
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

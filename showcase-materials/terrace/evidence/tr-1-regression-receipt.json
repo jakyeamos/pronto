@@ -1,0 +1,47 @@
+{
+  "schema_version": "pronto-showcase-terrace-evidence/v1",
+  "project": "Terrace",
+  "gap_id": "TR-1",
+  "generated_at": "2026-08-13T02:03:48Z",
+  "source_repository_head_at_review": "e60421fa5fd10d8d8d174743cbf1fd7c02f77e98",
+  "source_repository_state_at_review": "clean, branch codex/terrace-adoption-measure, 6 commits ahead of upstream",
+  "runtime": {
+    "node_path": "/Users/jakyeamos/.local/share/mise/shims/node",
+    "node_version": "v22.14.0",
+    "vitest_path": "/Users/jakyeamos/projects/Terrace/node_modules/.bin/vitest",
+    "vitest_version": "4.1.2"
+  },
+  "fixture": {
+    "fixed_commit": "cd44e3b0c634eb2c25820dcd2f2b6857c82aa0cb",
+    "failing_parent_commit": "77f1f5e37160264e913b2df9386e42da4fa51cc4",
+    "fixed_workflow_sha256": "4690fca2470d40e04d389cf8eab45b7d1c4fb55eb417b84f125fe56c51364b07",
+    "regression_test_sha256": "b954fa73b246f1c4826b121618a8bd74b8de65d2e0d531eb312667970db11c1a"
+  },
+  "failing_run": {
+    "exit_code": 1,
+    "test_files": { "passed": 0, "failed": 1 },
+    "tests": { "passed": 0, "failed": 1, "skipped": 38 },
+    "expected_command": "terrace workbench status --feature gpt56-modernization",
+    "observed_command": "terrace phase show phase-11-notifications",
+    "expected_blocked": true,
+    "observed_blocked": false
+  },
+  "corrected_run": {
+    "exit_code": 0,
+    "test_files": { "passed": 1, "failed": 0 },
+    "tests": { "passed": 1, "failed": 0, "skipped": 38 },
+    "duration_ms": 382
+  },
+  "acceptance": {
+    "representative_spec_defined": true,
+    "real_validation_failure_reproduced": true,
+    "failure_attributed_to_one_stage": true,
+    "bounded_correction_reproduced": true,
+    "tr_1_closed": true
+  },
+  "limitations": [
+    "The run exercises a focused historical regression fixture, not the complete Terrace CI ladder.",
+    "TR-2 must still prove durable pending, active, passed, failed, and blocked stage state across restart or replay.",
+    "TR-3 must still define the complete structured stop-packet contract."
+  ]
+}

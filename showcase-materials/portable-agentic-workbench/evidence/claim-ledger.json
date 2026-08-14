@@ -1,0 +1,106 @@
+{
+  "schema_version": "pronto-showcase-portable-workbench-claim-ledger/v1",
+  "project": "portable-agentic-workbench",
+  "case_id": "PW-1-safe-tool-guards",
+  "claims": [
+    {
+      "id": "public-workflow-selected",
+      "status": "supported",
+      "claim": "The case uses the public manifest-backed safe-tool-guards workflow, which is marked portable and has no declared dependencies.",
+      "evidence": [
+        "case-fixture.json#asset",
+        "case-fixture.json#source_boundary"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "dry-run-is-non-mutating",
+      "status": "supported",
+      "claim": "Generic and Codex dry-runs report two allowlisted copies and leave their empty target roots empty.",
+      "evidence": [
+        "evidence/validation-receipt.json#runs.generic.dry_run",
+        "evidence/validation-receipt.json#runs.codex.dry_run"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "explicit-apply",
+      "status": "supported",
+      "claim": "Apply mode copies only the two manifest-allowlisted contract files into an explicit target root.",
+      "evidence": [
+        "case-fixture.json#asset.files",
+        "evidence/validation-receipt.json#runs.generic.apply",
+        "evidence/validation-receipt.json#runs.codex.apply"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "overwrite-refusal",
+      "status": "supported",
+      "claim": "A second apply is blocked when both destination files already exist; the installer does not silently overwrite them.",
+      "evidence": [
+        "evidence/validation-receipt.json#runs.generic.overwrite_guard",
+        "evidence/validation-receipt.json#runs.codex.overwrite_guard"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "portable-projection-parity",
+      "status": "supported",
+      "claim": "Generic and Codex produce byte-identical portable projections with the same relative destinations and statuses.",
+      "evidence": [
+        "evidence/validation-receipt.json#parity",
+        "case-fixture.json#observed.projection_hashes"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "manual-review-boundary",
+      "status": "supported",
+      "claim": "The install receipt keeps target, baseline, network, credential, approval, and host-adapter review visible; registration is not an installation side effect.",
+      "evidence": [
+        "case-fixture.json#asset.install.manual_review",
+        "case-fixture.json#contract.required_behaviors[3]",
+        "evidence/validation-receipt.json#runs.generic.dry_run.manual_review_present"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "runtime-equivalence",
+      "status": "blocked",
+      "claim": "Generic and Codex will execute the workflow identically after host registration.",
+      "reason": "The attempted probe found no executable generic host and no permitted offline Codex execution path. Provider calls and host registration are forbidden by the selected workflow contract.",
+      "evidence": [
+        "expected-results.json#open_gaps[0]",
+        "evidence/runtime-comparison.json"
+      ]
+    },
+    {
+      "id": "recovery",
+      "status": "supported",
+      "claim": "A receipt-owned installed workflow can be reversed without touching an unrelated user file, and a modified file blocks recovery without mutation.",
+      "evidence": [
+        "evidence/validation-receipt.json#recovery",
+        "expected-results.json#cases[9]",
+        "expected-results.json#cases[11]"
+      ]
+    },
+    {
+      "id": "quality-or-performance",
+      "status": "not_claimed",
+      "claim": "The workflow improves agent quality, speed, or safety in production.",
+      "reason": "This local proof has no comparable task sample, provider runtime, or production telemetry.",
+      "evidence": ["case-fixture.json#claim_boundary"]
+    },
+    {
+      "id": "external-or-private-state",
+      "status": "not_claimed",
+      "claim": "The case includes credentials, private runtime state, provider calls, or host-managed registration.",
+      "reason": "Those surfaces are outside the public workbench boundary and were not accessed.",
+      "evidence": [
+        "case-fixture.json#source_boundary",
+        "case-fixture.json#claim_boundary"
+      ]
+    }
+  ]
+}

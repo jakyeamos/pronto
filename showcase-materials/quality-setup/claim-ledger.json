@@ -1,0 +1,62 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "quality-setup",
+  "case_id": "quality-setup-w1-node-fixture-001",
+  "reviewed_at": "2026-08-14T02:49:09Z",
+  "levels": [
+    {
+      "id": "candidate",
+      "label": "Supported target",
+      "status": "verified_local",
+      "status_display": "Node + pnpm recognized",
+      "allowed_claim": "The prototype recognizes a repository with package.json and pnpm-lock.yaml as a supported Node/pnpm target.",
+      "forbidden_inference": "Other ecosystems are supported or the setup is globally installed.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/qs-w1-current-dev-checkpoint.json#/scenario/before", "evidence/qs-w1-scenario-matrix.json#ecosystem"]
+    },
+    {
+      "id": "mutation",
+      "label": "Preview-first mutation",
+      "status": "verified_local",
+      "status_display": "Apply is explicit",
+      "allowed_claim": "The plan names a reversible repository-local config change before apply.",
+      "forbidden_inference": "The tool silently installs or commits anything.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/qs-w1-current-dev-checkpoint.json#/scenario/plan", "evidence/qs-w1-scenario-matrix.json#scenarios/1"]
+    },
+    {
+      "id": "recovery",
+      "label": "Refusal and rollback",
+      "status": "verified_local",
+      "status_display": "Conflict refused; rollback passed",
+      "allowed_claim": "A second plan refuses an existing owned config and the saved rollback removes only that config.",
+      "forbidden_inference": "Rollback can restore arbitrary unrelated repository state.",
+      "public_claim_allowed": true,
+      "evidence_refs": [
+        "evidence/qs-w1-scenario-matrix.json#scenarios/4",
+        "evidence/qs-w1-scenario-matrix.json#scenarios/5",
+        "evidence/qs-w1-current-dev-checkpoint.json#/scenario/rollback"
+      ]
+    },
+    {
+      "id": "ecosystem",
+      "label": "Broader support",
+      "status": "open",
+      "status_display": "Node-only prototype",
+      "allowed_claim": "The current prototype's supported ecosystem is explicitly narrow.",
+      "forbidden_inference": "The setup inspector covers every Quality Runner ecosystem.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["../route-plan.md#3-build-gap-specification"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "not_verified",
+      "status_display": "No hosted or posted proof",
+      "allowed_claim": "Deployment and external publication remain unverified.",
+      "forbidden_inference": "The setup case is live on GitHub, portfolio, or Handshake.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["evidence/qs-w1-current-dev-checkpoint.json#/open_gates", "case-study.json#open_gates"]
+    }
+  ]
+}

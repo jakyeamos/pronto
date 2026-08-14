@@ -1,0 +1,79 @@
+{
+  "schema_version": "workflow-gateboard-showcase-evidence-v0.1",
+  "project": "workflow-gateboard",
+  "source_repository": "workflow-gateboard",
+  "source_branch": "dev",
+  "source_revision": "f1608317c9b10f0fa4c582690eb78348447468fb",
+  "observed_at": "2026-08-14T02:58:41Z",
+  "checks": {
+    "test": {
+      "status": "passed",
+      "command": "pnpm test",
+      "tests": 3
+    },
+    "lint": {
+      "status": "passed",
+      "command": "pnpm lint"
+    },
+    "package": {
+      "status": "passed",
+      "command": "pnpm package"
+    }
+  },
+  "manifest": {
+    "path": ".workflow-gates.json",
+    "status": "ready",
+    "declaration_version": 1,
+    "gates": [
+      { "id": "syntax", "mutation": "read", "depends_on": [], "status": "not_run" },
+      { "id": "tests", "mutation": "read", "depends_on": ["syntax"], "status": "blocked" },
+      { "id": "package", "mutation": "read", "depends_on": ["tests"], "status": "blocked" }
+    ]
+  },
+  "headless_flow": {
+    "list": {
+      "status": "ready",
+      "command": "node src/cli.mjs list .",
+      "summary": "syntax=not_run, tests=blocked, package=blocked"
+    },
+    "syntax": {
+      "status": "passed",
+      "command": "node src/cli.mjs run . syntax --json",
+      "receipt": ".workflow-gateboard/receipts/syntax.json",
+      "target_revision": "f1608317c9b10f0fa4c582690eb78348447468fb",
+      "mutation": "read"
+    },
+    "tests": {
+      "status": "blocked",
+      "command": "node src/cli.mjs run . tests --json",
+      "reason": "A prerequisite gate has not passed."
+    },
+    "package": {
+      "status": "blocked",
+      "command": "node src/cli.mjs run . package --json",
+      "reason": "A prerequisite gate has not passed."
+    }
+  },
+  "target_boundary": {
+    "repository_ref_unchanged": true,
+    "tracked_worktree_unchanged": true,
+    "receipt_artifact_written": true
+  },
+  "state_persistence": {
+    "status": "open",
+    "observed": "A passed syntax gate is not carried into a separate CLI invocation; dependent tests remain blocked until a board refresh/state handoff exists.",
+    "required_next_step": "Persist or explicitly reload gate receipts before claiming a continued gate sequence."
+  },
+  "negative_contracts": {
+    "mutating_declaration": "verified_by_unit_test",
+    "failed_gate": "verified_by_unit_test",
+    "timed_out_gate": "verified_by_unit_test"
+  },
+  "privacy": {
+    "commands": "repository-declared local commands",
+    "external_write": false,
+    "credentials_collected": false,
+    "output_bounded": true
+  },
+  "claim_boundary": "Current dev checks, declaration, syntax receipt, dependency blocking, and tracked ref safety are verified locally. The full pass sequence remains a historical W2 fixture until prerequisite state persists across CLI invocations; trace integration, hosting, and publication are not claimed."
+}

@@ -1,0 +1,40 @@
+{
+  "schema_version": "pronto-showcase-fleet-radar-w7/v1",
+  "project": "fleet-radar",
+  "observed_at": "2026-08-14T02:00:27Z",
+  "binary_preview": {
+    "path": "assets/fleet-radar-preview-1600x900.png",
+    "format": "PNG",
+    "width": 1600,
+    "height": 900,
+    "aspect_ratio": "16:9",
+    "bytes": 284572,
+    "sha256": "af7981fb01b2ee20bbfd2460337352f23b160ecc6d28d806b48cdf9ce227ddf5",
+    "source_html": "preview.html",
+    "rendered_with": "Google Chrome headless",
+    "visual_inspection": "passed"
+  },
+  "hosted_case": {
+    "provider": "Sites",
+    "site_slug": "fleet-radar-case",
+    "project_id": "appgprj_6a7e75447da48191b88b03de9c4e9fcc",
+    "saved_version_number": 1,
+    "saved_version_id": "appgprj_6a7e75447da48191b88b03de9c4e9fcc~appgver_50122feb24548191aef554cea10976e8",
+    "source_commit": "c5c072773ff47261917f242e8a28c3d79e6ef36b",
+    "archive_sha256": "f95da7afe3d8630c6c9604a9f30aaacaf655e1e7a08794fd033ec8a68772b3cf",
+    "access_observed": "custom_owner_only",
+    "deployment_status": "not_started",
+    "no_auth_url": null,
+    "public_access_gate": "blocked_pending_explicit_access_confirmation"
+  },
+  "verification": {
+    "local_build": "passed",
+    "rendered_html_tests": 2,
+    "lint": "passed",
+    "pre_cr_commit_gate": "passed",
+    "source_push": "passed",
+    "site_version_save": "passed",
+    "unauthenticated_http_readback": "not_run_because_no_public_url_exists"
+  },
+  "claim_boundary": "The 16:9 PNG is verified local binary material and a validated owner-only Sites version is saved. No hosted no-auth URL or public deployment claim is allowed until public access is explicitly confirmed and the deployed URL is fetched without credentials."
+}
