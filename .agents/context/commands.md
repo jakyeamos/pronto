@@ -1,6 +1,6 @@
 # Agent command contract
 
-Last reviewed: 2026-07-29.
+Last reviewed: 2026-08-14.
 
 ## Invocation
 
@@ -44,6 +44,7 @@ intentionally withholds follow-up projections and exits non-zero; use its
 | One repository            | `repo <absolute-repo-path> [--fresh] --json`                                                                                                                  | `pronto-agent-repository/v1`      |
 | Quality evidence          | `quality [<repository>] --json`                                                                                                                               | `pronto-agent-quality/v1`         |
 | Quality import            | `quality refresh --json`                                                                                                                                      | persisted local quality snapshot  |
+| Fleet detector refresh    | `quality detector-refresh [--qr-bin <path>] [--timeout-seconds <seconds>] [--agent-review-mode <off\|auto\|parallel\|required>] --json`                    | `pronto-quality-detector-refresh/v1` |
 | Finding adjudication      | `quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] --json` | repository-owned overlay          |
 | Skill topology            | `skills [<skill-id>] --json`                                                                                                                                  | `pronto-skills/v2`                |
 | Papercut corpus           | `papercuts list --json`                                                                                                                                       | `pronto-papercuts/v2`             |
@@ -180,6 +181,16 @@ Dynamic audits default to a 120-second per-command timeout. Use
 repository's documented quality command legitimately needs a longer bound;
 the same explicit timeout is applied to both the scoped audit and any required
 canonical all-projects fallback.
+
+Missing findings evidence is not repaired by the maturity audit. Use the
+explicit `quality detector-refresh` lane to run QR full analysis with
+deterministic skill packs at every registered repository's exact target commit,
+passing Pronto's configured target branches as path-keyed overrides, publishing
+normal QR runs, and immediately re-importing them. The command continues past
+per-repository `blocked` and `unsupported` outcomes and returns the QR ledger
+plus post-import findings coverage. It does not execute discovered repository
+gates. Agent review remains off unless the operator explicitly sets
+`--agent-review-mode`.
 
 ## Refresh and state boundaries
 

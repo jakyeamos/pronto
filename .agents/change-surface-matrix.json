@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-11",
+  "last_reviewed": "2026-08-14",
   "surfaces": [
     {
       "id": "native-core",
@@ -94,6 +94,20 @@
         "quality-runner doctor --json",
         "quality-runner fleet audit run --repo-path \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm cli quality \"$(git rev-parse --show-toplevel)\" --json"
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "fleet-detector-refresh",
+      "scope": "external",
+      "path": "src-tauri/src/core.rs, Quality Runner fleet detector publication, repository-local QR runs, and Pronto quality import",
+      "owner": "Pronto and Quality Runner integration owners",
+      "condition": "Fleet detector command, producer schema, exact-target publication, per-repository status, or findings coverage behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::quality_detector_refresh",
+        "pnpm cli help",
+        "Run a source QR detector refresh against a disposable fixture and verify Pronto imports its repository-local findings evidence."
       ],
       "status": "applicable"
     },
