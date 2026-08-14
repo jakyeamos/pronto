@@ -22,6 +22,7 @@ const fixtureFiles = [
   "docs/mac-control-maturity-gate.md",
   "docs/remediation-sequential-handoff.md",
   "docs/repository-contract.md",
+  "docs/runtime-resource-efficiency-maturity.md",
   "scripts/validate-repository-contract.mjs",
 ];
 

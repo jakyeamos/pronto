@@ -108,6 +108,13 @@ findings. Pronto preserves every scored dimension as an open set and exposes
 the complete score inventory in the maturity disclosure; descriptive gaps are
 bounded separately by the feed contract.
 
+The [runtime resource efficiency maturity contract](runtime-resource-efficiency-maturity.md)
+adds `runtime_resource_efficiency` to the user-facing-quality pillar. It scores
+artifact size, loading, startup, memory, dependency, and production-payload
+outcomes according to their evidence strength. Implementation techniques such
+as route-level lazy loading are evidence inputs, never pass conditions by
+themselves.
+
 The [Mac Control maturity gate](mac-control-maturity-gate.md) contributes
 implementation-contract and live-task-evidence dimensions to the consolidated
 score for every registered repository unless that repository explicitly proves

@@ -204,6 +204,7 @@
         "quality-runner fleet audit run --repo-path \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm cli quality \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm vitest run src/renderer/src/components/QualityComponents.test.tsx",
+        "Confirm runtime_resource_efficiency is sourced from outcome evidence and remains non-critical unless observed harm is represented by an existing critical dimension.",
         "Confirm Project Compass and product-readiness values remain separate from repository maturity."
       ],
       "status": "applicable"

@@ -431,6 +431,7 @@ pub struct RepositoryMaturityPillar {
     pub score: Option<f64>,
     pub dimension_scores: BTreeMap<String, f64>,
     pub missing_capabilities: Vec<String>,
+    pub not_applicable_capabilities: Vec<String>,
     pub critical_dimensions: Vec<String>,
 }
 
@@ -1685,6 +1686,16 @@ fn build_repository_maturity_model(maturity: &QualityMaturity) -> RepositoryMatu
             })
             .cloned()
             .collect::<Vec<_>>();
+        let not_applicable_capabilities = maturity_pillar_capabilities(id)
+            .iter()
+            .filter(|(_, patterns)| {
+                maturity.gaps.iter().any(|gap| {
+                    gap.status == "not_applicable"
+                        && maturity_dimension_matches(&gap.dimension, patterns)
+                })
+            })
+            .map(|(capability, _)| (*capability).to_string())
+            .collect::<Vec<_>>();
         critical_reasons.extend(
             critical_dimensions
                 .iter()
@@ -1696,6 +1707,11 @@ fn build_repository_maturity_model(maturity: &QualityMaturity) -> RepositoryMatu
                 !dimension_scores
                     .keys()
                     .any(|dimension| maturity_dimension_matches(dimension, patterns))
+            })
+            .filter(|(capability, _)| {
+                !not_applicable_capabilities
+                    .iter()
+                    .any(|excluded| excluded.as_str() == *capability)
             })
             .map(|(capability, _)| (*capability).to_string())
             .collect::<Vec<_>>();
@@ -1734,6 +1750,7 @@ fn build_repository_maturity_model(maturity: &QualityMaturity) -> RepositoryMatu
             score,
             dimension_scores,
             missing_capabilities,
+            not_applicable_capabilities,
             critical_dimensions,
         });
     }
@@ -1891,6 +1908,7 @@ fn maturity_pillar_patterns(pillar: &str) -> &'static [&'static str] {
         "user_facing_quality" => &[
             "accessibility",
             "performance",
+            "runtime_resource_efficiency",
             "user_journey",
             "web_readiness",
         ],
@@ -1960,6 +1978,10 @@ fn maturity_pillar_capabilities(
         "user_facing_quality" => &[
             ("accessible_experience", &["accessibility"]),
             ("performance_evidence", &["performance"]),
+            (
+                "runtime_resource_efficiency",
+                &["runtime_resource_efficiency"],
+            ),
             ("user_journey_evidence", &["user_journey", "web_readiness"]),
         ],
         "human_agent_usability" => &[
@@ -1998,9 +2020,11 @@ fn is_critical_maturity_pillar(pillar: &str) -> bool {
 }
 
 fn maturity_pillar_capability_coverage(pillar: &RepositoryMaturityPillar) -> f64 {
-    let capability_count = maturity_pillar_capabilities(&pillar.id).len();
+    let capability_count = maturity_pillar_capabilities(&pillar.id)
+        .len()
+        .saturating_sub(pillar.not_applicable_capabilities.len());
     if capability_count == 0 {
-        return 0.0;
+        return 1.0;
     }
     (capability_count.saturating_sub(pillar.missing_capabilities.len())) as f64
         / capability_count as f64
@@ -6552,6 +6576,103 @@ mod tests {
         assert_eq!(model.evidence.assessed_pillar_count, 4);
         assert_eq!(model.evidence.assessed_weight, 0.228);
         assert_eq!(model.evidence.evidence_coverage, 0.309);
+    }
+
+    #[test]
+    fn repository_maturity_governs_runtime_resource_efficiency_as_user_facing_evidence() {
+        let maturity = QualityMaturity {
+            dimension_scores: BTreeMap::from([
+                ("quality_commands".to_string(), 4.0),
+                ("security_constraints".to_string(), 4.0),
+                ("architecture_boundaries".to_string(), 4.0),
+                ("observability".to_string(), 4.0),
+                ("runtime_resource_efficiency".to_string(), 3.0),
+            ]),
+            gaps: vec![QualityMaturityGap {
+                dimension: "runtime_resource_efficiency".to_string(),
+                status: "attention".to_string(),
+                score: Some(3.0),
+                message: "Runtime outcomes pass, but regression enforcement is incomplete."
+                    .to_string(),
+            }],
+            ..QualityMaturity::default()
+        };
+
+        let model = build_repository_maturity_model(&maturity);
+        let user_facing = model
+            .pillars
+            .iter()
+            .find(|pillar| pillar.id == "user_facing_quality")
+            .expect("runtime efficiency should make user-facing quality applicable");
+
+        assert_eq!(user_facing.applicability, "applicable");
+        assert_eq!(user_facing.status, "attention");
+        assert_eq!(user_facing.score, Some(3.0));
+        assert_eq!(
+            user_facing
+                .dimension_scores
+                .get("runtime_resource_efficiency"),
+            Some(&3.0)
+        );
+        assert!(!user_facing
+            .missing_capabilities
+            .contains(&"runtime_resource_efficiency".to_string()));
+        assert!(!model.critical_cap.applied);
+        assert!(!model
+            .evidence
+            .unmapped_dimensions
+            .contains(&"runtime_resource_efficiency".to_string()));
+    }
+
+    #[test]
+    fn repository_maturity_reports_missing_runtime_resource_evidence() {
+        let maturity = QualityMaturity {
+            dimension_scores: BTreeMap::from([("performance".to_string(), 4.0)]),
+            ..QualityMaturity::default()
+        };
+
+        let model = build_repository_maturity_model(&maturity);
+        let user_facing = model
+            .pillars
+            .iter()
+            .find(|pillar| pillar.id == "user_facing_quality")
+            .expect("performance should make user-facing quality applicable");
+
+        assert_eq!(user_facing.score, Some(4.0));
+        assert!(user_facing
+            .missing_capabilities
+            .contains(&"runtime_resource_efficiency".to_string()));
+        assert_eq!(maturity_pillar_capability_coverage(user_facing), 0.25);
+        assert_eq!(model.status, "provisional");
+    }
+
+    #[test]
+    fn repository_maturity_excludes_explicitly_inapplicable_runtime_evidence() {
+        let maturity = QualityMaturity {
+            dimension_scores: BTreeMap::from([("performance".to_string(), 4.0)]),
+            gaps: vec![QualityMaturityGap {
+                dimension: "runtime_resource_efficiency".to_string(),
+                status: "not_applicable".to_string(),
+                score: None,
+                message: "This repository does not distribute or run an artifact.".to_string(),
+            }],
+            ..QualityMaturity::default()
+        };
+
+        let model = build_repository_maturity_model(&maturity);
+        let user_facing = model
+            .pillars
+            .iter()
+            .find(|pillar| pillar.id == "user_facing_quality")
+            .expect("performance should make user-facing quality applicable");
+
+        assert!(user_facing
+            .not_applicable_capabilities
+            .contains(&"runtime_resource_efficiency".to_string()));
+        assert!(!user_facing
+            .missing_capabilities
+            .contains(&"runtime_resource_efficiency".to_string()));
+        assert_eq!(maturity_pillar_capability_coverage(user_facing), 1.0 / 3.0);
     }
 
     #[test]
