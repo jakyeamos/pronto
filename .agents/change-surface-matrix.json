@@ -60,6 +60,22 @@
       "status": "applicable"
     },
     {
+      "id": "promotion-funnel-contract",
+      "scope": "local",
+      "path": "src-tauri/src/promotion.rs, src/renderer/src/types/promotion.ts, src/renderer/src/components/PromotionSurface.tsx, src/renderer/src/components/PromotionCoveragePanel.tsx, src/renderer/src/styles.css",
+      "owner": "Pronto repository maintainers and AWL promotion-packet owner",
+      "condition": "The promotion inbox exposes the AWL evaluation-to-review funnel, packet count, candidate count semantics, or review boundary copy.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "pnpm vitest run src/renderer/src/components/PromotionSurface.test.tsx",
+        "pnpm typecheck",
+        "pnpm build:web",
+        "Verify AWL's 188 to 136 to 136 funnel and the 14 awaiting decision and 62 total candidates label from the live inbox payload when available.",
+        "Verify funnel projection carries manual_review_required=true and jas_mutation=false."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "analytics-contract",
       "scope": "local",
       "path": "src-tauri/src/core.rs, src/renderer/src/components/Analytics*, and docs/analytics-workspace.md",

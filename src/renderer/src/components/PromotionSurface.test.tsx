@@ -112,7 +112,35 @@ describe("PromotionSurface", () => {
   it("renders the AWL decision boundary and candidate actions", () => {
     const markup = renderToStaticMarkup(
       <PromotionSurface
-        inbox={inboxFixture()}
+        inbox={inboxFixture({
+          counts: {
+            total: 62,
+            pending: 14,
+            deferred: 0,
+            rejected: 0,
+            accepted: 0,
+            complete: 13,
+            drafts: 49,
+          },
+          funnel: {
+            schema_version: "leverage-promotion-funnel/v1",
+            status: "pass",
+            evaluation_candidate_drafts: 188,
+            ready_behavior_identity_clusters: 136,
+            selected_forward_test_work_items: 136,
+            promotion_packets: 136,
+            forward_test_pass: 90,
+            forward_test_failed: 46,
+            forward_test_blocked: 0,
+            packets_blocked: 90,
+            packets_failed: 46,
+            quantification_pending: 136,
+            promotion_candidates: 62,
+            source_triage_artifact: "artifacts/improvement-triage/triage.json",
+            manual_review_required: true,
+            jas_mutation: false,
+          },
+        })}
         isRefreshing={false}
         onRefresh={vi.fn(async () => undefined)}
         onDecide={vi.fn(async () => undefined)}
@@ -127,6 +155,9 @@ describe("PromotionSurface", () => {
       "AWL owns discovery, testing, quantification, and packet generation",
     );
     expect(markup).toContain("Discovery coverage");
+    expect(markup).toContain("14 awaiting decision · 62 total candidates");
+    expect(markup).toContain("Upstream funnel: 188 evaluation drafts");
+    expect(markup).toContain("Packets stay outside the 62-candidate inbox");
     expect(markup).toContain("Asset observations");
     expect(markup).toContain(
       "Asset observations are review inputs, not candidates.",

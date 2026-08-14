@@ -68,6 +68,8 @@ pub struct PromotionInbox {
     pub candidates: Vec<PromotionCandidate>,
     pub counts: PromotionCounts,
     #[serde(default)]
+    pub funnel: Option<Value>,
+    #[serde(default)]
     pub coverage: Option<Value>,
     #[serde(default)]
     pub discovery: Option<Value>,
@@ -206,6 +208,7 @@ fn unavailable(message: String) -> PromotionInbox {
         source_root: String::new(),
         candidates: Vec::new(),
         counts: PromotionCounts::default(),
+        funnel: None,
         coverage: None,
         discovery: None,
         errors: vec![Value::String(message.clone())],

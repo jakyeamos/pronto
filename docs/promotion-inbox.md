@@ -12,7 +12,13 @@ AWL decision artifact.
 AWL owns discovery, forward testing, quantification, and complete candidate
 formation. The tab only reads the resulting evidence and records the owner's
 choice; it does not create test packets, run tests, calculate measurements, or
-assemble candidates.
+assemble candidates. The overview distinguishes the number awaiting an owner
+decision from the total candidate inventory (for example, `14 awaiting
+decision · 62 total candidates`). When AWL supplies its funnel projection, the
+coverage panel separately shows the upstream evaluation drafts → behavior
+identities → forward-test work items → review packets counts. Review packets
+remain outside the candidate inventory until quantification and owner review
+pass.
 
 The tab is the owner-controlled admission boundary. For an accepted complete
 candidate, it invokes JAS's explicit `apply` command with a disposable approval

@@ -1,5 +1,9 @@
 import type { ReactElement } from "react";
-import type { PromotionCoverage, PromotionDiscoverySummary } from "../types";
+import type {
+  PromotionCoverage,
+  PromotionDiscoverySummary,
+  PromotionFunnel,
+} from "../types";
 import { StatusPill } from "./ConsolePrimitives";
 
 function coverageTone(status?: string): string {
@@ -29,9 +33,11 @@ function formatBytes(value: number): string {
 export function PromotionCoveragePanel({
   coverage,
   discovery,
+  funnel,
 }: {
   coverage?: PromotionCoverage | null;
   discovery?: PromotionDiscoverySummary | null;
+  funnel?: PromotionFunnel | null;
 }): ReactElement {
   const sourceManifest = coverage?.source_manifest ?? [];
   const unknownSources = coverage?.unknown_sources ?? [];
@@ -87,6 +93,33 @@ export function PromotionCoveragePanel({
           <p>
             Asset observations are review inputs, not candidates. They become
             candidates only after testing, quantification, and packet review.
+          </p>
+        </div>
+      )}
+      {funnel && (
+        <div className="promotion-funnel-summary">
+          <div>
+            <span>Evaluation drafts</span>
+            <strong>{funnel.evaluation_candidate_drafts}</strong>
+          </div>
+          <div>
+            <span>Behavior identities</span>
+            <strong>{funnel.ready_behavior_identity_clusters}</strong>
+          </div>
+          <div>
+            <span>Forward-test queue</span>
+            <strong>{funnel.selected_forward_test_work_items}</strong>
+          </div>
+          <div>
+            <span>Review packets</span>
+            <strong>{funnel.promotion_packets}</strong>
+          </div>
+          <p>
+            Upstream funnel: {funnel.evaluation_candidate_drafts} evaluation
+            drafts → {funnel.ready_behavior_identity_clusters} behavior
+            identities → {funnel.selected_forward_test_work_items} forward-test
+            work items. Packets stay outside the {funnel.promotion_candidates}
+            -candidate inbox until quantification and review pass.
           </p>
         </div>
       )}

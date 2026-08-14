@@ -7845,6 +7845,35 @@ h1 {
   font-size: 10px;
   line-height: 1.45;
 }
+.promotion-funnel-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(105, 211, 172, 0.045);
+}
+.promotion-funnel-summary > div {
+  display: grid;
+  gap: 5px;
+}
+.promotion-funnel-summary span {
+  color: var(--faint);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.promotion-funnel-summary strong {
+  color: var(--text);
+  font-size: 17px;
+}
+.promotion-funnel-summary p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
 .promotion-coverage-unknowns {
   display: grid;
   gap: 9px;
@@ -8211,6 +8240,7 @@ h1 {
   .promotion-overview-grid,
   .promotion-coverage-grid,
   .promotion-discovery-summary,
+  .promotion-funnel-summary,
   .promotion-detail-grid,
   .promotion-reference-grid {
     grid-template-columns: minmax(0, 1fr);

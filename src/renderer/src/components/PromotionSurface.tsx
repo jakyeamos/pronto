@@ -197,9 +197,12 @@ export function PromotionSurface({
 
       <section className="promotion-overview-grid">
         <div className="promotion-card">
-          <span>Pending</span>
+          <span>Promotion inbox</span>
           <strong>{inbox.counts.pending}</strong>
-          <small>Need your choice</small>
+          <small>
+            {inbox.counts.pending} awaiting decision · {inbox.counts.total}{" "}
+            total candidates
+          </small>
         </div>
         <div className="promotion-card">
           <span>Complete packets</span>
@@ -221,6 +224,7 @@ export function PromotionSurface({
       <PromotionCoveragePanel
         coverage={inbox.coverage}
         discovery={inbox.discovery}
+        funnel={inbox.funnel}
       />
 
       {inbox.status !== "pass" && (
