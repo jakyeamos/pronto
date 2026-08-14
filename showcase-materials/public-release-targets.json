@@ -1315,7 +1315,7 @@
           "channel": "handshake",
           "requirement": "required",
           "status": "gated",
-          "artifact": "Candidate preview.html and public-description.txt; binary preview, linked overlay proof, and posting readback remain gated."
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked overlay proof, hosted no-auth access, and posting readback remain gated."
         }
       ]
     },
@@ -1342,7 +1342,7 @@
           "channel": "handshake",
           "requirement": "required",
           "status": "gated",
-          "artifact": "Candidate preview.html and public-description.txt; binary preview, linked sandbox proof, and posting readback remain gated."
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked sandbox proof, hosted no-auth access, and posting readback remain gated."
         }
       ]
     },
@@ -1369,7 +1369,7 @@
           "channel": "handshake",
           "requirement": "required",
           "status": "gated",
-          "artifact": "Candidate preview.html and public-description.txt; binary preview, linked integration proof, and posting readback remain gated."
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked integration proof, hosted no-auth access, and posting readback remain gated."
         }
       ]
     },

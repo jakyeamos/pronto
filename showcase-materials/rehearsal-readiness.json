@@ -423,7 +423,7 @@
       "rehearsal_status": "not_ready",
       "first_required_closure": "RAM-0",
       "remaining_gap_count_before_rehearsal": 1,
-      "rehearsal_disposition": "two_source_overlay_and_navigation_proof_required"
+      "rehearsal_disposition": "two_source_overlay_and_navigation_proof_required; current_dev_checkpoint_and_binary_preview_verified"
     },
     {
       "repository_name": "review-sandbox",
@@ -434,7 +434,7 @@
       "rehearsal_status": "not_ready",
       "first_required_closure": "RS-0",
       "remaining_gap_count_before_rehearsal": 1,
-      "rehearsal_disposition": "scenario_failure_cancellation_and_retention_matrix_required"
+      "rehearsal_disposition": "scenario_failure_cancellation_and_retention_matrix_required; current_dev_checkpoint_and_binary_preview_verified"
     },
     {
       "repository_name": "change-integration-simulator",
@@ -445,7 +445,7 @@
       "rehearsal_status": "not_ready",
       "first_required_closure": "CIS-0",
       "remaining_gap_count_before_rehearsal": 1,
-      "rehearsal_disposition": "read_only_clean_conflict_and_gate_proof_required"
+      "rehearsal_disposition": "read_only_clean_conflict_and_gate_proof_required; current_dev_checkpoint_and_binary_preview_verified"
     },
     {
       "repository_name": "deletion-proof-workbench",

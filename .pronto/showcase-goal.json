@@ -1753,14 +1753,13 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "A candidate local package now includes a two-source overlay receipt, claim ledger, preview source, short copy, and no-auth case-page source. Current producer readback, negative-state expansion, hosting, and destination readbacks remain unverified.",
-        "score": 2.1,
+        "evidence": "A candidate local package now includes historical/current-dev two-source overlay, unmatched, and review-disposition receipts, a claim ledger, visually reviewed 1600x900 PNG/SVG preview, short copy, and no-auth case-page source. Producer handoff, broader negative coverage, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
         "status": "assessed"
       },
       "display_name": "Review Attention Map",
       "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
       "missing_materials": [
-        "crop-safe 16:9 Handshake preview image",
         "current producer/source-freshness readback",
         "stale/unmatched/reviewed negative scenario matrix",
         "hosted no-auth case URL",
@@ -1786,14 +1785,13 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "A candidate local package now includes a scenario-matrix receipt, claim ledger, preview source, short copy, and no-auth case-page source. Distinct cancellation/process proof, hosting, and destination readbacks remain unverified.",
-        "score": 2.1,
+        "evidence": "A candidate local package now includes historical/current-dev clean, failed-setup, dirty-recovery, and cancellation-shaped receipts, a claim ledger, visually reviewed 1600x900 PNG/SVG preview, short copy, and no-auth case-page source. Distinct cancellation/process proof, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
         "status": "assessed"
       },
       "display_name": "Review Sandbox",
       "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
       "missing_materials": [
-        "crop-safe 16:9 Handshake preview image",
         "distinct cancellation and process/port ownership receipts",
         "primary-checkout unrelated-dirty before/after proof",
         "hosted no-auth case URL",
@@ -1819,14 +1817,13 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "A candidate local package now includes clean/conflict simulation and gate-boundary receipts, claim ledger, preview source, short copy, and no-auth case-page source. Gate integration, negative scenario breadth, hosting, and destination readbacks remain unverified.",
-        "score": 2.1,
+        "evidence": "A candidate local package now includes historical/current-dev clean/conflict simulation, separate gate-probe, and ref-safety receipts, a claim ledger, visually reviewed 1600x900 PNG/SVG preview, short copy, and no-auth case-page source. Gate integration, negative scenario breadth, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
         "status": "assessed"
       },
       "display_name": "Change Integration Simulator",
       "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
       "missing_materials": [
-        "crop-safe 16:9 Handshake preview image",
         "Workflow Gateboard gate receipt bound to simulated state",
         "stale/cancellation/retained-workspace negative matrix",
         "hosted no-auth case URL",
