@@ -159,7 +159,9 @@ and `pnpm app` remain compatibility aliases for `pnpm app:update`;
 `pnpm build:release` generates the complete distribution artifact set. If
 Pronto was already running, the installer must quit it before replacement and
 reopen it afterward. Never use an overlay copy: obsolete files must not survive
-an installation.
+an installation. An already loaded collector remains registered across the
+atomic replacement and is restarted with `launchctl kickstart -k`; registration
+is reserved for a missing or materially changed LaunchAgent plist.
 
 Repository and summary projections include a read-only `project_compass`
 summary derived from `.project-compass/contract.json`. `Ready` reports the

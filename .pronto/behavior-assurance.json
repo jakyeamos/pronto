@@ -4,6 +4,38 @@
   "approved_producers": ["quality-runner", "codex-direct-validation"],
   "behaviors": [
     {
+      "id": "background-service-lifecycle",
+      "title": "Routine updates preserve persistent service registration",
+      "tier": 1,
+      "automation": "permanent",
+      "change_triggers": [
+        "scripts/install-app.mjs",
+        "scripts/skill-usage-collector.mjs",
+        "scripts/skill-usage-collector-lib.mjs"
+      ],
+      "invariants": [
+        "An unchanged loaded LaunchAgent is restarted without being booted out or bootstrapped again.",
+        "A missing or materially changed LaunchAgent takes an explicit registration path."
+      ],
+      "scenarios": [
+        {
+          "id": "launchagent-registration-is-state-sensitive",
+          "title": "LaunchAgent updates distinguish restart from registration",
+          "oracle": "Lifecycle tests prove missing services bootstrap, unchanged loaded services only kickstart, changed loaded services re-register, and ordinary app promotion contains no bootout or bootstrap path for the loaded collector.",
+          "verification_level": "automated",
+          "edge_profile": {
+            "categories": [
+              "state_and_ordering",
+              "repetition_and_idempotency",
+              "environment_and_cross_surface"
+            ],
+            "risk": "routine",
+            "side_effects": "none"
+          }
+        }
+      ]
+    },
+    {
       "id": "behavior-audit-cli",
       "title": "Behavior audit exposes repository gaps and gates automation",
       "tier": 0,

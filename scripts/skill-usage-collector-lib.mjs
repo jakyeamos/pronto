@@ -111,4 +111,14 @@ export function launchAgentPlist({ executable, logPath, errorLogPath }) {
 `;
 }
 
+export function launchAgentRegistrationPlan({
+  loaded,
+  currentPlist,
+  desiredPlist,
+}) {
+  if (loaded && currentPlist === desiredPlist) return "restart";
+  if (loaded) return "reregister";
+  return "bootstrap";
+}
+
 export const codexOtlpMarkers = { markerStart, markerEnd };
