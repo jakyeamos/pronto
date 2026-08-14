@@ -83,7 +83,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
   - `pronto summary --json` for fleet counts and repository summaries;
   - `pronto repo <repository> --json` for one repository plus its product/group memberships;
   - `pronto quality [<repository>] --json` for fleet or repository quality evidence;
-  - `pronto quality detector-refresh [--qr-bin <path>] [--timeout-seconds <seconds>] [--agent-review-mode <off|auto|parallel|required>] --json` for full exact-target QR detector publication followed by immediate Pronto import;
+  - `pronto quality detector-refresh [--qr-bin <path>] [--timeout-seconds <seconds>] [--agent-review-mode <off|auto|parallel|required>] --json` for full exact-target QR detector publication bracketed by local provenance refreshes, followed by immediate import and published-result reconciliation;
   - `pronto quality disposition set <repository> <fingerprint> <status> ...`
     for an auditable repository-owned review decision that overlays, but never
     mutates, Quality Runner detector evidence;

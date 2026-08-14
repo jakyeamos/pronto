@@ -3217,23 +3217,149 @@ fn apply_quality_evidence_scoped(
     );
 }
 
-fn refresh_quality_at(path: &Path) -> Result<PortfolioSnapshot, String> {
-    let mut state = load_store(path)?;
-    apply_quality_evidence(&mut state);
-    apply_release_threshold_conditions(&mut state);
-    save_store(path, &state)?;
-    Ok(snapshot_from_store(path, &state))
-}
-
 #[derive(Debug, Clone, Serialize)]
 struct QualityDetectorRefreshReport {
     schema_version: String,
     generated_at: String,
     status: String,
     qr: serde_json::Value,
+    provenance_refreshes: usize,
+    published_repositories: usize,
+    ingested_published_repositories: usize,
+    rejected_published_repositories: usize,
+    reconciliation: Vec<QualityDetectorReconciliation>,
     findings_evidence_repositories: usize,
     missing_findings_evidence_repositories: usize,
     snapshot: PortfolioSnapshot,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct QualityDetectorReconciliation {
+    repository_path: Option<String>,
+    target_branch: Option<String>,
+    target_head: Option<String>,
+    expected_findings: Option<u64>,
+    imported_findings: Option<u64>,
+    report_path: Option<String>,
+    status: String,
+    reason: String,
+}
+
+fn detector_result_string(result: &serde_json::Value, path: &[&str]) -> Option<String> {
+    path.iter()
+        .try_fold(result, |value, key| value.get(*key))
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_string)
+}
+
+fn reconcile_published_detector_results(
+    qr_payload: &serde_json::Value,
+    snapshot: &PortfolioSnapshot,
+) -> Vec<QualityDetectorReconciliation> {
+    qr_payload
+        .get("results")
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|result| {
+            result.get("status").and_then(serde_json::Value::as_str) == Some("published")
+        })
+        .map(|result| {
+            let repository_path = detector_result_string(result, &["primary_path"]);
+            let target_branch = detector_result_string(result, &["target", "branch"]);
+            let target_head = detector_result_string(result, &["target", "head"]);
+            let expected_findings = result
+                .get("finding_count")
+                .and_then(serde_json::Value::as_u64);
+            let published_paths = result
+                .get("published_paths")
+                .and_then(serde_json::Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(serde_json::Value::as_str)
+                .filter_map(|path| canonical_path(Path::new(path)))
+                .collect::<Vec<_>>();
+            let repository = repository_path.as_deref().and_then(|path| {
+                let expected = canonical_path(Path::new(path))?;
+                snapshot.repositories.iter().find(|repository| {
+                    canonical_path(Path::new(&repository.path)).as_ref() == Some(&expected)
+                })
+            });
+            let findings = repository.map(|repository| &repository.quality.findings);
+            let report_path = findings.and_then(|findings| findings.report_path.clone());
+            let report_is_published = report_path.as_deref().is_some_and(|report| {
+                canonical_path(Path::new(report)).is_some_and(|report| {
+                    published_paths
+                        .iter()
+                        .any(|published| report.starts_with(published))
+                })
+            });
+            let mut failures = Vec::new();
+            if repository_path.is_none() {
+                failures.push("QR publication omitted primary_path".to_string());
+            }
+            if target_branch.is_none() {
+                failures.push("QR publication omitted target branch".to_string());
+            }
+            if target_head.is_none() {
+                failures.push("QR publication omitted target commit".to_string());
+            }
+            if expected_findings.is_none() {
+                failures.push("QR publication omitted findings total".to_string());
+            }
+            if published_paths.is_empty() {
+                failures.push("QR publication omitted published run paths".to_string());
+            }
+            if repository.is_none() {
+                failures.push("repository was not present after provenance refresh".to_string());
+            }
+            if findings.and_then(|findings| findings.source.as_ref())
+                != Some(&quality::QualitySource::Qr)
+            {
+                failures.push("Pronto did not import QR findings evidence".to_string());
+            }
+            if findings.and_then(|findings| findings.scanned_branch.as_deref())
+                != target_branch.as_deref()
+            {
+                failures.push("imported branch does not match the published target".to_string());
+            }
+            if findings.and_then(|findings| findings.scanned_commit.as_deref())
+                != target_head.as_deref()
+            {
+                failures.push("imported commit does not match the published target".to_string());
+            }
+            if findings.map(|findings| &findings.freshness) != Some(&QualityFreshness::Fresh) {
+                failures.push("imported findings are not fresh for the target ref".to_string());
+            }
+            if expected_findings
+                .is_some_and(|expected| findings.map(|findings| findings.total) != Some(expected))
+            {
+                failures.push("imported findings total does not match QR publication".to_string());
+            }
+            if !report_is_published {
+                failures
+                    .push("Pronto selected a report outside QR's published run set".to_string());
+            }
+            QualityDetectorReconciliation {
+                repository_path,
+                target_branch,
+                target_head,
+                expected_findings,
+                imported_findings: findings.map(|findings| findings.total),
+                report_path,
+                status: if failures.is_empty() {
+                    "ingested".to_string()
+                } else {
+                    "rejected".to_string()
+                },
+                reason: if failures.is_empty() {
+                    "Published exact-target QR findings were imported and verified.".to_string()
+                } else {
+                    failures.join("; ")
+                },
+            }
+        })
+        .collect()
 }
 
 fn refresh_quality_detectors_at(
@@ -3245,7 +3371,8 @@ fn refresh_quality_detectors_at(
     if !matches!(agent_review_mode, "off" | "auto" | "parallel" | "required") {
         return Err("--agent-review-mode must be off, auto, parallel, or required".to_string());
     }
-    let state = load_store_read_only(path)?;
+    let mut state = load_store(path)?;
+    audited_scan_and_persist(path, &mut state)?;
     let repositories = state
         .repositories
         .iter()
@@ -3295,7 +3422,38 @@ fn refresh_quality_detectors_at(
                 .to_string(),
         );
     }
-    let snapshot = refresh_quality_at(path)?;
+    let mut state = load_store(path)?;
+    let snapshot = audited_scan_and_persist(path, &mut state)?;
+    let mut reconciliation = reconcile_published_detector_results(&qr_payload, &snapshot);
+    let published_repositories = qr_payload
+        .get("counts")
+        .and_then(|counts| counts.get("published"))
+        .and_then(serde_json::Value::as_u64)
+        .map(|count| count as usize)
+        .unwrap_or_else(|| reconciliation.len());
+    if published_repositories != reconciliation.len() {
+        reconciliation.push(QualityDetectorReconciliation {
+            repository_path: None,
+            target_branch: None,
+            target_head: None,
+            expected_findings: None,
+            imported_findings: None,
+            report_path: None,
+            status: "rejected".to_string(),
+            reason: format!(
+                "QR declared {published_repositories} published repositories but returned {} published result rows.",
+                reconciliation.len()
+            ),
+        });
+    }
+    let rejected_published_repositories = reconciliation
+        .iter()
+        .filter(|item| item.status == "rejected")
+        .count();
+    let ingested_published_repositories = reconciliation
+        .iter()
+        .filter(|item| item.status == "ingested")
+        .count();
     let findings_evidence_repositories = snapshot
         .repositories
         .iter()
@@ -3312,12 +3470,17 @@ fn refresh_quality_detectors_at(
     Ok(QualityDetectorRefreshReport {
         schema_version: "pronto-quality-detector-refresh/v1".to_string(),
         generated_at: iso_now(),
-        status: if qr_status == "completed" {
+        status: if qr_status == "completed" && rejected_published_repositories == 0 {
             "Completed".to_string()
         } else {
             "Partial".to_string()
         },
         qr: qr_payload,
+        provenance_refreshes: 2,
+        published_repositories,
+        ingested_published_repositories,
+        rejected_published_repositories,
+        reconciliation,
         findings_evidence_repositories,
         missing_findings_evidence_repositories,
         snapshot,
@@ -12205,23 +12368,34 @@ pub fn run_cli(arguments: Vec<String>) {
                         std::process::exit(2);
                     })
                     .unwrap_or_else(|| "off".to_string());
+                let mut exit_code = 0;
                 match refresh_quality_detectors_at(
                     &path,
                     qr_bin.as_deref(),
                     timeout_seconds,
                     &agent_review_mode,
                 ) {
-                    Ok(report) if json => println!(
-                        "{}",
-                        serde_json::to_string_pretty(&report)
-                            .unwrap_or_else(|_| "{}".to_string())
-                    ),
-                    Ok(report) => println!(
-                        "Detector refresh: {} · {} repositories with findings evidence · {} missing",
-                        report.status,
-                        report.findings_evidence_repositories,
-                        report.missing_findings_evidence_repositories
-                    ),
+                    Ok(report) => {
+                        if report.rejected_published_repositories > 0 {
+                            exit_code = 1;
+                        }
+                        if json {
+                            println!(
+                                "{}",
+                                serde_json::to_string_pretty(&report)
+                                    .unwrap_or_else(|_| "{}".to_string())
+                            );
+                        } else {
+                            println!(
+                                "Detector refresh: {} · {} published reports ingested · {} rejected · {} repositories with findings evidence · {} missing",
+                                report.status,
+                                report.ingested_published_repositories,
+                                report.rejected_published_repositories,
+                                report.findings_evidence_repositories,
+                                report.missing_findings_evidence_repositories
+                            );
+                        }
+                    }
                     Err(error) => {
                         if json {
                             print_cli_json_error("quality detector-refresh", &error);
@@ -12230,7 +12404,7 @@ pub fn run_cli(arguments: Vec<String>) {
                         std::process::exit(1);
                     }
                 }
-                std::process::exit(0);
+                std::process::exit(exit_code);
             } else if positionals.first().map(String::as_str) == Some("set-audit-root")
                 && positionals.len() == 2
             {
@@ -12641,13 +12815,56 @@ mod tests {
             .expect("fixture portfolio should scan");
         set_repository_target_branch_at(&store, &registered.repositories[0].id, "main")
             .expect("fixture target should configure");
+        fs::write(repository.join("tracked.txt"), "two\n")
+            .expect("target change should be writable");
+        git(&repository, &["add", "tracked.txt"]);
+        git(&repository, &["commit", "-m", "Advance configured target"]);
+        let target_head =
+            git_static(&repository, &["rev-parse", "main"]).expect("target commit should resolve");
+        git(&repository, &["switch", "-c", "feature"]);
+        fs::write(repository.join("feature.txt"), "feature\n")
+            .expect("feature change should be writable");
+        git(&repository, &["add", "feature.txt"]);
+        git(&repository, &["commit", "-m", "Create divergent workspace"]);
+        let run_dir = repository
+            .join(".quality-runner")
+            .join("runs")
+            .join("fleet-detector-fixture-verify");
+        fs::create_dir_all(&run_dir).expect("published QR run should be creatable");
+        fs::write(
+            run_dir.join("run-manifest.json"),
+            serde_json::to_vec_pretty(&serde_json::json!({
+                "created_at": iso_now(),
+                "git": {"branch": "main", "head_sha": target_head},
+            }))
+            .expect("manifest should encode"),
+        )
+        .expect("manifest should persist");
+        fs::write(
+            run_dir.join("code-quality-scan.json"),
+            r#"{"findings":[{"id":"fixture"}]}"#,
+        )
+        .expect("findings should persist");
         let arguments_path = root.join("qr-arguments.txt");
         let fake_qr = root.join("fake-qr");
+        let qr_payload = serde_json::json!({
+            "schema": "quality-runner-fleet-detector-refresh/v1",
+            "status": "completed",
+            "counts": {"published": 1, "blocked": 0, "unsupported": 0},
+            "results": [{
+                "primary_path": repository,
+                "status": "published",
+                "target": {"branch": "main", "head": target_head},
+                "published_paths": [run_dir],
+                "finding_count": 1,
+            }],
+        });
         fs::write(
             &fake_qr,
             format!(
-                "#!/bin/sh\nprintf '%s\\n' \"$@\" > {}\nprintf '%s\\n' '{{\"schema\":\"quality-runner-fleet-detector-refresh/v1\",\"status\":\"completed\",\"counts\":{{\"published\":1,\"blocked\":0,\"unsupported\":0}}}}'\n",
-                arguments_path.display()
+                "#!/bin/sh\nprintf '%s\\n' \"$@\" > {}\nprintf '%s\\n' '{}'\n",
+                arguments_path.display(),
+                serde_json::to_string(&qr_payload).expect("QR payload should encode")
             ),
         )
         .expect("fake QR should be writable");
@@ -12662,7 +12879,28 @@ mod tests {
                 .expect("combined detector refresh should complete");
 
         assert_eq!(report.schema_version, "pronto-quality-detector-refresh/v1");
-        assert_eq!(report.status, "Completed");
+        assert_eq!(
+            report.status, "Completed",
+            "reconciliation: {:?}",
+            report.reconciliation
+        );
+        assert_eq!(report.provenance_refreshes, 2);
+        assert_eq!(report.published_repositories, 1);
+        assert_eq!(report.ingested_published_repositories, 1);
+        assert_eq!(report.rejected_published_repositories, 0);
+        assert_eq!(report.reconciliation[0].status, "ingested");
+        assert_eq!(
+            report.snapshot.repositories[0].quality.findings.freshness,
+            QualityFreshness::Fresh
+        );
+        assert_eq!(
+            report.snapshot.repositories[0]
+                .quality
+                .findings
+                .scanned_commit
+                .as_deref(),
+            Some(target_head.as_str())
+        );
         assert_eq!(report.snapshot.repositories.len(), 1);
         let arguments = fs::read_to_string(arguments_path).expect("QR arguments should persist");
         assert!(arguments.contains("fleet\ndetector\nrefresh\n"));
@@ -12673,6 +12911,64 @@ mod tests {
         assert!(arguments.contains(&format!("{}\nmain\n", repository.to_string_lossy())));
         assert!(arguments.contains("--timeout-seconds\n321\n"));
         assert!(arguments.contains("--agent-review-mode\noff\n"));
+
+        fs::remove_dir_all(root).expect("detector fixture should be removable");
+    }
+
+    #[test]
+    fn quality_detector_refresh_rejects_published_evidence_that_was_not_ingested() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        let store = root.join("registry.db");
+        let registered = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        set_repository_target_branch_at(&store, &registered.repositories[0].id, "main")
+            .expect("fixture target should configure");
+        let target_head =
+            git_static(&repository, &["rev-parse", "main"]).expect("target commit should resolve");
+        let missing_run = repository
+            .join(".quality-runner")
+            .join("runs")
+            .join("missing-published-run");
+        let qr_payload = serde_json::json!({
+            "schema": "quality-runner-fleet-detector-refresh/v1",
+            "status": "completed",
+            "counts": {"published": 1, "blocked": 0, "unsupported": 0},
+            "results": [{
+                "primary_path": repository,
+                "status": "published",
+                "target": {"branch": "main", "head": target_head},
+                "published_paths": [missing_run],
+                "finding_count": 0,
+            }],
+        });
+        let fake_qr = root.join("fake-qr-missing-publication");
+        fs::write(
+            &fake_qr,
+            format!(
+                "#!/bin/sh\nprintf '%s\\n' '{}'\n",
+                serde_json::to_string(&qr_payload).expect("QR payload should encode")
+            ),
+        )
+        .expect("fake QR should be writable");
+        let mut permissions = fs::metadata(&fake_qr)
+            .expect("fake QR metadata should load")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&fake_qr, permissions).expect("fake QR should be executable");
+
+        let report =
+            refresh_quality_detectors_at(&store, Some(&fake_qr.to_string_lossy()), 60, "off")
+                .expect("reconciliation should return a structured partial report");
+
+        assert_eq!(report.status, "Partial");
+        assert_eq!(report.published_repositories, 1);
+        assert_eq!(report.ingested_published_repositories, 0);
+        assert_eq!(report.rejected_published_repositories, 1);
+        assert_eq!(report.reconciliation[0].status, "rejected");
+        assert!(report.reconciliation[0]
+            .reason
+            .contains("did not import QR findings evidence"));
 
         fs::remove_dir_all(root).expect("detector fixture should be removable");
     }
