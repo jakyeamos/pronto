@@ -1,7 +1,9 @@
 # Review Attention Map route plan
 
-Status: C0 public Showcase admission is complete; two-source overlay and
-evidence-navigation proof remain gated.
+Status: C0 public Showcase admission is complete; the current-dev overlay,
+unmatched-state, review-disposition, and binary preview checkpoint are
+verified. Producer handoff, broader negative coverage, hosting, and readbacks
+remain gated.
 
 The [canonical target](../ideal-demo-targets.md#review-attention-map) owns the
 promise and proof gate. Attention is an evidence-grounded suggestion, never an
@@ -18,8 +20,8 @@ review disposition visible. The map does not decide whether to merge.
 
 ## 2. Concept materials
 
-All frames below are **concept frames** until two producer signals and direct
-navigation pass.
+The frame set is now a reviewed local material package. The integrated producer
+handoff and hosted case remain future gates.
 
 | Frame          | Visual                                                        | On-screen line              | Intended evidence moment    |
 | -------------- | ------------------------------------------------------------- | --------------------------- | --------------------------- |
@@ -36,9 +38,10 @@ record review disposition.
 
 ## 3. Build-gap specification
 
-Reviewed baseline: the W3 review MVP overlays explicit contract and behavior
-signals with source evidence and stale/unmatched visibility. Two-source
-navigation and direct review proof remain open.
+Reviewed baseline: the current-dev review MVP overlays explicit contract and
+behavior signals with source evidence, records a human disposition, and keeps
+an outside-diff signal unmatched. Producer freshness handoff and broader
+negative coverage remain open.
 
 Project disposition: `targeted_gap_closure` — prove one two-source overlay and
 direct navigation to originating evidence.
@@ -48,10 +51,10 @@ packaging — RAM-3.
 
 | ID    | Gap to close                           | Observable acceptance condition                                                | Owner             | Required proof               |
 | ----- | -------------------------------------- | ------------------------------------------------------------------------------ | ----------------- | ---------------------------- |
-| RAM-0 | Prove the two-source overlay           | Contract and behavior signals align on a diff with source and freshness intact | Evidence owner    | Overlay receipt              |
+| RAM-0 | Prove the two-source overlay           | Current producer contract and behavior signals align on a diff with source and freshness intact | Evidence owner    | Current-dev overlay receipt              |
 | RAM-1 | Prove direct navigation                | Each signal opens its originating receipt or source location                   | Integration owner | Current-surface readback     |
 | RAM-2 | Preserve unmatched and reviewed states | Missing, stale, unmatched, and human-reviewed signals remain distinct          | Product owner     | Negative scenario matrix     |
-| RAM-3 | Package the public case                | Preview, short copy, no-auth review case, and proof link agree                 | Showcase owner    | Material review and readback |
+| RAM-3 | Package the public case                | Reviewed 1600×900 PNG/SVG preview, short copy, no-auth review case, and proof link agree                 | Showcase owner    | Material review and hosted/readback |
 
 **Required build order:** RAM-0 → RAM-1 → RAM-2 → RAM-3. Video is optional
 after the evidence gate.
