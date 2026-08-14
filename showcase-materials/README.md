@@ -15,6 +15,10 @@ It is an internal production surface, not a publication record.
   project-level material gaps to the destination rows so previews, copy,
   evidence, case pages, review work, and publication receipts are not hidden
   behind one project-level next step.
+- [Postability ledger](postability-ledger.json) is the machine-readable handoff
+  for local packet completeness, open gates, and explicit deferrals. It never
+  claims that a project was posted; publication still requires a fresh external
+  receipt and readback.
 - Each public project owns one `<project>/route-plan.md` for its concept frames
   and build-gap specification.
 - A combined portfolio story owns a separate route and must not replace or

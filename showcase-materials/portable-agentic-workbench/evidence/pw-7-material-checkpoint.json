@@ -1,0 +1,43 @@
+{
+  "schema_version": "pronto-showcase-portable-workbench-material-checkpoint/v1",
+  "project": "portable-agentic-workbench",
+  "gap": "PW-7",
+  "status": "closed_locally",
+  "reviewed_at": "2026-08-14T04:40:07Z",
+  "case_id": "pw-1-safe-tool-guards-material-001",
+  "source_boundary": {
+    "case_source": "case-fixture.json",
+    "runtime_source": "evidence/runtime-comparison.json",
+    "hosting": "not_attempted",
+    "external_destinations": "not_attempted"
+  },
+  "artifacts": {
+    "case_study": "case-study.json",
+    "case_study_markdown": "case-study.md",
+    "claim_ledger": "claim-ledger.json",
+    "short_description": "public-description.txt",
+    "preview_html": "preview.html",
+    "public_page_source": "public/index.html",
+    "preview_svg": "assets/preview-16x9.svg",
+    "preview_png": "assets/preview-16x9.png"
+  },
+  "verification": {
+    "binary": {
+      "path": "assets/preview-16x9.png",
+      "mime": "image/png",
+      "width": 1600,
+      "height": 900,
+      "crop_safe": true,
+      "legible_at_review": true,
+      "sha256": "a999e8e2473cdba2dc1c847764c5ed5ea57c6e58c38f1861f238c8cf99e827ed"
+    },
+    "source_hashes": {
+      "assets/preview-16x9.svg": "05ac16b77e31bde76f1fc5f01219a0f2a46e2f37d1d7ec3c29246cb3236d9456",
+      "public/index.html": "6e67c993ca000e488a5afc243b6adbe1dcbd770bc093d9cca6d3b1188dd8e445",
+      "case-study.json": "30709e6001e63e52e2143c5cbc559c8fe3296733f9a973255b414e1deeba5ad0",
+      "claim-ledger.json": "fc6cf30d3dd03f3e86f0f6994245d8c7a43ab99f065da04311ba93d0adb6a6ab",
+      "public-description.txt": "fc456041f02a562a205462bc21f19e2db4e5a2f4728a26ce7b644c757bcd6c93"
+    }
+  },
+  "claim_boundary": "Local candidate material is complete. PW-4 host-runtime equivalence, hosted no-auth proof, and external destination readbacks remain open."
+}

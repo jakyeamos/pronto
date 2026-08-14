@@ -1,0 +1,34 @@
+{
+  "schema_version": "pronto-showcase-material-checkpoint/v1",
+  "checkpoint_id": "ar-7-local-material-package-2026-08-14",
+  "project": "agent-router",
+  "status": "candidate_local",
+  "reviewed_at": "2026-08-14T04:36:00Z",
+  "source": {
+    "repository": "agent-router",
+    "branch": "dev",
+    "revision": "4f0c7db5405caaf1915a972c8c6eb9806a3209e6",
+    "checkout_status": "clean_at_inspection"
+  },
+  "artifacts": [
+    { "path": "case-study.json", "status": "present" },
+    { "path": "case-study.md", "status": "present" },
+    { "path": "claim-ledger.json", "status": "present" },
+    { "path": "preview.html", "status": "present" },
+    { "path": "assets/preview-16x9.svg", "status": "reviewed_local" },
+    { "path": "assets/preview-16x9.png", "status": "reviewed_local", "dimensions": "1600x900" },
+    { "path": "public/index.html", "status": "candidate_no_auth_source" },
+    { "path": "public-description.txt", "status": "present" }
+  ],
+  "checks": {
+    "replay_case_identity": "pass",
+    "candidate_selection_evidence": "pass",
+    "bounded_receipt_boundary": "pass",
+    "conflict_probe": "partial",
+    "preview_render": "pass",
+    "preview_visual_review": "pass",
+    "hosted_no_auth": "open",
+    "external_destination_readbacks": "open"
+  },
+  "claim_boundary": "The package is a local candidate material set. Its replay and preview do not prove live provider execution, worktree mutation, final confidence/fallback output, hosting, or publication."
+}

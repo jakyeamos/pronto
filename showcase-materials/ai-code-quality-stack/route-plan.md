@@ -1,8 +1,9 @@
 # AI Code Quality Stack route plan
 
-Status: this is a combined portfolio story, not the Pre-CR demo and not the
-Quality Runner demo. It owns only the integration seam among Anti-Slop,
-Pre-CR's changed-file enforcement, and Quality Runner's evidence consumption.
+Status: the local candidate package is complete, but this is still a combined
+portfolio story, not the Pre-CR demo and not the Quality Runner demo. It owns
+only the integration seam among Anti-Slop, Pre-CR's changed-file enforcement,
+and Quality Runner's evidence consumption.
 
 The [canonical target](../ideal-demo-targets.md#ai-code-quality-stack) owns the
 durable promise and proof gate. Anti-Slop's reviewed
@@ -49,9 +50,10 @@ QS-4; packaging — QS-5.
 | QS-2 | Prove Pre-CR enforcement                             | Pre-CR runs the adapter against the same changed-file set and writes an attributable blocking receipt                            | Pre-CR enforcement owner | Failing receipt and adapter provenance                                 |
 | QS-3 | Prove QR consumption                                 | QR imports the canonical evidence, adds repository context, and emits no duplicate heuristic                                     | Quality Runner owner     | Normalized evidence and deduplication receipt                          |
 | QS-4 | Repair and close                                     | The repair clears all three layers and records resolved evidence once                                                            | Stack owners             | Before/after diff and passing receipts                                 |
-| QS-5 | Package the combined story                           | The concept, preview, and claim ledger distinguish all three responsibilities and point to standalone demos                      | Showcase/design owner    | `concept/index.html`, preview, and claim ledger                        |
+| QS-5 | Package the combined story                           | **Closed locally 2026-08-14:** the candidate case, claim ledger, crop-safe 16:9 preview, short copy, and no-auth page source distinguish all three responsibilities and point to standalone demos | Showcase/design owner    | `case-study.json`, `case-study.md`, `claim-ledger.json`, `preview.html`, `assets/preview-16x9.png`, and `public/index.html` |
 
 **Build order:** QS-0 → QS-1/QS-2 → QS-3 → QS-4 → QS-5.
 
-**Next closure:** QS-0. This can proceed independently of Pre-CR's standalone
-IDE proof after ownership and workspace boundaries are confirmed.
+**Next closure:** QS-0. The local package is ready for review, but integrated
+execution remains blocked until ownership and workspace boundaries are
+confirmed and the three layers produce one attributable evidence path.

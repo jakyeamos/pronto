@@ -956,6 +956,59 @@ test("AI Workflow Leverage AL-1 binds a real Tenure task to one shared oracle", 
   assert.match(route, /agent-eval-runtime/);
 });
 
+test("AI Workflow Leverage exposes a bounded local candidate without claiming a result", async () => {
+  const [caseStudy, claims, checkpoint, copy, page, preview] = await Promise.all([
+    readFile(
+      new URL("showcase-materials/ai-workflow-leverage/case-study.json", root),
+      "utf8",
+    ).then(JSON.parse),
+    readFile(
+      new URL("showcase-materials/ai-workflow-leverage/claim-ledger.json", root),
+      "utf8",
+    ).then(JSON.parse),
+    readFile(
+      new URL(
+        "showcase-materials/ai-workflow-leverage/evidence/al-7-material-checkpoint.json",
+        root,
+      ),
+      "utf8",
+    ).then(JSON.parse),
+    readFile(
+      new URL("showcase-materials/ai-workflow-leverage/public-description.txt", root),
+      "utf8",
+    ),
+    readFile(
+      new URL("showcase-materials/ai-workflow-leverage/public/index.html", root),
+      "utf8",
+    ),
+    readFile(
+      new URL("showcase-materials/ai-workflow-leverage/preview.html", root),
+      "utf8",
+    ),
+  ]);
+
+  assert.equal(caseStudy.status, "candidate_local");
+  assert.ok(caseStudy.open_gates.some((gate) => /event schema/i.test(gate)));
+  assert.equal(
+    claims.levels.find((level) => level.id === "measurement").status,
+    "blocked_owner_contract",
+  );
+  assert.equal(
+    claims.levels.find((level) => level.id === "result").status,
+    "not_verified",
+  );
+  assert.equal(checkpoint.status, "candidate_local");
+  assert.equal(checkpoint.checks.preview_visual_review, "pass");
+  assert.equal(
+    checkpoint.artifacts.find((artifact) => artifact.path.endsWith("preview-16x9.png"))?.dimensions,
+    "1600x900",
+  );
+  assert.match(copy, /no timing, retry, human-touch, failure, or quality delta/i);
+  assert.match(page, /data-material-status="candidate-local"/);
+  assert.match(page, /AL-2 blocked/i);
+  assert.match(preview, /data-material-status="candidate-local"/);
+});
+
 test("Marketing Autoresearch MA-1 binds a public decision brief to privacy and refusal boundaries", async () => {
   const [brief, privacy, synthetic, blocker, route, contract, readiness] =
     await Promise.all([
@@ -1064,6 +1117,91 @@ test("Marketing Autoresearch MA-1 binds a public decision brief to privacy and r
   assert.match(route, /privacy review/i);
 });
 
+test("Marketing Autoresearch exposes a bounded local candidate without claiming a research result", async () => {
+  const [caseStudy, ledger, checkpoint, copy, page, preview, route] =
+    await Promise.all([
+      readFile(
+        new URL(
+          "showcase-materials/marketing-autoresearch/case-study.json",
+          root,
+        ),
+        "utf8",
+      ).then(JSON.parse),
+      readFile(
+        new URL(
+          "showcase-materials/marketing-autoresearch/claim-ledger.json",
+          root,
+        ),
+        "utf8",
+      ).then(JSON.parse),
+      readFile(
+        new URL(
+          "showcase-materials/marketing-autoresearch/evidence/ma-7-material-checkpoint.json",
+          root,
+        ),
+        "utf8",
+      ).then(JSON.parse),
+      readFile(
+        new URL(
+          "showcase-materials/marketing-autoresearch/public-description.txt",
+          root,
+        ),
+        "utf8",
+      ),
+      readFile(
+        new URL(
+          "showcase-materials/marketing-autoresearch/public/index.html",
+          root,
+        ),
+        "utf8",
+      ),
+      readFile(
+        new URL("showcase-materials/marketing-autoresearch/preview.html", root),
+        "utf8",
+      ),
+      readFile(
+        new URL("showcase-materials/marketing-autoresearch/route-plan.md", root),
+        "utf8",
+      ),
+    ]);
+
+  assert.equal(caseStudy.status, "candidate_local");
+  assert.equal(caseStudy.case_id, "MA-1-public-ai-showcase-prioritization");
+  assert.ok(
+    caseStudy.open_gates.some((gate) => /source-to-claim receipt/i.test(gate)),
+  );
+  assert.ok(
+    caseStudy.verified_locally.some((item) => /zero external mutations/i.test(item)),
+  );
+  assert.equal(
+    ledger.levels.find((level) => level.id === "source-to-claim")?.status,
+    "blocked_owner_contract",
+  );
+  assert.equal(
+    ledger.levels.find((level) => level.id === "report")?.status,
+    "not_verified",
+  );
+  assert.equal(
+    ledger.levels.find((level) => level.id === "publication-boundary")?.status,
+    "blocked",
+  );
+  assert.equal(checkpoint.status, "candidate_local");
+  assert.equal(checkpoint.checks.no_live_probe, "pass_report_only_zero_external_mutations");
+  assert.equal(checkpoint.checks.brief_source_claim_receipt, "blocked_owner_boundary");
+  const previewArtifact = checkpoint.artifacts.find(
+    (artifact) => artifact.path === "assets/preview-16x9.png",
+  );
+  assert.equal(previewArtifact?.dimensions, "1600x900");
+  assert.match(previewArtifact?.sha256 ?? "", /^[a-f0-9]{64}$/);
+  assert.ok(copy.trim().length <= 500);
+  assert.match(copy, /does not claim a market result|research result/i);
+  assert.match(page, /data-material-status="candidate-local"/);
+  assert.match(page, /MA-2 BLOCKED|brief-aware runtime contract/i);
+  assert.match(preview, /data-material-status="candidate-local"/);
+  assert.match(route, /Local showcase package/);
+  assert.match(route, /runtime refusal receipt/i);
+});
+
 test("RemodelVision parks attribution safely while closing the synthetic fixture gap", async () => {
   const [ledger, fixture, blocker, runtimeBlocker, route, contract, readiness] =
     await Promise.all([
@@ -1169,7 +1307,7 @@ test("RemodelVision parks attribution safely while closing the synthetic fixture
   assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 5);
   assert.equal(
     readinessProject?.rehearsal_disposition,
-    "blocked_attribution_and_runtime_owner_boundary",
+    "local_material_package_complete_blocked_attribution_and_runtime_owner_boundary",
   );
   assert.match(route, /RV-1 blocker/);
   assert.match(route, /RV-2 closure/);
@@ -1276,7 +1414,7 @@ test("Dsci-proj DS-0 defines a reusable contract without claiming generalized im
   assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 5);
   assert.equal(
     readinessProject?.rehearsal_disposition,
-    "implementation_adapter_required",
+    "local_material_package_complete_implementation_adapter_required",
   );
   assert.match(route, /DS-0 closure/);
   assert.match(route, /decision-contract\.json/);
@@ -1342,7 +1480,7 @@ test("Dsci-proj exposes a labeled synthetic contract preview without overclaimin
   assert.match(project?.demo_materials?.evidence ?? "", /shareable/i);
   assert.match(
     project?.missing_materials?.join(" | ") ?? "",
-    /interactive product walkthrough/i,
+    /hosted no-auth case URL/i,
   );
   assert.equal(readinessProject?.first_required_closure, "DS-1");
   assert.match(route, /synthetic-preview\.html/);
@@ -1471,11 +1609,102 @@ test("Book parks real chapter rights while preserving a labeled synthetic append
   assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 6);
   assert.equal(
     readinessProject?.rehearsal_disposition,
-    "rights_evidence_required",
+    "local_material_package_complete_rights_evidence_required",
   );
   assert.match(route, /BK-1 evidence boundary/);
   assert.match(route, /synthetic-fixture\.json/);
   assert.match(route, /synthetic-preview\.html/);
+});
+
+test("RemodelVision, Dsci-proj, and Book expose bounded local candidate packages", async () => {
+  const projects = [
+    {
+      name: "remodelvision",
+      caseId: "RV-2-rights-safe-room-concept",
+      checkpoint: "rv-6-material-checkpoint.json",
+      openGate: /RV-1|RV-3/,
+      previewMarker: /RV-1|RV-3/,
+      copyMarker: /synthetic|construction guarantee/i,
+    },
+    {
+      name: "dsci-proj",
+      caseId: "DS-0-two-backlog-decision-contract",
+      checkpoint: "ds-5-material-checkpoint.json",
+      openGate: /DS-1|adapter/i,
+      previewMarker: /DS-1 OPEN|Adapter proof/,
+      copyMarker: /synthetic|generalized adapters/i,
+    },
+    {
+      name: "book",
+      caseId: "BK-1-synthetic-reading-to-media-arc",
+      checkpoint: "bk-6-material-checkpoint.json",
+      openGate: /BK-1|rights|AI\/human/i,
+      previewMarker: /BK-1|rights|authorship/i,
+      copyMarker: /synthetic|product authorship/i,
+    },
+  ];
+
+  for (const project of projects) {
+    const [caseStudy, claims, checkpoint, copy, page, preview, route] =
+      await Promise.all([
+        readFile(
+          new URL(`showcase-materials/${project.name}/case-study.json`, root),
+          "utf8",
+        ).then(JSON.parse),
+        readFile(
+          new URL(`showcase-materials/${project.name}/claim-ledger.json`, root),
+          "utf8",
+        ).then(JSON.parse),
+        readFile(
+          new URL(
+            `showcase-materials/${project.name}/evidence/${project.checkpoint}`,
+            root,
+          ),
+          "utf8",
+        ).then(JSON.parse),
+        readFile(
+          new URL(
+            `showcase-materials/${project.name}/public-description.txt`,
+            root,
+          ),
+          "utf8",
+        ),
+        readFile(
+          new URL(`showcase-materials/${project.name}/public/index.html`, root),
+          "utf8",
+        ),
+        readFile(
+          new URL(`showcase-materials/${project.name}/preview.html`, root),
+          "utf8",
+        ),
+        readFile(
+          new URL(`showcase-materials/${project.name}/route-plan.md`, root),
+          "utf8",
+        ),
+      ]);
+
+    assert.equal(caseStudy.status, "candidate_local");
+    assert.equal(caseStudy.case_id, project.caseId);
+    assert.ok(caseStudy.open_gates.some((gate) => project.openGate.test(gate)));
+    assert.ok(claims.levels.some((level) => level.status === "verified_local"));
+    assert.ok(
+      claims.levels.some((level) => /not_verified|blocked/.test(level.status)),
+    );
+    assert.equal(checkpoint.status, "candidate_local");
+    assert.equal(checkpoint.checks.preview_render, "pass");
+    assert.equal(checkpoint.checks.preview_visual_review, "pass");
+    const previewArtifact = checkpoint.artifacts.find(
+      (artifact) => artifact.path === "assets/preview-16x9.png",
+    );
+    assert.equal(previewArtifact?.dimensions, "1600x900");
+    assert.match(previewArtifact?.sha256 ?? "", /^[a-f0-9]{64}$/);
+    assert.ok(copy.trim().length <= 500);
+    assert.match(copy, project.copyMarker);
+    assert.match(page, /data-material-status="candidate-local"/);
+    assert.match(preview, /data-material-status="candidate-local"/);
+    assert.match(preview, project.previewMarker);
+    assert.match(route, /Local showcase package/);
+  }
 });
 
 test("Terrace TR-1 uses a real, attributable regression case", async () => {
@@ -2345,7 +2574,7 @@ test("RDW's real case preserves the semantic and deterministic gate boundary", a
 });
 
 test("RDW's publication candidate keeps release and deployment claims gated", async () => {
-  const [manifest, provenance, page, description] = await Promise.all([
+  const [manifest, provenance, page, description, checkpoint, preview] = await Promise.all([
     readFile(
       new URL(
         "showcase-materials/research-domain-writing/final-package.json",
@@ -2374,6 +2603,17 @@ test("RDW's publication candidate keeps release and deployment claims gated", as
       ),
       "utf8",
     ),
+    readFile(
+      new URL(
+        "showcase-materials/research-domain-writing/evidence/rdw-6-material-checkpoint.json",
+        root,
+      ),
+      "utf8",
+    ).then(JSON.parse),
+    readFile(
+      new URL("showcase-materials/research-domain-writing/preview.html", root),
+      "utf8",
+    ),
   ]);
 
   assert.equal(manifest.status, "publication_candidate_provenance_gated");
@@ -2394,6 +2634,14 @@ test("RDW's publication candidate keeps release and deployment claims gated", as
   );
   assert.match(page, /Plausible is not proven/);
   assert.match(page, /Human decision required/);
+  assert.match(page, /data-material-status="candidate-local"/);
+  assert.equal(checkpoint.status, "candidate_local");
+  assert.equal(checkpoint.checks.preview_visual_review, "pass");
+  assert.equal(
+    checkpoint.artifacts.find((artifact) => artifact.path.endsWith("preview-16x9.png"))?.dimensions,
+    "1600x900",
+  );
+  assert.match(preview, /data-material-status="candidate-local"/);
   assert.match(page, /release provenance and deployment not\s+yet verified/i);
 });
 
@@ -2607,6 +2855,55 @@ test("Portable Agentic Workbench PW-1 proves a real safe-tool-guards install con
   assert.match(route, /PW-4 was attempted and is explicitly blocked/);
 });
 
+test("local candidate packages expose a bounded case, public source, and reviewed binary", async () => {
+  for (const [project, checkpointPath, openGate] of [
+    [
+      "agent-router",
+      "evidence/ar-7-material-checkpoint.json",
+      "confidence",
+    ],
+    [
+      "portable-agentic-workbench",
+      "evidence/pw-7-material-checkpoint.json",
+      "PW-4",
+    ],
+    [
+      "codex-browser-control",
+      "evidence/cb-7-material-checkpoint.json",
+      "CB-2",
+    ],
+  ]) {
+    const [caseStudy, claims, checkpoint, copy, page, preview] =
+      await Promise.all([
+        readFile(new URL(`showcase-materials/${project}/case-study.json`, root), "utf8").then(JSON.parse),
+        readFile(new URL(`showcase-materials/${project}/claim-ledger.json`, root), "utf8").then(JSON.parse),
+        readFile(new URL(`showcase-materials/${project}/${checkpointPath}`, root), "utf8").then(JSON.parse),
+        readFile(new URL(`showcase-materials/${project}/public-description.txt`, root), "utf8"),
+        readFile(new URL(`showcase-materials/${project}/public/index.html`, root), "utf8"),
+        readFile(new URL(`showcase-materials/${project}/preview.html`, root), "utf8"),
+      ]);
+
+    assert.equal(caseStudy.status, "candidate_local");
+    assert.ok(caseStudy.open_gates.some((gate) => gate.includes(openGate)));
+    assert.ok(claims.levels.some((level) => level.id === "packaging" && level.status === "verified_local"));
+    assert.ok(["candidate_local", "closed_locally"].includes(checkpoint.status));
+    if (checkpoint.verification?.binary) {
+      assert.equal(checkpoint.verification.binary.width, 1600);
+      assert.equal(checkpoint.verification.binary.height, 900);
+      assert.equal(checkpoint.verification.binary.crop_safe, true);
+    } else {
+      assert.equal(
+        checkpoint.artifacts.find((artifact) => artifact.path.endsWith("preview-16x9.png"))?.dimensions,
+        "1600x900",
+      );
+      assert.equal(checkpoint.checks?.preview_visual_review, "pass");
+    }
+    assert.ok(copy.trim().length <= 500);
+    assert.match(page, /data-material-status="candidate-local"/);
+    assert.match(preview, /data-material-status="candidate-local"/);
+  }
+});
+
 test("Agent Router AR-1 binds a labeled replay case to a native typed graph probe", async () => {
   const [fixture, receipt, route, contract, readiness] = await Promise.all([
     readFile(
@@ -2692,7 +2989,7 @@ test("Agent Router AR-1 binds a labeled replay case to a native typed graph prob
   assert.equal(project?.next_step_category, "product");
   assert.match(project?.next_step ?? "", /AR-5/);
   assert.equal(readinessProject?.first_required_closure, "AR-5");
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 3);
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 2);
 });
 
 test("Agent Router AR-2 and AR-3 preserve candidate alternatives and selection traceability", async () => {
@@ -2766,10 +3063,10 @@ test("Agent Router AR-2 and AR-3 preserve candidate alternatives and selection t
   const readinessProject = readiness.projects.find(
     (candidate) => candidate.repository_name === "agent-router",
   );
-  assert.equal(project?.demo_materials?.score, 2.8);
+  assert.equal(project?.demo_materials?.score, 3.2);
   assert.match(project?.next_step ?? "", /AR-5/);
   assert.equal(readinessProject?.first_required_closure, "AR-5");
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 3);
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 2);
 });
 
 test("Agent Router AR-4 closes only the explicitly labeled bounded execution replay", async () => {
@@ -2831,10 +3128,10 @@ test("Agent Router AR-4 closes only the explicitly labeled bounded execution rep
   const readinessProject = readiness.projects.find(
     (candidate) => candidate.repository_name === "agent-router",
   );
-  assert.equal(project?.demo_materials?.score, 2.8);
+  assert.equal(project?.demo_materials?.score, 3.2);
   assert.match(project?.next_step ?? "", /AR-5/);
   assert.equal(readinessProject?.first_required_closure, "AR-5");
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 3);
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 2);
 });
 
 test("Agent Router AR-5 records the native conflict boundary without overclaiming confidence or fallback", async () => {
@@ -2892,7 +3189,7 @@ test("Agent Router AR-5 records the native conflict boundary without overclaimin
   assert.equal(readinessProject?.first_required_closure, "AR-5");
   assert.equal(
     readinessProject?.rehearsal_disposition,
-    "blocked_native_synthesis_output_contract",
+    "local_candidate_package_complete; blocked_native_synthesis_output_contract",
   );
 });
 
@@ -3040,7 +3337,7 @@ test("Codex Browser Control CB-1 binds a synthetic page to the source target con
   assert.equal(project?.next_step_category, "demo_integration");
   assert.match(project?.next_step ?? "", /CB-2\/CB-3/);
   assert.equal(readinessProject?.first_required_closure, "CB-2");
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 6);
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 5);
 });
 
 test("Codex Browser Control CB-2 records the installed version and protocol blocker", async () => {
@@ -3097,9 +3394,9 @@ test("Codex Browser Control CB-2 records the installed version and protocol bloc
   assert.match(project?.next_step ?? "", /Park CB-2\/CB-3/);
   assert.equal(
     readinessProject?.rehearsal_disposition,
-    "blocked_installed_version_and_protocol_mismatch",
+    "local_candidate_package_complete; blocked_installed_version_and_protocol_mismatch",
   );
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 6);
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 5);
 });
 
 test("candidate packets preserve local evidence boundaries", async () => {
@@ -3463,4 +3760,76 @@ test("candidate packets preserve local evidence boundaries", async () => {
     "rule-lab",
     "workflow-gateboard",
   ]);
+});
+
+test("postability ledger covers every eligible project without inventing publication", async () => {
+  const [contract, targets, ledger] = await Promise.all([
+    readFile(new URL(".pronto/showcase-goal.json", root), "utf8").then(
+      JSON.parse,
+    ),
+    readFile(
+      new URL("showcase-materials/public-release-targets.json", root),
+      "utf8",
+    ).then(JSON.parse),
+    readFile(
+      new URL("showcase-materials/postability-ledger.json", root),
+      "utf8",
+    ).then(JSON.parse),
+  ]);
+
+  assert.equal(ledger.schema_version, "pronto-showcase-postability/v1");
+  assert.equal(ledger.summary.public_project_count, 34);
+  assert.equal(ledger.summary.publication_receipts_recorded, 0);
+  assert.equal(ledger.summary.externally_postable_count, 0);
+
+  const publicNames = contract.projects
+    .filter((project) => project.public_eligibility === "public_showcase")
+    .map((project) => project.repository_name)
+    .sort();
+  const ledgerNames = ledger.projects
+    .map((project) => project.repository_name)
+    .sort();
+  assert.deepEqual(ledgerNames, publicNames);
+
+  const targetNames = targets.project_targets
+    .map((project) => project.repository_name)
+    .sort();
+  assert.deepEqual(targetNames, ledgerNames);
+
+  const allowedStates = new Set([
+    "local_packet_ready",
+    "local_packet_ready_with_open_gate",
+    "local_packet_ready_with_live_gate",
+    "local_package_incomplete",
+    "blocked_by_gate",
+    "blocked_owner_provenance",
+    "deferred_by_decision",
+  ]);
+  for (const project of ledger.projects) {
+    assert.ok(
+      allowedStates.has(project.postability_state),
+      `${project.repository_name} has an invalid postability state`,
+    );
+    assert.deepEqual(project.required_channels, [
+      "github",
+      "portfolio",
+      "handshake",
+    ]);
+    assert.equal(
+      project.external_posting_proof,
+      false,
+      `${project.repository_name} must not claim an external post without a receipt`,
+    );
+    assert.ok(project.active_gate?.trim());
+    assert.ok(project.next_step?.trim());
+    if (project.postability_state === "local_packet_ready") {
+      assert.equal(project.local_package_complete, true);
+      assert.equal(project.deferral, null);
+    } else {
+      assert.ok(
+        project.deferral || project.open_materials.length > 0,
+        `${project.repository_name} needs an explicit gate or deferral`,
+      );
+    }
+  }
 });

@@ -1,0 +1,35 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "ai-code-quality-stack",
+  "status": "candidate_local",
+  "title": "AI Code Quality Stack: one finding, three responsibilities",
+  "audience": "Teams that want generated-code checks to remain explainable from the first diagnostic through review and remediation.",
+  "promise": "Anti-Slop names a line-level problem, Pre-CR applies changed-file policy, and Quality Runner adds repository context without duplicating the finding.",
+  "story": [
+    "A real Pronto source case contains the accepted anti-slop/no-generic-stat-label finding at RepositoryAnalyticsPanel.tsx:39.",
+    "The detector layer owns the exact diagnostic and its safe direction.",
+    "The enforcement layer is expected to block the changed-file set with an attributable receipt before review.",
+    "The context layer is expected to consume the canonical finding once, add repository evidence, and order the next remediation step.",
+    "Unavailable analysis, failed analysis, advisory fallback, and dual-source deduplication stay visible instead of becoming a false pass."
+  ],
+  "evidence": [
+    "integrated-case.json",
+    "stack-contract.json",
+    "../eslint-anti-slop/pronto-case.json",
+    "assets/preview-16x9.png"
+  ],
+  "verified_locally": [
+    "The real source case and exact detector revision are recorded in integrated-case.json.",
+    "The Anti-Slop case contains two accepted candidates and one reviewed false positive.",
+    "The stack contract assigns detector, enforcement, and contextualization ownership and names the fallback states.",
+    "The candidate 1600x900 preview is rendered from the same bounded story and visually inspected."
+  ],
+  "open_gates": [
+    "Run the selected changed-file case through Pre-CR and retain a failing receipt.",
+    "Consume that canonical evidence in Quality Runner and prove deduplication.",
+    "Repair the case and retain one resolved finding across all three layers.",
+    "Exercise unavailable, analysis-failed, advisory-fallback, and dual-source negative paths.",
+    "Verify a hosted no-auth case and external destination readbacks."
+  ],
+  "claim_boundary": "This packet proves a real detector case, ownership contract, and reviewed local concept preview. It does not claim that the Pre-CR handoff, Quality Runner consumption, repair, hosting, or publication have run."
+}

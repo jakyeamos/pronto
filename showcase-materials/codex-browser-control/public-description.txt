@@ -1,0 +1,1 @@
+Codex Browser Control binds a harmless browser mutation to the exact page state a person reviewed: observe the synthetic itinerary, inspect the plan, approve once, apply, verify, and refuse if the page changes. The local fixture proves the safety contract; installed round-trip receipts remain gated by an extension/native-host mismatch.

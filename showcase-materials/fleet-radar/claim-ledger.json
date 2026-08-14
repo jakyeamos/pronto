@@ -1,8 +1,8 @@
 {
   "schema_version": "pronto-showcase-claim-ledger/v1",
   "project": "fleet-radar",
-  "case_id": "fleet-radar-w7-preview-hosting-001",
-  "reviewed_at": "2026-08-14T02:00:27Z",
+  "case_id": "fleet-radar-w8-current-dev-001",
+  "reviewed_at": "2026-08-14T04:08:16Z",
   "levels": [
     {
       "id": "registry",
@@ -12,7 +12,10 @@
       "allowed_claim": "Fleet Radar reads an explicit local registry and preserves repository identity.",
       "forbidden_inference": "Every repository in an organization is represented by this registry.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/fr-w5-readonly-refresh.json#/registry"]
+      "evidence_refs": [
+        "evidence/fr-w5-readonly-refresh.json#/registry",
+        "evidence/fr-w8-current-dev-checkpoint.json#/registry"
+      ]
     },
     {
       "id": "freshness",
@@ -22,7 +25,10 @@
       "allowed_claim": "The snapshot keeps native receipt state and target freshness separate per repository.",
       "forbidden_inference": "A stale receipt is current or a clean checkout proves readiness.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/fr-w5-readonly-refresh.json#/snapshot"]
+      "evidence_refs": [
+        "evidence/fr-w5-readonly-refresh.json#/snapshot",
+        "evidence/fr-w8-current-dev-checkpoint.json#/refresh/repository_states"
+      ]
     },
     {
       "id": "read-only-refresh",
@@ -42,7 +48,10 @@
       "allowed_claim": "Fleet Radar recognizes the shared evidence envelope and supported producer receipt schemas while preserving malformed, mixed, mismatched, and unsupported states.",
       "forbidden_inference": "Every upstream producer has already emitted a live receipt through the configured fleet registry.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/fr-w6-contract-and-failure-coverage.json#/receipt_contracts"]
+      "evidence_refs": [
+        "evidence/fr-w6-contract-and-failure-coverage.json#/receipt_contracts",
+        "evidence/fr-w8-current-dev-checkpoint.json#/contract_projection"
+      ]
     },
     {
       "id": "native-follow-up",
@@ -52,7 +61,10 @@
       "allowed_claim": "A Fleet Radar blocker points back to its owning source location or receipt path and includes a next action.",
       "forbidden_inference": "The owning IDE or native tool was launched successfully from the link.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/fr-w6-contract-and-failure-coverage.json#/native_follow_up"]
+      "evidence_refs": [
+        "evidence/fr-w6-contract-and-failure-coverage.json#/native_follow_up",
+        "evidence/fr-w8-current-dev-checkpoint.json#/contract_projection/native_links_present"
+      ]
     },
     {
       "id": "failure-coverage",
@@ -62,7 +74,10 @@
       "allowed_claim": "Fleet Radar preserves broad local registry and evidence failure states instead of collapsing them into a red or green score.",
       "forbidden_inference": "A live concurrent filesystem race or every provider-specific failure mode has been exhaustively proven.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/fr-w6-contract-and-failure-coverage.json#/failure_matrix"]
+      "evidence_refs": [
+        "evidence/fr-w6-contract-and-failure-coverage.json#/failure_matrix",
+        "evidence/fr-w8-current-dev-checkpoint.json#/failure_matrix"
+      ]
     },
     {
       "id": "upstream-contract",

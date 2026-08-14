@@ -23,7 +23,8 @@
     "../../../projects/fleet-radar/README.md",
     "../../../projects/fleet-radar/docs/acceptance-matrix.json",
     "evidence/fr-w6-contract-and-failure-coverage.json",
-    "evidence/fr-w7-preview-and-hosting.json"
+    "evidence/fr-w7-preview-and-hosting.json",
+    "evidence/fr-w8-current-dev-checkpoint.json"
   ],
   "verified_locally": [
     "Real CLI refresh over an explicit two-repository fixture registry.",
@@ -35,6 +36,7 @@
     "Source tests, lint, package, JSON, and CLI checks pass.",
     "The candidate preview is rendered as a visually inspected 1600×900 PNG.",
     "The case page builds, passes rendered-HTML tests, passes lint and Pre-CR, and is saved as a Sites version; public access remains pending."
+    ,"Current-dev CLI refresh reads readiness-inspector and rule-lab from the configured registry, preserving fresh, dirty, missing, and unknown-freshness states."
   ],
   "open_gates": [
     "Read two real portfolio producer receipts through a configured registry.",
@@ -42,5 +44,5 @@
     "Confirm public access, deploy the saved Sites version, and fetch the case URL without credentials.",
     "Capture external destination readbacks."
   ],
-  "claim_boundary": "This is a candidate packet for explicit-registry freshness projection, receipt-contract classification, native-link metadata, and a verified binary preview. A validated owner-only Sites version is saved, but the packet does not claim real producer parity, direct tool launching, a no-auth URL, or public publication."
+  "claim_boundary": "This is a current-dev candidate packet for explicit-registry freshness projection, receipt-contract classification, native-link metadata, broad local failure states, and a verified binary preview. A validated owner-only Sites version is saved, but the packet does not claim two healthy real producer receipts, direct tool launching, a no-auth URL, or public publication."
 }

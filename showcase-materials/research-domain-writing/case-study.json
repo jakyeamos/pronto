@@ -36,7 +36,8 @@
     "final": "rdw-run/final.md",
     "validation_record": "rdw-run/validation-record.json",
     "provenance_receipt": "rdw-0-provenance.json",
-    "public_candidate": "public/index.html"
+    "public_candidate": "public/index.html",
+    "binary_preview": "assets/preview-16x9.png"
   },
   "deterministic_gate_boundary": "The agent performs semantic Domain QA; RDW validates exact draft binding, prose-block coverage, fact linkage, and coherent rejection or pass state.",
   "reproducibility_appendix": {

@@ -1,0 +1,36 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "remodelvision",
+  "status": "candidate_local",
+  "case_id": "RV-2-rights-safe-room-concept",
+  "title": "RemodelVision: make room constraints visible without calling a concept a guarantee",
+  "audience": "Product, design, and applied-AI teams evaluating visual reasoning that respects a user's actual space.",
+  "promise": "Show how an explicit room constraint could shape several renovation directions while keeping ownership, runtime proof, and estimate limits visible.",
+  "story": [
+    "A synthetic original room fixture carries a plain brief: keep the floor, stay near a $12k budget, and prioritize storage.",
+    "Three concept directions make the tradeoff legible: warm minimal, color-forward, and storage-first.",
+    "The case keeps the input, preserved element, and budget-sensitive choices side by side instead of presenting an untraceable before/after.",
+    "The human remains the decision-maker: the fixture describes a concept and an estimate-oriented handoff, not a construction promise.",
+    "RV-1 contribution approval and RV-3 current-flow proof remain explicit gates; this packet does not replace either one."
+  ],
+  "evidence": [
+    "asset-manifest.json",
+    "rights-safe-fixture.svg",
+    "evidence/rv-1-blocker.json",
+    "evidence/rv-3-blocker.json",
+    "assets/preview-16x9.png"
+  ],
+  "verified_locally": [
+    "The fixture is synthetic original work with no real property, people, address, geolocation, third-party asset, or provider output.",
+    "The brief, three directions, preserved-floor cue, and handoff limitation are represented in the local candidate materials.",
+    "The contribution ledger and runtime receipt remain linked as blockers rather than being collapsed into a polished product claim.",
+    "The local packet includes a candidate no-auth source page, short copy, claim ledger, and reviewed 1600x900 binary."
+  ],
+  "open_gates": [
+    "Obtain the explicit owner and collaborator approval required by RV-1 before publishing a personal or team case study.",
+    "Return to RV-3 with approved disposable runtime configuration or a repository-owned no-key demo path and direct-surface access.",
+    "Prove constraint adherence and bounded estimate assumptions from a current product run after RV-3 closes.",
+    "Verify a hosted no-auth case URL and read back each external destination before release."
+  ],
+  "claim_boundary": "This packet proves rights-safe material preparation and a traceable synthetic concept target. It does not claim RemodelVision's live upload, generation, vision analysis, estimate, persistence, handoff, contribution approval, hosting, or publication."
+}

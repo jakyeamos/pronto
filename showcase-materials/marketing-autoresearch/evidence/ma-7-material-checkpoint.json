@@ -1,0 +1,38 @@
+{
+  "schema_version": "pronto-showcase-material-checkpoint/v1",
+  "checkpoint_id": "ma-7-local-material-package-2026-08-14",
+  "project": "marketing-autoresearch",
+  "status": "candidate_local",
+  "reviewed_at": "2026-08-14T05:35:00Z",
+  "source": {
+    "repository": "marketing-autoresearch",
+    "case_id": "MA-1-public-ai-showcase-prioritization",
+    "brief_status": "ready_for_shadow_run",
+    "privacy_status": "passed_with_conditions",
+    "release_provenance": "not_verified"
+  },
+  "artifacts": [
+    { "path": "case-study.json", "status": "present" },
+    { "path": "case-study.md", "status": "present" },
+    { "path": "claim-ledger.json", "status": "present" },
+    { "path": "preview.html", "status": "present" },
+    { "path": "assets/preview-16x9.svg", "status": "reviewed_local" },
+    { "path": "assets/preview-16x9.png", "status": "reviewed_local", "dimensions": "1600x900", "sha256": "614b445057a4e7fb072b6475f406989c97b326c12200c43d82045fe5bb05691b" },
+    { "path": "public/index.html", "status": "candidate_no_auth_source" },
+    { "path": "public-description.txt", "status": "present" }
+  ],
+  "checks": {
+    "real_public_brief": "pass",
+    "privacy_review": "pass_with_conditions",
+    "synthetic_refusal_appendix": "pass",
+    "no_live_probe": "pass_report_only_zero_external_mutations",
+    "brief_source_claim_receipt": "blocked_owner_boundary",
+    "report_artifact": "not_verified",
+    "publication_refusal_receipt": "not_verified",
+    "preview_render": "pass",
+    "preview_visual_review": "pass",
+    "hosted_no_auth": "open",
+    "external_destination_readbacks": "open"
+  },
+  "claim_boundary": "This checkpoint proves the real public-safe brief, privacy boundary, fail-closed synthetic appendix, no-live report-only probe, and local candidate materials. It does not prove market demand, a lane recommendation, a source-backed report, a runtime publication refusal, hosting, or external publication."
+}

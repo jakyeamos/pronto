@@ -1,0 +1,35 @@
+{
+  "schema_version": "pronto-showcase-material-checkpoint/v1",
+  "checkpoint_id": "ds-5-local-material-package-2026-08-14",
+  "project": "Dsci-proj",
+  "status": "candidate_local",
+  "reviewed_at": "2026-08-14T06:00:00Z",
+  "source": {
+    "repository": "Dsci-proj",
+    "case_id": "DS-0-two-backlog-decision-contract",
+    "contract_status": "passed_as_product_contract",
+    "adapter_status": "blocked_ds_1",
+    "release_provenance": "not_verified"
+  },
+  "artifacts": [
+    { "path": "case-study.json", "status": "present" },
+    { "path": "case-study.md", "status": "present" },
+    { "path": "claim-ledger.json", "status": "present" },
+    { "path": "preview.html", "status": "present" },
+    { "path": "assets/preview-16x9.svg", "status": "reviewed_local" },
+    { "path": "assets/preview-16x9.png", "status": "reviewed_local", "dimensions": "1600x900", "sha256": "accda93dde4409f0b1a3a6e575d5a2858ce10c8ba5ac39f43d7288af04840d88" },
+    { "path": "public/index.html", "status": "candidate_no_auth_source" },
+    { "path": "public-description.txt", "status": "present" }
+  ],
+  "checks": {
+    "decision_contract": "pass",
+    "synthetic_two_source_appendix": "pass",
+    "adapter_implementation": "blocked_ds_1",
+    "scenario_and_handoff": "not_verified",
+    "preview_render": "pass",
+    "preview_visual_review": "pass",
+    "hosted_no_auth": "open",
+    "external_destination_readbacks": "open"
+  },
+  "claim_boundary": "This checkpoint proves the DS-0 contract, synthetic two-source appendix, local candidate materials, and explicit DS-1 boundary. It does not prove generalized adapters, live ranking or scenario behavior, hosting, or external publication."
+}

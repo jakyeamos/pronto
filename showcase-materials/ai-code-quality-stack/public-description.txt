@@ -1,0 +1,1 @@
+One generated-code finding, three clear jobs: Anti-Slop names the exact line, Pre-CR blocks the changed-file set, and Quality Runner adds repository context without duplicating the evidence. The case begins with a real Pronto UI label and keeps the cross-repository execution proof explicitly open.

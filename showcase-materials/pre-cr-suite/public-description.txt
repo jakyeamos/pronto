@@ -1,0 +1,1 @@
+Pre-CR helps a developer return to interrupted branch work, recover the relevant editor context, take the next useful action, and verify a focused changed-line repair before review. Its standalone IDE workflow is shown through local evidence receipts; marketplace delivery and hosted publication are separate follow-ons.

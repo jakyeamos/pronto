@@ -1,0 +1,1 @@
+Agent Router turns one complex AI request into a typed task graph, compares routes with evidence, and keeps worker results attributable. This local case uses a labeled launch-readiness replay: conflict labels and synthesis mode are visible, while final confidence, fallback, live provider execution, and worktree changes remain explicitly open.

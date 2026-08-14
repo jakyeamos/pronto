@@ -1,0 +1,62 @@
+{
+  "schema_version": "deletion-proof-workbench-showcase-evidence-v0.2",
+  "project": "deletion-proof-workbench",
+  "source_repository": "deletion-proof-workbench",
+  "source_branch": "dev",
+  "source_revision": "aec44d9f3b633902e63d77148d80bec5a6083756",
+  "observed_at": "2026-08-14T04:08:16Z",
+  "source_checks": {
+    "test": "passed: 3",
+    "lint": "passed",
+    "package": "passed"
+  },
+  "fixture": {
+    "kind": "temporary local Git fixture",
+    "target_revision": "28f71408f20aeed0b2fae1fc465ed1320b39d81b",
+    "file": "src/model.mjs",
+    "package_exports": {
+      ".": "./src/model.mjs"
+    },
+    "candidate": {
+      "symbol": "unusedThing",
+      "inspect_status": "ready",
+      "static_references": [],
+      "decision": "applied",
+      "preview_removed_text": "export function unusedThing() { return 1; }\n",
+      "recovery": {
+        "applied": true,
+        "restore_command": "insert declaration back into src/model.mjs"
+      }
+    },
+    "refusal": {
+      "symbol": "usedThing",
+      "static_references": [
+        {
+          "file": "src/consumer.mjs",
+          "provider": "bounded-regex"
+        }
+      ],
+      "status": "blocked",
+      "reason": "Known static references remain; apply is disabled."
+    }
+  },
+  "unknowns": [
+    "dynamic imports",
+    "reflection",
+    "external consumers",
+    "generated entry points",
+    "package export map requires independent review"
+  ],
+  "negative_contracts": {
+    "stale_candidate": "open",
+    "generated_consumer": "open",
+    "reflective_consumer": "open",
+    "failing_test_after_apply": "open"
+  },
+  "safety": {
+    "primary_checkout_ref_mutation": false,
+    "external_write": false,
+    "credentials_collected": false
+  },
+  "claim_boundary": "This current-dev checkpoint proves one explicit authorized bounded deletion, known-consumer refusal, recovery reference, and visible unknown classes in a temporary fixture. It does not claim universal non-use, stale/generated/reflection/failing-test coverage, downstream parity, hosting, or publication."
+}

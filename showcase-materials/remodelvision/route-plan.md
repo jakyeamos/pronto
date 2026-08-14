@@ -99,3 +99,20 @@ The exact evidence and claim boundary are recorded in
 useful implementation evidence, not proof of upload, generation, analysis,
 estimation, persistence, or handoff. RV-4 and RV-5 remain downstream of this
 stop; do not create a synthetic product result to fill the gap.
+
+## 7. Local showcase package
+
+The local candidate package is [`case-study.json`](case-study.json), with the
+long-form narrative in [`case-study.md`](case-study.md), the bounded claims in
+[`claim-ledger.json`](claim-ledger.json), and the responsive no-auth source at
+[`public/index.html`](public/index.html). The 16:9 binary is
+[`assets/preview-16x9.png`](assets/preview-16x9.png), with the editable source
+in [`assets/preview-16x9.svg`](assets/preview-16x9.svg); the checkpoint is
+[`evidence/rv-6-material-checkpoint.json`](evidence/rv-6-material-checkpoint.json).
+
+This package deliberately uses the RV-2 synthetic original fixture. It makes
+the brief, three directions, preserved-floor cue, and claim boundary shareable,
+but it does not close RV-1 contribution approval, RV-3 runtime proof, RV-4
+constraint adherence, RV-5 estimate bounds, hosted no-auth verification, or
+external destination readbacks. It is a candidate local material, not a public
+case-study release.

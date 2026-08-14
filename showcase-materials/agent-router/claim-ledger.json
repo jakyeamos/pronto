@@ -1,0 +1,58 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "agent-router",
+  "case_id": "ar-1-launch-readiness-material-001",
+  "reviewed_at": "2026-08-14T04:36:00Z",
+  "levels": [
+    {
+      "id": "graph",
+      "label": "Typed decomposition",
+      "status": "verified_local",
+      "status_display": "Three-node graph with authority constraints",
+      "allowed_claim": "The native planner produces the labeled plan, execute, and verify graph and carries the replay's authority constraints.",
+      "forbidden_inference": "The graph proves provider execution or approval enforcement.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/ar-1-contract-receipt.json#/native_probe"]
+    },
+    {
+      "id": "selection",
+      "label": "Route comparison",
+      "status": "verified_local",
+      "status_display": "Candidate ordering and selection trace",
+      "allowed_claim": "The replay compares eligible candidates with task-specific evidence, capability, availability, and explicit exclusions.",
+      "forbidden_inference": "Projected usage is currency cost, or the selection generalizes beyond the labeled replay.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/ar-2-3-routing-receipt.json#/candidate_packet", "evidence/ar-2-3-routing-receipt.json#/selection_trace"]
+    },
+    {
+      "id": "execution",
+      "label": "Attributable bounded results",
+      "status": "verified_local",
+      "status_display": "Three synthetic worker receipts",
+      "allowed_claim": "The bounded replay keeps one synthetic receipt attached to each selected subtask and records zero provider invocations and zero worktree mutations.",
+      "forbidden_inference": "A provider session ran, a worktree changed, or the fixture is a real launch-readiness outcome.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["execution-replay.json#/worker_receipts", "execution-replay.json#/reconciliation"]
+    },
+    {
+      "id": "conflict",
+      "label": "Conflict-aware synthesis",
+      "status": "partial",
+      "status_display": "Conflict labels and mode; confidence/fallback open",
+      "allowed_claim": "The native probe detects disagreement, preserves input receipt IDs and rationale, and selects model_synthesis.",
+      "forbidden_inference": "The current engine emits a final confidence or fallback decision.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/ar-5-blocker.json#/native_probe", "evidence/ar-5-blocker.json#/missing_contract"]
+    },
+    {
+      "id": "packaging",
+      "label": "Local visual package",
+      "status": "verified_local",
+      "status_display": "Candidate explorer and preview reviewed",
+      "allowed_claim": "A local candidate packet contains the replay story, claim ledger, 16:9 preview, short copy, and no-auth page source.",
+      "forbidden_inference": "The case is hosted, public, or posted to a destination.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/ar-7-material-checkpoint.json"]
+    }
+  ]
+}

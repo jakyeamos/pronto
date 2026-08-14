@@ -94,3 +94,20 @@ and evidence boundary legible without importing repository text, external
 fonts, soundtrack files, provider output, or runtime claims. The
 [`bk-1-synthetic-material-receipt.json`](evidence/bk-1-synthetic-material-receipt.json)
 records a static HTTP fetch only; this material addition does not clear BK-1.
+
+## 6. Local showcase package
+
+The local candidate package is [`case-study.json`](case-study.json), with the
+long-form narrative in [`case-study.md`](case-study.md), the bounded claims in
+[`claim-ledger.json`](claim-ledger.json), and the responsive no-auth source at
+[`public/index.html`](public/index.html). The 16:9 binary is
+[`assets/preview-16x9.png`](assets/preview-16x9.png), with the editable source
+in [`assets/preview-16x9.svg`](assets/preview-16x9.svg); the checkpoint is
+[`evidence/bk-6-material-checkpoint.json`](evidence/bk-6-material-checkpoint.json).
+
+This package uses the rights-safe synthetic chapter **The Signal Room**. It
+makes the four-beat reading-to-media arc and reader-control contract shareable,
+but it does not close BK-1 chapter/asset rights, AI-versus-human attribution,
+BK-2 authoring, BK-3 synchronization, BK-4 accessibility, hosted no-auth
+verification, or external destination readbacks. It is a candidate local
+material, not product authorship or a public chapter release.

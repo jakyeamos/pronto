@@ -1,0 +1,37 @@
+{
+  "schema_version": "pronto-showcase-material-checkpoint/v1",
+  "checkpoint_id": "al-7-local-material-package-2026-08-14",
+  "project": "ai-workflow-leverage",
+  "status": "candidate_local",
+  "reviewed_at": "2026-08-14T05:20:00Z",
+  "source": {
+    "repository": "ai-workflow-leverage",
+    "source_case_repository": "tenure",
+    "protected_baseline_revision": "a304ce866e1bced294a12f9915cae55ac2b65b13",
+    "reference_revision": "5dd52328a1a847466db8a7f12c7e6f71b468182e",
+    "release_provenance": "protocol_anchor_only"
+  },
+  "artifacts": [
+    { "path": "case-study.json", "status": "present" },
+    { "path": "case-study.md", "status": "present" },
+    { "path": "claim-ledger.json", "status": "present" },
+    { "path": "preview.html", "status": "present" },
+    { "path": "assets/preview-16x9.svg", "status": "reviewed_local" },
+    { "path": "assets/preview-16x9.png", "status": "reviewed_local", "dimensions": "1600x900", "sha256": "d584ad2377596780de93c3f38ab47984abd40ae10434d53ca078c76c6ae5b7a5" },
+    { "path": "public/index.html", "status": "candidate_no_auth_source" },
+    { "path": "public-description.txt", "status": "present" }
+  ],
+  "checks": {
+    "real_task_selection": "pass",
+    "paired_protocol": "pass",
+    "shared_quality_oracle": "pass",
+    "synthetic_appendix": "pass",
+    "preview_render": "pass",
+    "preview_visual_review": "pass",
+    "paired_measurement_event_contract": "blocked_owner_boundary",
+    "paired_runs": "not_run",
+    "hosted_no_auth": "open",
+    "external_destination_readbacks": "open"
+  },
+  "claim_boundary": "This checkpoint proves AL-1 protocol selection and local candidate materials. It does not prove an AI-versus-manual speed or quality gain, prospective lane completion, event-level telemetry, hosting, or publication."
+}

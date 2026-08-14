@@ -100,3 +100,20 @@ It records the HTTP surface probe and preserves the claim boundary: the
 preview makes the target shareable, but it does not close DS-1 or claim a
 current ranking run, scenario execution, cross-backlog generalization, or
 hosted dashboard behavior. The next durable step remains DS-1.
+
+## 6. Local showcase package
+
+The local candidate package is [`case-study.json`](case-study.json), with the
+long-form narrative in [`case-study.md`](case-study.md), the bounded claims in
+[`claim-ledger.json`](claim-ledger.json), and the responsive no-auth source at
+[`public/index.html`](public/index.html). The 16:9 binary is
+[`assets/preview-16x9.png`](assets/preview-16x9.png), with the editable source
+in [`assets/preview-16x9.svg`](assets/preview-16x9.svg); the checkpoint is
+[`evidence/ds-5-material-checkpoint.json`](evidence/ds-5-material-checkpoint.json).
+
+This package reuses the DS-0 synthetic two-backlog appendix and keeps the
+source-to-contract mapping visible. It does not close DS-1 adapters, DS-2/DS-3
+scenario and explanation proof, DS-4 generalization, DS-5 comprehension,
+hosted no-auth verification, or external destination readbacks. It is a
+candidate local material, not a claim that the current repository runs the
+generalized decision engine.

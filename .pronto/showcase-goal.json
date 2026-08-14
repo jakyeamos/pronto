@@ -213,8 +213,8 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "A real Tatum case, interactive source-to-claim trace, public copy, captions, and responsive local browser proof are assembled as a publication candidate.",
-        "score": 4.1,
+        "evidence": "A real Tatum case, interactive source-to-claim trace, public copy, captions, responsive local browser proof, and reviewed 1600x900 candidate preview are assembled as a publication candidate.",
+        "score": 4.3,
         "status": "assessed"
       },
       "display_name": "Research Domain Writing",
@@ -222,10 +222,9 @@
       "missing_materials": [
         "release-source attestation or rebuild",
         "human editorial approval",
-        "showcase thumbnail",
         "no-auth hosted verification"
       ],
-      "next_step": "Close RDW-0 from showcase-materials/research-domain-writing/route-plan.md: a release owner must bind the installed artifact to the intended source revision; agent-owned material work is parked.",
+      "next_step": "Close RDW-0 from showcase-materials/research-domain-writing/route-plan.md: a release owner must bind the installed artifact to the intended source revision; the local RDW-6 material package is complete, so editorial approval and hosting remain separate gates.",
       "next_step_category": "demo_integration",
       "product_readiness": {
         "evidence": "Released research-grounded writing pipeline with staged improvements.",
@@ -235,7 +234,7 @@
       "public_eligibility": "public_showcase",
       "repository_name": "research-domain-writing",
       "work_disposition": "targeted_gap_closure",
-      "work_disposition_summary": "The source packet, unsafe-claim QA path, installed pack behavior, and responsive visual package are proven locally; exact release provenance, editorial approval, thumbnail, and public hosting remain."
+      "work_disposition_summary": "The source packet, unsafe-claim QA path, installed pack behavior, responsive visual package, and reviewed 1600x900 preview are proven locally; exact release provenance, editorial approval, and public hosting remain."
     },
     {
       "blockers": [],
@@ -468,17 +467,17 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "A public safe-tool-guards case now includes a clean-source fixture, generic/Codex dry-run and apply receipts, overwrite refusal, parity hashes, receipt-scoped recovery with modified-file protection, static HTML/SVG comparison, a claim ledger, and a reason-coded runtime probe that records PW-4 as blocked.",
-        "score": 3.9,
+        "evidence": "A public safe-tool-guards case now includes a clean-source fixture, generic/Codex dry-run and apply receipts, overwrite refusal, parity hashes, receipt-scoped recovery with modified-file protection, static HTML/SVG comparison, evidence and public claim ledgers, a short description, a no-auth page source, a reviewed 1600x900 binary preview, and a reason-coded runtime probe that records PW-4 as blocked.",
+        "score": 4.2,
         "status": "assessed"
       },
       "display_name": "Portable Agentic Workbench",
       "disposition_source": "GitHub profile: Public Systems",
       "missing_materials": [
         "permitted host-runtime equivalence proof",
-        "browser-rendered thumbnail (optional)"
+        "hosted no-auth case URL and external destination readbacks"
       ],
-      "next_step": "Resolve the PW-4 runtime/provider boundary from showcase-materials/portable-agentic-workbench/route-plan.md; keep browser capture and video optional.",
+      "next_step": "Park PW-4 from showcase-materials/portable-agentic-workbench/route-plan.md with its reason-coded runtime receipt; the local material package is complete, so continue the queue and return after a permitted host-runtime equivalence path is available, then verify hosting and destination readbacks.",
       "next_step_category": "evidence",
       "product_readiness": {
         "evidence": "The registered public repository exposes a manifest-backed catalog, dry-run installation, validation commands, and explicit private/public boundaries.",
@@ -488,7 +487,7 @@
       "public_eligibility": "public_showcase",
       "repository_name": "jakyeamos-agent-skills",
       "work_disposition": "targeted_gap_closure",
-      "work_disposition_summary": "The public safe-tool-guards workflow now has a real manifest selection, clean generic/Codex dry-run and apply receipts, overwrite refusal, parity hashes, explicit manual review, and receipt-scoped recovery that preserves unrelated files and blocks modified targets; the permitted runtime probe is recorded as blocked by the no-provider/no-registration boundary."
+      "work_disposition_summary": "The public safe-tool-guards workflow now has a real manifest selection, clean generic/Codex dry-run and apply receipts, overwrite refusal, parity hashes, explicit manual review, receipt-scoped recovery that preserves unrelated files and blocks modified targets, and a complete local case/material package; the permitted runtime probe is recorded as blocked by the no-provider/no-registration boundary."
     },
     {
       "blockers": [],
@@ -560,18 +559,18 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "No public demo materials were found.",
-        "score": 0.8,
+        "evidence": "A real Tenure task, fixed paired protocol, shared quality oracle, claim ledger, no-auth case source, and reviewed 1600x900 candidate preview are assembled locally; the paired-measurement contract and outcome remain unproven.",
+        "score": 1.6,
         "status": "assessed"
       },
       "display_name": "AI Workflow Leverage",
       "disposition_source": "GitHub profile: Staged Local Systems",
       "missing_materials": [
         "credible measured outcome",
-        "walkthrough",
-        "showcase thumbnail"
+        "hosted no-auth case URL",
+        "external destination readbacks"
       ],
-      "next_step": "Park AL-2 from showcase-materials/ai-workflow-leverage/route-plan.md until agent-eval-runtime owns an approved append-only event contract for active work, waits, retries, human touches, failures, and outcome evidence; then return for the paired receipts.",
+      "next_step": "Park AL-2 from showcase-materials/ai-workflow-leverage/route-plan.md until agent-eval-runtime owns an approved append-only event contract for active work, waits, retries, human touches, failures, and outcome evidence; the local AL-7 material package is complete, so return for the paired receipts and later hosting/readbacks.",
       "next_step_category": "product",
       "product_readiness": {
         "evidence": "Evidence-bounded measurement concept has a first slice; outcome proof remains limited.",
@@ -581,7 +580,7 @@
       "public_eligibility": "public_showcase",
       "repository_name": "ai-workflow-leverage",
       "work_disposition": "material_build_or_restoration",
-      "work_disposition_summary": "The evidence-bounded concept exists, but the measurement system and prospective paired run must be completed before the claim is demonstrable."
+      "work_disposition_summary": "The evidence-bounded protocol and local AL-7 material package exist, but the shared measurement system and prospective paired run must be completed before the leverage claim is demonstrable."
     },
     {
       "blockers": [
@@ -593,20 +592,20 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "A real public portfolio decision brief, privacy review, and synthetic refusal appendix are locally packaged; the shadow run, report, publication-block proof, and public surface remain missing.",
-        "score": 1.4,
+        "evidence": "A real public portfolio brief, privacy review, synthetic refusal appendix, claim ledger, candidate no-auth source, and reviewed 1600x900 preview are locally packaged; the brief-aware shadow receipt, report, runtime publication refusal, hosting, and external readbacks remain open.",
+        "score": 1.8,
         "status": "assessed"
       },
       "display_name": "Marketing Autoresearch",
       "disposition_source": "GitHub profile: Staged Local Systems",
       "missing_materials": [
-        "traceable shadow research run",
-        "report artifact",
-        "publication-block proof",
-        "walkthrough",
-        "showcase thumbnail"
+        "brief-aware traceable shadow research run",
+        "source-backed report artifact",
+        "runtime publication-refusal receipt",
+        "hosted no-auth case URL",
+        "external destination readbacks"
       ],
-      "next_step": "Park MA-2 from showcase-materials/marketing-autoresearch/route-plan.md until the runtime owns a brief-aware source-to-claim receipt contract; then rerun the public portfolio brief.",
+      "next_step": "Return to MA-2 from showcase-materials/marketing-autoresearch/route-plan.md when the owner provides a brief-aware source-to-claim receipt contract; the local MA-7 material package is complete, so then rerun the public portfolio brief before hosting or readbacks.",
       "next_step_category": "demo_integration",
       "product_readiness": {
         "evidence": "Shadow/report-only loop with fail-closed publication boundaries.",
@@ -616,7 +615,7 @@
       "public_eligibility": "public_showcase",
       "repository_name": "marketing-autoresearch",
       "work_disposition": "targeted_gap_closure",
-      "work_disposition_summary": "The fail-closed report loop exists and now has a privacy-reviewed public portfolio brief; it needs a traceable shadow run, human handoff, and public packet."
+      "work_disposition_summary": "The fail-closed report loop now has a privacy-reviewed real brief and local candidate packet; the shared brief-aware receipt, report, runtime refusal proof, human handoff, hosting, and distribution readbacks remain separate gates."
     },
     {
       "blockers": [
@@ -660,7 +659,7 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "Public project narrative and a synthetic rights-safe fixture exist; current walkthrough and contribution approval proof are incomplete.",
+        "evidence": "A local candidate case, bounded claim ledger, no-auth source page, and reviewed 16:9 binary now make the synthetic constraint story shareable; contribution approval and current runtime proof remain incomplete.",
         "score": 2.1,
         "status": "assessed"
       },
@@ -669,10 +668,11 @@
       "missing_materials": [
         "contribution approval",
         "current runnable proof",
-        "walkthrough",
-        "showcase thumbnail"
+        "constraint adherence proof",
+        "hosted no-auth case URL",
+        "external destination readbacks"
       ],
-      "next_step": "Resolve RV-1 from showcase-materials/remodelvision/route-plan.md using the contribution ledger and an explicit owner/collaborator approval record; RV-2 is closed by the synthetic asset manifest.",
+      "next_step": "Resolve RV-1 from showcase-materials/remodelvision/route-plan.md using the contribution ledger and an explicit owner/collaborator approval record; the RV-6 local candidate package is complete while RV-3 remains separate.",
       "next_step_category": "evidence",
       "product_readiness": {
         "evidence": "Public collaborative project with a legible photo-to-estimate flow; current maintenance status is uncertain.",
@@ -692,7 +692,7 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "A self-contained synthetic contract preview now makes the target story shareable; it is explicitly not current product output and the walkthrough still depends on implementation proof.",
+        "evidence": "A local candidate case, bounded claim ledger, no-auth source page, and reviewed 16:9 binary now make the DS-0 contract story shareable; DS-1 adapter and current scenario proof remain incomplete.",
         "score": 2.1,
         "status": "assessed"
       },
@@ -702,10 +702,10 @@
         "second backlog adapter",
         "scenario proof",
         "current runnable proof",
-        "interactive product walkthrough",
-        "showcase thumbnail"
+        "hosted no-auth case URL",
+        "external destination readbacks"
       ],
-      "next_step": "Implement DS-1 from showcase-materials/dsci-proj/route-plan.md: map two backlog schemas into the decision contract without source-specific engine changes.",
+      "next_step": "Implement DS-1 from showcase-materials/dsci-proj/route-plan.md: map two backlog schemas into the decision contract without source-specific engine changes; the DS-5 local candidate package is complete while scenario proof remains separate.",
       "next_step_category": "product",
       "product_readiness": {
         "evidence": "A research pipeline and dashboard exist for the original backlog; configurable criteria and generalization across backlog types are not yet proven.",
@@ -727,7 +727,7 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "A product README and runnable local flow exist. The BK-1 contribution ledger and rights-safe synthetic appendix now have a shareable no-auth preview, but the real chapter, soundtrack, hosted behavior, and short walkthrough remain unproven.",
+        "evidence": "A local candidate case, bounded claim ledger, no-auth source page, and reviewed 16:9 binary now make the rights-safe reading arc shareable; real chapter rights, AI/human attribution, and hosted behavior remain open.",
         "score": 1.8,
         "status": "assessed"
       },
@@ -735,12 +735,12 @@
       "disposition_source": "Repository audit: owned interactive reading product; not listed as client work",
       "missing_materials": [
         "approved chapter and asset rights/attribution ledger",
-        "rights-cleared 16:9 product preview",
-        "500-character Handshake description",
-        "public no-auth reader demo or case study",
-        "clear AI and human role statement"
+        "clear AI and human role statement",
+        "fresh direct reader proof",
+        "hosted no-auth case URL",
+        "external destination readbacks"
       ],
-      "next_step": "Clear BK-1 from showcase-materials/book/route-plan.md: select one representative chapter and complete its rights and attribution ledger.",
+      "next_step": "Clear BK-1 from showcase-materials/book/route-plan.md: select one representative chapter and complete its rights and attribution ledger; the BK-6 local candidate package is complete while direct reader proof remains separate.",
       "next_step_category": "evidence",
       "product_readiness": {
         "evidence": "The repository documents a working reader and authenticated admin editor with manifest-driven chapters, motion, layered audio, Postgres persistence, Render configuration, and a full-stack smoke path; hosted behavior was not claimed.",
@@ -864,19 +864,18 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "Labeled AR-1 replay/spec, AR-2/AR-3 native candidate and rationale receipts, and an AR-4 bounded execution replay make the graph, alternatives, selection, attribution, and provider-state boundary inspectable; the native AR-5 conflict path is recorded as partial because confidence/fallback output is not modeled, while visuals and a public outcome walkthrough remain open.",
-        "score": 2.8,
+        "evidence": "Labeled AR-1 replay/spec, AR-2/AR-3 native candidate and rationale receipts, and an AR-4 bounded execution replay make the graph, alternatives, selection, attribution, and provider-state boundary inspectable. The local AR-7 package now adds a crop-safe 16:9 routing-decision preview, bounded case study, claim ledger, short description, and no-auth page source; the native AR-5 conflict path still lacks confidence/fallback output, and no hosted or externally read-back case is claimed.",
+        "score": 3.2,
         "status": "assessed"
       },
       "display_name": "Agent Router",
       "disposition_source": "Repository audit: owned public AI infrastructure product",
       "missing_materials": [
-        "crop-safe routing-decision preview",
-        "500-character Handshake description",
-        "public route-and-receipt case study",
-        "verified comparison outcome"
+        "verified comparison outcome",
+        "hosted no-auth case URL",
+        "external destination readbacks"
       ],
-      "next_step": "Park AR-5 from showcase-materials/agent-router/route-plan.md with its native conflict receipt; continue the queue and return after the owner adds or approves the confidence/fallback output contract.",
+      "next_step": "Park AR-5 from showcase-materials/agent-router/route-plan.md with its native conflict receipt; the local AR-7 material package is complete, so continue the queue and return after the owner adds or approves the confidence/fallback output contract, then verify comparison, hosting, and destination readbacks.",
       "next_step_category": "product",
       "product_readiness": {
         "evidence": "The TypeScript workspace implements typed task graphs, provider scoring, replay cases, CLI and MCP surfaces, receipts, synthesis, and learning; worktree execution and complete provider coverage remain explicitly incomplete.",
@@ -886,7 +885,7 @@
       "public_eligibility": "public_showcase",
       "repository_name": "agent-router",
       "work_disposition": "targeted_gap_closure",
-      "work_disposition_summary": "The routing system, native replay candidate-selection slice, and bounded execution replay exist; the native conflict path is observed but AR-5 is blocked because its output contract has no final confidence or fallback field, while reconciled evidence and a public inspection surface remain incomplete."
+      "work_disposition_summary": "The routing system, native replay candidate-selection slice, bounded execution replay, and local AR-7 material package exist; the native conflict path is observed but AR-5 is blocked because its output contract has no final confidence or fallback field. Comparison verification, hosted no-auth proof, and external destination readbacks remain open."
     },
     {
       "blockers": [
@@ -898,19 +897,18 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "CB-1 has a labeled synthetic demo page, semantic state manifest, and source-backed fixture receipt; CB-2 is explicitly blocked by the installed version/protocol mismatch, so observe-to-plan, side-panel approval, and recruiter-facing case-study proof remain open.",
-        "score": 1.7,
+        "evidence": "CB-1 has a labeled synthetic demo page, semantic state manifest, and source-backed fixture receipt; the local CB-7 package now adds a case study, claim ledger, short description, no-auth page source, and reviewed 1600x900 binary preview. CB-2 remains explicitly blocked by the installed version/protocol mismatch, so observe-to-plan, side-panel approval, apply/verify, stale refusal, hosting, and destination readbacks remain open.",
+        "score": 3.0,
         "status": "assessed"
       },
       "display_name": "Codex Browser Control",
       "disposition_source": "Repository audit: owned local Chrome control provider",
       "missing_materials": [
-        "crop-safe side-panel preview",
-        "500-character Handshake description",
-        "public synthetic case study",
-        "redacted plan and verification receipt"
+        "installed side-panel plan, apply, verify, and stale-refusal receipts",
+        "hosted no-auth case URL",
+        "external destination readbacks"
       ],
-      "next_step": "Park CB-2/CB-3 from showcase-materials/codex-browser-control/route-plan.md with its installed-round-trip receipt; continue the queue and return after explicit deployment approval reloads the current extension/native-host pair.",
+      "next_step": "Park CB-2/CB-3 from showcase-materials/codex-browser-control/route-plan.md with its installed-round-trip receipt; the local CB-7 material package is complete, so continue the queue and return after explicit deployment approval reloads the current extension/native-host pair, then capture CB-4/CB-5 and verify hosting/readbacks.",
       "next_step_category": "demo_integration",
       "product_readiness": {
         "evidence": "The Chrome MV3 provider implements typed observe, inspect, plan, approval, apply, verify, and rollback surfaces over an owner-only native bridge; the current checkout also carries the in-progress browser.await_approval notification path. Its dirty source checkout passes the documented source gate; installed Chrome and live round-trip proof remain open.",
@@ -920,7 +918,7 @@
       "public_eligibility": "public_showcase",
       "repository_name": "browser-control",
       "work_disposition": "targeted_gap_closure",
-      "work_disposition_summary": "The typed native control path and synthetic environment exist; the current source build passes, but CB-2 is blocked because the connected Chrome extension is an older revision and doctor cannot validate its round-trip response, while exact approval, mutation proof, and public packaging remain incomplete."
+      "work_disposition_summary": "The typed native control path, synthetic environment, and local CB-7 material package exist; the current source build passes, but CB-2 is blocked because the connected Chrome extension is an older revision and doctor cannot validate its round-trip response. Exact approval, mutation, verification, stale-refusal, hosting, and external readback proof remain open."
     },
     {
       "blockers": [],
@@ -1849,21 +1847,20 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "A candidate local package now includes bounded deletion/refusal and unknown-class receipts, claim ledger, preview source, short copy, and no-auth case-page source. Stale/recovery breadth, cross-tool parity, hosting, and destination readbacks remain unverified.",
-        "score": 2.1,
+        "evidence": "A current-dev package now includes bounded deletion/refusal/recovery and unknown-class receipts, claim ledger, reviewed 1600x900 PNG/SVG preview, short copy, and no-auth case-page source. Stale/negative breadth, downstream parity, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
         "status": "assessed"
       },
       "display_name": "Deletion Proof Workbench",
       "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
       "missing_materials": [
-        "crop-safe 16:9 Handshake preview image",
-        "stale-candidate/refusal/recovery fixture matrix",
+        "stale-candidate/generated/reflective/failing-test negative matrix",
         "Change Radius/Contract Watch source-identity handoff",
         "hosted no-auth case URL",
         "external destination readbacks"
       ],
-      "next_step": "Close DPW-0 through DPW-2 from showcase-materials/deletion-proof-workbench/route-plan.md: expand stale/refusal/recovery fixtures, preserve unknown consumer classes, and bind downstream parity before promoting the candidate packet to DPW-3.",
-      "next_step_category": "demo_integration",
+      "next_step": "Close DPW-1 through DPW-3 from showcase-materials/deletion-proof-workbench/route-plan.md: expand negative fixtures, bind Change Radius/Contract Watch without copying authority, then verify the no-auth case and destination readbacks.",
+      "next_step_category": "evidence",
       "product_readiness": {
         "evidence": "README records bounded references, unknown consumer classes, explicit apply, and recovery references without claiming universal non-use.",
         "score": 3.0,
@@ -1882,20 +1879,20 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "A candidate local package now includes individual passed/failed/blocked/unsupported check evidence, claim ledger, preview source, short copy, and no-auth case-page source. Upstream receipt projection, binary preview, hosting, and destination readbacks remain unverified.",
-        "score": 2.1,
+        "evidence": "A current-dev package now includes target-bound individual check receipts, explicit unsupported/blocked states, claim ledger, reviewed 1600x900 PNG/SVG preview, short copy, and no-auth case-page source. Upstream projection, full state breadth, native follow-up, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
         "status": "assessed"
       },
       "display_name": "Readiness Inspector",
       "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
       "missing_materials": [
-        "crop-safe 16:9 Handshake preview image",
         "Quality Setup/Evidence Replay owner-bound projection",
-        "stale/contradictory/not-applicable state matrix",
+        "stale/contradictory/not-applicable and profile-specific failed state matrix",
+        "native follow-up navigation readback",
         "hosted no-auth case URL",
         "external destination readbacks"
       ],
-      "next_step": "Close RI-0 through RI-2 from showcase-materials/readiness-inspector/route-plan.md: project upstream receipts, preserve the full individual-state matrix, and prove native follow-up before promoting the candidate packet to RI-3.",
+      "next_step": "Close RI-0 through RI-3 from showcase-materials/readiness-inspector/route-plan.md: project upstream receipts, preserve the full individual-state matrix, prove native follow-up, and verify the no-auth case/readbacks.",
       "next_step_category": "demo_integration",
       "product_readiness": {
         "evidence": "README records versioned goal-specific checks with owners, predicates, outcomes, evidence, and next actions without a default aggregate score.",
@@ -1915,8 +1912,8 @@
         "status": "assessed"
       },
       "demo_materials": {
-        "evidence": "The candidate local package now includes W5 refresh evidence, W6 contract/failure evidence, a visually inspected 1600×900 PNG, a validated owner-only Sites version, claim ledger, preview source, short copy, and no-auth case-page source. Real producer readback, direct native navigation, public access, credentialless hosting readback, and destination readbacks remain open.",
-        "score": 2.1,
+        "evidence": "The current-dev package now includes W5 refresh, W6 contract/failure, W8 configured-registry readback, a visually inspected 1600×900 PNG, a validated owner-only Sites version, claim ledger, preview source, short copy, and no-auth case-page source. Two healthy real producer readbacks, direct native navigation, public access, credentialless hosting readback, and destination readbacks remain open.",
+        "score": 2.7,
         "status": "assessed"
       },
       "display_name": "Fleet Radar",

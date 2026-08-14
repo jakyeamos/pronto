@@ -1,0 +1,36 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "book",
+  "status": "candidate_local",
+  "case_id": "BK-1-synthetic-reading-to-media-arc",
+  "title": "Book: let motion follow the prose, while authorship stays attributable",
+  "audience": "Creative-technology teams evaluating immersive reading without losing reader control or contribution clarity.",
+  "promise": "Make one chapter's quiet-to-audiovisual arc legible, then show exactly where rights, accessibility, and authorship evidence must enter before release.",
+  "story": [
+    "The synthetic chapter The Signal Room begins as a quiet page, then crosses a narrative threshold before the audiovisual layer peaks.",
+    "Four beats keep the prose primary: quiet, threshold, transformation, and exit.",
+    "Mute, reduced motion, keyboard navigation, and font scale are part of the intended reader contract, not an afterthought.",
+    "A manifest-style authoring view would connect passage, timing, layers, and controls without exposing public admin access.",
+    "BK-1 real chapter, soundtrack, font, and AI/human attribution records remain open; this appendix is not product authorship or runtime proof."
+  ],
+  "evidence": [
+    "contribution-ledger.json",
+    "synthetic-fixture.json",
+    "evidence/bk-1-blocker.json",
+    "evidence/bk-1-synthetic-material-receipt.json",
+    "assets/preview-16x9.png"
+  ],
+  "verified_locally": [
+    "The synthetic appendix is original showcase material with no real excerpt, third-party text, soundtrack, font, provider output, or external mutation.",
+    "The intended transformation arc and reader-control contract are represented without importing repository prose or audio.",
+    "The contribution ledger keeps writing, direction, implementation, assets, and possible AI assistance separate.",
+    "The local packet includes a candidate no-auth source page, short copy, claim ledger, and reviewed 1600x900 binary."
+  ],
+  "open_gates": [
+    "Complete BK-1 with an approved chapter and asset rights/attribution ledger, including sensitive-content review.",
+    "Prove synchronization, reader controls, accessibility fallback, and the sanitized authoring view on a current direct surface.",
+    "State the AI-versus-human contribution boundary before making authorship or assistance claims public.",
+    "Verify a hosted no-auth case URL and read back each external destination before release."
+  ],
+  "claim_boundary": "This packet proves a rights-safe synthetic reading-to-media target and local material preparation. It does not claim publication rights, product authorship, live synchronization, accessibility behavior, hosted reader behavior, or external release."
+}
