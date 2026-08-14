@@ -68,6 +68,15 @@ def receipt_dir(repo: Path) -> Path:
     return common_git_dir(repo) / "isolated-change-workflow" / "tasks"
 
 
+def validate_worktree_root(repo: Path, worktree_root: Path) -> None:
+    if worktree_root == repo or worktree_root.is_relative_to(repo):
+        raise WorkflowError(
+            "worktree-root-inside-repository",
+            "task worktree root must be outside the source checkout",
+            {"repository": str(repo), "worktree_root": str(worktree_root)},
+        )
+
+
 def atomic_json_write(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     handle, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
@@ -213,7 +222,12 @@ def command_start(args: argparse.Namespace) -> dict[str, Any]:
         raise WorkflowError("branch-exists", f"branch already exists: {branch}")
     base_sha = ref_sha(repo, args.base)
     task_id = f"{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
-    worktree_root = Path(args.worktree_root).expanduser().resolve() if args.worktree_root else Path.home() / ".codex" / "worktrees"
+    worktree_root = (
+        Path(args.worktree_root).expanduser().resolve()
+        if args.worktree_root
+        else (Path.home() / ".codex" / "worktrees").resolve()
+    )
+    validate_worktree_root(repo, worktree_root)
     destination = worktree_root / task_id / repo.name
     if destination.exists():
         raise WorkflowError("worktree-exists", f"worktree destination already exists: {destination}")

@@ -27,6 +27,21 @@ The workflow does not infer ownership after same-line edits have already been
 combined. An actual merge-tree conflict remains a review blocker and must name
 the affected paths and incompatible intent.
 
+## Worktree placement
+
+Task worktrees live outside the source checkout. The default root is
+`~/.codex/worktrees`; when that location is unavailable, use an approved external
+scratch root such as `/private/tmp/<task>-worktrees`. The command rejects a
+resolved `--worktree-root` equal to or nested beneath the source checkout before
+creating directories, branches, or receipts. This prevents a linked-worktree
+container from becoming new untracked state in an already dirty primary checkout.
+
+Fresh-agent verification fixtures must commit every repository-required hook and
+test configuration file before introducing simulated owner-active changes.
+Intentionally ignored configuration such as `.pre-cr.json` must be force-added to
+the fixture baseline, and fixture setup must assert that the exact-base task lane
+contains it. Primary-only ignored or untracked files are not task prerequisites.
+
 ## Agent completion rule
 
 An agent encountering overlapping pre-existing work must attempt the isolated
@@ -47,6 +62,7 @@ python3 -m unittest discover \
   -p 'test_*.py'
 ```
 
-The fixture suite covers dirty-primary preservation, primary-checkout rejection,
-receipt-backed commits, target same-line conflicts, and refusal to replace an
-existing unmanaged hook.
+The fixture suite covers dirty-primary preservation, external-root acceptance,
+nested-root rejection without mutation, committed hook-configuration transfer,
+primary-checkout rejection, receipt-backed commits, target same-line conflicts,
+and refusal to replace an existing unmanaged hook.

@@ -27,8 +27,27 @@ class IsolatedChangeTests(unittest.TestCase):
         self.git("config", "user.name", "Fixture User")
         self.git("config", "user.email", "fixture@example.test")
         self.git("config", "core.hooksPath", str(self.repo / ".git" / "hooks"))
+        (self.repo / ".pre-cr.json").write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "testCommand": "python3 -m unittest",
+                    "coveragePaths": [],
+                    "threshold": 0,
+                    "surfaces": {
+                        "covered": ["*.py"],
+                        "ignored": ["*.md", "*.json"],
+                        "unsupported": [],
+                    },
+                    "checks": {"coverage": False, "security": False, "checklist": False},
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
         (self.repo / "shared.txt").write_text("base\n", encoding="utf-8")
-        self.git("add", "shared.txt")
+        self.git("add", "-f", ".pre-cr.json", "shared.txt")
         self.git("commit", "-m", "base")
 
     def tearDown(self) -> None:
@@ -71,6 +90,7 @@ class IsolatedChangeTests(unittest.TestCase):
         task = Path(str(payload["worktree"]))
         self.assertTrue(payload["primary_worktree_dirty_preserved"])
         self.assertFalse((task / "owner.txt").exists())
+        self.assertTrue((task / ".pre-cr.json").is_file())
 
         guard = self.tool("guard", "--repo", str(task), "--json")
         self.assertTrue(json.loads(guard.stdout)["allowed"])
@@ -82,6 +102,55 @@ class IsolatedChangeTests(unittest.TestCase):
         self.assertTrue(verified["ready_for_integration"])
         self.assertEqual(verified["task_changed_paths"], ["task.txt"])
         self.assertTrue((self.repo / "owner.txt").exists())
+
+    def test_start_accepts_external_sibling_worktree_root(self) -> None:
+        external_root = self.root / "sibling-worktrees"
+        result = self.tool(
+            "start",
+            "--repo",
+            str(self.repo),
+            "--task",
+            "external-root",
+            "--worktree-root",
+            str(external_root),
+            "--json",
+        )
+        payload = json.loads(result.stdout)
+        task = Path(str(payload["worktree"]))
+
+        self.assertTrue(task.resolve().is_relative_to(external_root.resolve()))
+        self.assertFalse(task.resolve().is_relative_to(self.repo.resolve()))
+        self.assertTrue(json.loads(self.tool("guard", "--repo", str(task), "--json").stdout)["allowed"])
+
+    def test_start_rejects_worktree_root_inside_source_without_mutation(self) -> None:
+        nested_root = self.repo / ".codex-task-worktrees"
+        before_status = self.git("status", "--porcelain=v2", "-z").stdout
+        before_worktrees = self.git("worktree", "list", "--porcelain").stdout
+
+        result = self.tool(
+            "start",
+            "--repo",
+            str(self.repo),
+            "--task",
+            "nested-root",
+            "--worktree-root",
+            str(nested_root),
+            "--json",
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        error = json.loads(result.stderr)["error"]
+        self.assertEqual(error["code"], "worktree-root-inside-repository")
+        self.assertEqual(error["details"]["repository"], str(self.repo.resolve()))
+        self.assertEqual(error["details"]["worktree_root"], str(nested_root.resolve()))
+        self.assertFalse(nested_root.exists())
+        self.assertEqual(self.git("status", "--porcelain=v2", "-z").stdout, before_status)
+        self.assertEqual(self.git("worktree", "list", "--porcelain").stdout, before_worktrees)
+        branch = self.git(
+            "show-ref", "--verify", "--quiet", "refs/heads/codex/nested-root", check=False
+        )
+        self.assertNotEqual(branch.returncode, 0)
 
     def test_guard_rejects_primary_checkout(self) -> None:
         result = self.tool("guard", "--repo", str(self.repo), "--json", check=False)

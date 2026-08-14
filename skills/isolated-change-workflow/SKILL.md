@@ -49,6 +49,19 @@ The command records the immutable base commit, creates a `codex/<task>` branch i
 a locked linked worktree, and writes an untracked custody receipt under the common
 Git directory. Existing primary-checkout edits are neither copied nor changed.
 
+The default worktree root is `~/.codex/worktrees`. If sandbox permissions block
+that location, request the required scoped permission or pass `--worktree-root`
+with an approved external scratch root such as `/private/tmp/<task>-worktrees`.
+The resolved root must be outside the source checkout; the tool rejects nested
+roots before creating a directory or branch. Never place `.codex-task-worktrees`
+or another linked-worktree container inside the primary checkout.
+
+Fresh-agent fixtures must commit repository-required hook and test configuration,
+including `.pre-cr.json` when applicable, before owner-active dirty state is
+introduced. Force-add intentionally ignored required configuration and verify it
+exists in the exact-base task worktree. Ignored or untracked primary-only files
+are deliberately not copied into the task lane.
+
 Use the returned `worktree` as the working directory for every edit, test, stage,
 and commit in the task. Run the guard before the first mutation:
 

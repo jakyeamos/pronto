@@ -80,6 +80,8 @@
       "validation": [
         "Run the skill creator quick validator against skills/isolated-change-workflow.",
         "Run python3 -m unittest discover -s skills/isolated-change-workflow/scripts -p 'test_*.py'.",
+        "Verify a resolved worktree root nested under the source checkout fails before directory, branch, or receipt creation, while an external sibling root remains accepted.",
+        "Build fresh-agent fixtures from a baseline that commits every required hook and test configuration file, including force-added ignored files such as .pre-cr.json when applicable.",
         "Forward-test positive, negative, and same-line-conflict cases before projecting the skill externally."
       ],
       "status": "applicable"
