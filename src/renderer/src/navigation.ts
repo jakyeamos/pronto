@@ -2,6 +2,7 @@ import {
   Activity,
   ChartNoAxesCombined,
   ClipboardCheck,
+  CircleAlert,
   FolderGit2,
   GitBranch,
   Inbox,
@@ -20,6 +21,7 @@ export type NavItem =
   | "skills"
   | "groups"
   | "remote"
+  | "ci"
   | "activity"
   | "settings";
 
@@ -36,6 +38,7 @@ export const navItems: Array<{
   { id: "skills", label: "Skills", icon: Sparkles },
   { id: "groups", label: "Groups", icon: FolderGit2 },
   { id: "remote", label: "Remote catalog", icon: GitBranch },
+  { id: "ci", label: "CI tracker", icon: CircleAlert },
   { id: "activity", label: "Activity", icon: Activity },
   { id: "settings", label: "Settings", icon: Settings2 },
 ];
@@ -83,6 +86,11 @@ export const pageCopy: Record<
     eyebrow: "Read-only provider boundary",
     title: "Remote context comes second.",
     body: "The local portfolio is ready first; a read-only GitHub catalog will add remote context after durable state is in place.",
+  },
+  ci: {
+    eyebrow: "Read-only CI evidence",
+    title: "See failures, then start the right task.",
+    body: "GitHub remains the source of truth. Pronto groups recent failed runs, explains the failing jobs, and hands a bounded prompt to Codex only when you ask.",
   },
   activity: {
     eyebrow: "Local action history",

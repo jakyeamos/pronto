@@ -25,6 +25,7 @@ import { QualityGatesSurface } from "./components/QualityGatesSurface";
 import { ShowcaseSurface } from "./components/ShowcaseSurface";
 import { RemediationSurface } from "./components/RemediationSurface";
 import { RemoteCatalogSurface } from "./components/RemoteCatalogSurface";
+import { CiTrackerSurface } from "./components/CiTrackerSurface";
 import { RefreshConfirmationDialog } from "./components/RefreshConfirmationDialog";
 import { useEvidenceActions } from "./hooks/useEvidenceActions";
 import { useAppKeyboardShortcuts } from "./hooks/useAppKeyboardShortcuts";
@@ -43,9 +44,11 @@ import {
 } from "./components/WorkspaceSurfaces";
 import { navItems, pageCopy, type NavItem } from "./navigation";
 import type {
+  CiRunSnapshot,
   Condition,
   ExternalTool,
   RepositoryPreparation,
+  RemoteRepositorySnapshot,
   RepositorySnapshot,
 } from "./types";
 import "./styles.css";
@@ -137,6 +140,21 @@ export function App(): ReactElement {
     await handleConfirmRefresh();
     setIsRefreshConfirmationOpen(false);
   }, [handleConfirmRefresh]);
+
+  const handleStartCiCodex = useCallback(
+    async (
+      repository: RemoteRepositorySnapshot,
+      run: CiRunSnapshot,
+    ): Promise<void> => {
+      const receipt = await api.startCiCodexHandoff(
+        repository.full_name,
+        run.id,
+        run.run_attempt,
+      );
+      setNotice(receipt.message);
+    },
+    [setNotice],
+  );
 
   const handleOpenRepository = useCallback(
     (repository: RepositorySnapshot): void => {
@@ -498,6 +516,14 @@ export function App(): ReactElement {
               repositories={snapshot.remote_repositories}
               isRefreshing={isRefreshing}
               onRefresh={handleRefreshGithub}
+            />
+          ) : activeNav === "ci" ? (
+            <CiTrackerSurface
+              status={snapshot.provider_status}
+              repositories={snapshot.remote_repositories}
+              isRefreshing={isRefreshing}
+              onRefresh={handleRefreshGithub}
+              onStartCodex={handleStartCiCodex}
             />
           ) : (
             <DeferredSurface

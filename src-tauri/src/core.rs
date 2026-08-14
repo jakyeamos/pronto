@@ -13,7 +13,7 @@ use rusqlite::{params, Connection as SqliteConnection, OpenFlags, OptionalExtens
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -45,6 +45,8 @@ const RELEASE_GIT_TIMEOUT_SECONDS: u64 = 10;
 const RELEASE_COMMIT_LIMIT: usize = 1_000;
 const TARGET_EVIDENCE_GATE_TIMEOUT_SECONDS: u64 = 120;
 const TARGET_EVIDENCE_TOTAL_TIMEOUT_SECONDS: u64 = 600;
+const CI_RUN_LIMIT: usize = 20;
+const CI_ARTIFACT_LOOKUP_LIMIT: usize = 8;
 
 static NEXT_ACTION_AUDIT_ID: AtomicU64 = AtomicU64::new(0);
 static NEXT_EVENT_ID: AtomicU64 = AtomicU64::new(0);
@@ -234,6 +236,8 @@ pub struct RemoteRepositorySnapshot {
     pub ci_branch: Option<String>,
     #[serde(default)]
     pub ci_commit: Option<String>,
+    #[serde(default)]
+    pub ci_runs: Vec<CiRunSnapshot>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -247,6 +251,50 @@ pub struct CheckSnapshot {
     pub html_url: Option<String>,
     #[serde(default)]
     pub head_sha: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CiJobSnapshot {
+    pub id: u64,
+    pub name: String,
+    pub status: String,
+    pub conclusion: Option<String>,
+    pub html_url: Option<String>,
+    #[serde(default)]
+    pub failed_steps: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CiPromptArtifactSnapshot {
+    pub id: u64,
+    pub name: String,
+    pub expired: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CiRunSnapshot {
+    pub id: u64,
+    pub workflow_name: String,
+    pub workflow_path: Option<String>,
+    pub display_title: String,
+    pub run_number: u64,
+    pub run_attempt: u64,
+    pub event: String,
+    pub status: String,
+    pub conclusion: Option<String>,
+    pub head_branch: Option<String>,
+    pub head_sha: String,
+    pub html_url: String,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub pull_request_number: Option<u64>,
+    pub is_fork: bool,
+    #[serde(default)]
+    pub jobs: Vec<CiJobSnapshot>,
+    pub failure_summary: Option<String>,
+    pub failure_signature: Option<String>,
+    pub prompt_artifact: Option<CiPromptArtifactSnapshot>,
+    pub last_refreshed_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -533,6 +581,19 @@ pub struct ActionAudit {
     pub summary: String,
     pub created_at: String,
     pub completed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CiCodexHandoffReceipt {
+    pub schema_version: String,
+    pub status: String,
+    pub repository: String,
+    pub run_id: u64,
+    pub run_attempt: u64,
+    pub failure_signature: Option<String>,
+    pub prompt_directory: String,
+    pub started: bool,
+    pub message: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -3737,6 +3798,7 @@ impl ProviderAdapter for GitHubCliAdapter {
         let mut pull_requests = Vec::new();
         let mut releases = Vec::new();
         let mut ci_updates = HashMap::<String, (Vec<CheckSnapshot>, String, Option<String>)>::new();
+        let mut ci_run_updates = HashMap::<String, Vec<CiRunSnapshot>>::new();
         let repositories_to_refresh = repositories
             .iter()
             .filter(|repository| {
@@ -3799,6 +3861,47 @@ impl ProviderAdapter for GitHubCliAdapter {
                     }
                 }
             }
+            let workflow_endpoint = format!(
+                "repos/{}/actions/runs?per_page={CI_RUN_LIMIT}",
+                repository.full_name
+            );
+            if let Ok(payload) = self.json(&["api", workflow_endpoint.as_str()]) {
+                if let Ok(mut runs) =
+                    parse_github_workflow_runs(&payload, &repository.full_name, &refreshed_at)
+                {
+                    for (index, run) in runs.iter_mut().enumerate() {
+                        if run.status != "completed" || ci_run_needs_artifact(run) {
+                            let jobs_endpoint = format!(
+                                "repos/{}/actions/runs/{}/jobs?per_page=100",
+                                repository.full_name, run.id
+                            );
+                            if let Ok(job_payload) = self.json(&["api", jobs_endpoint.as_str()]) {
+                                if let Ok(jobs) = parse_github_jobs(&job_payload) {
+                                    run.jobs = jobs;
+                                }
+                            }
+                        }
+                        run.failure_summary = summarize_ci_failure(run);
+                        run.failure_signature = ci_failure_signature(run);
+                        if ci_run_needs_artifact(run) && index < CI_ARTIFACT_LOOKUP_LIMIT {
+                            let artifact_endpoint = format!(
+                                "repos/{}/actions/runs/{}/artifacts?per_page=100",
+                                repository.full_name, run.id
+                            );
+                            if let Ok(artifact_payload) =
+                                self.json(&["api", artifact_endpoint.as_str()])
+                            {
+                                run.prompt_artifact = parse_ci_prompt_artifact(
+                                    &artifact_payload,
+                                    run.id,
+                                    run.run_attempt,
+                                );
+                            }
+                        }
+                    }
+                    ci_run_updates.insert(repository.id.clone(), runs);
+                }
+            }
             let release_endpoint = format!("repos/{}/releases?per_page=100", repository.full_name);
             if let Ok(payload) =
                 self.json(&["api", release_endpoint.as_str(), "--paginate", "--slurp"])
@@ -3813,6 +3916,9 @@ impl ProviderAdapter for GitHubCliAdapter {
                 repository.ci_checks = checks;
                 repository.ci_branch = Some(branch);
                 repository.ci_commit = commit;
+            }
+            if let Some(runs) = ci_run_updates.remove(&repository.id) {
+                repository.ci_runs = runs;
             }
             repository.pull_requests = pull_requests
                 .iter()
@@ -3890,6 +3996,7 @@ fn parse_github_repositories(
                 ci_checks: Vec::new(),
                 ci_branch: None,
                 ci_commit: None,
+                ci_runs: Vec::new(),
             })
         })
         .collect())
@@ -4037,6 +4144,251 @@ fn parse_github_check_runs(
             })
         })
         .collect())
+}
+
+fn github_u64(value: Option<&serde_json::Value>) -> Option<u64> {
+    value.and_then(|value| {
+        value
+            .as_u64()
+            .or_else(|| value.as_i64().and_then(|number| u64::try_from(number).ok()))
+            .or_else(|| value.as_str().and_then(|number| number.parse::<u64>().ok()))
+    })
+}
+
+fn parse_github_workflow_runs(
+    payload: &serde_json::Value,
+    repository_full_name: &str,
+    refreshed_at: &str,
+) -> Result<Vec<CiRunSnapshot>, String> {
+    let runs = payload
+        .get("workflow_runs")
+        .and_then(serde_json::Value::as_array)
+        .ok_or_else(|| "GitHub workflow-run response did not contain workflow_runs.".to_string())?;
+    Ok(runs
+        .iter()
+        .take(CI_RUN_LIMIT)
+        .filter_map(|run| {
+            let id = github_u64(run.get("id"))?;
+            let base_repository = run
+                .get("repository")
+                .and_then(|repository| repository.get("full_name"))
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or(repository_full_name);
+            let head_repository = run
+                .get("head_repository")
+                .and_then(|repository| repository.get("full_name"))
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or(base_repository);
+            let pull_request_number = run
+                .get("pull_requests")
+                .and_then(serde_json::Value::as_array)
+                .and_then(|pull_requests| pull_requests.first())
+                .and_then(|pull_request| github_u64(pull_request.get("number")));
+            Some(CiRunSnapshot {
+                id,
+                workflow_name: run
+                    .get("name")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("Unnamed workflow")
+                    .to_string(),
+                workflow_path: run
+                    .get("path")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string),
+                display_title: run
+                    .get("display_title")
+                    .or_else(|| run.get("name"))
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("Unnamed workflow run")
+                    .to_string(),
+                run_number: github_u64(run.get("run_number")).unwrap_or_default(),
+                run_attempt: github_u64(run.get("run_attempt")).unwrap_or(1),
+                event: run
+                    .get("event")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("unknown")
+                    .to_string(),
+                status: run
+                    .get("status")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("unknown")
+                    .to_string(),
+                conclusion: run
+                    .get("conclusion")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string),
+                head_branch: run
+                    .get("head_branch")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string),
+                head_sha: run
+                    .get("head_sha")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default()
+                    .to_string(),
+                html_url: run
+                    .get("html_url")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default()
+                    .to_string(),
+                created_at: run
+                    .get("created_at")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string),
+                updated_at: run
+                    .get("updated_at")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string),
+                pull_request_number,
+                is_fork: normalize_remote_name(head_repository)
+                    .zip(normalize_remote_name(base_repository))
+                    .is_some_and(|(head, base)| head != base),
+                jobs: Vec::new(),
+                failure_summary: None,
+                failure_signature: None,
+                prompt_artifact: None,
+                last_refreshed_at: refreshed_at.to_string(),
+            })
+        })
+        .collect())
+}
+
+fn parse_github_jobs(payload: &serde_json::Value) -> Result<Vec<CiJobSnapshot>, String> {
+    let jobs = payload
+        .get("jobs")
+        .and_then(serde_json::Value::as_array)
+        .ok_or_else(|| "GitHub job response did not contain jobs.".to_string())?;
+    Ok(jobs
+        .iter()
+        .filter_map(|job| {
+            let id = github_u64(job.get("id"))?;
+            let failed_steps = job
+                .get("steps")
+                .and_then(serde_json::Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter(|step| {
+                    !matches!(
+                        step.get("conclusion").and_then(serde_json::Value::as_str),
+                        Some("success" | "skipped" | "neutral" | "cancelled")
+                    )
+                })
+                .filter_map(|step| {
+                    step.get("name")
+                        .and_then(serde_json::Value::as_str)
+                        .map(str::to_string)
+                })
+                .take(5)
+                .collect::<Vec<_>>();
+            Some(CiJobSnapshot {
+                id,
+                name: job
+                    .get("name")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("Unnamed job")
+                    .to_string(),
+                status: job
+                    .get("status")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("unknown")
+                    .to_string(),
+                conclusion: job
+                    .get("conclusion")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string),
+                html_url: job
+                    .get("html_url")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string),
+                failed_steps,
+            })
+        })
+        .collect())
+}
+
+fn ci_conclusion_is_failure(conclusion: Option<&str>) -> bool {
+    matches!(
+        conclusion,
+        Some(
+            "failure" | "timed_out" | "cancelled" | "action_required" | "startup_failure" | "stale"
+        )
+    )
+}
+
+fn ci_run_needs_artifact(run: &CiRunSnapshot) -> bool {
+    ci_conclusion_is_failure(run.conclusion.as_deref())
+}
+
+fn summarize_ci_failure(run: &CiRunSnapshot) -> Option<String> {
+    if !ci_run_needs_artifact(run) {
+        return None;
+    }
+    let details = run
+        .jobs
+        .iter()
+        .filter(|job| ci_conclusion_is_failure(job.conclusion.as_deref()))
+        .take(3)
+        .map(|job| {
+            if job.failed_steps.is_empty() {
+                format!(
+                    "{} ({})",
+                    job.name,
+                    job.conclusion.as_deref().unwrap_or(job.status.as_str())
+                )
+            } else {
+                format!("{}: {}", job.name, job.failed_steps.join(", "))
+            }
+        })
+        .collect::<Vec<_>>();
+    if details.is_empty() {
+        Some(format!(
+            "{} concluded {}",
+            run.workflow_name,
+            run.conclusion.as_deref().unwrap_or("unsuccessfully")
+        ))
+    } else {
+        Some(details.join("; "))
+    }
+}
+
+fn ci_failure_signature(run: &CiRunSnapshot) -> Option<String> {
+    let summary = run.failure_summary.as_deref()?;
+    let material = format!("{}|{}|{}", run.workflow_name, run.head_sha, summary);
+    let digest = Sha256::digest(material.as_bytes());
+    let short_digest = digest
+        .iter()
+        .take(12)
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    Some(format!("ci-{short_digest}"))
+}
+
+fn parse_ci_prompt_artifact(
+    payload: &serde_json::Value,
+    run_id: u64,
+    run_attempt: u64,
+) -> Option<CiPromptArtifactSnapshot> {
+    let artifacts = payload
+        .get("artifacts")
+        .and_then(serde_json::Value::as_array)?;
+    let expected = format!("codex-ci-prompt-{run_id}-{run_attempt}");
+    let legacy = format!("codex-ci-prompt-{run_id}");
+    artifacts.iter().find_map(|artifact| {
+        let name = artifact.get("name").and_then(serde_json::Value::as_str)?;
+        let exact_name = name == expected || (run_attempt == 1 && name == legacy);
+        let expired = artifact
+            .get("expired")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false);
+        if !exact_name || expired {
+            return None;
+        }
+        Some(CiPromptArtifactSnapshot {
+            id: github_u64(artifact.get("id"))?,
+            name: name.to_string(),
+            expired,
+        })
+    })
 }
 
 fn summarize_check_state(checks: &[CheckSnapshot]) -> String {
@@ -5260,6 +5612,213 @@ fn resolve_qr_executable(requested: Option<&str>) -> String {
     .find(|candidate| !candidate.contains('/') || Path::new(candidate).is_file())
     .unwrap_or(&"qr")
     .to_string()
+}
+
+fn resolve_ci_command(command_name: &str, environment_key: &str) -> Option<PathBuf> {
+    if let Some(requested) = std::env::var_os(environment_key) {
+        if requested.to_string_lossy().contains('/') {
+            let path = PathBuf::from(requested);
+            if path.is_file() {
+                return Some(path);
+            }
+        } else if let Some(path) = std::env::var_os("PATH").as_deref().and_then(|path| {
+            std::env::split_paths(path).find(|directory| directory.join(&requested).is_file())
+        }) {
+            return Some(path.join(requested));
+        }
+    }
+    let path = std::env::var_os("PATH")?;
+    std::env::split_paths(&path)
+        .map(|directory| directory.join(command_name))
+        .find(|candidate| candidate.is_file())
+}
+
+fn ci_child_path(node: &Path, codex: &Path) -> Option<OsString> {
+    let mut directories = vec![node.parent()?.to_path_buf(), codex.parent()?.to_path_buf()];
+    if let Some(path) = std::env::var_os("PATH") {
+        directories.extend(std::env::split_paths(&path));
+    }
+    std::env::join_paths(directories).ok()
+}
+
+fn resolve_ci_bridge() -> Result<PathBuf, String> {
+    let mut candidates = Vec::new();
+    if let Some(path) = std::env::var_os("PRONTO_CI_BRIDGE") {
+        candidates.push(PathBuf::from(path));
+    }
+    if let Some(home) = dirs::home_dir() {
+        candidates.push(home.join("projects/ci-incident-router"));
+        candidates.push(home.join("Documents/ci-incident-router"));
+    }
+    candidates
+        .into_iter()
+        .find(|path| path.join("bin/codex-ci.mjs").is_file())
+        .ok_or_else(|| {
+            "CI bridge is unavailable; set PRONTO_CI_BRIDGE to the ci-incident-router checkout."
+                .to_string()
+        })
+}
+
+fn ci_handoff_slug(repository: &str) -> String {
+    repository
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() {
+                character
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>()
+        .trim_matches('-')
+        .to_string()
+}
+
+fn ci_process_failure(prefix: &str, output: &std::process::Output) -> String {
+    let status = output
+        .status
+        .code()
+        .map(|code| code.to_string())
+        .unwrap_or_else(|| "signal".to_string());
+    format!("{prefix}; bridge exited with status {status}")
+}
+
+fn start_ci_codex_handoff_at(
+    path: &Path,
+    repository_name: &str,
+    run_id: u64,
+    run_attempt: u64,
+) -> Result<CiCodexHandoffReceipt, String> {
+    let normalized_repository = normalize_remote_name(repository_name)
+        .ok_or_else(|| "CI handoff requires a GitHub repository such as owner/name.".to_string())?;
+    let state = load_store(path)?;
+    let remote = state
+        .remote_repositories
+        .iter()
+        .find(|repository| {
+            normalize_remote_name(&repository.full_name).as_deref() == Some(&normalized_repository)
+        })
+        .ok_or_else(|| {
+            "That repository is not present in the current GitHub snapshot.".to_string()
+        })?;
+    let run = remote
+        .ci_runs
+        .iter()
+        .find(|run| run.id == run_id && run.run_attempt == run_attempt)
+        .ok_or_else(|| "That CI run is no longer present in the current snapshot; refresh GitHub and try again.".to_string())?;
+    if !ci_run_needs_artifact(run) {
+        return Err("Codex handoff is available only for failed or cancelled CI runs.".to_string());
+    }
+    if run.prompt_artifact.is_none() {
+        return Err(
+            "This CI run has no downloadable Codex prompt artifact. Verify the bridge workflow is installed and rerun GitHub refresh."
+                .to_string(),
+        );
+    }
+    let checkout = state
+        .repositories
+        .iter()
+        .find(|repository| {
+            repository
+                .remote_url
+                .as_deref()
+                .and_then(normalize_remote_name)
+                .as_deref()
+                == Some(&normalized_repository)
+        })
+        .map(|repository| PathBuf::from(&repository.path))
+        .ok_or_else(|| {
+            "Codex handoff needs a registered local checkout for this repository; remote-only repositories stay diagnosis-only in the tracker."
+                .to_string()
+        })?;
+    let checkout = canonical_path(&checkout)
+        .filter(|checkout| checkout.is_dir())
+        .ok_or_else(|| "The registered local checkout is unavailable.".to_string())?;
+    let bridge = resolve_ci_bridge()?;
+    let node = resolve_ci_command("node", "PRONTO_NODE_BIN").ok_or_else(|| {
+        "Node.js is unavailable; install or expose node before starting Codex.".to_string()
+    })?;
+    let codex = resolve_ci_command("codex", "PRONTO_CODEX_BIN").ok_or_else(|| {
+        "Codex is unavailable; expose the codex command before starting a CI handoff.".to_string()
+    })?;
+    let output_directory = std::env::temp_dir().join(format!(
+        "pronto-ci-handoff-{}-{}-{}",
+        ci_handoff_slug(&normalized_repository),
+        run_id,
+        run_attempt
+    ));
+    fs::create_dir_all(&output_directory).map_err(|error| {
+        format!(
+            "Could not create the temporary CI prompt directory {}: {error}",
+            output_directory.display()
+        )
+    })?;
+    let child_path = ci_child_path(&node, &codex)
+        .or_else(|| std::env::var_os("PATH"))
+        .unwrap_or_default();
+    let run_id_text = run_id.to_string();
+    let checkout_text = checkout.to_string_lossy().to_string();
+    let output_text = output_directory.to_string_lossy().to_string();
+    let download = Command::new(&node)
+        .current_dir(&bridge)
+        .args([
+            "./bin/codex-ci.mjs",
+            "download",
+            "--run",
+            run_id_text.as_str(),
+            "--repo",
+            normalized_repository.as_str(),
+            "--repo-path",
+            checkout_text.as_str(),
+            "--output-dir",
+            output_text.as_str(),
+        ])
+        .env("PATH", &child_path)
+        .output()
+        .map_err(|error| format!("Could not run the CI bridge download: {error}"))?;
+    if !download.status.success() {
+        return Err(ci_process_failure(
+            "The CI prompt artifact could not be downloaded",
+            &download,
+        ));
+    }
+    let prompt_path = output_directory.join("codex-ci-prompt.md");
+    if !prompt_path.is_file() {
+        return Err("The CI bridge completed without producing codex-ci-prompt.md.".to_string());
+    }
+    let prompt_text = prompt_path.to_string_lossy().to_string();
+    let codex_text = codex.to_string_lossy().to_string();
+    let handoff = Command::new(&node)
+        .current_dir(&bridge)
+        .args([
+            "./bin/codex-ci.mjs",
+            "handoff",
+            "--prompt",
+            prompt_text.as_str(),
+            "--repo",
+            checkout_text.as_str(),
+            "--codex",
+            codex_text.as_str(),
+            "--start",
+        ])
+        .env("PATH", &child_path)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|error| format!("Could not start the Codex CI handoff: {error}"))?;
+    let _ = handoff.id();
+    Ok(CiCodexHandoffReceipt {
+        schema_version: "pronto-ci-codex-handoff/v1".to_string(),
+        status: "started".to_string(),
+        repository: normalized_repository,
+        run_id,
+        run_attempt,
+        failure_signature: run.failure_signature.clone(),
+        prompt_directory: output_directory.to_string_lossy().to_string(),
+        started: true,
+        message: "Codex was started with a read-only CI diagnosis prompt. Review its suggestions before making changes.".to_string(),
+    })
 }
 
 fn qr_projects_root(repository_paths: &[String]) -> Result<PathBuf, String> {
@@ -11401,6 +11960,15 @@ pub async fn refresh_repository_target_evidence(
 #[tauri::command]
 pub fn refresh_github() -> Result<PortfolioSnapshot, String> {
     refresh_github_at(&store_path())
+}
+
+#[tauri::command]
+pub fn start_ci_codex_handoff(
+    repository: String,
+    run_id: u64,
+    run_attempt: u64,
+) -> Result<CiCodexHandoffReceipt, String> {
+    start_ci_codex_handoff_at(&store_path(), &repository, run_id, run_attempt)
 }
 
 #[tauri::command]
@@ -19111,6 +19679,96 @@ mod tests {
     }
 
     #[test]
+    fn parses_ci_runs_with_failure_context_forks_artifacts_and_stable_signatures() {
+        let payload = serde_json::json!({
+            "workflow_runs": [
+                {
+                    "id": 7001,
+                    "name": "Quality",
+                    "path": ".github/workflows/quality.yml",
+                    "display_title": "Add tracker",
+                    "run_number": 42,
+                    "run_attempt": 2,
+                    "event": "pull_request",
+                    "status": "completed",
+                    "conclusion": "failure",
+                    "head_branch": "feature/tracker",
+                    "head_sha": "abc123",
+                    "html_url": "https://github.com/acme/project/actions/runs/7001",
+                    "created_at": "2026-08-14T12:00:00Z",
+                    "updated_at": "2026-08-14T12:05:00Z",
+                    "repository": {"full_name": "acme/project"},
+                    "head_repository": {"full_name": "jakyeamos/project"},
+                    "pull_requests": [{"number": 17}]
+                },
+                {
+                    "id": 7002,
+                    "name": "Quality",
+                    "run_number": 43,
+                    "run_attempt": 1,
+                    "event": "push",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "head_sha": "def456",
+                    "repository": {"full_name": "acme/project"},
+                    "head_repository": {"full_name": "acme/project"}
+                }
+            ]
+        });
+        let mut runs = parse_github_workflow_runs(&payload, "acme/project", "2026-08-14T12:10:00Z")
+            .expect("workflow runs should parse");
+        assert_eq!(runs.len(), 2);
+        assert!(runs[0].is_fork);
+        assert_eq!(runs[0].pull_request_number, Some(17));
+        assert_eq!(runs[0].run_attempt, 2);
+        assert!(!runs[1].is_fork);
+
+        let jobs = parse_github_jobs(&serde_json::json!({
+            "jobs": [{
+                "id": 9001,
+                "name": "macOS",
+                "status": "completed",
+                "conclusion": "failure",
+                "html_url": "https://github.com/acme/project/actions/runs/7001/job/9001",
+                "steps": [
+                    {"name": "Install", "conclusion": "success"},
+                    {"name": "Run tests", "conclusion": "failure"},
+                    {"name": "Upload logs", "conclusion": "skipped"}
+                ]
+            }]
+        }))
+        .expect("jobs should parse");
+        runs[0].jobs = jobs;
+        runs[0].failure_summary = summarize_ci_failure(&runs[0]);
+        runs[0].failure_signature = ci_failure_signature(&runs[0]);
+        assert_eq!(runs[0].failure_summary.as_deref(), Some("macOS: Run tests"));
+        let first_signature = runs[0].failure_signature.clone();
+        runs[0].failure_signature = ci_failure_signature(&runs[0]);
+        assert_eq!(runs[0].failure_signature, first_signature);
+
+        let artifact = parse_ci_prompt_artifact(
+            &serde_json::json!({
+                "artifacts": [{"id": 55, "name": "codex-ci-prompt-7001-2", "expired": false}]
+            }),
+            7001,
+            2,
+        )
+        .expect("current-attempt artifact should parse");
+        assert_eq!(artifact.name, "codex-ci-prompt-7001-2");
+        assert!(parse_ci_prompt_artifact(
+            &serde_json::json!({
+                "artifacts": [{"id": 56, "name": "codex-ci-prompt-7001-1", "expired": true}]
+            }),
+            7001,
+            1,
+        )
+        .is_none());
+        assert!(runs[1].failure_summary.is_none());
+        assert!(!ci_conclusion_is_failure(Some("success")));
+        assert!(ci_conclusion_is_failure(Some("cancelled")));
+    }
+
+    #[test]
     fn parses_github_pull_requests_and_published_release_snapshots() {
         let pull_requests = parse_github_pull_requests(
             &serde_json::json!([
@@ -19224,6 +19882,7 @@ mod tests {
                     ci_checks: Vec::new(),
                     ci_branch: None,
                     ci_commit: None,
+                    ci_runs: Vec::new(),
                 },
                 RemoteRepositorySnapshot {
                     id: "github:99".to_string(),
@@ -19242,6 +19901,7 @@ mod tests {
                     ci_checks: Vec::new(),
                     ci_branch: None,
                     ci_commit: None,
+                    ci_runs: Vec::new(),
                 },
             ],
             pull_requests: Vec::new(),

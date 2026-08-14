@@ -18,6 +18,7 @@ import type {
   CreatePapercutInput,
   PapercutBacklog,
   PapercutStatus,
+  CiCodexHandoffReceipt,
 } from "./types";
 
 export const emptySnapshot: PortfolioSnapshot = {
@@ -300,6 +301,21 @@ export async function refreshGithub(): Promise<PortfolioSnapshot> {
     throw new Error("GitHub refresh is available in the Pronto desktop app.");
   }
   return invoke<PortfolioSnapshot>("refresh_github");
+}
+
+export async function startCiCodexHandoff(
+  repository: string,
+  runId: number,
+  runAttempt: number,
+): Promise<CiCodexHandoffReceipt> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Codex CI handoff is available in the Pronto desktop app.");
+  }
+  return invoke<CiCodexHandoffReceipt>("start_ci_codex_handoff", {
+    repository,
+    runId,
+    runAttempt,
+  });
 }
 
 export async function refreshRemediation(): Promise<PortfolioSnapshot> {
