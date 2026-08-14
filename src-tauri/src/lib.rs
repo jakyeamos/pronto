@@ -1,3 +1,4 @@
+pub mod behavior_assurance;
 pub mod change_matrix;
 pub mod core;
 pub mod evidence_contract;
@@ -140,17 +141,22 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             core::get_snapshot,
             core::get_analytics,
+            core::save_analytics_view,
+            core::delete_analytics_view,
+            core::set_default_analytics_view,
             core::get_skills,
             core::refresh_skills,
             core::open_skill_source,
             core::register_root,
             core::refresh,
+            core::refresh_batch,
             core::refresh_quality,
             core::refresh_repository_target_evidence,
             core::refresh_github,
             core::refresh_remediation,
             core::set_remediation_action_status,
             core::check_remediation_handoff,
+            core::check_remediation_execution_gate,
             core::export_remediation,
             core::set_maturity_audit_root,
             core::open_quality_report,

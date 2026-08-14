@@ -6,8 +6,8 @@ use std::path::Path;
 use crate::core::RepositorySnapshot;
 
 const CONTRACT_RELATIVE_PATH: &str = ".pronto/showcase-goal.json";
-const CONTRACT_SCHEMA: &str = "pronto-showcase-goal/v1";
-const SNAPSHOT_SCHEMA: &str = "pronto-showcase/v1";
+const CONTRACT_SCHEMA: &str = "pronto-showcase-goal/v2";
+const SNAPSHOT_SCHEMA: &str = "pronto-showcase/v2";
 const MAX_CONTRACT_BYTES: u64 = 1024 * 1024;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -34,6 +34,12 @@ pub struct ShowcaseContractEntry {
     pub display_name: String,
     pub public_eligibility: String,
     pub disposition_source: String,
+    #[serde(default)]
+    pub work_disposition: Option<String>,
+    #[serde(default)]
+    pub work_disposition_summary: Option<String>,
+    #[serde(default)]
+    pub next_step_category: Option<String>,
     pub product_readiness: ShowcaseDimension,
     pub demo_materials: ShowcaseDimension,
     pub career_signal: ShowcaseDimension,
@@ -63,6 +69,9 @@ pub struct ShowcaseProjectSnapshot {
     pub registration_status: String,
     pub public_eligibility: String,
     pub disposition_source: String,
+    pub work_disposition: String,
+    pub work_disposition_summary: String,
+    pub next_step_category: String,
     pub product_readiness: ShowcaseDimension,
     pub demo_materials: ShowcaseDimension,
     pub career_signal: ShowcaseDimension,
@@ -235,16 +244,52 @@ fn validate_contract(contract: &ShowcaseContract) -> Result<(), String> {
         }
         if !matches!(
             project.public_eligibility.as_str(),
-            "public_showcase" | "private_client" | "not_applicable" | "blocked"
+            "public_showcase" | "private_client" | "not_applicable" | "blocked" | "unknown"
         ) {
             return Err(format!(
-                "{path}.public_eligibility must be public_showcase, private_client, not_applicable, or blocked"
+                "{path}.public_eligibility must be public_showcase, private_client, not_applicable, blocked, or unknown"
             ));
         }
         if project.disposition_source.trim().is_empty() || project.next_step.trim().is_empty() {
             return Err(format!(
                 "{path}.disposition_source and next_step must be non-empty"
             ));
+        }
+        if project.public_eligibility == "public_showcase" {
+            let disposition = project.work_disposition.as_deref().ok_or_else(|| {
+                format!("{path}.work_disposition is required for public_showcase projects")
+            })?;
+            if !matches!(
+                disposition,
+                "largely_product_ready"
+                    | "targeted_gap_closure"
+                    | "material_build_or_restoration"
+                    | "conditional_gate"
+            ) {
+                return Err(format!(
+                    "{path}.work_disposition must be largely_product_ready, targeted_gap_closure, material_build_or_restoration, or conditional_gate"
+                ));
+            }
+            if project
+                .work_disposition_summary
+                .as_deref()
+                .is_none_or(|summary| summary.trim().is_empty())
+            {
+                return Err(format!(
+                    "{path}.work_disposition_summary is required for public_showcase projects"
+                ));
+            }
+            let category = project.next_step_category.as_deref().ok_or_else(|| {
+                format!("{path}.next_step_category is required for public_showcase projects")
+            })?;
+            if !matches!(
+                category,
+                "product" | "demo_integration" | "evidence" | "content" | "packaging"
+            ) {
+                return Err(format!(
+                    "{path}.next_step_category must be product, demo_integration, evidence, content, or packaging"
+                ));
+            }
         }
         validate_dimension(
             &project.product_readiness,
@@ -278,6 +323,9 @@ fn unassessed_repository(repository: &RepositorySnapshot) -> ShowcaseProjectSnap
         public_eligibility: "unknown".to_string(),
         disposition_source: "Registered in Pronto; showcase disposition not yet assessed."
             .to_string(),
+        work_disposition: "unknown".to_string(),
+        work_disposition_summary: "No reviewed Showcase work disposition exists.".to_string(),
+        next_step_category: "evidence".to_string(),
         product_readiness: dimension.clone(),
         demo_materials: dimension.clone(),
         career_signal: dimension,
@@ -305,6 +353,38 @@ fn priority(project: &ShowcaseContractEntry, scoring: &ShowcaseScoring) -> Optio
             + project.product_readiness.score? * scoring.priority_product_weight
             + (5.0 - project.demo_materials.score?) * scoring.priority_materials_gap_weight,
     ))
+}
+
+fn projected_work_disposition(project: &ShowcaseContractEntry) -> (String, String, String) {
+    let fallback = match project.public_eligibility.as_str() {
+        "private_client" => (
+            "private_client",
+            "Private audit context; no public gap-closure work is authorized.",
+        ),
+        "not_applicable" => (
+            "not_applicable",
+            "Supporting or provenance work; not a standalone Showcase project.",
+        ),
+        "blocked" => (
+            "blocked",
+            "A reviewed eligibility or ownership blocker prevents public work.",
+        ),
+        _ => ("unknown", "No reviewed Showcase work disposition exists."),
+    };
+    (
+        project
+            .work_disposition
+            .clone()
+            .unwrap_or_else(|| fallback.0.to_string()),
+        project
+            .work_disposition_summary
+            .clone()
+            .unwrap_or_else(|| fallback.1.to_string()),
+        project
+            .next_step_category
+            .clone()
+            .unwrap_or_else(|| "evidence".to_string()),
+    )
 }
 
 fn project_lane(
@@ -373,6 +453,111 @@ fn find_contract(repositories: &[RepositorySnapshot]) -> Result<Option<(String, 
     }
 }
 
+fn automatic_goal_entry(repository: &RepositorySnapshot) -> serde_json::Value {
+    serde_json::json!({
+        "repository_name": repository.name.clone(),
+        "display_name": repository.name,
+        "public_eligibility": "unknown",
+        "disposition_source": "Automatically added when the repository entered the registered Showcase fleet; review required.",
+        "work_disposition": "unknown",
+        "work_disposition_summary": "No reviewed Showcase work disposition exists yet.",
+        "next_step_category": "evidence",
+        "product_readiness": {
+            "status": "unknown",
+            "evidence": "Repository was newly registered; product readiness has not been reviewed."
+        },
+        "demo_materials": {
+            "status": "unknown",
+            "evidence": "Repository was newly registered; demo materials have not been inventoried."
+        },
+        "career_signal": {
+            "status": "unknown",
+            "evidence": "Repository was newly registered; career signal has not been reviewed."
+        },
+        "blockers": [],
+        "missing_materials": [
+            "public-eligibility disposition",
+            "product-readiness audit",
+            "demo-material inventory",
+            "career-signal review"
+        ],
+        "next_step": "Review this repository and replace the automatic placeholder with an explicit Showcase goal."
+    })
+}
+
+/// Adds explicit pending-review goal rows for repositories first discovered in a
+/// registered fleet that already has a valid Showcase contract. The placeholder
+/// is deliberately unknown: it creates a durable review target without granting
+/// public eligibility, readiness scores, or publication authority.
+pub fn ensure_showcase_goal_placeholders(
+    repositories: &[RepositorySnapshot],
+    new_repository_ids: &HashSet<String>,
+) -> Result<usize, String> {
+    if new_repository_ids.is_empty() {
+        return Ok(0);
+    }
+    let Some((contract_repository_path, contents)) = find_contract(repositories)? else {
+        return Ok(0);
+    };
+    let contract = serde_json::from_str::<ShowcaseContract>(&contents)
+        .map_err(|error| format!("could not decode showcase contract: {error}"))?;
+    validate_contract(&contract)?;
+    let mut payload = serde_json::from_str::<serde_json::Value>(&contents)
+        .map_err(|error| format!("could not decode showcase contract JSON: {error}"))?;
+    let projects = payload
+        .get_mut("projects")
+        .and_then(serde_json::Value::as_array_mut)
+        .ok_or_else(|| "showcase contract projects must be an array".to_string())?;
+    let mut existing_names = contract
+        .projects
+        .iter()
+        .map(|project| project.repository_name.to_lowercase())
+        .collect::<HashSet<_>>();
+    let mut candidates = repositories
+        .iter()
+        .filter(|repository| new_repository_ids.contains(&repository.id))
+        .filter(|repository| !existing_names.contains(&repository.name.to_lowercase()))
+        .collect::<Vec<_>>();
+    candidates.sort_by(|left, right| {
+        left.name
+            .to_ascii_lowercase()
+            .cmp(&right.name.to_ascii_lowercase())
+            .then_with(|| left.id.cmp(&right.id))
+    });
+    let mut additions_to_write = Vec::with_capacity(candidates.len());
+    for repository in candidates {
+        if existing_names.insert(repository.name.to_lowercase()) {
+            additions_to_write.push(repository);
+        }
+    }
+    let additions = additions_to_write.len();
+    if additions == 0 {
+        return Ok(0);
+    }
+    for repository in additions_to_write {
+        projects.push(automatic_goal_entry(repository));
+    }
+
+    let contract_path = Path::new(&contract_repository_path).join(CONTRACT_RELATIVE_PATH);
+    let encoded = serde_json::to_string_pretty(&payload)
+        .map_err(|error| format!("could not encode showcase contract: {error}"))?;
+    let temporary_path = contract_path.with_extension(format!("json.{}.tmp", std::process::id()));
+    fs::write(&temporary_path, format!("{encoded}\n")).map_err(|error| {
+        format!(
+            "could not write temporary showcase contract {}: {error}",
+            temporary_path.display()
+        )
+    })?;
+    if let Err(error) = fs::rename(&temporary_path, &contract_path) {
+        let _ = fs::remove_file(&temporary_path);
+        return Err(format!(
+            "could not replace showcase contract {} atomically: {error}",
+            contract_path.display()
+        ));
+    }
+    Ok(additions)
+}
+
 pub fn inspect(repositories: &[RepositorySnapshot]) -> ShowcasePortfolioSnapshot {
     let Some((_contract_repository_path, contents)) = (match find_contract(repositories) {
         Ok(value) => value,
@@ -398,6 +583,8 @@ pub fn inspect(repositories: &[RepositorySnapshot]) -> ShowcasePortfolioSnapshot
                     .eq_ignore_ascii_case(&project.repository_name)
             });
             let (lane, publishable) = project_lane(project, &contract.scoring);
+            let (work_disposition, work_disposition_summary, next_step_category) =
+                projected_work_disposition(project);
             ShowcaseProjectSnapshot {
                 repository_name: project.repository_name.clone(),
                 display_name: project.display_name.clone(),
@@ -410,6 +597,9 @@ pub fn inspect(repositories: &[RepositorySnapshot]) -> ShowcasePortfolioSnapshot
                 },
                 public_eligibility: project.public_eligibility.clone(),
                 disposition_source: project.disposition_source.clone(),
+                work_disposition,
+                work_disposition_summary,
+                next_step_category,
                 product_readiness: project.product_readiness.clone(),
                 demo_materials: project.demo_materials.clone(),
                 career_signal: project.career_signal.clone(),
@@ -502,14 +692,21 @@ mod tests {
     use super::*;
     use crate::core::{RepositorySnapshot, WorkspaceActivity, WorkspaceSummary};
     use std::fs;
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    static TEMP_REPOSITORY_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
     fn temporary_repository(name: &str) -> (std::path::PathBuf, RepositorySnapshot) {
         let suffix = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("clock")
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("pronto-showcase-{name}-{suffix}"));
+        let sequence = TEMP_REPOSITORY_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!(
+            "pronto-showcase-{name}-{}-{suffix}-{sequence}",
+            std::process::id()
+        ));
         fs::create_dir_all(root.join(".pronto")).expect("contract directory");
         let path = root.to_string_lossy().to_string();
         let workspace = WorkspaceSummary {
@@ -598,11 +795,14 @@ mod tests {
             "display_name": name,
             "public_eligibility": eligibility,
             "disposition_source": "test fixture",
+            "work_disposition": "targeted_gap_closure",
+            "work_disposition_summary": "Close the bounded demo and evidence path.",
+            "next_step_category": "demo_integration",
             "product_readiness": { "status": "assessed", "score": product, "evidence": "reviewed" },
             "demo_materials": { "status": "assessed", "score": materials, "evidence": "reviewed" },
             "career_signal": { "status": "assessed", "score": 5.0, "evidence": "reviewed" },
             "blockers": [],
-            "missing_materials": if materials >= 4.0 { serde_json::json!([]) } else { serde_json::json!(["60-90 second walkthrough"]) },
+            "missing_materials": if materials >= 4.0 { serde_json::json!([]) } else { serde_json::json!(["public no-auth project page"]) },
             "next_step": "Create a bounded demo artifact."
         })
     }
@@ -647,6 +847,9 @@ mod tests {
                 "display_name": "Unknown",
                 "public_eligibility": "public_showcase",
                 "disposition_source": "test fixture",
+                "work_disposition": "conditional_gate",
+                "work_disposition_summary": "Audit evidence before selecting work.",
+                "next_step_category": "evidence",
                 "product_readiness": { "status": "unknown", "evidence": "not reviewed" },
                 "demo_materials": { "status": "unknown", "evidence": "not reviewed" },
                 "career_signal": { "status": "unknown", "evidence": "not reviewed" },
@@ -696,6 +899,104 @@ mod tests {
         assert_eq!(registered_unassessed.registration_status, "registered");
         assert_eq!(registered_unassessed.showcase_score, None);
         assert!(snapshot.projects.iter().all(|project| !project.publishable));
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn automatically_adds_pending_showcase_goal_for_new_repository() {
+        let (root, existing_repository) = temporary_repository("pronto");
+        let (new_root, new_repository) = temporary_repository("new-project");
+        let mut payload = contract(serde_json::json!([project(
+            "pronto",
+            "not_applicable",
+            4.0,
+            4.0
+        )]));
+        payload["public_release_target_policy"] = serde_json::json!({
+            "matrix_path": "showcase-materials/public-release-targets.json"
+        });
+        let contract_path = root.join(CONTRACT_RELATIVE_PATH);
+        fs::write(
+            &contract_path,
+            serde_json::to_vec_pretty(&payload).expect("payload"),
+        )
+        .expect("write contract");
+
+        let repositories = vec![existing_repository, new_repository.clone()];
+        let new_repository_ids = [new_repository.id.clone()]
+            .into_iter()
+            .collect::<HashSet<_>>();
+        assert_eq!(
+            ensure_showcase_goal_placeholders(&repositories, &new_repository_ids)
+                .expect("placeholder should be written"),
+            1
+        );
+
+        let first_contents = fs::read_to_string(&contract_path).expect("read contract");
+        let first_payload: serde_json::Value =
+            serde_json::from_str(&first_contents).expect("valid JSON");
+        let entry = first_payload["projects"]
+            .as_array()
+            .expect("projects array")
+            .iter()
+            .find(|project| project["repository_name"] == "new-project")
+            .expect("automatic pending goal");
+        assert_eq!(entry["public_eligibility"], "unknown");
+        assert_eq!(entry["work_disposition"], "unknown");
+        assert_eq!(entry["product_readiness"]["status"], "unknown");
+        assert!(entry["product_readiness"].get("score").is_none());
+        assert_eq!(
+            first_payload["public_release_target_policy"]["matrix_path"],
+            "showcase-materials/public-release-targets.json"
+        );
+
+        assert_eq!(
+            ensure_showcase_goal_placeholders(&repositories, &new_repository_ids)
+                .expect("duplicate placeholder should be ignored"),
+            0
+        );
+        assert_eq!(
+            fs::read_to_string(&contract_path).expect("read contract after retry"),
+            first_contents
+        );
+
+        let snapshot = inspect(&repositories);
+        let pending = snapshot
+            .projects
+            .iter()
+            .find(|project| project.repository_name == "new-project")
+            .expect("pending goal should project");
+        assert_eq!(pending.public_eligibility, "unknown");
+        assert_eq!(pending.lane, "unknown");
+        assert_eq!(pending.showcase_score, None);
+        assert!(!pending.publishable);
+
+        fs::remove_dir_all(root).expect("cleanup");
+        fs::remove_dir_all(new_root).expect("cleanup");
+    }
+
+    #[test]
+    fn requires_granular_work_disposition_for_public_projects() {
+        let (root, repository) = temporary_repository("pronto");
+        let mut public_project = project("pronto", "public_showcase", 4.0, 1.0);
+        public_project
+            .as_object_mut()
+            .expect("project object")
+            .remove("next_step_category");
+        let payload = contract(serde_json::json!([public_project]));
+        fs::write(
+            root.join(CONTRACT_RELATIVE_PATH),
+            serde_json::to_vec_pretty(&payload).expect("payload"),
+        )
+        .expect("write contract");
+
+        let snapshot = inspect(&[repository]);
+
+        assert_eq!(snapshot.status, "Invalid");
+        assert!(snapshot
+            .error
+            .as_deref()
+            .is_some_and(|error| error.contains("next_step_category is required")));
         fs::remove_dir_all(root).expect("cleanup");
     }
 }

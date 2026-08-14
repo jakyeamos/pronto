@@ -2718,25 +2718,37 @@ fn add_branch_hygiene_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<Act
     }
 }
 
-fn workspace_activity_requires_coordination(activity: &crate::core::WorkspaceActivity) -> bool {
-    if activity.state.eq_ignore_ascii_case("active")
+pub(crate) fn workspace_activity_requires_coordination(
+    activity: &crate::core::WorkspaceActivity,
+) -> bool {
+    workspace_activity_execution_state(activity) != "clear"
+}
+
+pub(crate) fn workspace_activity_execution_state(
+    activity: &crate::core::WorkspaceActivity,
+) -> &'static str {
+    let explicitly_active = activity.state.eq_ignore_ascii_case("active")
         || activity
-            .signals
-            .iter()
-            .any(|signal| signal.summary == "Activity state uncertain")
-    {
-        return true;
+            .manifest
+            .as_ref()
+            .and_then(|manifest| manifest.status.as_deref())
+            .is_some_and(|status| {
+                matches!(
+                    status.to_ascii_lowercase().as_str(),
+                    "active" | "running" | "started" | "paused" | "interrupted"
+                )
+            });
+    if explicitly_active {
+        return "coordination_required";
     }
-    activity
-        .manifest
-        .as_ref()
-        .and_then(|manifest| manifest.status.as_deref())
-        .is_some_and(|status| {
-            matches!(
-                status.to_ascii_lowercase().as_str(),
-                "active" | "running" | "started" | "paused" | "interrupted"
-            )
-        })
+    if activity
+        .signals
+        .iter()
+        .any(|signal| signal.summary == "Activity state uncertain")
+    {
+        return "evidence_unavailable";
+    }
+    "clear"
 }
 
 fn add_submodule_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
@@ -6563,6 +6575,11 @@ mod tests {
             .maturity
             .dimension_scores
             .insert("quality_commands".to_string(), 2.0);
+        repository
+            .quality
+            .maturity
+            .dimension_scores
+            .insert("matrix_maintenance".to_string(), 0.0);
         fs::write(
             findings_dir.join("repo.json"),
             serde_json::to_string(&serde_json::json!({
@@ -6581,6 +6598,16 @@ mod tests {
                     "score": 2,
                     "schema": "quality-runner-environment-legibility-finding-v0.1",
                     "severity": "observation"
+                }, {
+                    "applicable": true,
+                    "dimension": "matrix_maintenance",
+                    "finding_id": "finding-matrix-maintenance",
+                    "label": "change-matrix maintenance",
+                    "message": "The repository matrix does not require same-change updates.",
+                    "score": 0,
+                    "schema": "quality-runner-environment-legibility-finding-v0.1",
+                    "severity": "observation",
+                    "status": "missing"
                 }]
             }))
             .expect("fleet finding should encode"),
@@ -6606,6 +6633,13 @@ mod tests {
             plan.actions
                 .iter()
                 .filter(|action| action.stable_key == "maturity:dimension:quality_commands")
+                .count(),
+            1
+        );
+        assert_eq!(
+            plan.actions
+                .iter()
+                .filter(|action| action.stable_key == "maturity:dimension:matrix_maintenance")
                 .count(),
             1
         );

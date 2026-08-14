@@ -12,7 +12,7 @@ use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use rusqlite::{params, Connection as SqliteConnection, OpenFlags, OptionalExtension, Row};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::ffi::OsStr;
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
@@ -20,21 +20,26 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration as StdDuration, Instant};
 
 const STORE_VERSION: u8 = 5;
-const SQLITE_SCHEMA_VERSION: i64 = 9;
+const SQLITE_SCHEMA_VERSION: i64 = 10;
 const DEFAULT_RETENTION_DAYS: i64 = 90;
 const DEFAULT_MAX_UNTRACKED_BYTES: u64 = 2_000_000;
 const DEFAULT_MAX_MANIFEST_BYTES: u64 = 64 * 1024;
 const MAX_AI_DIFF_BYTES: usize = 2_000_000;
-const ANALYTICS_SCHEMA: &str = "pronto-analytics/v1";
+const ANALYTICS_SCHEMA: &str = "pronto-analytics/v2";
 const ANALYTICS_RANGE_DAYS: i64 = 30;
+const ANALYTICS_MIN_RANGE_DAYS: i64 = 1;
 const ANALYTICS_DEDUP_MINUTES: i64 = 15;
 const DEFAULT_QR_AUDIT_TIMEOUT_SECONDS: u64 = 120;
 const STORE_WRITE_LOCK_WAIT_SECONDS: u64 = 5;
 const STORE_WRITE_LOCK_STALE_SECONDS: u64 = 1_800;
+const DEFAULT_REFRESH_BATCH_PARALLELISM: usize = 4;
+const MAX_REFRESH_BATCH_PARALLELISM: usize = 32;
+const MAX_REFRESH_BATCH_CONFLICT_RETRIES: usize = 1;
 const QUALITY_READ_TIMEOUT_SECONDS: u64 = 10;
 const RELEASE_GIT_TIMEOUT_SECONDS: u64 = 10;
 const RELEASE_COMMIT_LIMIT: usize = 1_000;
@@ -118,6 +123,20 @@ fn acquire_store_write_lock_with_timeout(
             }
         }
     }
+}
+
+/// Execute a local store read-modify-write operation under one file lock.
+///
+/// The state must be loaded after the lock is acquired. Loading it before the
+/// lock allows two writers to persist stale snapshots after the first writer
+/// has already committed a newer audit, event, or repository projection.
+fn with_store_write_state<T, F>(path: &Path, operation: F) -> Result<T, String>
+where
+    F: FnOnce(&mut StoreState) -> Result<T, String>,
+{
+    let _lock = acquire_store_write_lock(path)?;
+    let mut state = load_store(path)?;
+    operation(&mut state)
 }
 
 fn default_refresh_policy() -> String {
@@ -669,6 +688,9 @@ pub struct RemediationHandoffCheck {
     pub head_commit: Option<String>,
     pub status: String,
     pub ready: bool,
+    pub status_available: bool,
+    pub ownership_status: String,
+    pub ownership_coordination_required: bool,
     pub checkpoint_required: bool,
     pub workspace_dirty: bool,
     pub persisted_snapshot_dirty: bool,
@@ -676,6 +698,61 @@ pub struct RemediationHandoffCheck {
     pub reasons: Vec<String>,
     pub next_safe_step: String,
     pub authorization: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RemediationExecutionBlocker {
+    pub id: String,
+    pub kind: String,
+    pub title: String,
+    pub detail: String,
+    pub workspace_id: String,
+    pub workspace_path: String,
+    pub branch: String,
+    pub blocked_operations: Vec<String>,
+    pub source: String,
+    pub evidence_state: String,
+    pub observed_at: Option<String>,
+    pub next_safe_step: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RemediationClosureGate {
+    pub status: String,
+    pub ready: bool,
+    pub plan_status: Option<String>,
+    pub active_action_count: usize,
+    pub blocked_action_count: usize,
+    pub blocked_action_ids: Vec<String>,
+    pub source_generated_at: Option<String>,
+    pub detail: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RemediationAuthorizationBoundary {
+    pub status: String,
+    pub evaluated: bool,
+    pub source: String,
+    pub detail: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RemediationExecutionGate {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub repository_id: String,
+    pub repository_name: String,
+    pub repository_path: String,
+    pub scope: String,
+    pub selected_workspace_id: Option<String>,
+    pub status: String,
+    pub ready: bool,
+    pub workspace_checks: Vec<RemediationHandoffCheck>,
+    pub blockers: Vec<RemediationExecutionBlocker>,
+    pub blocked_operations: Vec<String>,
+    pub closure_gate: RemediationClosureGate,
+    pub authorization: RemediationAuthorizationBoundary,
+    pub next_safe_step: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -755,6 +832,32 @@ pub struct PortfolioSnapshot {
     pub storage_path: String,
 }
 
+const REFRESH_BATCH_SCHEMA: &str = "pronto-refresh-batch/v1";
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RefreshBatchRepositoryResult {
+    pub repository_id: String,
+    pub name: String,
+    pub path: String,
+    pub status: String,
+    pub scan_order: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RefreshBatchReport {
+    pub schema_version: String,
+    pub generated_at: String,
+    pub status: String,
+    pub scope: String,
+    pub parallelism: usize,
+    pub repository_count: usize,
+    pub conflict_retries: usize,
+    pub scan_phase: String,
+    pub merge_phase: String,
+    pub repositories: Vec<RefreshBatchRepositoryResult>,
+    pub snapshot: PortfolioSnapshot,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AnalyticsMetricSample {
     pub observed_at: String,
@@ -780,7 +883,84 @@ pub struct AnalyticsMetricSample {
     pub findings_repository_count: u64,
     pub release_rule_repository_count: u64,
     pub release_ready_repository_count: u64,
+    #[serde(default)]
+    pub remediation_open_action_count: Option<u64>,
+    #[serde(default)]
+    pub remediation_in_progress_action_count: Option<u64>,
+    #[serde(default)]
+    pub remediation_blocked_action_count: Option<u64>,
+    #[serde(default)]
+    pub remediation_deferred_action_count: Option<u64>,
+    #[serde(default)]
+    pub remediation_verified_action_count: Option<u64>,
+    #[serde(default)]
+    pub remediation_progress_percent: Option<f64>,
     pub quality_freshness: Option<String>,
+    #[serde(default)]
+    pub metrics: BTreeMap<String, Option<f64>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct MetricDefinition {
+    pub id: String,
+    pub label: String,
+    pub description: String,
+    pub unit: String,
+    pub denominator: String,
+    pub scope: String,
+    pub time_semantics: String,
+    pub window_days: Option<i64>,
+    pub aggregation: String,
+    pub polarity: String,
+    pub source: String,
+    pub freshness: String,
+    pub allowed_visualizations: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AnalyticsFinding {
+    pub id: String,
+    pub kind: String,
+    pub severity: String,
+    pub title: String,
+    pub detail: String,
+    pub metric_ids: Vec<String>,
+    pub repository_id: Option<String>,
+    pub observed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AnalyticsViewFilters {
+    pub range_days: i64,
+    pub repository_ids: Vec<String>,
+    pub group_ids: Vec<String>,
+    pub product_ids: Vec<String>,
+    pub freshness: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AnalyticsWidgetConfig {
+    pub id: String,
+    pub title: String,
+    pub metric_ids: Vec<String>,
+    pub chart_type: String,
+    pub grouping: String,
+    pub width: u8,
+    pub height: u8,
+    pub order: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AnalyticsView {
+    pub schema_version: String,
+    pub id: String,
+    pub name: String,
+    pub builtin: bool,
+    pub is_default: bool,
+    pub filters: AnalyticsViewFilters,
+    pub widgets: Vec<AnalyticsWidgetConfig>,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -801,6 +981,10 @@ pub struct AnalyticsSnapshot {
     pub history_available_from: Option<String>,
     pub portfolio_samples: Vec<AnalyticsMetricSample>,
     pub repositories: Vec<AnalyticsRepositorySeries>,
+    pub metric_catalog: Vec<MetricDefinition>,
+    pub findings: Vec<AnalyticsFinding>,
+    pub views: Vec<AnalyticsView>,
+    pub default_view_id: String,
 }
 
 const AGENT_SUMMARY_SCHEMA: &str = "pronto-agent-summary/v1";
@@ -822,6 +1006,7 @@ const WORKSPACE_SYNC_EVIDENCE_MAX_AGE_MINUTES: i64 = DEFAULT_AGENT_DOCTOR_MAX_AG
 const MAX_AGENT_DOCTOR_MAX_AGE_MINUTES: i64 = 10_080;
 const AGENT_ROUTE_SCHEMA: &str = "pronto-agent-route/v1";
 const REMEDIATION_HANDOFF_SCHEMA: &str = "pronto-remediation-handoff/v1";
+const REMEDIATION_EXECUTION_GATE_SCHEMA: &str = "pronto-remediation-execution-gate/v1";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConditionSummary {
@@ -1312,6 +1497,14 @@ fn initialize_store(connection: &SqliteConnection) -> Result<(), String> {
              );
              CREATE INDEX IF NOT EXISTS idx_analytics_samples_scope_time
                  ON analytics_samples (repository_id, observed_at);
+             CREATE TABLE IF NOT EXISTS analytics_views (
+                 id TEXT PRIMARY KEY,
+                 name TEXT NOT NULL,
+                 is_default INTEGER NOT NULL DEFAULT 0,
+                 payload_json TEXT NOT NULL,
+                 created_at TEXT NOT NULL,
+                 updated_at TEXT NOT NULL
+             );
              CREATE TABLE IF NOT EXISTS skills_snapshots (
                  id INTEGER PRIMARY KEY CHECK (id = 1),
                  payload_json TEXT NOT NULL
@@ -2177,7 +2370,14 @@ fn analytics_repository_sample(
         findings_repository_count: u64::from(findings_available),
         release_rule_repository_count: u64::from(repository.release_rule.is_some()),
         release_ready_repository_count: u64::from(release_ready),
+        remediation_open_action_count: None,
+        remediation_in_progress_action_count: None,
+        remediation_blocked_action_count: None,
+        remediation_deferred_action_count: None,
+        remediation_verified_action_count: None,
+        remediation_progress_percent: None,
         quality_freshness: quality_metric_freshness(repository),
+        metrics: BTreeMap::new(),
     }
 }
 
@@ -2234,6 +2434,7 @@ fn aggregate_quality_freshness(samples: &[AnalyticsMetricSample]) -> Option<Stri
 
 fn analytics_portfolio_sample(
     repositories: &[RepositorySnapshot],
+    remediation_run: &remediation::RemediationRun,
     observed_at: &str,
 ) -> AnalyticsMetricSample {
     let samples = repositories
@@ -2307,8 +2508,163 @@ fn analytics_portfolio_sample(
             .iter()
             .map(|sample| sample.release_ready_repository_count)
             .sum(),
+        remediation_open_action_count: Some(
+            remediation_run
+                .plans
+                .iter()
+                .flat_map(|plan| &plan.actions)
+                .filter(|action| action.status == "open")
+                .count() as u64,
+        ),
+        remediation_in_progress_action_count: Some(
+            remediation_run
+                .plans
+                .iter()
+                .flat_map(|plan| &plan.actions)
+                .filter(|action| action.status == "in_progress")
+                .count() as u64,
+        ),
+        remediation_blocked_action_count: Some(
+            remediation_run
+                .plans
+                .iter()
+                .flat_map(|plan| &plan.actions)
+                .filter(|action| action.status == "blocked")
+                .count() as u64,
+        ),
+        remediation_deferred_action_count: Some(
+            remediation_run
+                .plans
+                .iter()
+                .flat_map(|plan| &plan.actions)
+                .filter(|action| action.status == "deferred")
+                .count() as u64,
+        ),
+        remediation_verified_action_count: Some(
+            remediation_run
+                .plans
+                .iter()
+                .flat_map(|plan| &plan.actions)
+                .filter(|action| action.status == "verified")
+                .count() as u64,
+        ),
+        remediation_progress_percent: (!remediation_run.plans.is_empty()).then(|| {
+            let (verified, eligible) =
+                remediation_run
+                    .plans
+                    .iter()
+                    .fold((0_u64, 0_u64), |(verified, eligible), plan| {
+                        (
+                            verified + plan.progress.verified_weight,
+                            eligible
+                                + plan
+                                    .progress
+                                    .total_weight
+                                    .saturating_sub(plan.progress.deferred_weight),
+                        )
+                    });
+            if eligible == 0 {
+                100.0
+            } else {
+                verified as f64 / eligible as f64 * 100.0
+            }
+        }),
         quality_freshness: aggregate_quality_freshness(&samples),
+        metrics: BTreeMap::new(),
     }
+}
+
+fn adapt_analytics_sample(mut sample: AnalyticsMetricSample) -> AnalyticsMetricSample {
+    let mut insert = |id: &str, value: Option<f64>| {
+        sample.metrics.entry(id.to_string()).or_insert(value);
+    };
+    insert(
+        "git.commits.trailing_30_days",
+        sample.commits_last_30_days.map(|v| v as f64),
+    );
+    insert("git.ahead_commits", Some(sample.ahead_commit_count as f64));
+    insert(
+        "git.behind_commits",
+        Some(sample.behind_commit_count as f64),
+    );
+    insert(
+        "workspaces.dirty",
+        Some(sample.dirty_workspace_count as f64),
+    );
+    insert(
+        "workspaces.unsynced",
+        Some(sample.unsynced_workspace_count as f64),
+    );
+    insert(
+        "conditions.active",
+        Some(sample.active_condition_count as f64),
+    );
+    insert("quality.maturity_score", sample.maturity_score);
+    insert("quality.evidence_score", sample.ci_readiness_score);
+    insert("findings.total", sample.findings_total.map(|v| v as f64));
+    insert(
+        "findings.high_severity",
+        sample.high_severity_findings.map(|v| v as f64),
+    );
+    insert(
+        "release.ready_repositories",
+        Some(sample.release_ready_repository_count as f64),
+    );
+    insert(
+        "release.configured_repositories",
+        Some(sample.release_rule_repository_count as f64),
+    );
+    insert(
+        "workspaces.activity.active",
+        Some(sample.active_workspace_count as f64),
+    );
+    insert(
+        "workspaces.activity.interrupted",
+        Some(sample.interrupted_workspace_count as f64),
+    );
+    insert(
+        "workspaces.activity.idle",
+        Some(sample.idle_workspace_count as f64),
+    );
+    insert(
+        "workspaces.activity.unknown",
+        Some(sample.unknown_workspace_count as f64),
+    );
+    insert(
+        "remediation.actions.open",
+        sample
+            .remediation_open_action_count
+            .map(|value| value as f64),
+    );
+    insert(
+        "remediation.actions.in_progress",
+        sample
+            .remediation_in_progress_action_count
+            .map(|value| value as f64),
+    );
+    insert(
+        "remediation.actions.blocked",
+        sample
+            .remediation_blocked_action_count
+            .map(|value| value as f64),
+    );
+    insert(
+        "remediation.actions.deferred",
+        sample
+            .remediation_deferred_action_count
+            .map(|value| value as f64),
+    );
+    insert(
+        "remediation.actions.verified",
+        sample
+            .remediation_verified_action_count
+            .map(|value| value as f64),
+    );
+    insert(
+        "remediation.progress_percent",
+        sample.remediation_progress_percent,
+    );
+    sample
 }
 
 fn analytics_sample_fingerprint(sample: &AnalyticsMetricSample) -> Result<String, String> {
@@ -2381,12 +2737,16 @@ fn record_analytics_samples_at(
     state: &StoreState,
     observed_at: &str,
 ) -> Result<(), String> {
-    let portfolio = analytics_portfolio_sample(&state.repositories, observed_at);
+    let portfolio = adapt_analytics_sample(analytics_portfolio_sample(
+        &state.repositories,
+        &state.remediation,
+        observed_at,
+    ));
     let mut samples = vec![(None, portfolio)];
     samples.extend(state.repositories.iter().map(|repository| {
         (
             Some(repository.id.clone()),
-            analytics_repository_sample(repository, observed_at),
+            adapt_analytics_sample(analytics_repository_sample(repository, observed_at)),
         )
     }));
 
@@ -2482,10 +2842,10 @@ fn load_analytics_samples(
             for row in rows {
                 let payload =
                     row.map_err(|error| format!("Could not decode analytics row: {error}"))?;
-                samples.push(
+                samples.push(adapt_analytics_sample(
                     serde_json::from_str(&payload)
                         .map_err(|error| format!("Could not decode analytics sample: {error}"))?,
-                );
+                ));
             }
         }
         None => {
@@ -2495,20 +2855,494 @@ fn load_analytics_samples(
             for row in rows {
                 let payload =
                     row.map_err(|error| format!("Could not decode analytics row: {error}"))?;
-                samples.push(
+                samples.push(adapt_analytics_sample(
                     serde_json::from_str(&payload)
                         .map_err(|error| format!("Could not decode analytics sample: {error}"))?,
-                );
+                ));
             }
         }
     }
     Ok(samples)
 }
 
-fn load_analytics_at(path: &Path) -> Result<AnalyticsSnapshot, String> {
-    let state = load_store_read_only(path)?;
-    let connection = open_store_read_only(path)?;
-    let range_cutoff = Utc::now() - chrono::Duration::days(ANALYTICS_RANGE_DAYS);
+fn metric_definition(
+    id: &str,
+    label: &str,
+    description: &str,
+    unit: &str,
+    denominator: &str,
+    scope: &str,
+    time_semantics: &str,
+    window_days: Option<i64>,
+    aggregation: &str,
+    polarity: &str,
+    source: &str,
+    charts: &[&str],
+) -> MetricDefinition {
+    MetricDefinition {
+        id: id.to_string(),
+        label: label.to_string(),
+        description: description.to_string(),
+        unit: unit.to_string(),
+        denominator: denominator.to_string(),
+        scope: scope.to_string(),
+        time_semantics: time_semantics.to_string(),
+        window_days,
+        aggregation: aggregation.to_string(),
+        polarity: polarity.to_string(),
+        source: source.to_string(),
+        freshness: "local-refresh".to_string(),
+        allowed_visualizations: charts.iter().map(|value| value.to_string()).collect(),
+    }
+}
+
+fn analytics_metric_catalog() -> Vec<MetricDefinition> {
+    vec![
+        metric_definition(
+            "git.commits.trailing_30_days",
+            "Commits",
+            "Local commits in the trailing 30-day window.",
+            "commits",
+            "portfolio",
+            "portfolio",
+            "trailing-window",
+            Some(30),
+            "sum",
+            "neutral",
+            "local-git",
+            &["line", "bar", "table"],
+        ),
+        metric_definition(
+            "git.ahead_commits",
+            "Ahead commits",
+            "Commits ahead of configured upstream branches.",
+            "commits",
+            "workspaces",
+            "repository",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "local-git",
+            &["diverging-bar", "bar", "table"],
+        ),
+        metric_definition(
+            "git.behind_commits",
+            "Behind commits",
+            "Commits behind configured upstream branches.",
+            "commits",
+            "workspaces",
+            "repository",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "local-git",
+            &["diverging-bar", "bar", "table"],
+        ),
+        metric_definition(
+            "conditions.active",
+            "Active conditions",
+            "Active deterministic portfolio conditions.",
+            "conditions",
+            "portfolio",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "local-refresh",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "workspaces.dirty",
+            "Dirty workspaces",
+            "Workspaces with local changes.",
+            "workspaces",
+            "portfolio",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "local-git",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "workspaces.unsynced",
+            "Unsynced workspaces",
+            "Workspaces ahead of or behind an upstream.",
+            "workspaces",
+            "portfolio",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "local-git",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "workspaces.activity.active",
+            "Active workspaces",
+            "Workspaces with recent local activity.",
+            "workspaces",
+            "portfolio",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "neutral",
+            "workspace-activity",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "workspaces.activity.interrupted",
+            "Interrupted workspaces",
+            "Workspaces whose recent activity appears interrupted.",
+            "workspaces",
+            "portfolio",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "workspace-activity",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "workspaces.activity.idle",
+            "Idle workspaces",
+            "Workspaces without recent observed activity.",
+            "workspaces",
+            "portfolio",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "neutral",
+            "workspace-activity",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "workspaces.activity.unknown",
+            "Unknown activity",
+            "Workspaces whose activity state is unavailable.",
+            "workspaces",
+            "portfolio",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "workspace-activity",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "quality.maturity_score",
+            "Maturity",
+            "Imported quality maturity score.",
+            "score-0-4",
+            "scored repositories",
+            "repository",
+            "point-in-time",
+            None,
+            "average",
+            "higher-is-better",
+            "quality-runner",
+            &["line", "scatter", "bar", "table"],
+        ),
+        metric_definition(
+            "quality.evidence_score",
+            "Evidence coverage",
+            "Fresh passing CI evidence score.",
+            "score-0-4",
+            "scored repositories",
+            "repository",
+            "point-in-time",
+            None,
+            "average",
+            "higher-is-better",
+            "quality-runner",
+            &["line", "scatter", "bar", "heatmap", "table"],
+        ),
+        metric_definition(
+            "findings.total",
+            "Detected findings",
+            "Raw detector findings before disposition.",
+            "findings",
+            "scanned repositories",
+            "repository",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "quality-runner",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "findings.high_severity",
+            "High-severity findings",
+            "High-severity detector findings.",
+            "findings",
+            "scanned repositories",
+            "repository",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "quality-runner",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "release.ready_repositories",
+            "Release ready",
+            "Repositories meeting configured local release thresholds.",
+            "repositories",
+            "configured release rules",
+            "portfolio",
+            "point-in-time",
+            None,
+            "count",
+            "higher-is-better",
+            "local-release-rules",
+            &["line", "bar", "table"],
+        ),
+        metric_definition(
+            "release.configured_repositories",
+            "Release rules configured",
+            "Repositories with a configured local release threshold.",
+            "repositories",
+            "configured release rules",
+            "portfolio",
+            "point-in-time",
+            None,
+            "count",
+            "neutral",
+            "local-release-rules",
+            &["line", "bar", "table"],
+        ),
+        metric_definition(
+            "remediation.actions.open",
+            "Open actions",
+            "Remediation actions not yet started.",
+            "actions",
+            "remediation plans",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "remediation",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "remediation.actions.in_progress",
+            "In-progress actions",
+            "Remediation actions currently in progress.",
+            "actions",
+            "remediation plans",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "neutral",
+            "remediation",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "remediation.actions.blocked",
+            "Blocked actions",
+            "Remediation actions with an explicit blocker.",
+            "actions",
+            "remediation plans",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "remediation",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "remediation.actions.deferred",
+            "Deferred actions",
+            "Remediation actions with a recorded deferral.",
+            "actions",
+            "remediation plans",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "neutral",
+            "remediation",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "remediation.actions.verified",
+            "Verified actions",
+            "Remediation actions with verified completion evidence.",
+            "actions",
+            "remediation plans",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "higher-is-better",
+            "remediation",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "remediation.progress_percent",
+            "Remediation progress",
+            "Verified action weight as a share of non-deferred remediation weight.",
+            "percent",
+            "eligible remediation weight",
+            "portfolio",
+            "point-in-time",
+            None,
+            "latest",
+            "higher-is-better",
+            "remediation",
+            &["line", "bar", "table"],
+        ),
+    ]
+}
+
+fn metric_axis_compatible(definitions: &[MetricDefinition], metric_ids: &[String]) -> bool {
+    let selected = metric_ids
+        .iter()
+        .filter_map(|id| definitions.iter().find(|metric| &metric.id == id))
+        .collect::<Vec<_>>();
+    selected.first().is_none_or(|first| {
+        selected.iter().all(|metric| {
+            metric.unit == first.unit
+                && metric.denominator == first.denominator
+                && metric.aggregation == first.aggregation
+                && metric.time_semantics == first.time_semantics
+                && metric.window_days == first.window_days
+        })
+    })
+}
+
+fn builtin_analytics_view(range_days: i64) -> AnalyticsView {
+    let now = iso_now();
+    AnalyticsView {
+        schema_version: "pronto-analytics-view/v1".to_string(),
+        id: "curated".to_string(),
+        name: "Curated evidence story".to_string(),
+        builtin: true,
+        is_default: true,
+        filters: AnalyticsViewFilters {
+            range_days,
+            repository_ids: vec![],
+            group_ids: vec![],
+            product_ids: vec![],
+            freshness: "all".to_string(),
+        },
+        widgets: vec![],
+        created_at: now.clone(),
+        updated_at: now,
+    }
+}
+
+fn load_analytics_views(
+    connection: &SqliteConnection,
+    range_days: i64,
+) -> Result<Vec<AnalyticsView>, String> {
+    let mut views = vec![builtin_analytics_view(range_days)];
+    let mut statement = connection
+        .prepare("SELECT payload_json, is_default FROM analytics_views ORDER BY name, id")
+        .map_err(|error| format!("Could not prepare analytics views query: {error}"))?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+        })
+        .map_err(|error| format!("Could not read analytics views: {error}"))?;
+    for row in rows {
+        let (payload, is_default) =
+            row.map_err(|error| format!("Could not decode analytics view row: {error}"))?;
+        let mut view: AnalyticsView = serde_json::from_str(&payload)
+            .map_err(|error| format!("Could not decode analytics view: {error}"))?;
+        view.is_default = is_default != 0;
+        views.push(view);
+    }
+    if views.iter().skip(1).any(|view| view.is_default) {
+        views[0].is_default = false;
+    }
+    Ok(views)
+}
+
+fn deterministic_analytics_findings(
+    samples: &[AnalyticsMetricSample],
+    repositories: &[AnalyticsRepositorySeries],
+) -> Vec<AnalyticsFinding> {
+    let mut findings = Vec::new();
+    if samples.len() < 2 {
+        findings.push(AnalyticsFinding {
+            id: "insufficient-history".to_string(),
+            kind: "coverage-gap".to_string(),
+            severity: "info".to_string(),
+            title: "More history is needed".to_string(),
+            detail:
+                "At least two refresh observations are required before Pronto can describe changes."
+                    .to_string(),
+            metric_ids: vec![],
+            repository_id: None,
+            observed_at: samples.last().map(|sample| sample.observed_at.clone()),
+        });
+    }
+    if let Some(latest) = samples.last() {
+        if matches!(
+            latest.quality_freshness.as_deref(),
+            Some("Stale") | Some("Conflicted")
+        ) {
+            findings.push(AnalyticsFinding { id: "quality-evidence-state".to_string(), kind: if latest.quality_freshness.as_deref() == Some("Conflicted") { "conflict" } else { "stale" }.to_string(), severity: "attention".to_string(), title: format!("Quality evidence is {}", latest.quality_freshness.as_deref().unwrap_or("unavailable").to_lowercase()), detail: "The chart retains the observation and labels its evidence state; it does not infer a cause.".to_string(), metric_ids: vec!["quality.maturity_score".to_string(), "quality.evidence_score".to_string()], repository_id: None, observed_at: Some(latest.observed_at.clone()) });
+        }
+    }
+    let missing = repositories
+        .iter()
+        .filter(|series| {
+            series.samples.last().is_none_or(|sample| {
+                sample.ci_readiness_score.is_none() || sample.maturity_score.is_none()
+            })
+        })
+        .count();
+    if missing > 0 {
+        findings.push(AnalyticsFinding {
+            id: "quality-coverage-gap".to_string(),
+            kind: "coverage-gap".to_string(),
+            severity: "attention".to_string(),
+            title: format!("{missing} repositories lack quality coverage"),
+            detail: "No score is shown where timestamped quality evidence is unavailable."
+                .to_string(),
+            metric_ids: vec![
+                "quality.maturity_score".to_string(),
+                "quality.evidence_score".to_string(),
+            ],
+            repository_id: None,
+            observed_at: samples.last().map(|sample| sample.observed_at.clone()),
+        });
+    }
+    findings
+}
+
+fn validated_analytics_range(requested: Option<i64>, retention_days: i64) -> Result<i64, String> {
+    let requested = requested.unwrap_or(ANALYTICS_RANGE_DAYS);
+    if requested < ANALYTICS_MIN_RANGE_DAYS {
+        return Err("Analytics range must be at least 1 day".to_string());
+    }
+    Ok(requested.min(retention_days.max(1)))
+}
+
+fn load_analytics_at(
+    path: &Path,
+    requested_range_days: Option<i64>,
+) -> Result<AnalyticsSnapshot, String> {
+    let state = load_store(path)?;
+    let connection = open_store(path)?;
+    let range_days = validated_analytics_range(requested_range_days, state.retention_days)?;
+    let range_cutoff = Utc::now() - chrono::Duration::days(range_days);
     let retention_cutoff = Utc::now() - chrono::Duration::days(state.retention_days.max(1));
     let cutoff = range_cutoff.max(retention_cutoff);
     let cutoff = cutoff.to_rfc3339_opts(SecondsFormat::Secs, true);
@@ -2545,6 +3379,14 @@ fn load_analytics_at(path: &Path) -> Result<AnalyticsSnapshot, String> {
                 .map(|sample| sample.observed_at.clone())
                 .min()
         });
+    let metric_catalog = analytics_metric_catalog();
+    let findings = deterministic_analytics_findings(&portfolio_samples, &repositories);
+    let views = load_analytics_views(&connection, range_days)?;
+    let default_view_id = views
+        .iter()
+        .find(|view| view.is_default)
+        .map(|view| view.id.clone())
+        .unwrap_or_else(|| "curated".to_string());
     Ok(AnalyticsSnapshot {
         schema_version: ANALYTICS_SCHEMA.to_string(),
         generated_at: iso_now(),
@@ -2552,11 +3394,15 @@ fn load_analytics_at(path: &Path) -> Result<AnalyticsSnapshot, String> {
         freshness: latest_observed_at
             .map(|observed_at| format!("Observed through {observed_at}"))
             .unwrap_or_else(|| "Unavailable until the first local refresh".to_string()),
-        range_days: ANALYTICS_RANGE_DAYS,
+        range_days,
         retention_days: state.retention_days,
         history_available_from,
         portfolio_samples,
         repositories,
+        metric_catalog,
+        findings,
+        views,
+        default_view_id,
     })
 }
 
@@ -2565,6 +3411,7 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
     sort_repositories_by_name(&mut repositories);
     for repository in &mut repositories {
         hydrate_workspace_sync_details(repository);
+        repository.quality.behavior_assurance.normalize_state();
     }
     let mut remediation_run = state.remediation.clone();
     remediation::sync_github_only_candidates(&mut remediation_run, &state.remote_repositories);
@@ -3543,6 +4390,11 @@ fn apply_quality_evidence_scoped(
             .get(&repository.id)
             .cloned()
             .unwrap_or_default();
+        imported.behavior_assurance = audit
+            .behavior_assurance
+            .get(&repository.id)
+            .cloned()
+            .unwrap_or_default();
         imported.evidence_contracts =
             vec![imported.mac_control_ideal_state.evidence_contract.clone()];
         imported.target_fleet_audit_root = repository.quality.target_fleet_audit_root.clone();
@@ -3573,6 +4425,9 @@ fn apply_quality_evidence_scoped(
         }
         if repository.target_branch_configured {
             if let Some((target_branch, target_commit)) = target_provenance.as_ref() {
+                imported
+                    .behavior_assurance
+                    .project_to_target(target_branch, target_commit);
                 quality::project_quality_snapshot_for_target(
                     &mut imported,
                     target_branch,
@@ -4614,27 +5469,32 @@ fn refresh_remediation_at(
         None,
     );
     persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
-    let mut state = load_store(path)?;
-    let eligible_ids = state
-        .repositories
-        .iter()
-        .filter(|repository| !remediation::is_excluded_repository(repository))
-        .map(|repository| repository.id.clone())
-        .collect::<HashSet<_>>();
-    if let Err(error) = audited_scan_and_persist_scoped(
-        path,
-        &mut state,
-        Some(&eligible_ids),
-        Some("eligible repositories"),
-    ) {
-        return fail_remediation_refresh(path, &refresh_id, &mut steps, "local_scan", error);
-    }
-    let eligible_paths = state
-        .repositories
-        .iter()
-        .filter(|repository| !remediation::is_excluded_repository(repository))
-        .map(|repository| repository.path.clone())
-        .collect::<Vec<_>>();
+    let (eligible_ids, eligible_paths) = match with_store_write_state(path, |state| {
+        let eligible_ids = state
+            .repositories
+            .iter()
+            .filter(|repository| !remediation::is_excluded_repository(repository))
+            .map(|repository| repository.id.clone())
+            .collect::<HashSet<_>>();
+        audited_scan_and_persist_scoped_locked(
+            path,
+            state,
+            Some(&eligible_ids),
+            Some("eligible repositories"),
+        )?;
+        let eligible_paths = state
+            .repositories
+            .iter()
+            .filter(|repository| !remediation::is_excluded_repository(repository))
+            .map(|repository| repository.path.clone())
+            .collect::<Vec<_>>();
+        Ok((eligible_ids, eligible_paths))
+    }) {
+        Ok(result) => result,
+        Err(error) => {
+            return fail_remediation_refresh(path, &refresh_id, &mut steps, "local_scan", error)
+        }
+    };
     if eligible_paths.is_empty() {
         return fail_remediation_refresh(
             path,
@@ -6952,6 +7812,8 @@ fn prepare_release(
     let release_boundary = &repository.quality.release_boundary;
     let release_boundary_ready =
         !public_release_boundary_required || release_boundary.is_release_ready();
+    let behavior_assurance = &repository.quality.behavior_assurance;
+    let behavior_assurance_ready = behavior_assurance.release_ready;
     let target_branch = repository
         .target_branch
         .clone()
@@ -7072,6 +7934,14 @@ fn prepare_release(
             release_boundary.freshness.to_ascii_lowercase()
         ));
     }
+    if !behavior_assurance_ready {
+        reasons.push(format!(
+            "Behavior assurance is {} · {} · {}; resolve the Tier-0 contract and receipt gaps before release",
+            behavior_assurance.contract_status,
+            behavior_assurance.result_status,
+            behavior_assurance.freshness
+        ));
+    }
     let mut evidence_items = vec![
         evidence(
             "Target branch",
@@ -7183,6 +8053,22 @@ fn prepare_release(
             &observed_at,
         ));
     }
+    evidence_items.push(evidence(
+        "Behavior assurance",
+        format!(
+            "{} · {} · {} · {}/{} required scenarios",
+            behavior_assurance.contract_status,
+            behavior_assurance.result_status,
+            behavior_assurance.freshness,
+            behavior_assurance.passed_scenario_count,
+            behavior_assurance.required_scenario_count
+        ),
+        behavior_assurance
+            .detail
+            .as_deref()
+            .unwrap_or("Quality Runner behavior-assurance projection"),
+        &observed_at,
+    ));
     let missing_baseline =
         baseline.is_none() && configured_rule.is_some_and(release_rule_needs_baseline);
     let blocked = target_branch.is_none()
@@ -7190,6 +8076,7 @@ fn prepare_release(
         || !workspace.status_available
         || workspace.dirty
         || !release_boundary_ready
+        || !behavior_assurance_ready
         || commit_range_error.is_some()
         || (missing_baseline && configured_rule.is_none())
         || (missing_baseline && configured_rule.is_some_and(|rule| !rule.allow_first_release))
@@ -7495,6 +8382,9 @@ fn remediation_handoff_check_for_repository(
     if !workspace_path.is_dir() {
         return Err("The workspace path is not an accessible folder".to_string());
     }
+    let ownership_status = remediation::workspace_activity_execution_state(&workspace.activity);
+    let ownership_coordination_required = ownership_status == "coordination_required";
+    let ownership_evidence_unavailable = ownership_status == "evidence_unavailable";
 
     let generated_at = iso_now();
     let live_status = run_git(
@@ -7523,49 +8413,84 @@ fn remediation_handoff_check_for_repository(
         next_safe_step,
         reasons,
     ) = match live_status {
-            Ok(live_status) => {
-                let operation = live_operation.or_else(|| workspace.operation.clone());
-                let mut reasons = Vec::new();
-                if live_status.dirty {
-                    reasons.push(
+        Ok(live_status) => {
+            let operation = live_operation.or_else(|| workspace.operation.clone());
+            let mut reasons = Vec::new();
+            if ownership_coordination_required {
+                reasons.push(
+                        "The persisted activity evidence reports an active workspace owner; coordinate with that owner before changing this workspace."
+                            .to_string(),
+                    );
+            }
+            if ownership_evidence_unavailable {
+                reasons.push(
+                    "Workspace ownership could not be established because activity inspection evidence is unavailable; restore that evidence before changing this workspace."
+                        .to_string(),
+                );
+            }
+            if live_status.dirty {
+                reasons.push(
                         "The workspace contains uncommitted changes; create a local checkpoint commit before handoff."
                             .to_string(),
                     );
-                }
-                if let Some(operation) = operation.as_ref() {
-                    reasons.push(format!(
+            }
+            if let Some(operation) = operation.as_ref() {
+                reasons.push(format!(
                         "The workspace has an interrupted Git operation ({operation}) that must be resolved before handoff."
                     ));
-                }
-                if !live_status.dirty && workspace.dirty {
-                    reasons.push(
+            }
+            if !live_status.dirty && workspace.dirty {
+                reasons.push(
                         "Live Git is clean, but the persisted Pronto snapshot still reports dirty work; run a scoped refresh before handoff."
                             .to_string(),
                     );
-                }
-                let ready = !live_status.dirty && operation.is_none() && !workspace.dirty;
-                let next_safe_step = if live_status.dirty {
-                    "Review ownership, commit the intended changes on this branch, then rerun `pronto remediation handoff-check`."
-                } else if operation.is_some() {
-                    "Resolve the interrupted Git operation without discarding unrelated work, then rerun `pronto remediation handoff-check`."
-                } else if workspace.dirty {
-                    "Run the repository-scoped `pronto refresh` after the checkpoint commit, then rerun `pronto remediation handoff-check`."
-                } else {
-                    "Proceed with the scoped remediation handoff; this check performed no repository mutation."
-                };
-                (
-                    if ready { "ready" } else { "blocked" },
-                    ready,
-                    live_status.dirty || operation.is_some(),
-                    live_status.dirty,
-                    live_status.branch,
-                    operation,
-                    next_safe_step.to_string(),
-                    reasons,
-                )
             }
-            Err(status_error) => {
-                (
+            let ready = ownership_status == "clear"
+                && !live_status.dirty
+                && operation.is_none()
+                && !workspace.dirty;
+            let next_safe_step = if ownership_coordination_required {
+                "Coordinate workspace ownership, refresh the repository activity evidence, then rerun `pronto remediation handoff-check`."
+            } else if ownership_evidence_unavailable {
+                "Restore workspace activity inspection, refresh the repository, then rerun `pronto remediation handoff-check`."
+            } else if live_status.dirty {
+                "Review ownership, commit the intended changes on this branch, then rerun `pronto remediation handoff-check`."
+            } else if operation.is_some() {
+                "Resolve the interrupted Git operation without discarding unrelated work, then rerun `pronto remediation handoff-check`."
+            } else if workspace.dirty {
+                "Run the repository-scoped `pronto refresh` after the checkpoint commit, then rerun `pronto remediation handoff-check`."
+            } else {
+                "Proceed with the scoped remediation handoff; this check performed no repository mutation."
+            };
+            (
+                if ready { "ready" } else { "blocked" },
+                ready,
+                live_status.dirty || operation.is_some(),
+                live_status.dirty,
+                live_status.branch,
+                operation,
+                next_safe_step.to_string(),
+                reasons,
+            )
+        }
+        Err(status_error) => {
+            let mut reasons = Vec::new();
+            if ownership_coordination_required {
+                reasons.push(
+                        "The persisted activity evidence reports an active workspace owner; coordinate with that owner before changing this workspace."
+                            .to_string(),
+                    );
+            }
+            if ownership_evidence_unavailable {
+                reasons.push(
+                    "Workspace ownership could not be established because activity inspection evidence is unavailable; restore that evidence before changing this workspace."
+                        .to_string(),
+                );
+            }
+            reasons.push(format!(
+                    "Live Git status could not be established: {status_error} Remediation advancement is blocked until the workspace can be checked."
+                ));
+            (
                     "unknown",
                     false,
                     true,
@@ -7574,12 +8499,10 @@ fn remediation_handoff_check_for_repository(
                     workspace.operation.clone(),
                     "Restore live Git access, then rerun `pronto remediation handoff-check`; no repository mutation was attempted."
                         .to_string(),
-                    vec![format!(
-                        "Live Git status could not be established: {status_error} Remediation advancement is blocked until the workspace can be checked."
-                    )],
+                    reasons,
                 )
-            }
-        };
+        }
+    };
 
     Ok(RemediationHandoffCheck {
         schema_version: REMEDIATION_HANDOFF_SCHEMA.to_string(),
@@ -7593,6 +8516,9 @@ fn remediation_handoff_check_for_repository(
         head_commit: live_head_commit.or_else(|| workspace.last_commit.clone()),
         status: status.to_string(),
         ready,
+        status_available: status != "unknown",
+        ownership_status: ownership_status.to_string(),
+        ownership_coordination_required,
         checkpoint_required,
         workspace_dirty,
         persisted_snapshot_dirty: workspace.dirty,
@@ -7613,6 +8539,343 @@ fn remediation_handoff_check_at(
     let snapshot = snapshot_from_store(path, &state);
     let repository = find_cli_repository(&snapshot, query)?;
     remediation_handoff_check_for_repository(repository, workspace_id)
+}
+
+fn remediation_closure_gate(
+    plan: Option<&remediation::RemediationPlan>,
+    closure: Option<&remediation::RemediationClosure>,
+) -> RemediationClosureGate {
+    if let Some(plan) = plan {
+        let active_actions = plan
+            .actions
+            .iter()
+            .filter(|action| matches!(action.status.as_str(), "open" | "in_progress" | "blocked"))
+            .collect::<Vec<_>>();
+        let blocked_action_ids = active_actions
+            .iter()
+            .filter(|action| action.status == "blocked")
+            .map(|action| action.id.clone())
+            .collect::<Vec<_>>();
+        let status = if !blocked_action_ids.is_empty() {
+            "blocked"
+        } else if !active_actions.is_empty() {
+            "not_ready"
+        } else {
+            "ready"
+        };
+        let detail = match status {
+            "blocked" => format!(
+                "{} explicitly blocked action(s) prevent plan closure; this does not by itself block remediation execution.",
+                blocked_action_ids.len()
+            ),
+            "not_ready" => format!(
+                "{} active action(s) remain before the remediation plan can close.",
+                active_actions.len()
+            ),
+            _ => "No active action prevents plan closure.".to_string(),
+        };
+        return RemediationClosureGate {
+            status: status.to_string(),
+            ready: status == "ready",
+            plan_status: Some(plan.status.clone()),
+            active_action_count: active_actions.len(),
+            blocked_action_count: blocked_action_ids.len(),
+            blocked_action_ids,
+            source_generated_at: Some(plan.generated_at.clone()),
+            detail,
+        };
+    }
+    if let Some(closure) = closure {
+        return RemediationClosureGate {
+            status: "complete".to_string(),
+            ready: true,
+            plan_status: Some(closure.disposition.clone()),
+            active_action_count: 0,
+            blocked_action_count: 0,
+            blocked_action_ids: Vec::new(),
+            source_generated_at: Some(closure.closed_at.clone()),
+            detail: "The latest persisted remediation plan is closed.".to_string(),
+        };
+    }
+    RemediationClosureGate {
+        status: "not_queued".to_string(),
+        ready: true,
+        plan_status: None,
+        active_action_count: 0,
+        blocked_action_count: 0,
+        blocked_action_ids: Vec::new(),
+        source_generated_at: None,
+        detail: "No active or resolved remediation plan is recorded for this repository."
+            .to_string(),
+    }
+}
+
+fn remediation_execution_blocker(
+    workspace: &WorkspaceSummary,
+    kind: &str,
+    title: &str,
+    detail: String,
+    blocked_operations: &[&str],
+    source: &str,
+    evidence_state: &str,
+    observed_at: Option<String>,
+    next_safe_step: &str,
+) -> RemediationExecutionBlocker {
+    RemediationExecutionBlocker {
+        id: format!("execution:{kind}:{}", workspace.id),
+        kind: kind.to_string(),
+        title: title.to_string(),
+        detail,
+        workspace_id: workspace.id.clone(),
+        workspace_path: workspace.path.clone(),
+        branch: workspace.branch.clone(),
+        blocked_operations: blocked_operations
+            .iter()
+            .map(|operation| (*operation).to_string())
+            .collect(),
+        source: source.to_string(),
+        evidence_state: evidence_state.to_string(),
+        observed_at,
+        next_safe_step: next_safe_step.to_string(),
+    }
+}
+
+fn remediation_execution_gate_for_repository(
+    repository: &RepositorySnapshot,
+    plan: Option<&remediation::RemediationPlan>,
+    closure: Option<&remediation::RemediationClosure>,
+    workspace_id: Option<&str>,
+) -> Result<RemediationExecutionGate, String> {
+    let workspaces = if let Some(workspace_id) =
+        workspace_id.filter(|value| !value.trim().is_empty())
+    {
+        let workspace = repository
+            .workspaces
+            .iter()
+            .find(|workspace| workspace.id == workspace_id)
+            .or_else(|| (repository.workspace.id == workspace_id).then_some(&repository.workspace))
+            .ok_or_else(|| "Workspace is not registered for this repository".to_string())?;
+        vec![workspace]
+    } else if repository.workspaces.is_empty() {
+        vec![&repository.workspace]
+    } else {
+        repository.workspaces.iter().collect::<Vec<_>>()
+    };
+
+    let mut workspace_checks = Vec::new();
+    let mut blockers = Vec::new();
+    let mut ready_workspace_count = 0usize;
+    for workspace in workspaces {
+        if !Path::new(&workspace.path).is_dir() {
+            blockers.push(remediation_execution_blocker(
+                workspace,
+                "path_unavailable",
+                "Workspace path is unavailable",
+                format!(
+                    "{} is not an accessible folder, so live remediation state cannot be checked.",
+                    workspace.path
+                ),
+                &[
+                    "inspect_workspace",
+                    "mutate_workspace",
+                    "integrate_branch",
+                    "verify_remediation_action",
+                ],
+                "live_filesystem",
+                "unavailable",
+                None,
+                "Restore the workspace path or refresh Pronto after intentionally removing the checkout, then rerun `pronto remediation gate`.",
+            ));
+            continue;
+        }
+
+        let selected_id =
+            (workspace.id != repository.workspace.id).then_some(workspace.id.as_str());
+        let check = remediation_handoff_check_for_repository(repository, selected_id)?;
+        if check.ownership_coordination_required {
+            blockers.push(remediation_execution_blocker(
+                workspace,
+                "ownership_coordination_required",
+                "Workspace ownership requires coordination",
+                "Persisted activity evidence reports an active, interrupted, or ambiguous owner."
+                    .to_string(),
+                &[
+                    "mutate_workspace",
+                    "integrate_branch",
+                    "verify_remediation_action",
+                ],
+                "persisted_activity_snapshot",
+                "observed",
+                workspace
+                    .last_activity_at
+                    .clone()
+                    .or_else(|| Some(repository.last_scan_at.clone())),
+                "Coordinate with the current owner, refresh repository activity evidence, then rerun `pronto remediation gate`.",
+            ));
+        } else if check.ownership_status == "evidence_unavailable" {
+            blockers.push(remediation_execution_blocker(
+                workspace,
+                "ownership_evidence_unavailable",
+                "Workspace ownership evidence is unavailable",
+                "Activity inspection could not establish whether another agent owns this workspace."
+                    .to_string(),
+                &[
+                    "mutate_workspace",
+                    "integrate_branch",
+                    "verify_remediation_action",
+                ],
+                "persisted_activity_snapshot",
+                "unavailable",
+                workspace
+                    .activity
+                    .signals
+                    .iter()
+                    .find(|signal| signal.summary == "Activity state uncertain")
+                    .map(|signal| signal.observed_at.clone())
+                    .or_else(|| Some(repository.last_scan_at.clone())),
+                "Restore workspace activity inspection, refresh the repository, then rerun `pronto remediation gate`.",
+            ));
+        }
+        if !check.status_available {
+            blockers.push(remediation_execution_blocker(
+                workspace,
+                "git_status_unavailable",
+                "Live Git status is unavailable",
+                check.reasons.join(" "),
+                &[
+                    "mutate_workspace",
+                    "integrate_branch",
+                    "verify_remediation_action",
+                ],
+                "live_git",
+                "unavailable",
+                Some(check.generated_at.clone()),
+                "Restore live Git access, then rerun `pronto remediation gate`.",
+            ));
+        }
+        if let Some(operation) = check.operation.as_deref() {
+            blockers.push(remediation_execution_blocker(
+                workspace,
+                "interrupted_git_operation",
+                "Interrupted Git operation must be resolved",
+                format!("The workspace has an interrupted {operation} operation."),
+                &[
+                    "mutate_workspace",
+                    "integrate_branch",
+                    "verify_remediation_action",
+                ],
+                "live_git",
+                "observed",
+                Some(check.generated_at.clone()),
+                "Intentionally complete or abort the interrupted operation without discarding unrelated work, then rerun `pronto remediation gate`.",
+            ));
+        }
+        if check.workspace_dirty {
+            blockers.push(remediation_execution_blocker(
+                workspace,
+                "uncommitted_changes",
+                "Workspace changes require preservation",
+                "Live Git reports uncommitted changes that must be understood and preserved before handoff or integration."
+                    .to_string(),
+                &["handoff", "integrate_branch", "verify_remediation_action"],
+                "live_git",
+                "observed",
+                Some(check.generated_at.clone()),
+                "Confirm ownership and preserve the intended changes in a coherent checkpoint, then rerun `pronto remediation gate`.",
+            ));
+        } else if check.persisted_snapshot_dirty {
+            blockers.push(remediation_execution_blocker(
+                workspace,
+                "snapshot_reconciliation_required",
+                "Persisted workspace state is stale",
+                "Live Git is clean, but the persisted Pronto snapshot still reports dirty work."
+                    .to_string(),
+                &["handoff", "verify_remediation_action"],
+                "persisted_repository_snapshot",
+                "stale",
+                Some(repository.last_scan_at.clone()),
+                "Run a repository-scoped refresh, then rerun `pronto remediation gate`.",
+            ));
+        }
+        if check.ready {
+            ready_workspace_count += 1;
+        }
+        workspace_checks.push(check);
+    }
+
+    blockers.sort_by(|left, right| left.id.cmp(&right.id));
+    blockers.dedup_by(|left, right| left.id == right.id);
+    let blocked_operations = blockers
+        .iter()
+        .flat_map(|blocker| blocker.blocked_operations.iter().cloned())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let status = if blockers.is_empty() {
+        "ready"
+    } else if ready_workspace_count > 0 {
+        "partially_blocked"
+    } else {
+        "blocked"
+    };
+    let next_safe_step = blockers
+        .first()
+        .map(|blocker| blocker.next_safe_step.clone())
+        .unwrap_or_else(|| {
+            "Repository state is ready for scoped remediation. Confirm that the current request authorizes the intended mutation before proceeding."
+                .to_string()
+        });
+
+    Ok(RemediationExecutionGate {
+        schema_version: REMEDIATION_EXECUTION_GATE_SCHEMA.to_string(),
+        generated_at: iso_now(),
+        repository_id: repository.id.clone(),
+        repository_name: repository.name.clone(),
+        repository_path: repository.path.clone(),
+        scope: if workspace_id.is_some() {
+            "workspace"
+        } else {
+            "repository"
+        }
+        .to_string(),
+        selected_workspace_id: workspace_id.map(str::to_string),
+        status: status.to_string(),
+        ready: blockers.is_empty(),
+        workspace_checks,
+        blockers,
+        blocked_operations,
+        closure_gate: remediation_closure_gate(plan, closure),
+        authorization: RemediationAuthorizationBoundary {
+            status: "caller_scope_required".to_string(),
+            evaluated: false,
+            source: "current_request_and_policy".to_string(),
+            detail: "Pronto verifies repository execution state but cannot infer whether the current request authorizes a mutation. Execution status intentionally excludes authorization."
+                .to_string(),
+        },
+        next_safe_step,
+    })
+}
+
+fn remediation_execution_gate_at(
+    path: &Path,
+    query: &str,
+    workspace_id: Option<&str>,
+) -> Result<RemediationExecutionGate, String> {
+    let state = load_store_read_only(path)?;
+    let snapshot = snapshot_from_store(path, &state);
+    let repository = find_cli_repository(&snapshot, query)?;
+    let plan = snapshot
+        .remediation
+        .plans
+        .iter()
+        .find(|plan| plan.repository_id == repository.id);
+    let closure = snapshot
+        .remediation
+        .closures
+        .iter()
+        .filter(|closure| closure.repository_id == repository.id)
+        .max_by(|left, right| left.closed_at.cmp(&right.closed_at));
+    remediation_execution_gate_for_repository(repository, plan, closure, workspace_id)
 }
 
 fn branch_integration_state(
@@ -8549,6 +9812,7 @@ fn preflight_action_at(
     Ok(preflight)
 }
 
+#[cfg(test)]
 fn audited_scan_and_persist(
     path: &Path,
     state: &mut StoreState,
@@ -8591,6 +9855,7 @@ fn build_targeted_refresh_preflight(
     })
 }
 
+#[cfg(test)]
 fn audited_scan_and_persist_scoped(
     path: &Path,
     state: &mut StoreState,
@@ -8598,6 +9863,15 @@ fn audited_scan_and_persist_scoped(
     target_label: Option<&str>,
 ) -> Result<PortfolioSnapshot, String> {
     let _lock = acquire_store_write_lock(path)?;
+    audited_scan_and_persist_scoped_locked(path, state, target_repository_ids, target_label)
+}
+
+fn audited_scan_and_persist_scoped_locked(
+    path: &Path,
+    state: &mut StoreState,
+    target_repository_ids: Option<&HashSet<String>>,
+    target_label: Option<&str>,
+) -> Result<PortfolioSnapshot, String> {
     let preflight = match (target_repository_ids, target_label) {
         (Some(repository_ids), Some(label)) => {
             build_targeted_refresh_preflight(state, repository_ids, label)?
@@ -8668,12 +9942,21 @@ fn build_repository_path_refresh_preflight(
     }
 }
 
+#[cfg(test)]
 fn audited_scan_and_persist_repository_path(
     path: &Path,
     state: &mut StoreState,
     repository_path: &Path,
 ) -> Result<PortfolioSnapshot, String> {
     let _lock = acquire_store_write_lock(path)?;
+    audited_scan_and_persist_repository_path_locked(path, state, repository_path)
+}
+
+fn audited_scan_and_persist_repository_path_locked(
+    path: &Path,
+    state: &mut StoreState,
+    repository_path: &Path,
+) -> Result<PortfolioSnapshot, String> {
     let repository_path = canonical_repository_path(repository_path)
         .ok_or_else(|| "The refresh target is not an accessible Git repository".to_string())?;
     let repository_id = path_id("repository", &repository_path);
@@ -8714,6 +9997,39 @@ fn audited_scan_and_persist_repository_path(
             Err(error)
         }
     }
+}
+
+fn refresh_at(path: &Path) -> Result<PortfolioSnapshot, String> {
+    with_store_write_state(path, |state| {
+        audited_scan_and_persist_scoped_locked(path, state, None, None)
+    })
+}
+
+fn refresh_target_at(path: &Path, target: &str) -> Result<PortfolioSnapshot, String> {
+    with_store_write_state(path, |state| {
+        let current = snapshot_from_store(path, state);
+        match resolve_local_refresh_target(&current, state, target)? {
+            LocalRefreshTarget::Registered {
+                repository_ids,
+                label,
+            } => audited_scan_and_persist_scoped_locked(
+                path,
+                state,
+                Some(&repository_ids),
+                Some(&label),
+            )
+            .map(|snapshot| filter_snapshot_to_repository_ids(snapshot, &repository_ids)),
+            LocalRefreshTarget::RepositoryPath(repository_path) => {
+                let repository_id = path_id("repository", &repository_path);
+                audited_scan_and_persist_repository_path_locked(path, state, &repository_path).map(
+                    |snapshot| {
+                        let repository_ids = [repository_id].into_iter().collect();
+                        filter_snapshot_to_repository_ids(snapshot, &repository_ids)
+                    },
+                )
+            }
+        }
+    })
 }
 
 fn scan_and_persist_scoped(
@@ -8761,19 +10077,22 @@ fn scan_discovered_and_persist(
         .map(|repository| (repository.id.clone(), repository.clone()))
         .collect::<HashMap<_, _>>();
     let mut repositories = Vec::new();
+    let mut discovered = discovered.into_iter().collect::<Vec<_>>();
+    discovered.sort_by(|left, right| left.0.cmp(&right.0));
     for (id, repository_path) in discovered {
         let repository = scan_repository(
             &repository_path,
             old_by_id.get(&id),
             &state.expected_conditions,
         );
-        append_transition_event(state, old_by_id.get(&id), &repository);
         repositories.push(repository);
     }
-    for (id, old) in old_by_id {
-        if !repositories.iter().any(|repository| repository.id == id)
+    for (id, old) in &old_by_id {
+        if !repositories
+            .iter()
+            .any(|repository| repository.id.as_str() == id.as_str())
             && target_repository_ids
-                .map(|targets| targets.contains(&id))
+                .map(|targets| targets.contains(id))
                 .unwrap_or(true)
         {
             if target_repository_ids.is_none()
@@ -8784,15 +10103,57 @@ fn scan_discovered_and_persist(
             if Path::new(&old.path).exists() && has_git_metadata(Path::new(&old.path)) {
                 let repository_path = PathBuf::from(&old.path);
                 let repository =
-                    scan_repository(&repository_path, Some(&old), &state.expected_conditions);
-                append_transition_event(state, Some(&old), &repository);
+                    scan_repository(&repository_path, Some(old), &state.expected_conditions);
                 repositories.push(repository);
             }
-        } else if target_repository_ids.is_some_and(|targets| !targets.contains(&id)) {
-            repositories.push(old);
+        } else if target_repository_ids.is_some_and(|targets| !targets.contains(id)) {
+            repositories.push(old.clone());
         }
     }
+    merge_scanned_and_persist(path, state, target_repository_ids, repositories)
+}
+
+fn merge_scanned_and_persist(
+    path: &Path,
+    state: &mut StoreState,
+    target_repository_ids: Option<&HashSet<String>>,
+    scanned: Vec<RepositorySnapshot>,
+) -> Result<PortfolioSnapshot, String> {
+    let old_by_id = state
+        .repositories
+        .iter()
+        .map(|repository| (repository.id.clone(), repository.clone()))
+        .collect::<HashMap<_, _>>();
+    let mut scanned_by_id = HashMap::<String, RepositorySnapshot>::new();
+    for repository in scanned {
+        scanned_by_id.insert(repository.id.clone(), repository);
+    }
+    let scanned_ids = scanned_by_id.keys().cloned().collect::<HashSet<_>>();
+    for (id, old) in &old_by_id {
+        if scanned_ids.contains(id) {
+            continue;
+        }
+        if target_repository_ids.is_some_and(|targets| !targets.contains(id)) {
+            scanned_by_id.insert(id.clone(), old.clone());
+        }
+    }
+    let mut repositories = scanned_by_id.into_values().collect::<Vec<_>>();
+    repositories.sort_by(|left, right| {
+        left.name
+            .to_ascii_lowercase()
+            .cmp(&right.name.to_ascii_lowercase())
+            .then_with(|| left.id.cmp(&right.id))
+    });
+    for repository in &repositories {
+        append_transition_event(state, old_by_id.get(&repository.id), repository);
+    }
     sort_repositories_by_name(&mut repositories);
+    let new_repository_ids = repositories
+        .iter()
+        .filter(|repository| !old_by_id.contains_key(&repository.id))
+        .map(|repository| repository.id.clone())
+        .collect::<HashSet<_>>();
+    showcase::ensure_showcase_goal_placeholders(&repositories, &new_repository_ids)?;
     state.repositories = repositories;
     apply_quality_evidence_scoped(state, target_repository_ids, None);
     apply_release_threshold_conditions(state);
@@ -8800,6 +10161,286 @@ fn scan_discovered_and_persist(
     save_store(path, state)?;
     record_analytics_samples(path, state)?;
     Ok(snapshot_from_store(path, state))
+}
+
+#[derive(Debug, Clone)]
+struct RefreshScanInput {
+    repository_id: String,
+    repository_path: PathBuf,
+    existing: Option<RepositorySnapshot>,
+    expected_conditions: Vec<ExpectedCondition>,
+}
+
+#[derive(Debug, Clone)]
+struct RefreshBatchPlan {
+    target_repository_ids: Option<HashSet<String>>,
+    target_label: String,
+    repository_path_target: Option<PathBuf>,
+    inputs: Vec<RefreshScanInput>,
+    revision: String,
+}
+
+fn refresh_batch_revision(state: &StoreState) -> String {
+    let payload = serde_json::to_vec(state).unwrap_or_default();
+    let digest = Sha256::digest(payload);
+    format!("{digest:x}")
+}
+
+fn refresh_batch_plan(
+    path: &Path,
+    state: &StoreState,
+    target: Option<&str>,
+) -> Result<RefreshBatchPlan, String> {
+    let snapshot = snapshot_from_store(path, state);
+    let (target_repository_ids, target_label, repository_path_target) = match target {
+        None => (None, "All registered repositories".to_string(), None),
+        Some(query) => match resolve_local_refresh_target(&snapshot, state, query)? {
+            LocalRefreshTarget::Registered {
+                repository_ids,
+                label,
+            } => (Some(repository_ids), label, None),
+            LocalRefreshTarget::RepositoryPath(repository_path) => {
+                let repository_id = path_id("repository", &repository_path);
+                (
+                    Some([repository_id].into_iter().collect()),
+                    format!("Repository {}", repository_path.display()),
+                    Some(repository_path),
+                )
+            }
+        },
+    };
+
+    let mut discovered = HashMap::<String, PathBuf>::new();
+    if let Some(repository_path) = repository_path_target.as_ref() {
+        discovered.insert(
+            path_id("repository", repository_path),
+            repository_path.clone(),
+        );
+    } else {
+        for root in &state.roots {
+            for repository_path in discover_repositories(root) {
+                let repository_id = path_id("repository", &repository_path);
+                if target_repository_ids
+                    .as_ref()
+                    .map(|targets| targets.contains(&repository_id))
+                    .unwrap_or(true)
+                {
+                    discovered.insert(repository_id, repository_path);
+                }
+            }
+        }
+    }
+
+    let existing_by_id = state
+        .repositories
+        .iter()
+        .map(|repository| (repository.id.clone(), repository))
+        .collect::<HashMap<_, _>>();
+    for (repository_id, repository) in existing_by_id {
+        let in_scope = target_repository_ids
+            .as_ref()
+            .map(|targets| targets.contains(&repository_id))
+            .unwrap_or(true);
+        if !in_scope || discovered.contains_key(&repository_id) {
+            continue;
+        }
+        let repository_path = Path::new(&repository.path);
+        if repository_path.exists()
+            && has_git_metadata(repository_path)
+            && (target_repository_ids.is_some()
+                || !repository_is_ignored_by_existing_root(state, repository))
+        {
+            discovered.insert(repository_id, repository_path.to_path_buf());
+        }
+    }
+
+    let mut discovered = discovered.into_iter().collect::<Vec<_>>();
+    discovered.sort_by(|left, right| left.0.cmp(&right.0));
+    let inputs = discovered
+        .into_iter()
+        .map(|(repository_id, repository_path)| RefreshScanInput {
+            existing: state
+                .repositories
+                .iter()
+                .find(|repository| repository.id == repository_id)
+                .cloned(),
+            repository_id,
+            repository_path,
+            expected_conditions: state.expected_conditions.clone(),
+        })
+        .collect();
+
+    Ok(RefreshBatchPlan {
+        target_repository_ids,
+        target_label,
+        repository_path_target,
+        inputs,
+        revision: refresh_batch_revision(state),
+    })
+}
+
+fn scan_refresh_inputs(
+    inputs: Vec<RefreshScanInput>,
+    parallelism: usize,
+) -> Result<Vec<RepositorySnapshot>, String> {
+    if inputs.is_empty() {
+        return Ok(Vec::new());
+    }
+    let worker_count = parallelism.max(1).min(inputs.len());
+    let input_count = inputs.len();
+    let queue = Arc::new(Mutex::new(VecDeque::from(inputs)));
+    let (sender, receiver) = mpsc::channel::<(String, RepositorySnapshot)>();
+    let mut workers = Vec::with_capacity(worker_count);
+    for _ in 0..worker_count {
+        let queue = Arc::clone(&queue);
+        let sender = sender.clone();
+        workers.push(thread::spawn(move || loop {
+            let input = match queue.lock() {
+                Ok(mut queue) => queue.pop_front(),
+                Err(_) => None,
+            };
+            let Some(input) = input else {
+                break;
+            };
+            let repository = scan_repository(
+                &input.repository_path,
+                input.existing.as_ref(),
+                &input.expected_conditions,
+            );
+            if sender.send((input.repository_id, repository)).is_err() {
+                break;
+            }
+        }));
+    }
+    drop(sender);
+
+    let mut scanned = Vec::with_capacity(input_count);
+    for _ in 0..input_count {
+        let (_, repository) = receiver.recv().map_err(|error| {
+            format!("Parallel refresh scan worker exited before returning all results: {error}")
+        })?;
+        scanned.push(repository);
+    }
+    for worker in workers {
+        worker
+            .join()
+            .map_err(|_| "Parallel refresh scan worker panicked".to_string())?;
+    }
+    scanned.sort_by(|left, right| left.id.cmp(&right.id));
+    Ok(scanned)
+}
+
+fn refresh_batch_at(
+    path: &Path,
+    target: Option<&str>,
+    parallelism: usize,
+) -> Result<RefreshBatchReport, String> {
+    let parallelism = parallelism.clamp(1, MAX_REFRESH_BATCH_PARALLELISM);
+    let mut conflict_retries = 0;
+    loop {
+        let read_state = load_store_read_only(path)?;
+        let plan = refresh_batch_plan(path, &read_state, target)?;
+        let scanned = scan_refresh_inputs(plan.inputs.clone(), parallelism)?;
+
+        let lock = acquire_store_write_lock(path)?;
+        let mut state = load_store(path)?;
+        if refresh_batch_revision(&state) != plan.revision {
+            drop(lock);
+            if conflict_retries >= MAX_REFRESH_BATCH_CONFLICT_RETRIES {
+                return Err(
+                    "The Pronto store changed during the parallel refresh scan; retry the batch refresh."
+                        .to_string(),
+                );
+            }
+            conflict_retries += 1;
+            continue;
+        }
+
+        let preflight = match (
+            plan.target_repository_ids.as_ref(),
+            plan.repository_path_target.as_ref(),
+        ) {
+            (None, None) => build_action_preflight(&state, "refresh", None)?,
+            (Some(repository_ids), None) => {
+                build_targeted_refresh_preflight(&state, repository_ids, &plan.target_label)?
+            }
+            (Some(_), Some(repository_path)) => build_repository_path_refresh_preflight(
+                &path_id("repository", repository_path),
+                repository_path,
+            ),
+            (None, Some(_)) => {
+                return Err("Refresh batch target metadata is incomplete".to_string())
+            }
+        };
+        if !preflight.allowed {
+            return Err("Local batch refresh action is not permitted".to_string());
+        }
+        let audit_id = preflight.audit.id.clone();
+        append_action_audit(&mut state, &preflight);
+        save_store(path, &state)?;
+        let scan_results = scanned
+            .iter()
+            .enumerate()
+            .map(|(scan_order, repository)| RefreshBatchRepositoryResult {
+                repository_id: repository.id.clone(),
+                name: repository.name.clone(),
+                path: repository.path.clone(),
+                status: "Scanned".to_string(),
+                scan_order,
+            })
+            .collect::<Vec<_>>();
+        let snapshot = match merge_scanned_and_persist(
+            path,
+            &mut state,
+            plan.target_repository_ids.as_ref(),
+            scanned,
+        ) {
+            Ok(snapshot) => {
+                update_action_audit(
+                    &mut state,
+                    &audit_id,
+                    "Completed",
+                    format!(
+                        "Parallel read-only refresh completed for {}.",
+                        plan.target_label
+                    ),
+                )?;
+                prune_action_audits(&mut state);
+                save_store(path, &state)?;
+                snapshot
+            }
+            Err(error) => {
+                if update_action_audit(
+                    &mut state,
+                    &audit_id,
+                    "Failed",
+                    format!(
+                        "Parallel read-only refresh failed for {}.",
+                        plan.target_label
+                    ),
+                )
+                .is_ok()
+                {
+                    let _ = save_store(path, &state);
+                }
+                return Err(error);
+            }
+        };
+        drop(lock);
+        return Ok(RefreshBatchReport {
+            schema_version: REFRESH_BATCH_SCHEMA.to_string(),
+            generated_at: iso_now(),
+            status: "Completed".to_string(),
+            scope: plan.target_label,
+            parallelism,
+            repository_count: scan_results.len(),
+            conflict_retries,
+            scan_phase: "Parallel read-only scan completed".to_string(),
+            merge_phase: "Serialized locked merge committed".to_string(),
+            repositories: scan_results,
+            snapshot,
+        });
+    }
 }
 
 fn mutate_expected(
@@ -8861,16 +10502,17 @@ fn update_root_settings_at(
 ) -> Result<PortfolioSnapshot, String> {
     let normalized_patterns = normalize_ignore_patterns(ignore_patterns)?;
     let normalized_policy = normalize_refresh_policy(refresh_policy)?;
-    let mut state = load_store(path)?;
-    let root = state
-        .roots
-        .iter_mut()
-        .find(|root| root.id == root_id)
-        .ok_or_else(|| "Discovery root is not registered".to_string())?;
-    root.ignore_patterns = normalized_patterns;
-    root.refresh_policy = normalized_policy;
-    root.background_monitoring = background_monitoring;
-    audited_scan_and_persist(path, &mut state)
+    with_store_write_state(path, |state| {
+        let root = state
+            .roots
+            .iter_mut()
+            .find(|root| root.id == root_id)
+            .ok_or_else(|| "Discovery root is not registered".to_string())?;
+        root.ignore_patterns = normalized_patterns;
+        root.refresh_policy = normalized_policy;
+        root.background_monitoring = background_monitoring;
+        audited_scan_and_persist_scoped_locked(path, state, None, None)
+    })
 }
 
 fn exclude_root_patterns_at(
@@ -8881,16 +10523,17 @@ fn exclude_root_patterns_at(
     let canonical_root = canonical_path(Path::new(root_path))
         .ok_or_else(|| "Choose an accessible folder for repository discovery".to_string())?;
     let root_string = canonical_root.to_string_lossy().to_string();
-    let mut state = load_store(path)?;
-    let root = state
-        .roots
-        .iter_mut()
-        .find(|root| root.path == root_string)
-        .ok_or_else(|| format!("Discovery root '{root_string}' is not registered"))?;
-    let mut combined_patterns = root.ignore_patterns.clone();
-    combined_patterns.extend(patterns);
-    root.ignore_patterns = normalize_ignore_patterns(combined_patterns)?;
-    audited_scan_and_persist(path, &mut state)
+    with_store_write_state(path, |state| {
+        let root = state
+            .roots
+            .iter_mut()
+            .find(|root| root.path == root_string)
+            .ok_or_else(|| format!("Discovery root '{root_string}' is not registered"))?;
+        let mut combined_patterns = root.ignore_patterns.clone();
+        combined_patterns.extend(patterns);
+        root.ignore_patterns = normalize_ignore_patterns(combined_patterns)?;
+        audited_scan_and_persist_scoped_locked(path, state, None, None)
+    })
 }
 
 fn set_repository_lifecycle_at(
@@ -9413,24 +11056,25 @@ fn register_root_and_scan(path: &Path, root_path: &str) -> Result<PortfolioSnaps
     if !root.is_dir() {
         return Err("The selected repository root is not a folder".to_string());
     }
-    let mut state = load_store(path)?;
-    let root_string = root.to_string_lossy().to_string();
-    if !state.roots.iter().any(|item| item.path == root_string) {
-        state.roots.push(RootConfig {
-            id: path_id("root", &root),
-            path: root_string,
-            label: root
-                .file_name()
-                .and_then(|name| name.to_str())
-                .unwrap_or("Repository root")
-                .to_string(),
-            ignore_patterns: Vec::new(),
-            refresh_policy: default_refresh_policy(),
-            background_monitoring: false,
-            registered_at: iso_now(),
-        });
-    }
-    audited_scan_and_persist(path, &mut state)
+    with_store_write_state(path, |state| {
+        let root_string = root.to_string_lossy().to_string();
+        if !state.roots.iter().any(|item| item.path == root_string) {
+            state.roots.push(RootConfig {
+                id: path_id("root", &root),
+                path: root_string,
+                label: root
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .unwrap_or("Repository root")
+                    .to_string(),
+                ignore_patterns: Vec::new(),
+                refresh_policy: default_refresh_policy(),
+                background_monitoring: false,
+                registered_at: iso_now(),
+            });
+        }
+        audited_scan_and_persist_scoped_locked(path, state, None, None)
+    })
 }
 
 fn set_maturity_audit_root_at(
@@ -9565,8 +11209,129 @@ pub fn get_snapshot() -> Result<PortfolioSnapshot, String> {
 }
 
 #[tauri::command]
-pub fn get_analytics() -> Result<AnalyticsSnapshot, String> {
-    load_analytics_at(&store_path())
+pub fn get_analytics(range_days: Option<i64>) -> Result<AnalyticsSnapshot, String> {
+    load_analytics_at(&store_path(), range_days)
+}
+
+fn validate_analytics_view(view: &AnalyticsView, retention_days: i64) -> Result<(), String> {
+    if view.id.trim().is_empty() || view.name.trim().is_empty() {
+        return Err("Analytics views require an id and name".to_string());
+    }
+    if view.id == "curated" || view.builtin {
+        return Err("The built-in curated view cannot be overwritten".to_string());
+    }
+    validated_analytics_range(Some(view.filters.range_days), retention_days)?;
+    let catalog = analytics_metric_catalog();
+    for widget in &view.widgets {
+        if widget.metric_ids.is_empty() {
+            return Err(format!(
+                "Analytics widget {} must select at least one metric",
+                widget.id
+            ));
+        }
+        if widget.chart_type == "dual-axis" {
+            return Err("Dual-axis analytics charts are not supported".to_string());
+        }
+        if !metric_axis_compatible(&catalog, &widget.metric_ids) {
+            return Err(format!("Analytics widget {} combines metrics with incompatible units, denominators, aggregations, or time windows", widget.id));
+        }
+        for metric_id in &widget.metric_ids {
+            let metric = catalog
+                .iter()
+                .find(|metric| &metric.id == metric_id)
+                .ok_or_else(|| format!("Unknown analytics metric {metric_id}"))?;
+            if !metric.allowed_visualizations.contains(&widget.chart_type) {
+                return Err(format!(
+                    "Metric {metric_id} does not allow {} charts",
+                    widget.chart_type
+                ));
+            }
+        }
+        if !(1..=2).contains(&widget.width) || !(1..=2).contains(&widget.height) {
+            return Err("Analytics widget dimensions must be 1 or 2".to_string());
+        }
+    }
+    Ok(())
+}
+
+fn save_analytics_view_at(
+    path: &Path,
+    mut view: AnalyticsView,
+) -> Result<Vec<AnalyticsView>, String> {
+    let state = load_store_read_only(path)?;
+    validate_analytics_view(&view, state.retention_days)?;
+    let connection = open_store(path)?;
+    let now = iso_now();
+    if view.created_at.trim().is_empty() {
+        view.created_at = now.clone();
+    }
+    view.updated_at = now;
+    view.schema_version = "pronto-analytics-view/v1".to_string();
+    if view.is_default {
+        connection
+            .execute("UPDATE analytics_views SET is_default = 0", [])
+            .map_err(|error| format!("Could not clear analytics default view: {error}"))?;
+    }
+    let payload = serde_json::to_string(&view)
+        .map_err(|error| format!("Could not encode analytics view: {error}"))?;
+    connection.execute("INSERT INTO analytics_views (id, name, is_default, payload_json, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(id) DO UPDATE SET name=excluded.name, is_default=excluded.is_default, payload_json=excluded.payload_json, updated_at=excluded.updated_at", params![view.id, view.name, i64::from(view.is_default), payload, view.created_at, view.updated_at]).map_err(|error| format!("Could not save analytics view: {error}"))?;
+    load_analytics_views(&connection, view.filters.range_days)
+}
+
+#[tauri::command]
+pub fn save_analytics_view(view: AnalyticsView) -> Result<Vec<AnalyticsView>, String> {
+    save_analytics_view_at(&store_path(), view)
+}
+
+#[tauri::command]
+pub fn delete_analytics_view(view_id: String) -> Result<Vec<AnalyticsView>, String> {
+    if view_id == "curated" {
+        return Err("The built-in curated view cannot be deleted".to_string());
+    }
+    let path = store_path();
+    let state = load_store_read_only(&path)?;
+    let connection = open_store(&path)?;
+    connection
+        .execute(
+            "DELETE FROM analytics_views WHERE id = ?1",
+            params![view_id],
+        )
+        .map_err(|error| format!("Could not delete analytics view: {error}"))?;
+    Ok(load_analytics_views(
+        &connection,
+        ANALYTICS_RANGE_DAYS.min(state.retention_days),
+    )?)
+}
+
+fn set_default_analytics_view_at(path: &Path, view_id: &str) -> Result<Vec<AnalyticsView>, String> {
+    let state = load_store_read_only(path)?;
+    let mut connection = open_store(path)?;
+    let transaction = connection
+        .transaction()
+        .map_err(|error| format!("Could not begin analytics view transaction: {error}"))?;
+    transaction
+        .execute("UPDATE analytics_views SET is_default = 0", [])
+        .map_err(|error| format!("Could not clear analytics default view: {error}"))?;
+    if view_id != "curated" {
+        let changed = transaction
+            .execute(
+                "UPDATE analytics_views SET is_default = 1 WHERE id = ?1",
+                params![view_id],
+            )
+            .map_err(|error| format!("Could not set analytics default view: {error}"))?;
+        if changed == 0 {
+            return Err("Analytics view was not found".to_string());
+        }
+    }
+    transaction
+        .commit()
+        .map_err(|error| format!("Could not commit analytics default view: {error}"))?;
+    load_analytics_views(&connection, ANALYTICS_RANGE_DAYS.min(state.retention_days))
+}
+
+#[tauri::command]
+pub fn set_default_analytics_view(view_id: String) -> Result<Vec<AnalyticsView>, String> {
+    set_default_analytics_view_at(&store_path(), &view_id)
 }
 
 #[tauri::command]
@@ -9593,13 +11358,25 @@ pub fn register_root(path: String) -> Result<PortfolioSnapshot, String> {
 
 #[tauri::command]
 pub async fn refresh() -> Result<PortfolioSnapshot, String> {
-    tauri::async_runtime::spawn_blocking(|| {
-        let path = store_path();
-        let mut state = load_store(&path)?;
-        audited_scan_and_persist(&path, &mut state)
+    tauri::async_runtime::spawn_blocking(|| refresh_at(&store_path()))
+        .await
+        .map_err(|error| format!("Local refresh task failed: {error}"))?
+}
+
+#[tauri::command]
+pub async fn refresh_batch(
+    target: Option<String>,
+    parallelism: Option<usize>,
+) -> Result<RefreshBatchReport, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        refresh_batch_at(
+            &store_path(),
+            target.as_deref(),
+            parallelism.unwrap_or(DEFAULT_REFRESH_BATCH_PARALLELISM),
+        )
     })
     .await
-    .map_err(|error| format!("Local refresh task failed: {error}"))?
+    .map_err(|error| format!("Parallel refresh task failed: {error}"))?
 }
 
 #[tauri::command]
@@ -9760,6 +11537,33 @@ pub fn check_remediation_handoff(
         .find(|repository| repository.id == repository_id)
         .ok_or_else(|| "Repository is not registered".to_string())?;
     remediation_handoff_check_for_repository(repository, workspace_id.as_deref())
+}
+
+#[tauri::command]
+pub fn check_remediation_execution_gate(
+    repository_id: String,
+    workspace_id: Option<String>,
+) -> Result<RemediationExecutionGate, String> {
+    let path = store_path();
+    let state = load_store_read_only(&path)?;
+    let snapshot = snapshot_from_store(&path, &state);
+    let repository = snapshot
+        .repositories
+        .iter()
+        .find(|repository| repository.id == repository_id)
+        .ok_or_else(|| "Repository is not registered".to_string())?;
+    let plan = snapshot
+        .remediation
+        .plans
+        .iter()
+        .find(|plan| plan.repository_id == repository.id);
+    let closure = snapshot
+        .remediation
+        .closures
+        .iter()
+        .filter(|closure| closure.repository_id == repository.id)
+        .max_by(|left, right| left.closed_at.cmp(&right.closed_at));
+    remediation_execution_gate_for_repository(repository, plan, closure, workspace_id.as_deref())
 }
 
 #[tauri::command]
@@ -10016,6 +11820,18 @@ fn cli_positive_u64_option(arguments: &[String], option: &str) -> Result<Option<
         .map(|value| {
             value
                 .parse::<u64>()
+                .ok()
+                .filter(|parsed| *parsed > 0)
+                .ok_or_else(|| format!("{option} must be a positive integer"))
+        })
+        .transpose()
+}
+
+fn cli_positive_usize_option(arguments: &[String], option: &str) -> Result<Option<usize>, String> {
+    cli_option(arguments, option)?
+        .map(|value| {
+            value
+                .parse::<usize>()
                 .ok()
                 .filter(|parsed| *parsed > 0)
                 .ok_or_else(|| format!("{option} must be a positive integer"))
@@ -11836,6 +13652,25 @@ fn print_human_status(snapshot: &PortfolioSnapshot) {
     }
 }
 
+fn print_human_refresh_batch(report: &RefreshBatchReport) {
+    println!(
+        "PRONTO REFRESH BATCH · {} · {} repositories · parallelism {} · {} conflict retries",
+        report.status, report.repository_count, report.parallelism, report.conflict_retries
+    );
+    println!("Scope: {}", report.scope);
+    println!("Scan: {}", report.scan_phase);
+    println!("Merge: {}", report.merge_phase);
+    for repository in &report.repositories {
+        println!(
+            "  #{} · {} · {} · {}",
+            repository.scan_order + 1,
+            repository.name,
+            repository.status,
+            repository.path
+        );
+    }
+}
+
 fn print_human_groups(groups: &[GroupConfig]) {
     if groups.is_empty() {
         println!("PRONTO GROUPS · no groups registered");
@@ -12211,6 +14046,45 @@ fn print_human_remediation_handoff_check(check: &RemediationHandoffCheck) {
     println!("  next: {}", check.next_safe_step);
 }
 
+fn print_human_remediation_execution_gate(gate: &RemediationExecutionGate) {
+    println!(
+        "PRONTO REMEDIATION EXECUTION GATE · {} · {}",
+        gate.repository_name, gate.status
+    );
+    println!(
+        "Scope: {} · workspaces checked: {} · execution blockers: {}",
+        gate.scope,
+        gate.workspace_checks.len(),
+        gate.blockers.len()
+    );
+    println!(
+        "Closure: {} · {} active · {} explicitly blocked",
+        gate.closure_gate.status,
+        gate.closure_gate.active_action_count,
+        gate.closure_gate.blocked_action_count
+    );
+    for blocker in &gate.blockers {
+        println!(
+            "  blocker · {} · {} · {}",
+            blocker.kind, blocker.workspace_path, blocker.title
+        );
+        println!(
+            "    evidence: {} · {}{}",
+            blocker.evidence_state,
+            blocker.source,
+            blocker
+                .observed_at
+                .as_deref()
+                .map(|observed_at| format!(" · observed {observed_at}"))
+                .unwrap_or_default()
+        );
+        println!("    affects: {}", blocker.blocked_operations.join(", "));
+        println!("    next: {}", blocker.next_safe_step);
+    }
+    println!("Authorization: {}", gate.authorization.status);
+    println!("  next: {}", gate.next_safe_step);
+}
+
 fn print_human_preparation(report: &AgentPreparationReport) {
     let preparation = &report.preparation;
     println!(
@@ -12245,7 +14119,7 @@ fn print_human_release(report: &AgentReleaseReport) {
 
 fn print_cli_usage() {
     println!(
-        "Usage: pronto . | pronto skills [<skill-id>] [--json] | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--fresh] [--json] | pronto quality [<repository>] [--json] | pronto quality refresh [--json] | pronto prepare <repository> [--workspace <id>] [--fresh] [--json] | pronto release preview <repository> [--workspace <id>] [--fresh] [--json] | pronto remediation handoff-check <repository> [--workspace <id>] [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] | pronto repo set-target <repository> <branch> [--json] | pronto status [--fresh] [--json] | pronto help"
+        "Usage: pronto . | pronto analytics [--range-days <days>] [--json] | pronto analytics view list|save --config-json <json|@file>|delete <id>|default <id> [--json] | pronto skills [<skill-id>] [--json] | pronto behavior [<repository>] [--filter <missing|legacy|unprofiled|partially_verified|stale|failed|blocked|unknown|current|not_applicable>] [--fresh] [--json] | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--fresh] [--json] | pronto quality [<repository>] [--json] | pronto quality refresh [--json] | pronto refresh [<repository|group|product|repository-path>] [--json] | pronto refresh-batch [<repository|group|product|repository-path>] [--parallelism <positive-integer>] [--json] | pronto prepare <repository> [--workspace <id>] [--fresh] [--json] | pronto release preview <repository> [--workspace <id>] [--fresh] [--json] | pronto remediation gate <repository> [--workspace <id>] [--json] | pronto remediation handoff-check <repository> [--workspace <id>] [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] | pronto repo set-target <repository> <branch> [--json] | pronto status [--fresh] [--json] | pronto help"
     );
 }
 
@@ -12340,6 +14214,109 @@ pub fn run_cli(arguments: Vec<String>) {
                     eprintln!("Pronto could not read skills: {error}");
                     std::process::exit(1);
                 }
+            }
+        }
+        "behavior" => {
+            let fresh = arguments.iter().any(|argument| argument == "--fresh");
+            let filter = cli_option(&arguments, "--filter").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if filter
+                .as_deref()
+                .is_some_and(|value| !crate::behavior_assurance::AUDIT_FILTERS.contains(&value))
+            {
+                eprintln!(
+                    "Pronto CLI error: --filter must be one of {}",
+                    crate::behavior_assurance::AUDIT_FILTERS.join(", ")
+                );
+                std::process::exit(2);
+            }
+            let positionals = cli_positionals_with_flags(&arguments, &["--filter"], &["--fresh"])
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                });
+            if positionals.len() > 1 {
+                eprintln!(
+                    "Usage: pronto behavior [<repository>] [--filter <kind>] [--fresh] [--json]"
+                );
+                std::process::exit(2);
+            }
+            let state_result = if fresh {
+                load_store_read_only_with_quality_bounded(&path)
+            } else {
+                load_store_read_only(&path)
+            };
+            let report = state_result
+                .map(|state| snapshot_from_store(&path, &state))
+                .and_then(|snapshot| {
+                    let repositories = if let Some(query) = positionals.first() {
+                        vec![find_cli_repository(&snapshot, query)?.clone()]
+                    } else {
+                        snapshot.repositories
+                    };
+                    Ok(crate::behavior_assurance::audit_report(
+                        &repositories,
+                        filter.as_deref(),
+                    ))
+                })
+                .unwrap_or_else(|error| {
+                    if json {
+                        print_cli_json_error("behavior", &error);
+                    }
+                    eprintln!("Pronto could not audit behavior assurance: {error}");
+                    std::process::exit(1);
+                });
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                );
+            } else {
+                println!(
+                    "PRONTO BEHAVIOR ASSURANCE · {} · {}/{} selected repositories ready · {} gaps",
+                    report.status,
+                    report.ready_repository_count,
+                    report.repository_count,
+                    report.gap_count
+                );
+                println!(
+                    "Edge durability: {}/{} verified · {}/{} profiled · {} stale · {} failed · {} blocked · {} unknown",
+                    report.coverage.verified,
+                    report.coverage.total,
+                    report.coverage.profiled,
+                    report.coverage.total,
+                    report.coverage.stale,
+                    report.coverage.failed,
+                    report.coverage.blocked,
+                    report.coverage.unknown
+                );
+                for repository in &report.repositories {
+                    println!(
+                        "  {} · state {} · release {} · {}/{} Tier-0 · edge {}/{} verified · {}/{} profiled",
+                        repository.repository_name,
+                        repository.assurance.state,
+                        if repository.assurance.release_ready {
+                            "Ready"
+                        } else {
+                            "Gaps present"
+                        },
+                        repository.assurance.passed_scenario_count,
+                        repository.assurance.required_scenario_count,
+                        repository.assurance.coverage.counts.verified,
+                        repository.assurance.coverage.counts.total,
+                        repository.assurance.coverage.counts.profiled,
+                        repository.assurance.coverage.counts.total
+                    );
+                    for gap in repository.assurance.gaps.iter().take(5) {
+                        println!("    {} · {}", gap.kind, gap.message);
+                    }
+                }
+                println!("Next: {}", report.next_safe_step);
+            }
+            if !report.ready {
+                std::process::exit(1);
             }
         }
         "change-matrix" => {
@@ -12694,15 +14671,52 @@ pub fn run_cli(arguments: Vec<String>) {
             }
         }
         "analytics" => {
-            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
-                eprintln!("Pronto CLI error: {error}");
-                std::process::exit(2);
-            });
+            let positionals = cli_positionals(&arguments, &["--range-days", "--config-json"])
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                });
+            if positionals.first().map(String::as_str) == Some("view") {
+                let result = match positionals.get(1).map(String::as_str) {
+                    Some("list") if positionals.len() == 2 => open_store(&path).and_then(|connection| load_analytics_views(&connection, ANALYTICS_RANGE_DAYS)),
+                    Some("save") if positionals.len() == 2 => cli_json_option::<AnalyticsView>(&arguments, "--config-json").and_then(|view| view.ok_or_else(|| "analytics view save requires --config-json <json|@file>".to_string())).and_then(|view| save_analytics_view_at(&path, view)),
+                    Some("delete") if positionals.len() == 3 && positionals[2] != "curated" => open_store(&path).and_then(|connection| { connection.execute("DELETE FROM analytics_views WHERE id = ?1", params![positionals[2]]).map_err(|error| format!("Could not delete analytics view: {error}"))?; load_analytics_views(&connection, ANALYTICS_RANGE_DAYS) }),
+                    Some("default") if positionals.len() == 3 => set_default_analytics_view_at(&path, &positionals[2]),
+                    _ => Err("Usage: pronto analytics view list|save --config-json <json|@file>|delete <id>|default <id> [--json]".to_string()),
+                };
+                match result {
+                    Ok(views) if json => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&views).unwrap_or_else(|_| "[]".to_string())
+                    ),
+                    Ok(views) => {
+                        for view in views {
+                            println!(
+                                "{} · {}{}",
+                                view.id,
+                                view.name,
+                                if view.is_default { " · default" } else { "" }
+                            );
+                        }
+                    }
+                    Err(error) => {
+                        eprintln!("Pronto could not manage analytics views: {error}");
+                        std::process::exit(1);
+                    }
+                }
+                return;
+            }
             if !positionals.is_empty() {
-                eprintln!("Usage: pronto analytics [--json]");
+                eprintln!("Usage: pronto analytics [--range-days <days>] [--json]");
                 std::process::exit(2);
             }
-            match load_analytics_at(&path) {
+            let range_days = cli_positive_u64_option(&arguments, "--range-days")
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                })
+                .map(|value| value as i64);
+            match load_analytics_at(&path, range_days) {
                 Ok(analytics) if json => println!(
                     "{}",
                     serde_json::to_string_pretty(&analytics).unwrap_or_else(|_| "{}".to_string())
@@ -13777,6 +15791,45 @@ pub fn run_cli(arguments: Vec<String>) {
                 std::process::exit(2);
             });
             match positionals.first().map(String::as_str) {
+                Some("gate") => {
+                    if positionals.len() != 2 {
+                        eprintln!(
+                            "Usage: pronto remediation gate <repository> [--workspace <id>] [--json]"
+                        );
+                        std::process::exit(2);
+                    }
+                    let workspace_id =
+                        cli_option(&arguments, "--workspace").unwrap_or_else(|error| {
+                            eprintln!("Pronto CLI error: {error}");
+                            std::process::exit(2);
+                        });
+                    match remediation_execution_gate_at(
+                        &path,
+                        &positionals[1],
+                        workspace_id.as_deref(),
+                    ) {
+                        Ok(gate) if json => {
+                            println!(
+                                "{}",
+                                serde_json::to_string_pretty(&gate)
+                                    .unwrap_or_else(|_| "{}".to_string())
+                            );
+                            if !gate.ready {
+                                std::process::exit(1);
+                            }
+                        }
+                        Ok(gate) => {
+                            print_human_remediation_execution_gate(&gate);
+                            if !gate.ready {
+                                std::process::exit(1);
+                            }
+                        }
+                        Err(error) => {
+                            eprintln!("Pronto could not evaluate remediation execution: {error}");
+                            std::process::exit(1);
+                        }
+                    }
+                }
                 Some("handoff-check") => {
                     if positionals.len() != 2 {
                         eprintln!(
@@ -13972,37 +16025,10 @@ pub fn run_cli(arguments: Vec<String>) {
                 );
                 std::process::exit(2);
             }
-            let result = load_store(&path).and_then(|mut state| {
-                if let Some(target) = positionals.first() {
-                    let current = snapshot_from_store(&path, &state);
-                    match resolve_local_refresh_target(&current, &state, target)? {
-                        LocalRefreshTarget::Registered {
-                            repository_ids,
-                            label,
-                        } => {
-                            let snapshot = audited_scan_and_persist_scoped(
-                                &path,
-                                &mut state,
-                                Some(&repository_ids),
-                                Some(&label),
-                            )?;
-                            Ok(filter_snapshot_to_repository_ids(snapshot, &repository_ids))
-                        }
-                        LocalRefreshTarget::RepositoryPath(repository_path) => {
-                            let repository_id = path_id("repository", &repository_path);
-                            let snapshot = audited_scan_and_persist_repository_path(
-                                &path,
-                                &mut state,
-                                &repository_path,
-                            )?;
-                            let repository_ids = [repository_id].into_iter().collect();
-                            Ok(filter_snapshot_to_repository_ids(snapshot, &repository_ids))
-                        }
-                    }
-                } else {
-                    audited_scan_and_persist(&path, &mut state)
-                }
-            });
+            let result = positionals
+                .first()
+                .map(|target| refresh_target_at(&path, target))
+                .unwrap_or_else(|| refresh_at(&path));
             match result {
                 Ok(snapshot) if json => println!(
                     "{}",
@@ -14011,6 +16037,47 @@ pub fn run_cli(arguments: Vec<String>) {
                 Ok(snapshot) => print_human_status(&snapshot),
                 Err(error) => {
                     eprintln!("Pronto could not refresh local state: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        "refresh-batch" => {
+            let parallelism = cli_positive_usize_option(&arguments, "--parallelism")
+                .unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                })
+                .unwrap_or(DEFAULT_REFRESH_BATCH_PARALLELISM);
+            if parallelism > MAX_REFRESH_BATCH_PARALLELISM {
+                eprintln!(
+                    "Pronto CLI error: --parallelism must be between 1 and {MAX_REFRESH_BATCH_PARALLELISM}"
+                );
+                std::process::exit(2);
+            }
+            let positionals =
+                cli_positionals(&arguments, &["--parallelism"]).unwrap_or_else(|error| {
+                    eprintln!("Pronto CLI error: {error}");
+                    std::process::exit(2);
+                });
+            if positionals.len() > 1 {
+                eprintln!(
+                    "Usage: pronto refresh-batch [repository|group|product|repository-path] [--parallelism <positive-integer>] [--json]"
+                );
+                std::process::exit(2);
+            }
+            let result =
+                refresh_batch_at(&path, positionals.first().map(String::as_str), parallelism);
+            match result {
+                Ok(report) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(report) => print_human_refresh_batch(&report),
+                Err(error) => {
+                    if json {
+                        print_cli_json_error("refresh-batch", &error);
+                    }
+                    eprintln!("Pronto could not run parallel refresh: {error}");
                     std::process::exit(1);
                 }
             }
@@ -14441,6 +16508,7 @@ mod tests {
     use std::fs;
     use std::process::Output;
     use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::{Arc, Barrier};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
@@ -14562,6 +16630,81 @@ mod tests {
         );
 
         fs::remove_dir_all(root).expect("cli root fixture should be removable");
+    }
+
+    #[test]
+    fn registering_new_repository_adds_pending_showcase_goal() {
+        let root = fixture_root();
+        let contract_repository = fixture_repository_named(&root, "pronto");
+        let _new_repository = fixture_repository_named(&root, "new-project");
+        let contract = serde_json::json!({
+            "schema_version": "pronto-showcase-goal/v2",
+            "target_publishable_demo_count": 2,
+            "reviewed_at": "2026-08-12T00:00:00Z",
+            "quality_bar_source": "Authenticated Handshake AI Showcase audit",
+            "scoring": {
+                "product_weight": 0.6,
+                "materials_weight": 0.4,
+                "priority_career_weight": 0.5,
+                "priority_product_weight": 0.3,
+                "priority_materials_gap_weight": 0.2,
+                "publishable_product_minimum": 3.5,
+                "publishable_materials_minimum": 4.0
+            },
+            "projects": [{
+                "repository_name": "pronto",
+                "display_name": "pronto",
+                "public_eligibility": "not_applicable",
+                "disposition_source": "test fixture",
+                "product_readiness": {
+                    "status": "not_applicable",
+                    "evidence": "support repository"
+                },
+                "demo_materials": {
+                    "status": "not_applicable",
+                    "evidence": "support repository"
+                },
+                "career_signal": {
+                    "status": "not_applicable",
+                    "evidence": "support repository"
+                },
+                "blockers": [],
+                "missing_materials": [],
+                "next_step": "No showcase work."
+            }],
+            "public_release_target_policy": {
+                "matrix_path": "showcase-materials/public-release-targets.json"
+            }
+        });
+        fs::create_dir_all(contract_repository.join(".pronto"))
+            .expect("showcase contract directory should be creatable");
+        fs::write(
+            contract_repository.join(".pronto/showcase-goal.json"),
+            serde_json::to_vec_pretty(&contract).expect("contract JSON"),
+        )
+        .expect("showcase contract should be writable");
+
+        let store = root.join("registry.db");
+        let snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("registration should persist the pending Showcase goal");
+        assert_eq!(snapshot.repositories.len(), 2);
+
+        let persisted: serde_json::Value = serde_json::from_str(
+            &fs::read_to_string(contract_repository.join(".pronto/showcase-goal.json"))
+                .expect("showcase contract should remain readable"),
+        )
+        .expect("showcase contract should remain valid JSON");
+        let pending = persisted["projects"]
+            .as_array()
+            .expect("projects array")
+            .iter()
+            .find(|project| project["repository_name"] == "new-project")
+            .expect("new repository should receive a pending Showcase goal");
+        assert_eq!(pending["public_eligibility"], "unknown");
+        assert_eq!(pending["work_disposition"], "unknown");
+        assert!(persisted["public_release_target_policy"].is_object());
+
+        fs::remove_dir_all(root).expect("registration fixture should be removable");
     }
 
     #[test]
@@ -14695,13 +16838,13 @@ mod tests {
             ..remediation::RemediationRefreshStep::default()
         }];
         apply_quality_evidence_scoped(&mut state, None, None);
-        assert_eq!(state.repositories[0].quality.maturity.score, Some(0.25));
+        assert_eq!(state.repositories[0].quality.maturity.score, Some(0.688));
         assert_eq!(
             state.repositories[0]
                 .quality
                 .maturity
                 .scored_dimension_count,
-            Some(8)
+            Some(2)
         );
         assert_eq!(
             state.repositories[0].quality.maturity.freshness,
@@ -14712,7 +16855,10 @@ mod tests {
         let mut persisted = load_store(&store).expect("scoped maturity state should reload");
         let refreshed = scan_and_persist_scoped(&store, &mut persisted, None)
             .expect("ordinary refresh should succeed");
-        assert_eq!(refreshed.repositories[0].quality.maturity.score, Some(0.25));
+        assert_eq!(
+            refreshed.repositories[0].quality.maturity.score,
+            Some(0.688)
+        );
         assert_eq!(
             refreshed.repositories[0].quality.maturity.freshness,
             QualityFreshness::Fresh
@@ -14790,7 +16936,7 @@ mod tests {
                 .repository
                 .as_ref()
                 .and_then(|detail| detail.repository.quality.maturity.score),
-            Some(0.25)
+            Some(0.688)
         );
         assert_eq!(
             report
@@ -14882,6 +17028,240 @@ mod tests {
         drop(third);
 
         fs::remove_dir_all(root).expect("write-lock fixture should be removable");
+    }
+
+    #[test]
+    fn store_write_state_reloads_after_previous_writer_commits() {
+        let root = fixture_root();
+        let store = root.join("registry.db");
+        save_store(&store, &StoreState::default()).expect("initial store should persist");
+
+        let first_entered = Arc::new(Barrier::new(2));
+        let first_release = Arc::new(Barrier::new(2));
+        let first_store = store.clone();
+        let first_entered_thread = Arc::clone(&first_entered);
+        let first_release_thread = Arc::clone(&first_release);
+        let first = thread::spawn(move || {
+            with_store_write_state(&first_store, |state| {
+                state.retention_days = 31;
+                first_entered_thread.wait();
+                first_release_thread.wait();
+                save_store(&first_store, state)
+            })
+        });
+
+        first_entered.wait();
+        let second_store = store.clone();
+        let second = thread::spawn(move || {
+            with_store_write_state(&second_store, |state| {
+                assert_eq!(
+                    state.retention_days, 31,
+                    "a writer must load the snapshot committed by the previous writer"
+                );
+                Ok(())
+            })
+        });
+        first_release.wait();
+
+        first
+            .join()
+            .expect("first writer thread should finish")
+            .expect("first writer should persist");
+        second
+            .join()
+            .expect("second writer thread should finish")
+            .expect("second writer should observe the committed state");
+        assert!(
+            !store_write_lock_path(&store).exists(),
+            "the write lock must be released before the operation returns"
+        );
+
+        fs::remove_dir_all(root).expect("write-state fixture should be removable");
+    }
+
+    #[test]
+    fn refresh_releases_write_lock_before_returning() {
+        let root = fixture_root();
+        fixture_repository(&root);
+        let store = root.join("registry.db");
+        save_store(
+            &store,
+            &StoreState {
+                roots: vec![RootConfig {
+                    id: path_id("root", &root),
+                    path: root.to_string_lossy().to_string(),
+                    label: "fixture".to_string(),
+                    ignore_patterns: Vec::new(),
+                    refresh_policy: default_refresh_policy(),
+                    background_monitoring: false,
+                    registered_at: iso_now(),
+                }],
+                ..StoreState::default()
+            },
+        )
+        .expect("refresh fixture should persist");
+
+        let snapshot = refresh_at(&store).expect("refresh should complete");
+        assert_eq!(snapshot.repositories.len(), 1);
+        assert!(
+            !store_write_lock_path(&store).exists(),
+            "refresh must release the write lock before returning its snapshot"
+        );
+
+        fs::remove_dir_all(root).expect("refresh fixture should be removable");
+    }
+
+    #[test]
+    fn concurrent_refreshes_serialize_without_stale_lock_failure() {
+        let root = fixture_root();
+        fixture_repository(&root);
+        let store = root.join("registry.db");
+        save_store(
+            &store,
+            &StoreState {
+                roots: vec![RootConfig {
+                    id: path_id("root", &root),
+                    path: root.to_string_lossy().to_string(),
+                    label: "fixture".to_string(),
+                    ignore_patterns: Vec::new(),
+                    refresh_policy: default_refresh_policy(),
+                    background_monitoring: false,
+                    registered_at: iso_now(),
+                }],
+                ..StoreState::default()
+            },
+        )
+        .expect("concurrent refresh fixture should persist");
+
+        let start = Arc::new(Barrier::new(3));
+        let handles = (0..2)
+            .map(|_| {
+                let store = store.clone();
+                let start = Arc::clone(&start);
+                thread::spawn(move || {
+                    start.wait();
+                    refresh_at(&store)
+                })
+            })
+            .collect::<Vec<_>>();
+        start.wait();
+
+        for handle in handles {
+            handle
+                .join()
+                .expect("concurrent refresh thread should finish")
+                .expect("concurrent refresh should wait for the prior writer");
+        }
+        let persisted = load_store(&store).expect("serialized refreshes should persist");
+        assert!(
+            persisted.action_audits.len() >= 2,
+            "each serialized refresh should retain its audit record"
+        );
+        assert!(
+            !store_write_lock_path(&store).exists(),
+            "serialized refreshes must leave no write lock behind"
+        );
+
+        fs::remove_dir_all(root).expect("concurrent refresh fixture should be removable");
+    }
+
+    #[test]
+    fn refresh_batch_scans_in_parallel_and_merges_deterministically() {
+        let root = fixture_root();
+        fixture_repository_named(&root, "alpha-repository");
+        fixture_repository_named(&root, "beta-repository");
+        let store = root.join("registry.db");
+        save_store(
+            &store,
+            &StoreState {
+                roots: vec![RootConfig {
+                    id: path_id("root", &root),
+                    path: root.to_string_lossy().to_string(),
+                    label: "fixture".to_string(),
+                    ignore_patterns: Vec::new(),
+                    refresh_policy: default_refresh_policy(),
+                    background_monitoring: false,
+                    registered_at: iso_now(),
+                }],
+                ..StoreState::default()
+            },
+        )
+        .expect("batch refresh fixture should persist");
+
+        let report = refresh_batch_at(&store, None, 2).expect("batch refresh should complete");
+        assert_eq!(report.status, "Completed");
+        assert_eq!(report.parallelism, 2);
+        assert_eq!(report.repository_count, 2);
+        assert_eq!(report.scan_phase, "Parallel read-only scan completed");
+        assert_eq!(report.merge_phase, "Serialized locked merge committed");
+        assert!(report
+            .repositories
+            .windows(2)
+            .all(|window| window[0].repository_id <= window[1].repository_id));
+
+        let persisted = load_store(&store).expect("batch refresh should persist the merged state");
+        assert_eq!(persisted.repositories.len(), 2);
+        assert_eq!(persisted.action_audits.len(), 1);
+        assert!(!store_write_lock_path(&store).exists());
+
+        fs::remove_dir_all(root).expect("batch refresh fixture should be removable");
+    }
+
+    #[test]
+    fn concurrent_batch_refreshes_preserve_all_scanned_repositories() {
+        let root = fixture_root();
+        fixture_repository_named(&root, "alpha-repository");
+        fixture_repository_named(&root, "beta-repository");
+        let store = root.join("registry.db");
+        save_store(
+            &store,
+            &StoreState {
+                roots: vec![RootConfig {
+                    id: path_id("root", &root),
+                    path: root.to_string_lossy().to_string(),
+                    label: "fixture".to_string(),
+                    ignore_patterns: Vec::new(),
+                    refresh_policy: default_refresh_policy(),
+                    background_monitoring: false,
+                    registered_at: iso_now(),
+                }],
+                ..StoreState::default()
+            },
+        )
+        .expect("concurrent batch fixture should persist");
+
+        let start = Arc::new(Barrier::new(3));
+        let handles = (0..2)
+            .map(|_| {
+                let store = store.clone();
+                let start = Arc::clone(&start);
+                thread::spawn(move || {
+                    start.wait();
+                    refresh_batch_at(&store, None, 2)
+                })
+            })
+            .collect::<Vec<_>>();
+        start.wait();
+
+        let reports = handles
+            .into_iter()
+            .map(|handle| {
+                handle
+                    .join()
+                    .expect("concurrent batch worker should finish")
+                    .expect("concurrent batch refresh should retry or commit")
+            })
+            .collect::<Vec<_>>();
+        assert!(reports.iter().all(|report| report.status == "Completed"));
+        let persisted = load_store(&store).expect("concurrent batch state should reload");
+        assert_eq!(persisted.repositories.len(), 2);
+        assert!(
+            persisted.action_audits.len() >= 2,
+            "each concurrent batch should retain its audit record"
+        );
+        assert!(!store_write_lock_path(&store).exists());
+
+        fs::remove_dir_all(root).expect("concurrent batch fixture should be removable");
     }
 
     #[test]
@@ -15213,7 +17593,8 @@ mod tests {
     fn remediation_handoff_requires_a_checkpoint_and_fresh_snapshot() {
         let root = fixture_root();
         let repository_path = fixture_repository(&root);
-        let clean_snapshot = scan_repository(&repository_path, None, &[]);
+        let mut clean_snapshot = scan_repository(&repository_path, None, &[]);
+        clean_snapshot.workspace.activity = WorkspaceActivity::default();
         let clean_check = remediation_handoff_check_for_repository(&clean_snapshot, None)
             .expect("clean fixture should be checkable");
         assert!(clean_check.ready);
@@ -15221,7 +17602,8 @@ mod tests {
 
         fs::write(repository_path.join("tracked.txt"), "uncommitted\n")
             .expect("dirty fixture should be writable");
-        let dirty_snapshot = scan_repository(&repository_path, Some(&clean_snapshot), &[]);
+        let mut dirty_snapshot = scan_repository(&repository_path, Some(&clean_snapshot), &[]);
+        dirty_snapshot.workspace.activity = WorkspaceActivity::default();
         let dirty_check = remediation_handoff_check_for_repository(&dirty_snapshot, None)
             .expect("dirty fixture should be checkable");
         assert!(!dirty_check.ready);
@@ -15243,13 +17625,180 @@ mod tests {
             .iter()
             .any(|reason| reason.contains("persisted Pronto snapshot")));
 
-        let refreshed_snapshot = scan_repository(&repository_path, Some(&dirty_snapshot), &[]);
+        let mut refreshed_snapshot = scan_repository(&repository_path, Some(&dirty_snapshot), &[]);
+        refreshed_snapshot.workspace.activity = WorkspaceActivity::default();
         let refreshed_check = remediation_handoff_check_for_repository(&refreshed_snapshot, None)
             .expect("refreshed fixture should be checkable");
         assert!(refreshed_check.ready);
         assert!(!refreshed_check.checkpoint_required);
 
         fs::remove_dir_all(root).expect("handoff fixture should be removable");
+    }
+
+    #[test]
+    fn remediation_execution_gate_separates_execution_from_closure_blockers() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let mut repository = scan_repository(&repository_path, None, &[]);
+        repository.workspace.activity = WorkspaceActivity::default();
+        for workspace in &mut repository.workspaces {
+            workspace.activity = WorkspaceActivity::default();
+        }
+        let mut remediation_run =
+            remediation::rebuild_run(&[repository.clone()], &remediation::empty_run(), None);
+        let plan = remediation_run
+            .plans
+            .first_mut()
+            .expect("fixture repository should produce a remediation plan");
+        plan.actions[0].status = "blocked".to_string();
+        remediation::recompute_plan_derived(plan);
+
+        let gate = remediation_execution_gate_for_repository(&repository, Some(plan), None, None)
+            .expect("clean repository should produce an execution gate");
+
+        assert!(gate.ready, "unexpected blockers: {:#?}", gate.blockers);
+        assert_eq!(gate.status, "ready");
+        assert!(gate.blockers.is_empty());
+        assert_eq!(gate.closure_gate.status, "blocked");
+        assert_eq!(gate.closure_gate.blocked_action_count, 1);
+        assert!(gate
+            .closure_gate
+            .detail
+            .contains("does not by itself block remediation execution"));
+
+        fs::remove_dir_all(root).expect("execution-gate fixture should be removable");
+    }
+
+    #[test]
+    fn remediation_execution_gate_enforces_workspace_ownership_coordination() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let mut repository = scan_repository(&repository_path, None, &[]);
+        let active = WorkspaceActivity {
+            state: "Active".to_string(),
+            confidence: "High".to_string(),
+            signals: vec![ActivitySignal {
+                source: "fixture".to_string(),
+                summary: "Workspace owner is active".to_string(),
+                confidence: "High".to_string(),
+                observed_at: iso_now(),
+                process_name: None,
+                process_id: None,
+                started_at: None,
+                working_directory: Some(repository_path.to_string_lossy().to_string()),
+            }],
+            manifest: None,
+        };
+        repository.workspace.activity = active.clone();
+        for workspace in &mut repository.workspaces {
+            if workspace.id == repository.workspace.id {
+                workspace.activity = active.clone();
+            }
+        }
+
+        let handoff = remediation_handoff_check_for_repository(&repository, None)
+            .expect("owned workspace should remain inspectable");
+        assert!(!handoff.ready);
+        assert!(handoff.ownership_coordination_required);
+
+        let gate = remediation_execution_gate_for_repository(&repository, None, None, None)
+            .expect("owned workspace should produce a structured execution gate");
+        assert!(!gate.ready);
+        assert_eq!(gate.status, "blocked");
+        assert!(gate
+            .blockers
+            .iter()
+            .any(|blocker| blocker.kind == "ownership_coordination_required"));
+        assert!(gate
+            .blocked_operations
+            .contains(&"mutate_workspace".to_string()));
+
+        fs::remove_dir_all(root).expect("ownership-gate fixture should be removable");
+    }
+
+    #[test]
+    fn remediation_execution_gate_distinguishes_unavailable_ownership_evidence() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let mut repository = scan_repository(&repository_path, None, &[]);
+        let uncertain = WorkspaceActivity {
+            state: "Unknown".to_string(),
+            confidence: "Low".to_string(),
+            signals: vec![ActivitySignal {
+                source: "Process".to_string(),
+                summary: "Activity state uncertain".to_string(),
+                confidence: "Low".to_string(),
+                observed_at: iso_now(),
+                process_name: None,
+                process_id: None,
+                started_at: None,
+                working_directory: None,
+            }],
+            manifest: None,
+        };
+        repository.workspace.activity = uncertain.clone();
+        for workspace in &mut repository.workspaces {
+            if workspace.id == repository.workspace.id {
+                workspace.activity = uncertain.clone();
+            }
+        }
+
+        let gate = remediation_execution_gate_for_repository(&repository, None, None, None)
+            .expect("uncertain ownership should produce a structured execution gate");
+
+        assert!(!gate.ready);
+        assert!(gate
+            .blockers
+            .iter()
+            .any(|blocker| blocker.kind == "ownership_evidence_unavailable"));
+        assert!(!gate
+            .blockers
+            .iter()
+            .any(|blocker| blocker.kind == "ownership_coordination_required"));
+        assert!(gate
+            .workspace_checks
+            .iter()
+            .all(|check| check.ownership_status == "evidence_unavailable"));
+
+        fs::remove_dir_all(root).expect("ownership-evidence fixture should be removable");
+    }
+
+    #[test]
+    fn remediation_execution_gate_reports_unavailable_secondary_workspace_as_partial() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let mut repository = scan_repository(&repository_path, None, &[]);
+        repository.workspace.activity = WorkspaceActivity::default();
+        for workspace in &mut repository.workspaces {
+            workspace.activity = WorkspaceActivity::default();
+        }
+        if repository.workspaces.is_empty() {
+            repository.workspaces.push(repository.workspace.clone());
+        }
+        let mut unavailable = repository.workspace.clone();
+        unavailable.id = "workspace-unavailable".to_string();
+        unavailable.path = root.join("missing-workspace").to_string_lossy().to_string();
+        unavailable.branch = "feature/unavailable".to_string();
+        repository.workspaces.push(unavailable);
+
+        let gate = remediation_execution_gate_for_repository(&repository, None, None, None)
+            .expect("unavailable path should be a structured blocker");
+
+        assert!(!gate.ready);
+        assert_eq!(
+            gate.status, "partially_blocked",
+            "unexpected blockers: {:#?}",
+            gate.blockers
+        );
+        assert!(gate
+            .blockers
+            .iter()
+            .any(|blocker| blocker.kind == "path_unavailable"));
+        assert!(gate
+            .blocked_operations
+            .contains(&"inspect_workspace".to_string()));
+
+        fs::remove_dir_all(root).expect("partial-gate fixture should be removable");
     }
 
     #[test]
@@ -16055,6 +18604,57 @@ mod tests {
     }
 
     #[test]
+    fn release_preview_is_blocked_when_behavior_assurance_is_not_ready() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let mut repository = scan_repository(&repository_path, None, &[]);
+        repository.provider_state = "GitHub connected as github:fixture".to_string();
+        repository.last_fetch_at = Some(iso_now());
+
+        let preparation = prepare_release(&repository, &repository.workspace, true);
+
+        assert!(preparation.reasons.iter().any(|reason| {
+            reason.contains("Behavior assurance is missing · unknown · unknown")
+        }));
+        assert!(preparation.evidence.iter().any(|item| {
+            item.label == "Behavior assurance" && item.value.contains("missing · unknown · unknown")
+        }));
+        assert_eq!(preparation.status, "Blocked");
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn release_preview_accepts_current_passing_behavior_assurance() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let mut repository = scan_repository(&repository_path, None, &[]);
+        repository.provider_state = "GitHub connected as github:fixture".to_string();
+        repository.last_fetch_at = Some(iso_now());
+        repository.quality.behavior_assurance.contract_status = "current".to_string();
+        repository.quality.behavior_assurance.result_status = "passed".to_string();
+        repository.quality.behavior_assurance.freshness = "current".to_string();
+        repository.quality.behavior_assurance.release_ready = true;
+        repository
+            .quality
+            .behavior_assurance
+            .required_scenario_count = 4;
+        repository.quality.behavior_assurance.passed_scenario_count = 4;
+        repository.quality.behavior_assurance.gaps.clear();
+
+        let preparation = prepare_release(&repository, &repository.workspace, true);
+
+        assert!(!preparation
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("Behavior assurance is")));
+        assert!(preparation.evidence.iter().any(|item| {
+            item.label == "Behavior assurance"
+                && item.value == "current · passed · current · 4/4 required scenarios"
+        }));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
     fn bounded_release_git_command_times_out_instead_of_hanging() {
         let root = fixture_root();
         let repository = fixture_repository(&root);
@@ -16185,6 +18785,19 @@ mod tests {
                 .release_boundary
                 .blocking_check_ids
                 .clear();
+            stored_repository.quality.behavior_assurance.contract_status = "current".to_string();
+            stored_repository.quality.behavior_assurance.result_status = "passed".to_string();
+            stored_repository.quality.behavior_assurance.freshness = "current".to_string();
+            stored_repository.quality.behavior_assurance.release_ready = true;
+            stored_repository
+                .quality
+                .behavior_assurance
+                .required_scenario_count = 1;
+            stored_repository
+                .quality
+                .behavior_assurance
+                .passed_scenario_count = 1;
+            stored_repository.quality.behavior_assurance.gaps.clear();
             stored_repository.quality.release_boundary.checks = [
                 "source_provenance",
                 "surface_classification",
@@ -17385,13 +19998,14 @@ mod tests {
 
         record_analytics_samples_at(&database, &state, &third)
             .expect("sample outside the deduplication window should persist");
-        let analytics = load_analytics_at(&database).expect("analytics should load");
+        let analytics = load_analytics_at(&database, None).expect("analytics should load");
         assert_eq!(analytics.portfolio_samples.len(), 2);
         assert_eq!(analytics.repositories[0].samples.len(), 2);
 
         let old_observed_at = (Utc::now() - chrono::Duration::days(2)).to_rfc3339();
         let old_payload = serde_json::to_string(&analytics_portfolio_sample(
             &state.repositories,
+            &state.remediation,
             &old_observed_at,
         ))
         .expect("old analytics sample should serialize");
@@ -17417,5 +20031,120 @@ mod tests {
         assert_eq!(old_count, 0);
 
         fs::remove_dir_all(root).expect("analytics retention fixture should be removable");
+    }
+
+    #[test]
+    fn adapts_v1_samples_into_governed_v2_metrics() {
+        let payload = r#"{"observed_at":"2026-08-13T00:00:00Z","repository_count":1,"workspace_count":1,"branch_count":1,"active_condition_count":2,"dirty_workspace_count":1,"unsynced_workspace_count":0,"active_workspace_count":1,"interrupted_workspace_count":0,"idle_workspace_count":0,"unknown_workspace_count":0,"ahead_commit_count":75,"behind_commit_count":3,"commits_last_30_days":8000,"ci_readiness_score":3.0,"maturity_score":2.5,"findings_total":4,"high_severity_findings":1,"ci_readiness_scored_repository_count":1,"maturity_scored_repository_count":1,"findings_repository_count":1,"release_rule_repository_count":1,"release_ready_repository_count":0,"quality_freshness":"Fresh"}"#;
+        let legacy: AnalyticsMetricSample =
+            serde_json::from_str(payload).expect("v1 sample should decode");
+        let adapted = adapt_analytics_sample(legacy);
+        assert_eq!(
+            adapted.metrics["git.commits.trailing_30_days"],
+            Some(8000.0)
+        );
+        assert_eq!(adapted.metrics["git.ahead_commits"], Some(75.0));
+        assert_eq!(adapted.metrics["quality.maturity_score"], Some(2.5));
+        assert_eq!(adapted.metrics["workspaces.activity.active"], Some(1.0));
+        assert_eq!(adapted.metrics["remediation.actions.open"], None);
+        assert_eq!(adapted.metrics["remediation.progress_percent"], None);
+    }
+
+    #[test]
+    fn analytics_metric_catalog_rejects_semantic_axis_mismatches() {
+        let catalog = analytics_metric_catalog();
+        assert!(!metric_axis_compatible(
+            &catalog,
+            &[
+                "git.commits.trailing_30_days".to_string(),
+                "git.ahead_commits".to_string()
+            ]
+        ));
+        assert!(metric_axis_compatible(
+            &catalog,
+            &[
+                "workspaces.dirty".to_string(),
+                "workspaces.unsynced".to_string()
+            ]
+        ));
+        assert!(metric_axis_compatible(
+            &catalog,
+            &[
+                "workspaces.activity.active".to_string(),
+                "workspaces.activity.interrupted".to_string(),
+                "workspaces.activity.idle".to_string(),
+                "workspaces.activity.unknown".to_string()
+            ]
+        ));
+        assert!(metric_axis_compatible(
+            &catalog,
+            &[
+                "remediation.actions.open".to_string(),
+                "remediation.actions.blocked".to_string(),
+                "remediation.actions.verified".to_string()
+            ]
+        ));
+    }
+
+    #[test]
+    fn analytics_range_caps_to_retention_and_rejects_zero() {
+        assert_eq!(
+            validated_analytics_range(Some(90), 30).expect("range should cap"),
+            30
+        );
+        assert!(validated_analytics_range(Some(0), 90).is_err());
+    }
+
+    #[test]
+    fn analytics_views_are_local_validated_and_curated_is_protected() {
+        let root = fixture_root();
+        let database = root.join("registry.db");
+        save_store(&database, &StoreState::default())
+            .expect("analytics view store should initialize");
+        let now = iso_now();
+        let view = AnalyticsView {
+            schema_version: "pronto-analytics-view/v1".to_string(),
+            id: "quality-view".to_string(),
+            name: "Quality view".to_string(),
+            builtin: false,
+            is_default: true,
+            filters: AnalyticsViewFilters {
+                range_days: 30,
+                repository_ids: vec![],
+                group_ids: vec![],
+                product_ids: vec![],
+                freshness: "all".to_string(),
+            },
+            widgets: vec![AnalyticsWidgetConfig {
+                id: "quality".to_string(),
+                title: "Quality".to_string(),
+                metric_ids: vec![
+                    "quality.maturity_score".to_string(),
+                    "quality.evidence_score".to_string(),
+                ],
+                chart_type: "scatter".to_string(),
+                grouping: "repository".to_string(),
+                width: 2,
+                height: 1,
+                order: 0,
+            }],
+            created_at: now.clone(),
+            updated_at: now,
+        };
+        let views =
+            save_analytics_view_at(&database, view).expect("valid analytics view should save");
+        assert_eq!(
+            views
+                .iter()
+                .find(|candidate| candidate.is_default)
+                .map(|candidate| candidate.id.as_str()),
+            Some("quality-view")
+        );
+        assert!(validate_analytics_view(&builtin_analytics_view(30), 90).is_err());
+        assert!(set_default_analytics_view_at(&database, "curated")
+            .expect("curated may become default")
+            .iter()
+            .any(|candidate| candidate.id == "curated" && candidate.is_default));
+        fs::remove_dir_all(root).expect("analytics view fixture should be removable");
     }
 }

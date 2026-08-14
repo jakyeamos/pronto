@@ -1,0 +1,132 @@
+{
+  "schema": "pronto-behavior-assurance/v2",
+  "applicability": "applicable",
+  "approved_producers": ["quality-runner", "codex-direct-validation"],
+  "behaviors": [
+    {
+      "id": "behavior-audit-cli",
+      "title": "Behavior audit exposes repository gaps and gates automation",
+      "tier": 0,
+      "automation": "permanent",
+      "change_triggers": [
+        "src-tauri/src/behavior_assurance.rs",
+        "src-tauri/src/core.rs",
+        "src-tauri/src/quality.rs"
+      ],
+      "invariants": [
+        "A selected repository with a Tier-0 assurance gap never produces a ready audit.",
+        "Fleet filters change selection without changing the underlying assurance state."
+      ],
+      "scenarios": [
+        {
+          "id": "machine-readable-gap-report",
+          "title": "Missing assurance is machine-readable and non-zero",
+          "oracle": "pronto behavior --json reports selected repositories and gaps and exits non-zero whenever any selected repository is not release-ready.",
+          "verification_level": "automated",
+          "edge_profile": {
+            "categories": ["input_and_encoding", "environment_and_cross_surface"],
+            "risk": "routine",
+            "side_effects": "none"
+          }
+        },
+        {
+          "id": "fleet-gap-filters",
+          "title": "Fleet gaps can be selected without synthesized compliance",
+          "oracle": "The behavior command filters missing, legacy, unprofiled, stale, failed, and blocked repositories while preserving each repository's exact projected state.",
+          "verification_level": "automated",
+          "edge_profile": {
+            "categories": ["state_and_ordering"],
+            "risk": "routine",
+            "side_effects": "none"
+          }
+        }
+      ]
+    },
+    {
+      "id": "behavior-feed-projection",
+      "title": "Quality Runner evidence remains conservative through projection",
+      "tier": 0,
+      "automation": "permanent",
+      "change_triggers": [
+        "src-tauri/src/behavior_assurance.rs",
+        "src-tauri/src/core.rs",
+        "src-tauri/src/quality.rs",
+        "src/renderer/src/types/quality.ts"
+      ],
+      "invariants": [
+        "Target mismatch removes both release readiness and current edge-verification claims.",
+        "Profile, freshness, result, and release status remain separate dimensions."
+      ],
+      "scenarios": [
+        {
+          "id": "missing-invalid-stale-never-green",
+          "title": "Missing, invalid, or stale evidence never becomes verified",
+          "oracle": "Missing, invalid, stale, failed, blocked, and target-mismatched evidence projects as not release-ready; only current passing Tier-0 evidence or an explicit valid not-applicable contract is release-ready.",
+          "verification_level": "automated",
+          "edge_profile": {
+            "categories": ["state_and_ordering", "interruption_and_recovery"],
+            "risk": "routine",
+            "side_effects": "none"
+          }
+        }
+      ]
+    },
+    {
+      "id": "behavior-release-gate",
+      "title": "Release readiness requires behavior assurance",
+      "tier": 0,
+      "automation": "permanent",
+      "change_triggers": [
+        "src-tauri/src/core.rs",
+        "src-tauri/src/behavior_assurance.rs",
+        "src-tauri/src/quality.rs"
+      ],
+      "invariants": [
+        "Tier 1 and Tier 2 edge gaps never silently widen the Tier-0 release gate."
+      ],
+      "scenarios": [
+        {
+          "id": "release-blocks-on-assurance-gap",
+          "title": "Release preview blocks on assurance gaps",
+          "oracle": "Release preparation is blocked and explains the Tier-0 behavior-assurance state unless the repository projection is release-ready.",
+          "verification_level": "automated",
+          "edge_profile": {
+            "categories": ["authorization_and_session", "environment_and_cross_surface"],
+            "risk": "hostile",
+            "side_effects": "none"
+          }
+        }
+      ]
+    },
+    {
+      "id": "behavior-portfolio-visibility",
+      "title": "Portfolio users can inspect release and edge assurance separately",
+      "tier": 1,
+      "automation": "on_demand",
+      "change_triggers": [
+        "src/renderer/src/components/QualityGatesSurface.tsx",
+        "src/renderer/src/components/QualityComponents.test.tsx",
+        "src/renderer/src/styles.css",
+        "src/renderer/src/types/quality.ts",
+        "src-tauri/src/quality.rs"
+      ],
+      "invariants": [
+        "The installed app never presents whole-inventory edge coverage as release readiness.",
+        "Security-sensitive traces expose categories and hashes without raw payloads."
+      ],
+      "scenarios": [
+        {
+          "id": "quality-matrix-shows-assurance",
+          "title": "Quality workspace distinguishes release and edge durability",
+          "oracle": "The Quality workspace visibly separates Tier-0 release assurance from all-tier verified and profiled counts, freshness, failed, blocked, and unknown states, and fleet filters.",
+          "verification_level": "direct_surface",
+          "edge_profile": {
+            "categories": ["environment_and_cross_surface", "input_and_encoding"],
+            "risk": "routine",
+            "side_effects": "none"
+          }
+        }
+      ]
+    }
+  ]
+}
