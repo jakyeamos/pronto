@@ -991,12 +991,22 @@ pub struct AgentRouteReport {
     pub quality: Option<AgentQualityReport>,
     pub fold_preview: Option<AgentFoldPreview>,
     pub change_maturity: Option<AgentChangeMaturitySummary>,
+    pub developer_legibility: Option<AgentMaturityGateSummary>,
+    pub change_surface_hotspots: Option<AgentMaturityGateSummary>,
     pub next_safe_step: String,
     pub authorization: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentChangeMaturitySummary {
+    pub score: Option<f64>,
+    pub status: String,
+    pub gaps: Vec<String>,
+    pub recommended_inspection: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentMaturityGateSummary {
     pub score: Option<f64>,
     pub status: String,
     pub gaps: Vec<String>,
@@ -9743,6 +9753,12 @@ fn agent_route_from_doctor(
             ),
         }
     });
+    let developer_legibility = repository
+        .as_ref()
+        .map(|detail| agent_maturity_gate_summary(detail, "developer_legibility"));
+    let change_surface_hotspots = repository
+        .as_ref()
+        .map(|detail| agent_maturity_gate_summary(detail, "change_surface_hotspots"));
     let next_safe_step = if doctor.ready {
         next.as_ref()
             .and_then(|report| report.actions.first())
@@ -9765,8 +9781,50 @@ fn agent_route_from_doctor(
         quality,
         fold_preview,
         change_maturity,
+        developer_legibility,
+        change_surface_hotspots,
         next_safe_step,
         authorization: "Inspection only; this route does not refresh, modify Git, change provider state, update remediation status, or authorize repository or release mutations.".to_string(),
+    }
+}
+
+fn agent_maturity_gate_summary(
+    detail: &AgentRepositoryDetail,
+    dimension: &str,
+) -> AgentMaturityGateSummary {
+    let maturity = &detail.repository.quality.maturity;
+    let score = maturity.dimension_scores.get(dimension).copied();
+    let gaps = maturity
+        .gaps
+        .iter()
+        .filter(|gap| gap.dimension == dimension)
+        .take(3)
+        .map(|gap| gap.message.clone())
+        .collect::<Vec<_>>();
+    AgentMaturityGateSummary {
+        score,
+        status: match score {
+            Some(value) if value >= 4.0 && dimension == "developer_legibility" => {
+                "newcomer_verified"
+            }
+            Some(value) if value >= 4.0 => "maintained",
+            Some(value) if value >= 3.0 && dimension == "developer_legibility" => "enforced",
+            Some(value) if value >= 3.0 => "validated",
+            Some(value) if value > 0.0 => "attention",
+            Some(_) => "missing",
+            None => "unknown",
+        }
+        .to_string(),
+        gaps,
+        recommended_inspection: format!(
+            "qr fleet audit run --repo-path '{}'{} --json",
+            detail.repository.path.replace('\'', "'\\''"),
+            if dimension == "developer_legibility" {
+                " --standard developer-legibility"
+            } else {
+                ""
+            }
+        ),
     }
 }
 
@@ -10180,6 +10238,24 @@ fn print_human_route(report: &AgentRouteReport) {
             println!("  gap: {gap}");
         }
         println!("Inspect: {}", change.recommended_inspection);
+    }
+    for (label, gate) in [
+        ("Developer legibility", &report.developer_legibility),
+        ("Change-surface hotspots", &report.change_surface_hotspots),
+    ] {
+        if let Some(gate) = gate {
+            println!(
+                "{label}: {} · {}",
+                gate.score
+                    .map(|score| format!("{score:.0}/4"))
+                    .unwrap_or_else(|| "unknown".into()),
+                gate.status
+            );
+            for gap in &gate.gaps {
+                println!("  gap: {gap}");
+            }
+            println!("Inspect: {}", gate.recommended_inspection);
+        }
     }
     println!("Next: {}", report.next_safe_step);
     println!("Authorization: {}", report.authorization);
@@ -13241,8 +13317,13 @@ mod tests {
         let root = fixture_root();
         fixture_repository(&root);
         let store = root.join("registry.db");
-        let snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+        let mut snapshot = register_root_and_scan(&store, &root.to_string_lossy())
             .expect("fixture portfolio should scan");
+        snapshot.repositories[0]
+            .quality
+            .maturity
+            .dimension_scores
+            .insert("developer_legibility".to_string(), 3.0);
         let repository_path = snapshot.repositories[0].path.clone();
         let scope = format!("repository:{repository_path}");
 
@@ -13266,6 +13347,17 @@ mod tests {
             Some(scope.as_str())
         );
         assert_eq!(report.doctor.scope, scope);
+        assert_eq!(
+            report
+                .developer_legibility
+                .as_ref()
+                .map(|gate| gate.status.as_str()),
+            Some("enforced")
+        );
+        assert!(report
+            .developer_legibility
+            .as_ref()
+            .is_some_and(|gate| gate.recommended_inspection.contains("developer-legibility")));
         assert!(report.authorization.contains("Inspection only"));
 
         fs::remove_dir_all(root).expect("route fixture should be removable");

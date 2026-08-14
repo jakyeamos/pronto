@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-01",
+  "last_reviewed": "2026-08-16",
   "surfaces": [
     {
       "id": "native-core",
@@ -94,6 +94,20 @@
         "quality-runner doctor --json",
         "quality-runner fleet audit run --repo-path \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm cli quality \"$(git rev-parse --show-toplevel)\" --json"
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "developer-legibility-projection",
+      "scope": "external",
+      "path": "src-tauri/src/core.rs, .agents/context/commands.md, docs/developer-legibility-maturity.md, and the Quality Runner maturity feed",
+      "owner": "Pronto and Quality Runner integration owners",
+      "condition": "Developer-legibility dimension, score, status, gap, newcomer-evidence, or route projection changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml agent_route",
+        "pnpm cli route \"$(git rev-parse --show-toplevel)\" --json",
+        "Confirm developer_legibility is read from Quality Runner dimension_scores and remains unknown when producer evidence is absent."
       ],
       "status": "applicable"
     },
