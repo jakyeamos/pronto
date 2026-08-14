@@ -13,20 +13,22 @@
   ],
   "evidence": [
     "evidence/cis-w4-clean-conflict.json",
+    "evidence/cis-w4-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
     "../../../projects/change-integration-simulator/README.md",
     "../../../projects/change-integration-simulator/docs/acceptance-matrix.json"
   ],
   "verified_locally": [
-    "Clean merge-tree receipt with source, target, merge base, and tree identity.",
-    "Conflict receipt naming the conflicting file without changing refs.",
-    "Separate local gate probe bound to the target commit.",
-    "Source tests, lint, and package checks pass."
+    "Current-dev clean merge-tree receipt records source, target, merge base, tree identity, and output hash.",
+    "Current-dev conflict receipt names the conflicting file without changing refs.",
+    "A separate local gate probe is bound to the target commit, and pre/post source/target ref readbacks remain unchanged.",
+    "Source tests, lint, and package checks pass; the 1600x900 PNG/SVG preview was visually reviewed."
   ],
   "open_gates": [
     "Bind a real Workflow Gateboard receipt to the simulated state.",
-    "Exercise stale, cancellation, and retained-workspace boundaries.",
-    "Capture a crop-safe image preview and verify a hosted no-auth case.",
+    "Exercise stale, cancellation, and retained-workspace boundaries with explicit negative readbacks.",
+    "Verify a hosted no-auth case and read back the external destinations.",
     "Record external GitHub, portfolio, and Handshake readbacks."
   ],
-  "claim_boundary": "This packet proves a local W4 clean/conflict simulation slice and a separate gate probe; it does not claim integrated gate execution, remote CI, hosting, or publication."
+  "claim_boundary": "This packet proves a current-dev local clean/conflict simulation slice, a separate gate probe, ref safety, and a reviewed 1600x900 preview; it does not claim integrated Gateboard execution, remote CI, hosting, or publication."
 }

@@ -2,7 +2,7 @@
   "schema_version": "pronto-showcase-claim-ledger/v1",
   "project": "review-attention-map",
   "case_id": "review-attention-map-w3-overlay-001",
-  "reviewed_at": "2026-08-13T23:45:18Z",
+  "reviewed_at": "2026-08-14T03:46:44Z",
   "levels": [
     {
       "id": "overlay",
@@ -12,7 +12,10 @@
       "allowed_claim": "A local diff can group contract and behavior signals while retaining each evidence reference.",
       "forbidden_inference": "The map computes a calibrated risk score or decides whether to merge.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/ram-w3-two-source-overlay.json#/overlay"]
+      "evidence_refs": [
+        "evidence/ram-w3-two-source-overlay.json#/overlay",
+        "evidence/ram-w3-current-dev-checkpoint.json#/fixture/region"
+      ]
     },
     {
       "id": "navigation",
@@ -23,7 +26,8 @@
       "forbidden_inference": "The review note is an approval or merge verdict.",
       "public_claim_allowed": true,
       "evidence_refs": [
-        "evidence/ram-w3-two-source-overlay.json#/direct_navigation"
+        "evidence/ram-w3-two-source-overlay.json#/direct_navigation",
+        "evidence/ram-w3-current-dev-checkpoint.json#/fixture/direct_review"
       ]
     },
     {
@@ -34,7 +38,10 @@
       "allowed_claim": "Signals outside the selected diff remain unmatched with a reason.",
       "forbidden_inference": "All relevant runtime evidence has been collected.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/ram-w3-two-source-overlay.json#/uncertainty"]
+      "evidence_refs": [
+        "evidence/ram-w3-two-source-overlay.json#/uncertainty",
+        "evidence/ram-w3-current-dev-checkpoint.json#/fixture/unmatched"
+      ]
     },
     {
       "id": "deployment",

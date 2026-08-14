@@ -2,7 +2,7 @@
   "schema_version": "pronto-showcase-claim-ledger/v1",
   "project": "change-integration-simulator",
   "case_id": "change-integration-simulator-w4-merge-001",
-  "reviewed_at": "2026-08-13T23:54:55Z",
+  "reviewed_at": "2026-08-14T03:46:44Z",
   "levels": [
     {
       "id": "simulation",
@@ -12,7 +12,10 @@
       "allowed_claim": "The simulator can report bounded clean and conflicting local merge-tree results with exact inputs.",
       "forbidden_inference": "A mergeable tree has passed behavioral verification.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/cis-w4-clean-conflict.json#/simulations"]
+      "evidence_refs": [
+        "evidence/cis-w4-clean-conflict.json#/simulations",
+        "evidence/cis-w4-current-dev-checkpoint.json#/simulations"
+      ]
     },
     {
       "id": "safety",
@@ -22,7 +25,10 @@
       "allowed_claim": "The local simulation leaves source and target refs untouched.",
       "forbidden_inference": "The simulator protects against every external or concurrent mutation.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/cis-w4-clean-conflict.json#/safety"]
+      "evidence_refs": [
+        "evidence/cis-w4-clean-conflict.json#/safety",
+        "evidence/cis-w4-current-dev-checkpoint.json#/negative_contracts"
+      ]
     },
     {
       "id": "gate",
@@ -32,7 +38,10 @@
       "allowed_claim": "A local gate result can be recorded against a target commit as a distinct probe.",
       "forbidden_inference": "Workflow Gateboard has executed inside the simulated state.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/cis-w4-clean-conflict.json#/gate_probe"]
+      "evidence_refs": [
+        "evidence/cis-w4-clean-conflict.json#/gate_probe",
+        "evidence/cis-w4-current-dev-checkpoint.json#/gate_probe"
+      ]
     },
     {
       "id": "deployment",

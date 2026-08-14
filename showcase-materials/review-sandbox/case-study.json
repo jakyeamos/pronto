@@ -13,20 +13,22 @@
   ],
   "evidence": [
     "evidence/rs-w4-scenario-matrix.json",
+    "evidence/rs-w4-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
     "../../../projects/review-sandbox/README.md",
     "../../../projects/review-sandbox/docs/acceptance-matrix.json"
   ],
   "verified_locally": [
     "Preview binds the declared scenario to a target Git revision.",
-    "Clean and failed-setup worktrees are removed only after clean status.",
-    "Occupied paths are blocked and dirty worktrees are retained.",
-    "Source tests, lint, and package checks pass."
+    "Current-dev clean and failed-setup worktrees are removed only after clean status; failed setup is not run.",
+    "Occupied paths are blocked, dirty worktrees are retained and then recovered, and a cancellation-shaped exit is exposed as a limitation.",
+    "Source tests, lint, and package checks pass; the 1600x900 PNG/SVG preview was visually reviewed."
   ],
   "open_gates": [
-    "Add distinct cancellation and process/port ownership receipts.",
-    "Prove the complete scenario matrix against a current direct surface without mutating the primary checkout.",
-    "Capture a crop-safe image preview and verify a hosted no-auth case.",
+    "Add distinct cancellation and process/port ownership receipts, with native cancellation authority.",
+    "Prove the complete scenario matrix and primary-checkout readback against a current direct surface without mutating unrelated state.",
+    "Verify a hosted no-auth case and read back the external destinations.",
     "Record external GitHub, portfolio, and Handshake readbacks."
   ],
-  "claim_boundary": "This packet proves a local W4 disposable-sandbox scenario matrix; it does not claim process ownership, port safety, a distinct cancellation state, hosting, or publication."
+  "claim_boundary": "This packet proves a current-dev local sandbox matrix with clean removal, failed setup, dirty recovery, and an explicit cancellation limitation plus a reviewed 1600x900 preview; it does not claim process ownership, port safety, a distinct cancellation state, hosting, or publication."
 }

@@ -2,7 +2,7 @@
   "schema_version": "pronto-showcase-claim-ledger/v1",
   "project": "review-sandbox",
   "case_id": "review-sandbox-w4-scenario-001",
-  "reviewed_at": "2026-08-13T23:45:18Z",
+  "reviewed_at": "2026-08-14T03:46:44Z",
   "levels": [
     {
       "id": "isolation",
@@ -14,7 +14,8 @@
       "public_claim_allowed": true,
       "evidence_refs": [
         "evidence/rs-w4-scenario-matrix.json#/preview",
-        "evidence/rs-w4-scenario-matrix.json#/primary_checkout"
+        "evidence/rs-w4-scenario-matrix.json#/primary_checkout",
+        "evidence/rs-w4-current-dev-checkpoint.json#/current_fixtures/preview"
       ]
     },
     {
@@ -25,7 +26,10 @@
       "allowed_claim": "The prototype removes clean sandboxes and retains dirty sandboxes until the owned artifact is gone.",
       "forbidden_inference": "Process inactivity or port ownership has been proven.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/rs-w4-scenario-matrix.json#/scenarios"]
+      "evidence_refs": [
+        "evidence/rs-w4-scenario-matrix.json#/scenarios",
+        "evidence/rs-w4-current-dev-checkpoint.json#/current_fixtures"
+      ]
     },
     {
       "id": "cancellation",
@@ -35,7 +39,10 @@
       "allowed_claim": "The current prototype records a cancellation-shaped exit and makes the missing distinct state visible.",
       "forbidden_inference": "Cancellation has a dedicated state or cleanup path.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/rs-w4-scenario-matrix.json#/scenarios/4"]
+      "evidence_refs": [
+        "evidence/rs-w4-scenario-matrix.json#/scenarios/4",
+        "evidence/rs-w4-current-dev-checkpoint.json#/current_fixtures/cancellation_shaped"
+      ]
     },
     {
       "id": "deployment",

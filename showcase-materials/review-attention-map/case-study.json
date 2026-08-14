@@ -13,6 +13,8 @@
   ],
   "evidence": [
     "evidence/ram-w3-two-source-overlay.json",
+    "evidence/ram-w3-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
     "../../../projects/review-attention-map/README.md",
     "../../../projects/review-attention-map/docs/acceptance-matrix.json"
   ],
@@ -20,13 +22,14 @@
     "Two-source overlay groups contract and behavior signals on one changed line.",
     "Direct review command records a human disposition on the region.",
     "An outside-diff signal remains explicitly unmatched with limitations visible.",
-    "Source tests, lint, and package checks pass."
+    "Current-dev build/review flow and missing-diff negative path pass on source revision 2f387be.",
+    "Source tests, lint, and package checks pass; the 1600x900 PNG/SVG preview was visually reviewed."
   ],
   "open_gates": [
-    "Exercise the same handoff on current producer receipts with source/freshness readback.",
+    "Exercise the same handoff on current producer receipts with source/freshness readback and direct native navigation.",
     "Expand stale, unmatched, and reviewed negative scenarios on the current surface.",
-    "Capture a crop-safe image preview and verify a hosted no-auth case.",
+    "Verify a hosted no-auth case and read back the external destinations.",
     "Record external GitHub, portfolio, and Handshake readbacks."
   ],
-  "claim_boundary": "This packet proves a local W3 two-source overlay and review-disposition slice; it does not claim complete producer integration, runtime coverage, hosting, or publication."
+  "claim_boundary": "This packet proves a current-dev local overlay/unmatched/reviewed slice with a reviewed 1600x900 preview; it does not claim complete producer integration, runtime coverage, hosting, or publication."
 }
