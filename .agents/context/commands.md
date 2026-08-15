@@ -176,6 +176,12 @@ provenance across later local or provider refreshes; the remediation plan,
 repository projection, and UI must all read the same imported maturity
 snapshot. Missing or stale applicable scores leave the refresh `partial` and
 the `quality_import` step `blocked` with the affected repositories named.
+Version 2 feeds may additionally publish `measurement_confidence`. Pronto
+accepts only `low`, `medium`, or `high`, requires deterministic replay and an
+exact population count, and rejects a `high` claim that retains measurement
+gaps or limitations. The quality overview displays the imported confidence and
+measured population beside the maturity score; older version 1 feeds remain
+valid but display confidence as unavailable.
 Dynamic audits default to a 120-second per-command timeout. Use
 `remediation refresh --dynamic --timeout-seconds <positive-integer>` when a
 repository's documented quality command legitimately needs a longer bound;

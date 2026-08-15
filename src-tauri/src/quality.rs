@@ -397,6 +397,21 @@ impl Default for QualitySnapshot {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QualityMeasurementConfidence {
+    pub level: String,
+    #[serde(default)]
+    pub basis: Vec<String>,
+    #[serde(default)]
+    pub limitations: Vec<String>,
+    pub population_status: String,
+    pub expected_repository_count: u64,
+    pub observed_repository_count: u64,
+    pub excluded_repository_count: u64,
+    pub unresolved_measurement_gap_count: u64,
+    pub deterministic_replay: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QualityPortfolioSnapshot {
     pub audit_root: Option<String>,
     pub latest_audit_id: Option<String>,
@@ -406,6 +421,8 @@ pub struct QualityPortfolioSnapshot {
     pub maturity_score: Option<f64>,
     pub maturity_score_display: Option<String>,
     pub scored_dimension_count: Option<u64>,
+    #[serde(default)]
+    pub measurement_confidence: Option<QualityMeasurementConfidence>,
     pub audit_status: String,
     #[serde(default)]
     pub ci_readiness_score: Option<f64>,
@@ -452,6 +469,7 @@ impl Default for QualityPortfolioSnapshot {
             maturity_score: None,
             maturity_score_display: None,
             scored_dimension_count: None,
+            measurement_confidence: None,
             audit_status: "Not configured".to_string(),
             ci_readiness_score: None,
             ci_readiness_score_display: None,
@@ -1990,6 +2008,7 @@ pub fn maturity_feed_import(
     portfolio.maturity_score = feed.get("mean_maturity").and_then(Value::as_f64);
     portfolio.maturity_score_display = portfolio.maturity_score.map(|score| format!("{score:.3}"));
     portfolio.scored_dimension_count = Some(feed_scored_dimension_count(&feed));
+    portfolio.measurement_confidence = feed_measurement_confidence(&feed);
     portfolio.audit_status = match freshness {
         QualityFreshness::Fresh if feed_status == "complete_with_blockers" => {
             "Ready with blockers".to_string()
@@ -2136,6 +2155,9 @@ fn validate_maturity_feed(feed: &Value) -> bool {
     {
         return false;
     }
+    if !valid_measurement_confidence(feed.get("measurement_confidence")) {
+        return false;
+    }
     let Some(repositories) = feed.get("repositories").and_then(Value::as_array) else {
         return false;
     };
@@ -2180,6 +2202,90 @@ fn validate_maturity_feed(feed: &Value) -> bool {
         return false;
     }
     feed_tree_is_safe(&Value::Object(feed.clone()), None, None)
+}
+
+fn valid_measurement_confidence(value: Option<&Value>) -> bool {
+    let Some(value) = value else {
+        return true;
+    };
+    let Some(confidence) = value.as_object() else {
+        return false;
+    };
+    let level = confidence.get("level").and_then(Value::as_str);
+    if !matches!(level, Some("low" | "medium" | "high"))
+        || confidence.get("deterministic_replay") != Some(&Value::Bool(true))
+        || !json_string_array(confidence.get("basis"))
+        || !json_string_array(confidence.get("limitations"))
+    {
+        return false;
+    }
+    let Some(population) = confidence
+        .get("population_coverage")
+        .and_then(Value::as_object)
+    else {
+        return false;
+    };
+    let expected = population
+        .get("expected_repository_count")
+        .and_then(Value::as_u64);
+    let observed = population
+        .get("observed_repository_count")
+        .and_then(Value::as_u64);
+    let gaps = confidence
+        .get("unresolved_measurement_gap_count")
+        .and_then(Value::as_u64);
+    if expected.is_none()
+        || observed.is_none()
+        || gaps.is_none()
+        || population
+            .get("excluded_repository_count")
+            .and_then(Value::as_u64)
+            .is_none()
+    {
+        return false;
+    }
+    level != Some("high")
+        || (population.get("status").and_then(Value::as_str) == Some("complete")
+            && expected == observed
+            && gaps == Some(0)
+            && confidence
+                .get("limitations")
+                .and_then(Value::as_array)
+                .is_some_and(Vec::is_empty))
+}
+
+fn feed_measurement_confidence(feed: &Value) -> Option<QualityMeasurementConfidence> {
+    let confidence = feed.get("measurement_confidence")?.as_object()?;
+    let population = confidence.get("population_coverage")?.as_object()?;
+    Some(QualityMeasurementConfidence {
+        level: confidence.get("level")?.as_str()?.to_string(),
+        basis: json_string_values(confidence.get("basis")),
+        limitations: json_string_values(confidence.get("limitations")),
+        population_status: population.get("status")?.as_str()?.to_string(),
+        expected_repository_count: population.get("expected_repository_count")?.as_u64()?,
+        observed_repository_count: population.get("observed_repository_count")?.as_u64()?,
+        excluded_repository_count: population.get("excluded_repository_count")?.as_u64()?,
+        unresolved_measurement_gap_count: confidence
+            .get("unresolved_measurement_gap_count")?
+            .as_u64()?,
+        deterministic_replay: confidence.get("deterministic_replay")?.as_bool()?,
+    })
+}
+
+fn json_string_array(value: Option<&Value>) -> bool {
+    value
+        .and_then(Value::as_array)
+        .is_some_and(|items| items.iter().all(Value::is_string))
+}
+
+fn json_string_values(value: Option<&Value>) -> Vec<String> {
+    value
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_string)
+        .collect()
 }
 
 fn maturity_feed_hash(feed: &Value) -> Option<String> {
@@ -3317,6 +3423,19 @@ mod tests {
             "repository_count": 1,
             "checkout_count": 1,
             "mean_maturity": 3.5,
+            "measurement_confidence": {
+                "level": "high",
+                "basis": ["population_complete", "dynamic_verification_conclusive"],
+                "limitations": [],
+                "population_coverage": {
+                    "status": "complete",
+                    "expected_repository_count": 1,
+                    "observed_repository_count": 1,
+                    "excluded_repository_count": 2,
+                },
+                "unresolved_measurement_gap_count": 0,
+                "deterministic_replay": true,
+            },
             "dimension_means": {"architecture_boundaries": 3.5},
             "maturity_certified_repository_count": 0,
             "maturity_status_counts": {"not_certified": 1},
@@ -3555,6 +3674,16 @@ mod tests {
             Some(expected_provenance.as_str())
         );
         assert_eq!(imported.portfolio.matched_repository_count, 1);
+        let confidence = imported
+            .portfolio
+            .measurement_confidence
+            .as_ref()
+            .expect("v2 feed should expose measurement confidence");
+        assert_eq!(confidence.level, "high");
+        assert_eq!(confidence.expected_repository_count, 1);
+        assert_eq!(confidence.observed_repository_count, 1);
+        assert_eq!(confidence.excluded_repository_count, 2);
+        assert_eq!(confidence.unresolved_measurement_gap_count, 0);
         assert_eq!(imported.maturities[&repository.id].score, Some(3.5));
         assert_eq!(imported.maturities[&repository.id].gaps.len(), 1);
         assert_eq!(
@@ -3575,6 +3704,9 @@ mod tests {
         let feed_path = root.join("maturity.json");
         let mut feed = fixture_maturity_feed(&repository, &Utc::now().to_rfc3339());
         feed["schema"] = Value::String(MATURITY_FEED_SCHEMAS[0].to_string());
+        feed.as_object_mut()
+            .expect("fixture feed should be an object")
+            .remove("measurement_confidence");
         feed["provenance_hash"] =
             Value::String(maturity_feed_hash(&feed).expect("fixture feed should hash"));
         fs::write(
@@ -3589,6 +3721,7 @@ mod tests {
             imported.portfolio.feed_schema.as_deref(),
             Some(MATURITY_FEED_SCHEMAS[0])
         );
+        assert!(imported.portfolio.measurement_confidence.is_none());
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
@@ -3621,6 +3754,20 @@ mod tests {
         let invalid = maturity_feed_import(Some(&feed_path), std::slice::from_ref(&repository));
         assert_eq!(invalid.portfolio.audit_status, "Unavailable");
         assert!(invalid.maturities.is_empty());
+
+        let mut contradictory = fixture_maturity_feed(&repository, &Utc::now().to_rfc3339());
+        contradictory["measurement_confidence"]["limitations"] =
+            serde_json::json!(["dynamic_verification_disabled"]);
+        contradictory["provenance_hash"] =
+            Value::String(maturity_feed_hash(&contradictory).expect("fixture feed should hash"));
+        fs::write(
+            &feed_path,
+            serde_json::to_string(&contradictory).expect("feed should serialize"),
+        )
+        .expect("feed should be writable");
+        let contradictory =
+            maturity_feed_import(Some(&feed_path), std::slice::from_ref(&repository));
+        assert_eq!(contradictory.portfolio.audit_status, "Unavailable");
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 

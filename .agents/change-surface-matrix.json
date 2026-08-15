@@ -97,6 +97,7 @@
         "quality-runner doctor --json",
         "quality-runner fleet audit run --repo-path \"$(git rev-parse --show-toplevel)\" --json",
         "cargo test --manifest-path src-tauri/Cargo.toml quality::tests::imports_",
+        "pnpm test -- --run src/renderer/src/components/QualityComponents.test.tsx",
         "pnpm cli quality \"$(git rev-parse --show-toplevel)\" --json"
       ],
       "status": "applicable"

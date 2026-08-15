@@ -93,6 +93,14 @@ function readinessGapSummary(quality: PortfolioSnapshot["quality"]): string {
     : "No open gate updates";
 }
 
+export function measurementConfidenceSummary(
+  confidence: PortfolioSnapshot["quality"]["measurement_confidence"],
+): string {
+  if (!confidence) return "Measurement confidence unavailable";
+  const level = `${confidence.level[0].toUpperCase()}${confidence.level.slice(1)}`;
+  return `${level} measurement confidence · ${confidence.observed_repository_count}/${confidence.expected_repository_count} repositories measured`;
+}
+
 export function QualityGatesSurface({
   snapshot,
   repositories,
@@ -144,6 +152,18 @@ export function QualityGatesSurface({
                 : ""}
               {portfolioQuality.audit_status}
             </small>
+            <small>
+              {measurementConfidenceSummary(
+                portfolioQuality.measurement_confidence,
+              )}
+            </small>
+            {portfolioQuality.measurement_confidence?.limitations.map(
+              (limitation) => (
+                <small key={limitation}>
+                  {limitation.replaceAll("_", " ")}
+                </small>
+              ),
+            )}
             <div className="quality-overview-secondary">
               <span>CI configuration</span>
               <strong>

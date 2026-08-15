@@ -165,6 +165,7 @@ export interface QualityPortfolioSnapshot {
   maturity_score?: number;
   maturity_score_display?: string;
   scored_dimension_count?: number;
+  measurement_confidence?: QualityMeasurementConfidence;
   audit_status: string;
   ci_readiness_score?: number;
   ci_readiness_score_display?: string;
@@ -182,6 +183,18 @@ export interface QualityPortfolioSnapshot {
   feed_schema?: string;
   provenance_hash?: string;
   mac_control_ideal_state?: MacControlPortfolioSnapshot;
+}
+
+export interface QualityMeasurementConfidence {
+  level: "low" | "medium" | "high";
+  basis: string[];
+  limitations: string[];
+  population_status: string;
+  expected_repository_count: number;
+  observed_repository_count: number;
+  excluded_repository_count: number;
+  unresolved_measurement_gap_count: number;
+  deterministic_replay: boolean;
 }
 
 export interface ReleaseRecipeConfig {
