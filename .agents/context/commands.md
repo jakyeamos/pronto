@@ -1,6 +1,6 @@
 # Agent command contract
 
-Last reviewed: 2026-07-29.
+Last reviewed: 2026-08-15.
 
 ## Invocation
 
@@ -48,6 +48,7 @@ intentionally withholds follow-up projections and exits non-zero; use its
 | Skill topology            | `skills [<skill-id>] --json`                                                                                                                                  | `pronto-skills/v2`                |
 | Papercut corpus           | `papercuts list --json`                                                                                                                                       | `pronto-papercuts/v2`             |
 | Papercut observation      | `papercuts observe --stdin --json [--dry-run]`                                                                                                                | idempotent local write            |
+| Papercut input contract   | `papercuts contract --json`                                                                                                                                   | `pronto-papercuts-observation/v1` |
 | Papercut weekly digest    | `papercuts digest --week current --json`                                                                                                                      | deterministic sanitized digest    |
 | Multiplier proposal       | `papercuts propose --stdin --json`                                                                                                                            | draft only                        |
 | Proposal review           | `papercuts proposal set-status <id> <draft\|accepted\|deferred\|rejected> --json`                                                                             | human judgment, no implementation |

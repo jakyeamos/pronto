@@ -39,6 +39,12 @@ private `0700` directory under that user's `$TMPDIR` and writes `0600` event
 files. A later permitted hook invocation migrates emergency events to the
 primary spool and flushes both tiers through the idempotent event-key contract.
 
+Each spooled observation is drained independently. A malformed record, or one
+rejected by the installed CLI's observation contract, is moved to a private
+`quarantine` directory instead of blocking later records. Health reports the
+isolated count as `quarantined_events`; quarantined content remains local for
+bounded diagnosis and is never retried automatically.
+
 One failure is silent. Three consecutive flush failures, or inability to write
 either spool, produces one actionable task warning with the stable error code,
 plain-language cause, failed operation, attempt count, queued-observation count,
@@ -54,7 +60,10 @@ The repository source of truth is `scripts/papercuts-capture.py`. Run
 `pnpm papercuts:hook:check`. Build the hook's narrow standalone CLI with
 `pnpm papercuts:cli:build`, install it atomically with
 `pnpm papercuts:cli:install`, and verify exact binary parity with
-`pnpm papercuts:cli:check`.
+`pnpm papercuts:cli:check`. Installation and check compare the hook's public
+observation contract with the standalone CLI contract as well as comparing
+binary bytes and permissions, so producer/consumer enum drift fails at
+deployment rather than during capture.
 
 Repository scopes use an opaque derivative of the current stable Pronto
 repository identity because legacy repository IDs can contain absolute paths.
@@ -68,6 +77,7 @@ interface:
 
 ```sh
 pronto papercuts observe --stdin --json [--dry-run]
+pronto papercuts contract --json
 pronto papercuts list --json
 pronto papercuts digest --week current --json
 pronto papercuts propose --stdin --json
@@ -80,6 +90,9 @@ Capture-health failures expose `error_code`, `failure_kind`, `stage`, `message`,
 Process diagnostics may also include `timeout_seconds` or `exit_code`. Run
 `pronto-papercuts papercuts health --json` to inspect the standalone collector
 without depending on the full app command surface.
+`papercuts contract --json` returns `pronto-papercuts-observation/v1`, including
+the accepted signal and target enums and a minimal sanitized input. It is a
+read-only deployment and diagnostic surface, not an ingestion command.
 
 Observation input accepts `signal_kind`, `target_kind`, `summary`,
 `phenomenon_key`, `failure_mode`, scope fields, evidence references, priority,
