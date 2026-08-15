@@ -1,6 +1,6 @@
 # Agent command contract
 
-Last reviewed: 2026-08-14.
+Last reviewed: 2026-08-15.
 
 ## Invocation
 
@@ -74,6 +74,7 @@ stale/unknown until it is refreshed from the exact target commit.
 | Analytics saved views     | `analytics view list\|save --config-json <json\|@file>\|delete <id>\|default <id> --json`                                                                     | `pronto-analytics-view/v1`           |
 | Papercut corpus           | `papercuts list --json`                                                                                                                                       | `pronto-papercuts/v2`                |
 | Papercut observation      | `papercuts observe --stdin --json [--dry-run]`                                                                                                                | idempotent local write               |
+| Papercut input contract   | `papercuts contract --json`                                                                                                                                   | `pronto-papercuts-observation/v1`    |
 | Papercut weekly digest    | `papercuts digest --week current --json`                                                                                                                      | deterministic sanitized digest       |
 | Multiplier proposal       | `papercuts propose --stdin --json`                                                                                                                            | draft only                           |
 | Proposal review           | `papercuts proposal set-status <id> <draft\|accepted\|deferred\|rejected> --json`                                                                             | human judgment, no implementation    |

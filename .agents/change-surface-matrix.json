@@ -311,6 +311,8 @@
         "pnpm papercuts:hook:test",
         "pnpm papercuts:hook:check",
         "pnpm papercuts:cli:check",
+        "Verify the hook and standalone CLI publish the same pronto-papercuts-observation/v1 contract.",
+        "Exercise an incompatible spooled record followed by a valid record and verify only the incompatible record is quarantined.",
         "Verify timeout and nonzero-exit diagnostics expose sanitized cause, retry metadata, and a recovery command in health JSON and the Papercuts UI.",
         "Exercise a denied-primary capture followed by a permitted flush."
       ],
@@ -330,6 +332,9 @@
     "change": {
       "status": "passed",
       "evidence": [
+        "scripts/test_papercuts_capture.py::PapercutsCaptureTests::test_flush_quarantines_invalid_contract_and_continues",
+        "scripts/test_papercuts_capture.py::PapercutsCaptureTests::test_persist_immediately_quarantines_downstream_contract_rejection",
+        "src-tauri/src/papercuts.rs::tests::observation_contract_matches_the_agent_hook_surface",
         "src-tauri/src/core.rs::tests::ordinary_refresh_retains_persisted_scoped_maturity_evidence",
         "src-tauri/src/core.rs::tests::qr_audit_runtime_arguments_apply_the_requested_timeout",
         "src-tauri/src/core.rs::tests::registering_new_repository_enters_the_normal_fleet_without_mutating_showcase",
