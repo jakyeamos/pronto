@@ -46,21 +46,15 @@ present. The public materials queue includes every `create_materials` project
 and is sorted by work priority; the goal gap remains a target, not a display
 cap.
 
-Every registered Pronto repository appears in the projection. When a scan first
-discovers a repository and exactly one valid fleet contract already exists, the
-state-changing registration or refresh merge atomically appends one explicit
-pending-review goal row to that contract. The row is intentionally `unknown`
-for public eligibility and all three dimensions, has no score or publication
-authority, and names the review needed to replace the placeholder with an
-explicit Showcase goal. It does not affect the public target count or queue.
-
-This automatic onboarding is idempotent and preserves unrelated contract fields,
-including the public-release target policy. It does not create a new Showcase
-contract when none exists, and it fails closed if the existing fleet contract is
-invalid or ambiguous. Repositories still absent from the reviewed contract
-(including legacy gaps) are synthesized as `unknown`, remain unranked, and carry
-an explicit audit next step. This exposes coverage gaps without manufacturing
-scores or publication authority.
+Every registered Pronto repository appears in the projection. A newly discovered
+repository is added to the normal Pronto fleet, but registration and refresh do
+not mutate the Showcase contract and never create a placeholder row. If the
+repository should enter Showcase, the owner must review it immediately and add
+a complete contract entry with an explicit eligibility, disposition, evidence,
+and next step. Until that review is complete, the repository is synthesized as
+an unranked `unknown` audit gap. This exposes coverage gaps without
+manufacturing scores, eligibility, or publication authority, and keeps Showcase
+additions attributable to a real review rather than an automated guess.
 
 ## Material production route
 

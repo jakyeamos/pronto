@@ -10463,12 +10463,6 @@ fn merge_scanned_and_persist(
         append_transition_event(state, old_by_id.get(&repository.id), repository);
     }
     sort_repositories_by_name(&mut repositories);
-    let new_repository_ids = repositories
-        .iter()
-        .filter(|repository| !old_by_id.contains_key(&repository.id))
-        .map(|repository| repository.id.clone())
-        .collect::<HashSet<_>>();
-    showcase::ensure_showcase_goal_placeholders(&repositories, &new_repository_ids)?;
     state.repositories = repositories;
     apply_quality_evidence_scoped(state, target_repository_ids, None);
     apply_release_threshold_conditions(state);
@@ -17266,7 +17260,7 @@ mod tests {
     }
 
     #[test]
-    fn registering_new_repository_adds_pending_showcase_goal() {
+    fn registering_new_repository_enters_the_normal_fleet_without_mutating_showcase() {
         let root = fixture_root();
         let contract_repository = fixture_repository_named(&root, "pronto");
         let _new_repository = fixture_repository_named(&root, "new-project");
@@ -17319,7 +17313,7 @@ mod tests {
 
         let store = root.join("registry.db");
         let snapshot = register_root_and_scan(&store, &root.to_string_lossy())
-            .expect("registration should persist the pending Showcase goal");
+            .expect("registration should persist the normal fleet repository");
         assert_eq!(snapshot.repositories.len(), 2);
 
         let persisted: serde_json::Value = serde_json::from_str(
@@ -17327,14 +17321,10 @@ mod tests {
                 .expect("showcase contract should remain readable"),
         )
         .expect("showcase contract should remain valid JSON");
-        let pending = persisted["projects"]
-            .as_array()
-            .expect("projects array")
+        let projects = persisted["projects"].as_array().expect("projects array");
+        assert!(!projects
             .iter()
-            .find(|project| project["repository_name"] == "new-project")
-            .expect("new repository should receive a pending Showcase goal");
-        assert_eq!(pending["public_eligibility"], "unknown");
-        assert_eq!(pending["work_disposition"], "unknown");
+            .any(|project| project["repository_name"] == "new-project"));
         assert!(persisted["public_release_target_policy"].is_object());
 
         fs::remove_dir_all(root).expect("registration fixture should be removable");

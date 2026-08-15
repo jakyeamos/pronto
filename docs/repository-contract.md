@@ -36,12 +36,13 @@ unavailable until it is regenerated from the exact `dev` commit.
 - `refresh-batch` is the fleet refresh path for bounded parallel Git/filesystem
   scans. It performs one deterministic merge under the normal store lock,
   retries once when the read-only baseline is invalidated, and never calls
-  providers. When a scan discovers a new repository and exactly one valid
-  fleet Showcase contract exists, that merge may atomically append the
-  repository's pending `unknown` Showcase goal row; it performs no other
-  repository-file writes. The ordinary `refresh` command remains the
-  compatibility path for single-repository and serial workflows and follows
-  the same bounded onboarding rule.
+  providers. A newly discovered repository enters Pronto's normal registered
+  fleet as part of that merge. Showcase membership is separate: registration
+  and refresh never write a placeholder goal. If Showcase inclusion is wanted,
+  an explicit review must add a complete contract entry immediately; until
+  then the repository is projected as an unranked `unknown` audit gap. The
+  ordinary `refresh` command remains the compatibility path for
+  single-repository and serial workflows and follows the same rule.
 - `.agents/context/`, `.pronto/`, `.project-compass/`, and
   `.agents/change-surface-matrix.json` are governed contracts. Update the
   affected projection, consumer, documentation, and machine-readable evidence
@@ -52,12 +53,12 @@ AI Showcase readiness is governed by one fleet-level
 eligibility is a hard gate before public priority and publishing. In
 particular, `private_client` work can retain a readiness score as private audit
 context but must never count toward the public goal or enter the public
-materials/publishing queue. When a new repository is registered while exactly
-one valid fleet contract exists, the native merge adds an explicit pending goal
-row with unknown eligibility and dimensions before persisting the registry;
-this does not create a score, public eligibility, or publication target.
-Registered repositories absent from the reviewed contract remain visible as
-unranked `unknown` entries, and a missing fleet contract remains missing.
+materials/publishing queue. Every newly discovered repository enters the
+normal registered fleet before any Showcase decision. A Showcase entry is only
+created by an explicit, immediate review that supplies the complete contract
+fields; registration never fabricates a placeholder row. Registered
+repositories absent from the reviewed contract remain visible as unranked
+`unknown` entries, and a missing fleet contract remains missing.
 
 When a contract changes, trace the full path: source evidence, Rust domain
 model, persisted representation, CLI JSON, renderer type and component,

@@ -148,11 +148,12 @@
       "condition": "A repository is newly registered while a fleet AI Showcase contract exists, or the Showcase goal, eligibility, readiness, or publication projection changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
-        "Newly discovered repositories receive one explicit pending-review goal row with unknown eligibility and dimensions before the registry merge is saved.",
+        "Newly discovered repositories enter the normal registered fleet during the registry merge.",
+        "Registration and refresh do not mutate the Showcase contract or create placeholder rows; Showcase additions require an immediate explicit review with complete contract fields.",
         "cargo test --manifest-path src-tauri/Cargo.toml showcase::tests",
-        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::registering_new_repository_adds_pending_showcase_goal",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::registering_new_repository_enters_the_normal_fleet_without_mutating_showcase",
         "node --test scripts/showcase-materials.test.mjs",
-        "pnpm cli summary --json and verify the new repository has a durable Showcase goal row without a fabricated score or public eligibility."
+        "pnpm cli summary --json and verify the new repository is in the normal fleet while an unreviewed Showcase gap remains unranked and unknown."
       ],
       "status": "applicable"
     },
@@ -320,8 +321,8 @@
       "status": "passed",
       "evidence": [
         "src-tauri/src/core.rs::tests::registers_root_and_scans_from_cli_path",
-        "src-tauri/src/core.rs::tests::registering_new_repository_adds_pending_showcase_goal",
-        "src-tauri/src/showcase.rs::tests::automatically_adds_pending_showcase_goal_for_new_repository",
+        "src-tauri/src/core.rs::tests::registering_new_repository_enters_the_normal_fleet_without_mutating_showcase",
+        "src-tauri/src/showcase.rs::tests::unreviewed_repository_is_projected_without_mutating_showcase_contract",
         "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract"
       ]
     },
@@ -330,8 +331,8 @@
       "evidence": [
         "src-tauri/src/core.rs::tests::ordinary_refresh_retains_persisted_scoped_maturity_evidence",
         "src-tauri/src/core.rs::tests::qr_audit_runtime_arguments_apply_the_requested_timeout",
-        "src-tauri/src/core.rs::tests::registering_new_repository_adds_pending_showcase_goal",
-        "src-tauri/src/showcase.rs::tests::automatically_adds_pending_showcase_goal_for_new_repository",
+        "src-tauri/src/core.rs::tests::registering_new_repository_enters_the_normal_fleet_without_mutating_showcase",
+        "src-tauri/src/showcase.rs::tests::unreviewed_repository_is_projected_without_mutating_showcase_contract",
         "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract"
       ]
     },

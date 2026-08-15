@@ -190,15 +190,14 @@ demo-material readiness, career signal, eligibility, blockers, and missing
 materials separate. Public projects also carry a required work disposition and
 an active next-step category so product, demo-integration, evidence, content,
 and packaging work remain distinct. The readiness ranking covers every assessed repository;
-when a newly discovered repository enters the registered fleet and exactly one
-valid Showcase contract exists, the state-changing registration or refresh
-merge atomically appends one explicit pending-review goal row for it. The row
-uses `unknown` eligibility and dimensions, carries no score or publication
-authority, and must be replaced by a reviewed goal before public work is
-considered. Registered repositories still absent from the reviewed contract
-(including legacy gaps) are included as unranked `unknown` entries. If no valid
-fleet contract exists, Pronto leaves the contract missing rather than creating
-one with fabricated policy or scores. Eligibility is evaluated before public priority:
+A newly discovered repository enters the normal registered fleet, but
+registration and refresh do not mutate the Showcase contract or create a
+placeholder row. Showcase additions require an immediate explicit review with
+complete fields; until then, registered repositories absent from the reviewed
+contract (including legacy gaps) are included as unranked `unknown` entries. If
+no valid fleet contract exists, Pronto leaves the contract missing rather than
+creating one with fabricated policy or scores. Eligibility is evaluated before
+public priority:
 `private_client` work can retain private readiness context but never receives
 a public priority, counts toward the public goal, or enters the public queue.
 `unknown`, `blocked`, and `not_applicable` remain categorical rather than
