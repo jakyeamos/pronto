@@ -148,12 +148,23 @@ FAIL_OPEN_ERROR_CODES = {
 }
 
 
-def diagnostic_for(key: str) -> dict[str, str]:
+PROCESS_TIMEOUT_SECONDS = 3
+RECOVERY_COMMAND = "pronto-papercuts papercuts health --json"
+
+
+def diagnostic_for(key: str) -> dict[str, Any]:
     code, stage, message = FAIL_OPEN_ERROR_CODES[key]
-    return {"error_code": code, "stage": stage, "message": message}
+    return {
+        "error_code": code,
+        "failure_kind": key,
+        "stage": stage,
+        "message": message,
+        "retryable": key not in {"contract_invalid", "spooled_contract_invalid"},
+        "recovery_command": RECOVERY_COMMAND,
+    }
 
 
-def fail_open_diagnostic(error: BaseException) -> dict[str, str]:
+def fail_open_diagnostic(error: BaseException) -> dict[str, Any]:
     """Return a sanitized, stable diagnostic for an unexpected top-level error."""
     if isinstance(error, json.JSONDecodeError):
         key = "input_json_invalid"
@@ -745,7 +756,7 @@ def _load_spooled_observation(path: Path) -> tuple[dict[str, Any] | None, dict[s
 def _run_pronto(
     observation: dict[str, Any],
     dry_run: bool = False,
-) -> tuple[bool, dict[str, Any] | None, dict[str, str] | None]:
+) -> tuple[bool, dict[str, Any] | None, dict[str, Any] | None]:
     configured = os.environ.get("PAPERCUTS_PRONTO_CLI")
     executable = Path(configured).expanduser() if configured else DEFAULT_CLI
     if not executable.is_file() or not os.access(executable, os.X_OK):
@@ -759,17 +770,21 @@ def _run_pronto(
             input=json.dumps(observation),
             capture_output=True,
             text=True,
-            timeout=3,
+            timeout=PROCESS_TIMEOUT_SECONDS,
             check=False,
         )
         if result.returncode != 0:
-            return False, None, diagnostic_for("child_process_failure")
+            diagnostic = diagnostic_for("child_process_failure")
+            diagnostic["exit_code"] = result.returncode
+            return False, None, diagnostic
         value = json.loads(result.stdout)
         if not isinstance(value, dict):
             return False, None, diagnostic_for("pronto_output_invalid")
         return True, value, None
     except subprocess.TimeoutExpired:
-        return False, None, diagnostic_for("child_process_timeout")
+        diagnostic = diagnostic_for("child_process_timeout")
+        diagnostic["timeout_seconds"] = PROCESS_TIMEOUT_SECONDS
+        return False, None, diagnostic
     except (OSError, subprocess.SubprocessError):
         return False, None, diagnostic_for("child_process_failure")
     except (UnicodeError, json.JSONDecodeError):
@@ -780,7 +795,7 @@ def _write_health(
     success: bool,
     warning: str | None = None,
     root: Path | None = None,
-    diagnostic: dict[str, str] | None = None,
+    diagnostic: dict[str, Any] | None = None,
     operation: str | None = None,
 ) -> dict[str, Any]:
     path = _health_path(root)
@@ -794,6 +809,7 @@ def _write_health(
         health["last_error"] = {
             **diagnostic,
             "operation": operation or "unknown",
+            "attempt": failures,
             "observed_at": now_iso(),
         }
     health.update({
@@ -815,7 +831,7 @@ def _write_health(
 
 
 def _diagnostic_suffix(
-    diagnostic: dict[str, str] | None,
+    diagnostic: dict[str, Any] | None,
     operation: str | None = None,
 ) -> str:
     if not diagnostic:
@@ -829,7 +845,7 @@ def _diagnostic_suffix(
 def _threshold_warning(
     health: dict[str, Any],
     root: Path | None = None,
-    diagnostic: dict[str, str] | None = None,
+    diagnostic: dict[str, Any] | None = None,
     operation: str | None = None,
 ) -> str | None:
     failures = int(health.get("consecutive_failures", 0))
@@ -838,10 +854,17 @@ def _threshold_warning(
     last_warned = int(health.get("last_warned_failure_count", 0))
     if last_warned >= 3:
         return None
+    spool_count = int(health.get("spooled_events", 0))
+    cause = diagnostic["message"] if diagnostic else "the capture drain failed"
+    detail = ""
+    if diagnostic and diagnostic.get("timeout_seconds") is not None:
+        detail = f" after {diagnostic['timeout_seconds']} seconds"
     warning = (
-        "Papercuts capture has failed to flush three times"
-        f"{_diagnostic_suffix(diagnostic, operation)}; "
-        "observations remain locally spooled."
+        f"Papercuts drain failed three times (attempt {failures}): {cause}{detail}"
+        f"{_diagnostic_suffix(diagnostic, operation)}. "
+        f"{spool_count} observation{'s remain' if spool_count != 1 else ' remains'} locally spooled. "
+        f"Run `{(diagnostic or {}).get('recovery_command', RECOVERY_COMMAND)}` "
+        "for current health and recovery details, then retry the drain."
     )
     health["last_warned_failure_count"] = failures
     health["warning"] = warning
@@ -853,7 +876,7 @@ def _safe_health_warning(
     success: bool,
     warning: str | None = None,
     fallback: str | None = None,
-    diagnostic: dict[str, str] | None = None,
+    diagnostic: dict[str, Any] | None = None,
     operation: str | None = None,
 ) -> str | None:
     """Keep health bookkeeping fail-open when its storage is unavailable."""
@@ -870,7 +893,7 @@ def _safe_health_warning(
     return fallback
 
 
-def flush_spool(limit: int = 100) -> tuple[int, bool, dict[str, str] | None]:
+def flush_spool(limit: int = 100) -> tuple[int, bool, dict[str, Any] | None]:
     migrate_emergency_spool()
     flushed = 0
     all_success = True
@@ -897,7 +920,7 @@ def flush_spool(limit: int = 100) -> tuple[int, bool, dict[str, str] | None]:
 
 def _with_diagnostic(
     result: dict[str, Any],
-    diagnostic: dict[str, str] | None,
+    diagnostic: dict[str, Any] | None,
 ) -> dict[str, Any]:
     if not diagnostic:
         return result

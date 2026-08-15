@@ -150,6 +150,40 @@ pub struct PapercutDigest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
+pub struct PapercutCaptureDiagnostic {
+    pub error_code: String,
+    pub failure_kind: String,
+    pub stage: String,
+    pub message: String,
+    pub operation: String,
+    pub observed_at: String,
+    pub retryable: bool,
+    pub recovery_command: String,
+    pub attempt: usize,
+    pub timeout_seconds: Option<u64>,
+    pub exit_code: Option<i32>,
+}
+
+impl Default for PapercutCaptureDiagnostic {
+    fn default() -> Self {
+        Self {
+            error_code: String::new(),
+            failure_kind: String::new(),
+            stage: String::new(),
+            message: String::new(),
+            operation: String::new(),
+            observed_at: String::new(),
+            retryable: false,
+            recovery_command: String::new(),
+            attempt: 0,
+            timeout_seconds: None,
+            exit_code: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct PapercutCaptureHealth {
     pub status: String,
     pub database_writable: bool,
@@ -158,6 +192,7 @@ pub struct PapercutCaptureHealth {
     pub oldest_spool_at: Option<String>,
     pub last_success_at: Option<String>,
     pub warning: Option<String>,
+    pub last_error: Option<PapercutCaptureDiagnostic>,
     pub excerpt_retention_days: i64,
 }
 
@@ -171,6 +206,7 @@ impl Default for PapercutCaptureHealth {
             oldest_spool_at: None,
             last_success_at: None,
             warning: None,
+            last_error: None,
             excerpt_retention_days: EXCERPT_RETENTION_DAYS,
         }
     }
@@ -1673,12 +1709,16 @@ mod tests {
         fs::create_dir_all(&primary).expect("primary health directory should exist");
         fs::write(
             primary.join("health.json"),
-            r#"{"status":"healthy","database_writable":true}"#,
+            r#"{"status":"failing","database_writable":false,"last_error":{"error_code":"PAPERCUTS-E4001","failure_kind":"child_process_timeout","stage":"pronto_process","message":"the Pronto capture process timed out","operation":"drain","observed_at":"2026-08-14T23:00:00Z","retryable":true,"recovery_command":"pronto-papercuts papercuts health --json","attempt":3,"timeout_seconds":3}}"#,
         )
         .expect("primary health should persist");
         let health = load_health_from_home(&root);
-        assert_eq!(health.status, "healthy");
-        assert!(health.database_writable);
+        assert_eq!(health.status, "failing");
+        assert!(!health.database_writable);
+        let diagnostic = health.last_error.expect("last error should load");
+        assert_eq!(diagnostic.error_code, "PAPERCUTS-E4001");
+        assert_eq!(diagnostic.timeout_seconds, Some(3));
+        assert_eq!(diagnostic.attempt, 3);
         let _ = fs::remove_dir_all(root);
     }
 

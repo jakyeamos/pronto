@@ -79,6 +79,30 @@ export function PapercutSurface({
           ) : null}
           <span>Generated {formatTime(backlog.generated_at)}</span>
         </div>
+        {backlog.health.last_error ? (
+          <div className="papercut-capture-diagnostic" role="status">
+            <strong>
+              {backlog.health.last_error.message} (
+              {backlog.health.last_error.error_code})
+            </strong>
+            <span>
+              Attempt {backlog.health.last_error.attempt} during{" "}
+              {backlog.health.last_error.operation}
+              {backlog.health.last_error.timeout_seconds
+                ? ` · timed out after ${backlog.health.last_error.timeout_seconds}s`
+                : ""}
+              {backlog.health.last_error.exit_code !== null &&
+              backlog.health.last_error.exit_code !== undefined
+                ? ` · exit ${backlog.health.last_error.exit_code}`
+                : ""}
+            </span>
+            <span>
+              Recovery:{" "}
+              <code>{backlog.health.last_error.recovery_command}</code>, then
+              retry the drain.
+            </span>
+          </div>
+        ) : null}
       </section>
 
       <nav className="papercut-tabs" aria-label="Papercuts corpus views">

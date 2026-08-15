@@ -112,6 +112,49 @@ describe("PapercutSurface", () => {
     expect(markup).toContain("Next validation step");
   });
 
+  it("shows an actionable capture failure without requiring an error-code lookup", () => {
+    const markup = renderToStaticMarkup(
+      <PapercutSurface
+        backlog={backlogFixture({
+          health: {
+            status: "failing",
+            database_writable: false,
+            consecutive_failures: 3,
+            spooled_events: 7,
+            oldest_spool_at: "2026-08-08T14:00:00+00:00",
+            last_success_at: null,
+            warning: "Papercuts drain failed on attempt 3.",
+            excerpt_retention_days: 90,
+            last_error: {
+              error_code: "PAPERCUTS-E4001",
+              failure_kind: "child_process_timeout",
+              stage: "pronto_process",
+              message: "the Pronto capture process timed out",
+              operation: "drain",
+              observed_at: "2026-08-08T16:00:00+00:00",
+              retryable: true,
+              recovery_command: "pronto-papercuts papercuts health --json",
+              attempt: 3,
+              timeout_seconds: 3,
+              exit_code: null,
+            },
+          },
+        })}
+        isRefreshing={false}
+        onRefresh={vi.fn(async () => undefined)}
+        onCreate={vi.fn(async () => undefined)}
+        onStatusChange={vi.fn(async () => undefined)}
+        onProposalStatusChange={vi.fn(async () => undefined)}
+      />,
+    );
+
+    expect(markup).toContain("the Pronto capture process timed out");
+    expect(markup).toContain("PAPERCUTS-E4001");
+    expect(markup).toContain("Attempt 3 during drain");
+    expect(markup).toContain("timed out after 3s");
+    expect(markup).toContain("pronto-papercuts papercuts health --json");
+  });
+
   it("makes an empty top-level backlog actionable", () => {
     const markup = renderToStaticMarkup(
       <PapercutSurface

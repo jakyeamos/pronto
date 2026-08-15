@@ -117,7 +117,22 @@ export interface PapercutCaptureHealth {
   oldest_spool_at?: string | null;
   last_success_at?: string | null;
   warning?: string | null;
+  last_error?: PapercutCaptureDiagnostic | null;
   excerpt_retention_days: number;
+}
+
+export interface PapercutCaptureDiagnostic {
+  error_code: string;
+  failure_kind: string;
+  stage: string;
+  message: string;
+  operation: string;
+  observed_at: string;
+  retryable: boolean;
+  recovery_command: string;
+  attempt: number;
+  timeout_seconds?: number | null;
+  exit_code?: number | null;
 }
 
 /** Compatibility projection retained for the original manual backlog UI. */

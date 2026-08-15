@@ -117,6 +117,33 @@ class PapercutsCaptureTests(unittest.TestCase):
         self.assertFalse(success)
         self.assertIsNone(result)
         self.assertEqual(diagnostic["error_code"], "PAPERCUTS-E4001")
+        self.assertEqual(diagnostic["failure_kind"], "child_process_timeout")
+        self.assertEqual(diagnostic["timeout_seconds"], 3)
+        self.assertTrue(diagnostic["retryable"])
+        self.assertEqual(
+            diagnostic["recovery_command"],
+            "pronto-papercuts papercuts health --json",
+        )
+
+        with (
+            mock.patch.dict(os.environ, {"PAPERCUTS_PRONTO_CLI": sys.executable}),
+            mock.patch.object(
+                papercuts.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess(
+                    args=[sys.executable],
+                    returncode=17,
+                    stdout="",
+                    stderr="private detail must not propagate",
+                ),
+            ),
+        ):
+            success, result, diagnostic = papercuts._run_pronto({"event_key": "v1:codex:failed"})
+        self.assertFalse(success)
+        self.assertIsNone(result)
+        self.assertEqual(diagnostic["error_code"], "PAPERCUTS-E4002")
+        self.assertEqual(diagnostic["exit_code"], 17)
+        self.assertNotIn("private detail", json.dumps(diagnostic))
 
         with (
             mock.patch.dict(os.environ, {"PAPERCUTS_PRONTO_CLI": sys.executable}),
@@ -181,10 +208,14 @@ class PapercutsCaptureTests(unittest.TestCase):
         self.assertIn("PAPERCUTS-E4002", warnings[2])
         self.assertIn("stage=pronto_process", warnings[2])
         self.assertIn("operation=drain", warnings[2])
+        self.assertIn("attempt 3", warnings[2])
+        self.assertIn("1 observation remains locally spooled", warnings[2])
+        self.assertIn("pronto-papercuts papercuts health --json", warnings[2])
         health = json.loads((Path(self.temp.name) / "health.json").read_text(encoding="utf-8"))
         self.assertEqual(health["last_error"]["error_code"], "PAPERCUTS-E4002")
         self.assertEqual(health["last_error"]["stage"], "pronto_process")
         self.assertEqual(health["last_error"]["operation"], "drain")
+        self.assertEqual(health["last_error"]["attempt"], 3)
 
     def test_flush_cli_preserves_coded_threshold_warning(self) -> None:
         papercuts.spool_observation({
@@ -216,6 +247,9 @@ class PapercutsCaptureTests(unittest.TestCase):
         self.assertIn("PAPERCUTS-E4003", warning)
         self.assertIn("stage=pronto_process", warning)
         self.assertIn("operation=drain", warning)
+        self.assertIn("the Pronto capture executable was unavailable", warning)
+        self.assertIn("1 observation remains locally spooled", warning)
+        self.assertIn("pronto-papercuts papercuts health --json", warning)
         self.assertEqual(outputs[-1]["warning"], warning)
 
     def test_spool_failure_preserves_fail_open_warning_when_health_write_fails(self) -> None:
