@@ -6,3 +6,4 @@ oversized-source src/renderer/src/api.ts typed IPC contract remains co-located s
 oversized-source src/renderer/src/components/AnalyticsComponents.tsx analytics surface and chart composition share the same evidence formatting and unavailable-state rules
 oversized-source src/renderer/src/components/Drawers.tsx existing shared preparation and action drawer keeps cross-surface release/provider state transitions in one boundary
 oversized-source src/renderer/src/types.ts shared snapshot and command types are kept together to preserve renderer/native contract parity
+oversized-source scripts/papercuts-capture.py standalone standard-library hook stays single-file so atomic source/runtime parity and sandbox deployment do not depend on local modules
