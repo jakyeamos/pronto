@@ -114,6 +114,7 @@ export interface PapercutCaptureHealth {
   database_writable: boolean;
   consecutive_failures: number;
   spooled_events: number;
+  quarantined_events: number;
   oldest_spool_at?: string | null;
   last_success_at?: string | null;
   warning?: string | null;

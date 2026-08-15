@@ -7,6 +7,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 const SCHEMA_VERSION: &str = "pronto-papercuts/v2";
+const OBSERVATION_CONTRACT_VERSION: &str = "pronto-papercuts-observation/v1";
 const FAMILY: &str = "design-audit";
 const EXCERPT_RETENTION_DAYS: i64 = 90;
 const EXCERPT_MAX_CHARS: usize = 240;
@@ -16,6 +17,7 @@ static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 const SIGNAL_KINDS: &[&str] = &[
     "dissatisfaction",
     "correction",
+    "boundary_correction",
     "failure_report",
     "failed_verification",
     "repeated_failure",
@@ -54,6 +56,41 @@ pub struct PapercutObservationInput {
     pub urgent: bool,
     pub verified: bool,
     pub observed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PapercutObservationContract {
+    pub schema_version: String,
+    pub signal_kinds: Vec<String>,
+    pub target_kinds: Vec<String>,
+    pub minimal_input: serde_json::Value,
+}
+
+fn observation_contract() -> PapercutObservationContract {
+    let mut signal_kinds = SIGNAL_KINDS
+        .iter()
+        .filter(|kind| **kind != "legacy_manual")
+        .map(|kind| (*kind).to_string())
+        .collect::<Vec<_>>();
+    signal_kinds.sort();
+    let mut target_kinds = TARGET_KINDS
+        .iter()
+        .map(|kind| (*kind).to_string())
+        .collect::<Vec<_>>();
+    target_kinds.sort();
+    PapercutObservationContract {
+        schema_version: OBSERVATION_CONTRACT_VERSION.to_string(),
+        signal_kinds,
+        target_kinds,
+        minimal_input: serde_json::json!({
+            "event_key": "v1:example:opaque-event",
+            "scope_id": "opaque:v1:example-scope",
+            "signal_kind": "capability_gap",
+            "target_kind": "tool",
+            "summary": "Sanitized factual summary",
+            "failure_mode": "stable-failure-mode",
+        }),
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -189,6 +226,7 @@ pub struct PapercutCaptureHealth {
     pub database_writable: bool,
     pub consecutive_failures: usize,
     pub spooled_events: usize,
+    pub quarantined_events: usize,
     pub oldest_spool_at: Option<String>,
     pub last_success_at: Option<String>,
     pub warning: Option<String>,
@@ -203,6 +241,7 @@ impl Default for PapercutCaptureHealth {
             database_writable: true,
             consecutive_failures: 0,
             spooled_events: 0,
+            quarantined_events: 0,
             oldest_spool_at: None,
             last_success_at: None,
             warning: None,
@@ -1142,16 +1181,20 @@ fn load_health_from_home(home: &Path) -> PapercutCaptureHealth {
                 "PAPERCUTS-E4004" => "pronto_output_invalid",
                 "PAPERCUTS-E5001" => "contract_invalid",
                 "PAPERCUTS-E5002" => "spooled_contract_invalid",
+                "PAPERCUTS-E5003" => "downstream_contract_invalid",
                 _ => "legacy_failure",
             }
             .to_string();
         }
         diagnostic.retryable = !matches!(
             diagnostic.error_code.as_str(),
-            "PAPERCUTS-E5001" | "PAPERCUTS-E5002"
+            "PAPERCUTS-E5001" | "PAPERCUTS-E5002" | "PAPERCUTS-E5003"
         );
         if diagnostic.recovery_command.is_empty() {
-            diagnostic.recovery_command = "pronto-papercuts papercuts health --json".to_string();
+            diagnostic.recovery_command = format!(
+                "{} papercuts health --json",
+                home.join(".codex/bin/pronto-papercuts").display()
+            );
         }
     }
     health
@@ -1596,6 +1639,7 @@ pub fn run_cli(arguments: &[String]) -> Result<String, String> {
                 false,
             )?)
         }
+        "contract" => cli_json(&observation_contract()),
         "digest" => {
             if let Some(index) = arguments.iter().position(|item| item == "--week") {
                 if arguments.get(index + 1).map(String::as_str) != Some("current") {
@@ -1631,7 +1675,7 @@ pub fn run_cli(arguments: &[String]) -> Result<String, String> {
             }
             cli_json(&health)
         }
-        _ => Err("Usage: pronto papercuts list --json | pronto papercuts observe --stdin --json [--dry-run] | pronto papercuts digest --week current --json | pronto papercuts propose --stdin --json | pronto papercuts proposal set-status <id> <status> --json | pronto papercuts health --json".to_string()),
+        _ => Err("Usage: pronto papercuts list --json | pronto papercuts observe --stdin --json [--dry-run] | pronto papercuts contract --json | pronto papercuts digest --week current --json | pronto papercuts propose --stdin --json | pronto papercuts proposal set-status <id> <status> --json | pronto papercuts health --json".to_string()),
     }
 }
 
@@ -1703,6 +1747,23 @@ mod tests {
 
     static NEXT_TEST_ID: AtomicU64 = AtomicU64::new(0);
 
+    #[test]
+    fn observation_contract_matches_the_agent_hook_surface() {
+        let contract = observation_contract();
+        assert_eq!(contract.schema_version, OBSERVATION_CONTRACT_VERSION);
+        assert!(contract
+            .signal_kinds
+            .contains(&"boundary_correction".to_string()));
+        assert!(!contract.signal_kinds.contains(&"legacy_manual".to_string()));
+        assert_eq!(
+            contract.minimal_input["signal_kind"],
+            serde_json::json!("capability_gap")
+        );
+        let input: PapercutObservationInput = serde_json::from_value(contract.minimal_input)
+            .expect("minimal contract input should decode");
+        normalize_observation_input(input).expect("minimal contract input should validate");
+    }
+
     fn test_database() -> (std::path::PathBuf, std::path::PathBuf) {
         let root = std::env::temp_dir().join(format!(
             "pronto-papercuts-{}-{}-{}",
@@ -1757,7 +1818,10 @@ mod tests {
         assert!(legacy_diagnostic.retryable);
         assert_eq!(
             legacy_diagnostic.recovery_command,
-            "pronto-papercuts papercuts health --json"
+            format!(
+                "{} papercuts health --json",
+                root.join(".codex/bin/pronto-papercuts").display()
+            )
         );
         let _ = fs::remove_dir_all(root);
     }

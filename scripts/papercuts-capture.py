@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import sqlite3
 import subprocess
 import sys
@@ -24,6 +25,7 @@ from typing import Any
 
 
 SCHEMA_VERSION = "pronto-papercuts-hook/v1"
+OBSERVATION_CONTRACT_VERSION = "pronto-papercuts-observation/v1"
 EVENT_KEY_VERSION = "v1"
 EXCERPT_LIMIT = 240
 SPOOL_RETENTION_DAYS = 7
@@ -129,6 +131,11 @@ FAIL_OPEN_ERROR_CODES = {
         "contract_validation",
         "a spooled observation failed contract validation",
     ),
+    "downstream_contract_invalid": (
+        "PAPERCUTS-E5003",
+        "contract_validation",
+        "the installed Pronto CLI rejected the observation contract",
+    ),
     "io_failure": ("PAPERCUTS-E6001", "io", "collector I/O failed"),
     "spool_read_failure": (
         "PAPERCUTS-E6002",
@@ -149,7 +156,15 @@ FAIL_OPEN_ERROR_CODES = {
 
 
 PROCESS_TIMEOUT_SECONDS = 3
-RECOVERY_COMMAND = "pronto-papercuts papercuts health --json"
+
+
+def configured_cli() -> Path:
+    configured = os.environ.get("PAPERCUTS_PRONTO_CLI")
+    return Path(configured).expanduser() if configured else DEFAULT_CLI
+
+
+def recovery_command() -> str:
+    return f"{shlex.quote(str(configured_cli()))} papercuts health --json"
 
 
 def diagnostic_for(key: str) -> dict[str, Any]:
@@ -159,8 +174,12 @@ def diagnostic_for(key: str) -> dict[str, Any]:
         "failure_kind": key,
         "stage": stage,
         "message": message,
-        "retryable": key not in {"contract_invalid", "spooled_contract_invalid"},
-        "recovery_command": RECOVERY_COMMAND,
+        "retryable": key not in {
+            "contract_invalid",
+            "spooled_contract_invalid",
+            "downstream_contract_invalid",
+        },
+        "recovery_command": recovery_command(),
     }
 
 
@@ -300,6 +319,23 @@ def normalize_semantic_contract(value: dict[str, Any]) -> dict[str, Any]:
     value["verified"] = bool(value.get("verified", True))
     value["urgent"] = bool(value.get("urgent", False))
     return value
+
+
+def observation_contract() -> dict[str, Any]:
+    """Return the deploy-time contract shared with the native Pronto CLI."""
+    return {
+        "schema_version": OBSERVATION_CONTRACT_VERSION,
+        "signal_kinds": sorted(VALID_SIGNAL_KINDS),
+        "target_kinds": sorted(VALID_TARGET_KINDS),
+        "minimal_input": {
+            "event_key": "v1:example:opaque-event",
+            "scope_id": "opaque:v1:example-scope",
+            "signal_kind": "capability_gap",
+            "target_kind": "tool",
+            "summary": "Sanitized factual summary",
+            "failure_mode": "stable-failure-mode",
+        },
+    }
 
 
 def _quoted_or_hypothetical(text: str) -> bool:
@@ -675,6 +711,10 @@ def _spool_dir(root: Path | None = None) -> Path:
     return (root or runtime_root()) / "spool"
 
 
+def _quarantine_dir(root: Path | None = None) -> Path:
+    return (root or runtime_root()) / "quarantine"
+
+
 def _spool_files(root: Path | None = None) -> list[Path]:
     directory = _spool_dir(root)
     try:
@@ -693,6 +733,24 @@ def _all_spool_files() -> list[Path]:
     return sorted(paths, key=lambda path: path.stat().st_mtime)
 
 
+def _quarantine_files(root: Path | None = None) -> list[Path]:
+    directory = _quarantine_dir(root)
+    try:
+        if not directory.is_dir() or directory.is_symlink():
+            return []
+        return sorted(
+            (path for path in directory.glob("*.json") if not path.is_symlink()),
+            key=lambda path: path.stat().st_mtime,
+        )
+    except OSError:
+        return []
+
+
+def _all_quarantine_files() -> list[Path]:
+    paths = [path for root in spool_roots() for path in _quarantine_files(root)]
+    return sorted(paths, key=lambda path: path.stat().st_mtime)
+
+
 def prune_spool(root: Path | None = None) -> None:
     cutoff = time.time() - SPOOL_RETENTION_DAYS * 86400
     paths = _spool_files(root)
@@ -708,6 +766,45 @@ def prune_spool(root: Path | None = None) -> None:
             path.unlink()
         except OSError:
             continue
+
+
+def prune_quarantine(root: Path | None = None) -> None:
+    cutoff = time.time() - SPOOL_RETENTION_DAYS * 86400
+    paths = _quarantine_files(root)
+    for path in paths:
+        try:
+            if path.stat().st_mtime < cutoff:
+                path.unlink()
+        except OSError:
+            continue
+    paths = _quarantine_files(root)
+    for path in paths[: max(0, len(paths) - SPOOL_LIMIT)]:
+        try:
+            path.unlink()
+        except OSError:
+            continue
+
+
+def quarantine_observation(path: Path) -> None:
+    root = path.parent.parent
+    directory = _quarantine_dir(root)
+    private_dir(directory)
+    prune_quarantine(root)
+    target = directory / path.name
+    os.replace(path, target)
+    target.chmod(0o600)
+
+
+def quarantine_value(observation: dict[str, Any], root: Path | None = None) -> None:
+    root = root or runtime_root()
+    directory = _quarantine_dir(root)
+    private_dir(directory)
+    prune_quarantine(root)
+    paths = _quarantine_files(root)
+    if len(paths) >= SPOOL_LIMIT:
+        paths[0].unlink()
+    event_key = str(observation.get("event_key", "missing-event"))
+    atomic_json(directory / f"{stable_key(event_key, 48)}.json", observation)
 
 
 def spool_observation(observation: dict[str, Any], root: Path | None = None) -> None:
@@ -757,8 +854,7 @@ def _run_pronto(
     observation: dict[str, Any],
     dry_run: bool = False,
 ) -> tuple[bool, dict[str, Any] | None, dict[str, Any] | None]:
-    configured = os.environ.get("PAPERCUTS_PRONTO_CLI")
-    executable = Path(configured).expanduser() if configured else DEFAULT_CLI
+    executable = configured_cli()
     if not executable.is_file() or not os.access(executable, os.X_OK):
         return False, None, diagnostic_for("pronto_cli_unavailable")
     command = [str(executable), "papercuts", "observe", "--stdin", "--json"]
@@ -774,6 +870,19 @@ def _run_pronto(
             check=False,
         )
         if result.returncode != 0:
+            try:
+                value = json.loads(result.stdout)
+            except (UnicodeError, json.JSONDecodeError):
+                value = None
+            if (
+                isinstance(value, dict)
+                and value.get("schema_version") == "pronto-cli-error/v1"
+                and value.get("status") == "Blocked"
+                and str(value.get("error", "")).startswith("Papercut ")
+            ):
+                diagnostic = diagnostic_for("downstream_contract_invalid")
+                diagnostic["exit_code"] = result.returncode
+                return False, None, diagnostic
             diagnostic = diagnostic_for("child_process_failure")
             diagnostic["exit_code"] = result.returncode
             return False, None, diagnostic
@@ -802,6 +911,7 @@ def _write_health(
     health = load_json(path, {})
     failures = 0 if success else int(health.get("consecutive_failures", 0)) + 1
     paths = _all_spool_files()
+    quarantined_paths = _all_quarantine_files()
     oldest = None
     if paths:
         oldest = datetime.fromtimestamp(paths[0].stat().st_mtime, timezone.utc).isoformat().replace("+00:00", "Z")
@@ -812,20 +922,25 @@ def _write_health(
             "attempt": failures,
             "observed_at": now_iso(),
         }
-    elif success:
+    elif success and not quarantined_paths:
         health.pop("last_error", None)
     health.update({
         "schema_version": SCHEMA_VERSION,
-        "status": "healthy" if success and not paths else ("degraded" if failures < 3 else "failing"),
+        "status": (
+            "healthy"
+            if success and not paths and not quarantined_paths
+            else ("degraded" if failures < 3 else "failing")
+        ),
         "database_writable": success,
         "consecutive_failures": failures,
         # A warning is emitted once per uninterrupted failure streak. Reset the
         # marker only after a successful drain so a later real outage can warn.
         "last_warned_failure_count": 0 if success else int(health.get("last_warned_failure_count", 0)),
         "spooled_events": len(paths),
+        "quarantined_events": len(quarantined_paths),
         "oldest_spool_at": oldest,
         "last_success_at": now_iso() if success else health.get("last_success_at"),
-        "warning": warning if warning else (None if success and not paths else health.get("warning")),
+        "warning": warning if warning else (None if success else health.get("warning")),
         "excerpt_retention_days": 90,
     })
     atomic_json(path, health)
@@ -865,7 +980,7 @@ def _threshold_warning(
         f"Papercuts drain failed three times (attempt {failures}): {cause}{detail}"
         f"{_diagnostic_suffix(diagnostic, operation)}. "
         f"{spool_count} observation{'s remain' if spool_count != 1 else ' remains'} locally spooled. "
-        f"Run `{(diagnostic or {}).get('recovery_command', RECOVERY_COMMAND)}` "
+        f"Run `{(diagnostic or {}).get('recovery_command', recovery_command())}` "
         "for current health and recovery details, then retry the drain."
     )
     health["last_warned_failure_count"] = failures
@@ -898,26 +1013,44 @@ def _safe_health_warning(
 def flush_spool(limit: int = 100) -> tuple[int, bool, dict[str, Any] | None]:
     migrate_emergency_spool()
     flushed = 0
-    all_success = True
+    quarantine_diagnostic = None
     for root in spool_roots():
         prune_spool(root)
+        prune_quarantine(root)
     for path in _all_spool_files()[:limit]:
         observation, diagnostic = _load_spooled_observation(path)
         if diagnostic:
-            return flushed, False, diagnostic
+            try:
+                quarantine_observation(path)
+            except OSError:
+                return flushed, False, diagnostic_for("spool_delete_failure")
+            quarantine_diagnostic = diagnostic
+            continue
         try:
             observation = normalize_semantic_contract(observation)
         except ValueError:
-            return flushed, False, diagnostic_for("spooled_contract_invalid")
+            try:
+                quarantine_observation(path)
+            except OSError:
+                return flushed, False, diagnostic_for("spool_delete_failure")
+            quarantine_diagnostic = diagnostic_for("spooled_contract_invalid")
+            continue
         success, _, diagnostic = _run_pronto(observation)
         if not success:
+            if diagnostic and diagnostic.get("failure_kind") == "downstream_contract_invalid":
+                try:
+                    quarantine_observation(path)
+                except OSError:
+                    return flushed, False, diagnostic_for("spool_delete_failure")
+                quarantine_diagnostic = diagnostic
+                continue
             return flushed, False, diagnostic
         try:
             path.unlink()
         except OSError:
             return flushed, False, diagnostic_for("spool_delete_failure")
         flushed += 1
-    return flushed, all_success, None
+    return flushed, True, quarantine_diagnostic
 
 
 def _with_diagnostic(
@@ -948,6 +1081,21 @@ def persist(observation: dict[str, Any], dry_run: bool = False) -> tuple[dict[st
             diagnostic=flush_diagnostic,
             operation="drain",
         )
+    if diagnostic and diagnostic.get("failure_kind") == "downstream_contract_invalid":
+        for tier, root in (("primary", runtime_root()), ("emergency", emergency_root())):
+            try:
+                quarantine_value(observation, root)
+                return _with_diagnostic({
+                    "status": "quarantined",
+                    "quarantined": True,
+                    "quarantine_tier": tier,
+                }, diagnostic), _safe_health_warning(
+                    True,
+                    diagnostic=diagnostic,
+                    operation="capture",
+                )
+            except OSError:
+                continue
     for tier, root in (("primary", runtime_root()), ("emergency", emergency_root())):
         try:
             spool_observation(observation, root)
@@ -1061,9 +1209,17 @@ def semantic_observation(value: dict[str, Any]) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", nargs="?", choices=("hook", "observe", "flush"), default="hook")
+    parser.add_argument(
+        "mode",
+        nargs="?",
+        choices=("hook", "observe", "flush", "contract"),
+        default="hook",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
+    if args.mode == "contract":
+        print(json.dumps(observation_contract(), sort_keys=True))
+        return 0
     if args.mode == "flush":
         flushed, success, diagnostic = flush_spool(SPOOL_LIMIT)
         health = None
