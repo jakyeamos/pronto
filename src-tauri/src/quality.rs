@@ -16,7 +16,10 @@ pub const FINDING_DISPOSITIONS_SCHEMA: &str = "pronto-quality-finding-dispositio
 pub const FINDING_DISPOSITIONS_RELATIVE_PATH: &str = ".pronto/quality-finding-dispositions.json";
 pub const CANONICAL_MATURITY_FEED_RELATIVE_PATH: &str =
     ".quality-runner/fleet-audit/current/maturity.json";
-const MATURITY_FEED_SCHEMA: &str = "quality-runner-maturity-feed/v1";
+const MATURITY_FEED_SCHEMAS: [&str; 2] = [
+    "quality-runner-maturity-feed/v1",
+    "quality-runner-maturity-feed/v2",
+];
 pub(crate) const FLEET_MATURITY_FINDING_SCHEMA_PREFIX: &str =
     "quality-runner-environment-legibility-finding-";
 const MATURITY_FEED_STATUS: [&str; 2] = ["completed", "complete_with_blockers"];
@@ -2102,7 +2105,10 @@ fn validate_maturity_feed(feed: &Value) -> bool {
     let Some(feed) = feed.as_object() else {
         return false;
     };
-    if feed.get("schema").and_then(Value::as_str) != Some(MATURITY_FEED_SCHEMA)
+    if !feed
+        .get("schema")
+        .and_then(Value::as_str)
+        .is_some_and(|schema| MATURITY_FEED_SCHEMAS.contains(&schema))
         || !feed
             .get("status")
             .and_then(Value::as_str)
@@ -3291,7 +3297,7 @@ mod tests {
     fn fixture_maturity_feed(repository: &RepositorySnapshot, as_of: &str) -> Value {
         let summary_hash = "b".repeat(64);
         let mut feed = serde_json::json!({
-            "schema": MATURITY_FEED_SCHEMA,
+            "schema": MATURITY_FEED_SCHEMAS[1],
             "status": "completed",
             "feed_timestamp": as_of,
             "generated_at": as_of,
@@ -3558,6 +3564,30 @@ mod tests {
         assert_eq!(
             imported.maturities[&repository.id].freshness,
             QualityFreshness::Fresh
+        );
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn imports_legacy_v1_maturity_feed() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root.join("repo"));
+        let feed_path = root.join("maturity.json");
+        let mut feed = fixture_maturity_feed(&repository, &Utc::now().to_rfc3339());
+        feed["schema"] = Value::String(MATURITY_FEED_SCHEMAS[0].to_string());
+        feed["provenance_hash"] =
+            Value::String(maturity_feed_hash(&feed).expect("fixture feed should hash"));
+        fs::write(
+            &feed_path,
+            serde_json::to_string(&feed).expect("feed should serialize"),
+        )
+        .expect("feed should be writable");
+
+        let imported = maturity_feed_import(Some(&feed_path), &[repository]);
+        assert_eq!(imported.portfolio.audit_status, "Ready");
+        assert_eq!(
+            imported.portfolio.feed_schema.as_deref(),
+            Some(MATURITY_FEED_SCHEMAS[0])
         );
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
