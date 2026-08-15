@@ -105,14 +105,16 @@ after equivalence and ownership checks.
 
 ## Keep fail-open capture durable across sandbox generations
 
-`scripts/papercuts-capture.py` is the reference for a bounded two-tier local
-handoff. It writes Pronto-owned Application Support first, falls back to a
+`scripts/papercuts-capture.py` and `scripts/papercuts_capture/` are the
+entrypoint and responsibility-split runtime for a bounded two-tier local
+handoff. The runtime writes Pronto-owned Application Support first, falls back to a
 private `$TMPDIR` spool when an already-running task lacks that grant, and
 migrates the emergency tier on the next permitted invocation. Stable event
 keys make retry, migration, and flush idempotent. The paired test covers denied
 primary storage, secure permissions, deduplication, migration, and recovery.
 
-Keep the hook in repository source, deploy it atomically through
+Keep the complete hook runtime in repository source, deploy its private modules
+before atomically replacing the entrypoint through
 `pnpm papercuts:hook:install`, and verify the live copy separately from source
 tests with `pnpm papercuts:hook:check`. The hook's standalone native CLI follows
 the same build, atomic install, and exact-parity checks through the
