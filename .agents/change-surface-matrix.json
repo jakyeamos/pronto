@@ -6,6 +6,12 @@
   },
   "owner": "Pronto repository maintainers",
   "last_reviewed": "2026-08-15",
+  "reviewed_no_impact": [
+    {
+      "change": "Split the renderer API barrel into defaults, review commands, and portfolio commands.",
+      "reason": "Exports, Tauri command names, arguments, fallback values, and consumers are unchanged; this is an internal ownership refactor."
+    }
+  ],
   "surfaces": [
     {
       "id": "native-core",
