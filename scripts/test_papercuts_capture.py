@@ -67,6 +67,26 @@ class PapercutsCaptureTests(unittest.TestCase):
         self.assertEqual(health["status"], "healthy")
         self.assertTrue(health["database_writable"])
 
+    def test_successful_capture_clears_stale_error_details(self) -> None:
+        health_path = Path(self.temp.name) / "health.json"
+        health_path.write_text(
+            json.dumps({"last_error": papercuts.diagnostic_for("child_process_timeout")}),
+            encoding="utf-8",
+        )
+        observation = {
+            "event_key": "v1:codex:recovered",
+            "summary": "A recovered observation",
+        }
+        with mock.patch.object(
+            papercuts,
+            "_run_pronto",
+            return_value=(True, {"status": "captured"}, None),
+        ):
+            papercuts.persist(observation)
+
+        health = json.loads(health_path.read_text(encoding="utf-8"))
+        self.assertNotIn("last_error", health)
+
     def test_dry_run_classifies_one_boundary_correction_without_persistence(self) -> None:
         # Complete dry-run contract: one supported boundary correction, zero
         # process exit, and no health or spool persistence. If a caller asks for

@@ -812,6 +812,8 @@ def _write_health(
             "attempt": failures,
             "observed_at": now_iso(),
         }
+    elif success:
+        health.pop("last_error", None)
     health.update({
         "schema_version": SCHEMA_VERSION,
         "status": "healthy" if success and not paths else ("degraded" if failures < 3 else "failing"),
