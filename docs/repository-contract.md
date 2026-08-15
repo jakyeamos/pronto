@@ -59,6 +59,13 @@ When comparable commit provenance is unavailable, a matching branch reports
 unknown and a differing branch reports stale; an exact commit match remains
 authoritative even if that commit is checked out through another branch name.
 
+Fleet maturity and measurement confidence are separate claims. Pronto imports
+Quality Runner's replay-validated score and, when present, its confidence level,
+exact population coverage, limitations, and unresolved measurement-gap count.
+A conclusive failing quality check can support high measurement confidence even
+though it lowers maturity; incomplete population, disabled dynamic verification,
+or unresolved measurement gaps cannot.
+
 For finding counts and the repository review ledger, prefer QR's fingerprinted
 `code-quality-scan.json` detector report. Aggregate `quality-audit.json`
 findings remain remediation context but must not replace stable detector
