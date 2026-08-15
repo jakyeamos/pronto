@@ -40,7 +40,11 @@ files. A later permitted hook invocation migrates emergency events to the
 primary spool and flushes both tiers through the idempotent event-key contract.
 
 One failure is silent. Three consecutive flush failures, or inability to write
-either spool, produces one concise task warning. The hook always exits
+either spool, produces one actionable task warning with the stable error code,
+plain-language cause, failed operation, attempt count, queued-observation count,
+and recovery command. Process failures also expose a bounded timeout or exit
+code when available. The same sanitized detail is retained in `last_error` in
+the health JSON and shown in Pronto's Papercuts surface. The hook always exits
 successfully and never blocks or changes the answer. The legacy
 `~/.codex/papercuts/health.json` path remains read-compatible during migration.
 
@@ -70,6 +74,12 @@ pronto papercuts propose --stdin --json
 pronto papercuts proposal set-status <id> <draft|accepted|deferred|rejected> --json
 pronto papercuts health --json
 ```
+
+Capture-health failures expose `error_code`, `failure_kind`, `stage`, `message`,
+`operation`, `attempt`, `observed_at`, `retryable`, and `recovery_command`.
+Process diagnostics may also include `timeout_seconds` or `exit_code`. Run
+`pronto-papercuts papercuts health --json` to inspect the standalone collector
+without depending on the full app command surface.
 
 Observation input accepts `signal_kind`, `target_kind`, `summary`,
 `phenomenon_key`, `failure_mode`, scope fields, evidence references, priority,

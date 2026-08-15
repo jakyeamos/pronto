@@ -311,6 +311,7 @@
         "pnpm papercuts:hook:test",
         "pnpm papercuts:hook:check",
         "pnpm papercuts:cli:check",
+        "Verify timeout and nonzero-exit diagnostics expose sanitized cause, retry metadata, and a recovery command in health JSON and the Papercuts UI.",
         "Exercise a denied-primary capture followed by a permitted flush."
       ],
       "status": "applicable"
