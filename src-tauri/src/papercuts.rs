@@ -1123,14 +1123,38 @@ fn load_health_from_home(home: &Path) -> PapercutCaptureHealth {
         home.join("Library/Application Support/Pronto/papercuts-hook/health.json"),
         home.join(".codex/papercuts/health.json"),
     ];
-    paths
+    let mut health: PapercutCaptureHealth = paths
         .iter()
         .find_map(|path| {
             std::fs::read_to_string(path)
                 .ok()
                 .and_then(|value| serde_json::from_str(&value).ok())
         })
-        .unwrap_or_default()
+        .unwrap_or_default();
+    if health.status == "healthy" {
+        health.last_error = None;
+    } else if let Some(diagnostic) = health.last_error.as_mut() {
+        if diagnostic.failure_kind.is_empty() {
+            diagnostic.failure_kind = match diagnostic.error_code.as_str() {
+                "PAPERCUTS-E4001" => "child_process_timeout",
+                "PAPERCUTS-E4002" => "child_process_failure",
+                "PAPERCUTS-E4003" => "pronto_cli_unavailable",
+                "PAPERCUTS-E4004" => "pronto_output_invalid",
+                "PAPERCUTS-E5001" => "contract_invalid",
+                "PAPERCUTS-E5002" => "spooled_contract_invalid",
+                _ => "legacy_failure",
+            }
+            .to_string();
+        }
+        diagnostic.retryable = !matches!(
+            diagnostic.error_code.as_str(),
+            "PAPERCUTS-E5001" | "PAPERCUTS-E5002"
+        );
+        if diagnostic.recovery_command.is_empty() {
+            diagnostic.recovery_command = "pronto-papercuts papercuts health --json".to_string();
+        }
+    }
+    health
 }
 
 fn load_health() -> PapercutCaptureHealth {
@@ -1719,6 +1743,22 @@ mod tests {
         assert_eq!(diagnostic.error_code, "PAPERCUTS-E4001");
         assert_eq!(diagnostic.timeout_seconds, Some(3));
         assert_eq!(diagnostic.attempt, 3);
+        assert!(diagnostic.retryable);
+
+        fs::write(
+            primary.join("health.json"),
+            r#"{"status":"degraded","database_writable":false,"last_error":{"error_code":"PAPERCUTS-E6003","stage":"io","message":"the collector could not remove a flushed spool file","operation":"drain","observed_at":"2026-08-14T22:06:27Z"}}"#,
+        )
+        .expect("legacy partial health should persist");
+        let legacy_diagnostic = load_health_from_home(&root)
+            .last_error
+            .expect("legacy error should normalize");
+        assert_eq!(legacy_diagnostic.failure_kind, "legacy_failure");
+        assert!(legacy_diagnostic.retryable);
+        assert_eq!(
+            legacy_diagnostic.recovery_command,
+            "pronto-papercuts papercuts health --json"
+        );
         let _ = fs::remove_dir_all(root);
     }
 
