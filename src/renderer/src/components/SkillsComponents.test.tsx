@@ -82,6 +82,7 @@ const papercutProps = {
       database_writable: true,
       consecutive_failures: 0,
       spooled_events: 0,
+      quarantined_events: 0,
       oldest_spool_at: null,
       last_success_at: null,
       warning: null,

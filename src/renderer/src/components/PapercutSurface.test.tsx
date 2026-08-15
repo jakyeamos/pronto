@@ -80,6 +80,7 @@ function backlogFixture(
       database_writable: true,
       consecutive_failures: 0,
       spooled_events: 0,
+      quarantined_events: 0,
       oldest_spool_at: null,
       last_success_at: "2026-08-08T15:00:00+00:00",
       warning: null,
@@ -121,6 +122,7 @@ describe("PapercutSurface", () => {
             database_writable: false,
             consecutive_failures: 3,
             spooled_events: 7,
+            quarantined_events: 0,
             oldest_spool_at: "2026-08-08T14:00:00+00:00",
             last_success_at: null,
             warning: "Papercuts drain failed on attempt 3.",
@@ -153,6 +155,30 @@ describe("PapercutSurface", () => {
     expect(markup).toContain("Attempt 3 during drain");
     expect(markup).toContain("timed out after 3s");
     expect(markup).toContain("pronto-papercuts papercuts health --json");
+  });
+
+  it("surfaces isolated incompatible observations without treating the queue as blocked", () => {
+    const fixture = backlogFixture();
+    const markup = renderToStaticMarkup(
+      <PapercutSurface
+        backlog={backlogFixture({
+          health: {
+            ...fixture.health,
+            status: "degraded",
+            database_writable: true,
+            quarantined_events: 2,
+          },
+        })}
+        isRefreshing={false}
+        onRefresh={vi.fn(async () => undefined)}
+        onCreate={vi.fn(async () => undefined)}
+        onStatusChange={vi.fn(async () => undefined)}
+        onProposalStatusChange={vi.fn(async () => undefined)}
+      />,
+    );
+
+    expect(markup).toContain("2 incompatible signals isolated");
+    expect(markup).not.toContain("signals awaiting flush");
   });
 
   it("makes an empty top-level backlog actionable", () => {

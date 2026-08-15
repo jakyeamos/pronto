@@ -77,6 +77,11 @@ export function PapercutSurface({
           {backlog.health.spooled_events > 0 ? (
             <span>{backlog.health.spooled_events} signals awaiting flush</span>
           ) : null}
+          {backlog.health.quarantined_events > 0 ? (
+            <span>
+              {backlog.health.quarantined_events} incompatible signals isolated
+            </span>
+          ) : null}
           <span>Generated {formatTime(backlog.generated_at)}</span>
         </div>
         {backlog.health.last_error ? (

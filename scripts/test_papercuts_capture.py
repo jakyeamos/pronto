@@ -142,7 +142,7 @@ class PapercutsCaptureTests(unittest.TestCase):
         self.assertTrue(diagnostic["retryable"])
         self.assertEqual(
             diagnostic["recovery_command"],
-            "pronto-papercuts papercuts health --json",
+            f"{sys.executable} papercuts health --json",
         )
 
         with (
@@ -183,17 +183,93 @@ class PapercutsCaptureTests(unittest.TestCase):
         self.assertIsNone(result)
         self.assertEqual(diagnostic["error_code"], "PAPERCUTS-E4004")
 
-    def test_flush_rejects_invalid_queued_contract_with_stable_code(self) -> None:
+        with (
+            mock.patch.dict(os.environ, {"PAPERCUTS_PRONTO_CLI": sys.executable}),
+            mock.patch.object(
+                papercuts.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess(
+                    args=[sys.executable],
+                    returncode=1,
+                    stdout=json.dumps({
+                        "schema_version": "pronto-cli-error/v1",
+                        "status": "Blocked",
+                        "error": "Papercut signal kind must be supported.",
+                    }),
+                    stderr="private detail must not propagate",
+                ),
+            ),
+        ):
+            success, result, diagnostic = papercuts._run_pronto({
+                "event_key": "v1:codex:contract-drift",
+            })
+        self.assertFalse(success)
+        self.assertIsNone(result)
+        self.assertEqual(diagnostic["error_code"], "PAPERCUTS-E5003")
+        self.assertFalse(diagnostic["retryable"])
+        self.assertNotIn("private detail", json.dumps(diagnostic))
+
+    def test_flush_quarantines_invalid_contract_and_continues(self) -> None:
         papercuts.spool_observation({
             "event_key": "v1:codex:invalid-queued-contract",
             "signal_kind": "unsupported_signal",
         })
-        with mock.patch.object(papercuts, "_run_pronto") as run_pronto:
+        papercuts.spool_observation({
+            "event_key": "v1:codex:valid-after-invalid",
+            "signal_kind": "agent_suggestion",
+            "target_kind": "workflow",
+            "summary": "A valid queued observation",
+            "phenomenon_key": "valid-after-invalid",
+            "failure_mode": "head-of-line-blocking",
+        })
+        with mock.patch.object(
+            papercuts,
+            "_run_pronto",
+            return_value=(True, {"status": "captured"}, None),
+        ) as run_pronto:
             flushed, success, diagnostic = papercuts.flush_spool()
-        self.assertEqual(flushed, 0)
-        self.assertFalse(success)
+        self.assertEqual(flushed, 1)
+        self.assertTrue(success)
         self.assertEqual(diagnostic["error_code"], "PAPERCUTS-E5002")
-        run_pronto.assert_not_called()
+        self.assertEqual(run_pronto.call_count, 1)
+        self.assertEqual(papercuts._spool_files(), [])
+        self.assertEqual(len(papercuts._quarantine_files()), 1)
+
+        health = papercuts._write_health(
+            success,
+            diagnostic=diagnostic,
+            operation="drain",
+        )
+        self.assertEqual(health["status"], "degraded")
+        self.assertTrue(health["database_writable"])
+        self.assertEqual(health["quarantined_events"], 1)
+        self.assertEqual(health["consecutive_failures"], 0)
+
+    def test_persist_immediately_quarantines_downstream_contract_rejection(self) -> None:
+        observation = {
+            "event_key": "v1:codex:direct-contract-drift",
+            "signal_kind": "boundary_correction",
+            "target_kind": "workflow",
+            "summary": "A newly rejected observation",
+        }
+        diagnostic = papercuts.diagnostic_for("downstream_contract_invalid")
+        with mock.patch.object(
+            papercuts,
+            "_run_pronto",
+            return_value=(False, None, diagnostic),
+        ):
+            result, warning = papercuts.persist(observation)
+
+        self.assertEqual(result["status"], "quarantined")
+        self.assertTrue(result["quarantined"])
+        self.assertEqual(result["diagnostic"]["error_code"], "PAPERCUTS-E5003")
+        self.assertIsNone(warning)
+        self.assertEqual(papercuts._spool_files(), [])
+        self.assertEqual(len(papercuts._quarantine_files()), 1)
+        health = papercuts.load_json(papercuts._health_path(), {})
+        self.assertEqual(health["status"], "degraded")
+        self.assertTrue(health["database_writable"])
+        self.assertEqual(health["consecutive_failures"], 0)
 
     def test_drain_failure_persists_code_stage_and_operation(self) -> None:
         papercuts.spool_observation({
@@ -230,7 +306,7 @@ class PapercutsCaptureTests(unittest.TestCase):
         self.assertIn("operation=drain", warnings[2])
         self.assertIn("attempt 3", warnings[2])
         self.assertIn("1 observation remains locally spooled", warnings[2])
-        self.assertIn("pronto-papercuts papercuts health --json", warnings[2])
+        self.assertIn("missing-pronto papercuts health --json", warnings[2])
         health = json.loads((Path(self.temp.name) / "health.json").read_text(encoding="utf-8"))
         self.assertEqual(health["last_error"]["error_code"], "PAPERCUTS-E4002")
         self.assertEqual(health["last_error"]["stage"], "pronto_process")
@@ -269,7 +345,7 @@ class PapercutsCaptureTests(unittest.TestCase):
         self.assertIn("operation=drain", warning)
         self.assertIn("the Pronto capture executable was unavailable", warning)
         self.assertIn("1 observation remains locally spooled", warning)
-        self.assertIn("pronto-papercuts papercuts health --json", warning)
+        self.assertIn("missing-pronto papercuts health --json", warning)
         self.assertEqual(outputs[-1]["warning"], warning)
 
     def test_spool_failure_preserves_fail_open_warning_when_health_write_fails(self) -> None:
