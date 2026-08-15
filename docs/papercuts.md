@@ -54,13 +54,16 @@ the health JSON and shown in Pronto's Papercuts surface. The hook always exits
 successfully and never blocks or changes the answer. The legacy
 `~/.codex/papercuts/health.json` path remains read-compatible during migration.
 
-The repository source of truth is `scripts/papercuts-capture.py`. Run
-`pnpm papercuts:hook:test`, install it atomically with
+The repository source of truth is the thin `scripts/papercuts-capture.py`
+entrypoint and the responsibility-split `scripts/papercuts_capture/` runtime
+package. Run `pnpm papercuts:hook:test`, install the complete runtime with
 `pnpm papercuts:hook:install`, and verify the deployed copy with
 `pnpm papercuts:hook:check`. Build the hook's narrow standalone CLI with
 `pnpm papercuts:cli:build`, install it atomically with
 `pnpm papercuts:cli:install`, and verify exact binary parity with
-`pnpm papercuts:cli:check`. Installation and check compare the hook's public
+`pnpm papercuts:cli:check`. Installation writes private runtime modules before
+atomically replacing the entrypoint. Installation and check compare every
+deployed source file and the hook's public
 observation contract with the standalone CLI contract as well as comparing
 binary bytes and permissions, so producer/consumer enum drift fails at
 deployment rather than during capture.

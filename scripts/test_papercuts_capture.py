@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 import os
 import sqlite3
@@ -13,10 +12,7 @@ from unittest import mock
 
 
 MODULE_PATH = Path(__file__).with_name("papercuts-capture.py")
-SPEC = importlib.util.spec_from_file_location("papercuts_capture", MODULE_PATH)
-assert SPEC and SPEC.loader
-papercuts = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(papercuts)
+from papercuts_capture import runtime as papercuts
 
 
 class PapercutsCaptureTests(unittest.TestCase):

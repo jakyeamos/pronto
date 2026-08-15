@@ -16,16 +16,29 @@ import { fileURLToPath } from "node:url";
 
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const source = join(projectRoot, "scripts", "papercuts-capture.py");
+const runtimeSource = join(projectRoot, "scripts", "papercuts_capture");
+const runtimeFiles = ["__init__.py", "common.py", "intake.py", "runtime.py"];
 const target = globalThis.process.env.PAPERCUTS_HOOK_TARGET
   ? globalThis.process.env.PAPERCUTS_HOOK_TARGET
   : join(homedir(), ".codex", "hooks", "papercuts-capture.py");
 const checkOnly = globalThis.process.argv.includes("--check");
+const runtimeTarget = join(dirname(target), "papercuts_capture");
 
 function matchesSource() {
   return (
     existsSync(target) &&
     readFileSync(source).equals(readFileSync(target)) &&
-    (statSync(target).mode & 0o077) === 0
+    (statSync(target).mode & 0o077) === 0 &&
+    runtimeFiles.every((file) => {
+      const deployed = join(runtimeTarget, file);
+      return (
+        existsSync(deployed) &&
+        readFileSync(join(runtimeSource, file)).equals(
+          readFileSync(deployed),
+        ) &&
+        (statSync(deployed).mode & 0o077) === 0
+      );
+    })
   );
 }
 
@@ -49,7 +62,23 @@ const temporary = join(
 );
 mkdirSync(targetDirectory, { recursive: true, mode: 0o700 });
 chmodSync(targetDirectory, 0o700);
+mkdirSync(runtimeTarget, { recursive: true, mode: 0o700 });
+chmodSync(runtimeTarget, 0o700);
 try {
+  for (const file of runtimeFiles) {
+    const deployed = join(runtimeTarget, file);
+    const runtimeTemporary = join(
+      runtimeTarget,
+      `.${file}.${globalThis.process.pid}.tmp`,
+    );
+    try {
+      copyFileSync(join(runtimeSource, file), runtimeTemporary);
+      chmodSync(runtimeTemporary, 0o600);
+      renameSync(runtimeTemporary, deployed);
+    } finally {
+      rmSync(runtimeTemporary, { force: true });
+    }
+  }
   copyFileSync(source, temporary);
   chmodSync(temporary, 0o700);
   renameSync(temporary, target);

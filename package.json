@@ -28,7 +28,7 @@
     "test": "env PATH=/opt/homebrew/bin:$PATH cargo test --manifest-path src-tauri/Cargo.toml && vitest run --passWithNoTests",
     "test:watch": "vitest",
     "smoke": "pnpm --silent run cli help && pnpm contract:check",
-    "contract:check": "node --test scripts/validate-repository-contract.test.mjs scripts/install-app.test.mjs && node scripts/validate-repository-contract.mjs",
+    "contract:check": "node --test scripts/validate-repository-contract.test.mjs scripts/install-app.test.mjs scripts/install-papercuts-hook.test.mjs && node scripts/validate-repository-contract.mjs",
     "cli": "node bin/pronto.mjs",
     "cli:json": "node bin/pronto.mjs status --json"
   },

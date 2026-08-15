@@ -130,12 +130,13 @@
     {
       "id": "codex-papercuts-hook",
       "scope": "external",
-      "path": "~/.codex/hooks/papercuts-capture.py",
+      "path": "~/.codex/hooks/papercuts-capture.py and ~/.codex/hooks/papercuts_capture/",
       "owner": "Pronto repository maintainers",
       "condition": "Papercuts capture, privacy, spool, health, or recovery behavior changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm papercuts:hook:test",
+        "node --test scripts/install-papercuts-hook.test.mjs",
         "pnpm papercuts:hook:check",
         "pnpm papercuts:cli:check",
         "Verify the hook and standalone CLI publish the same pronto-papercuts-observation/v1 contract.",
