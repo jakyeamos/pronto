@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-14",
+  "last_reviewed": "2026-08-15",
   "surfaces": [
     {
       "id": "native-core",
@@ -17,6 +17,8 @@
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml",
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::migrates_schema_v1_for_action_audits",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::fresh_route_timeout_names_the_cached_fallback",
+        "pnpm cli route --fresh --json against the imported full fleet detector corpus",
         "pnpm typecheck"
       ],
       "status": "applicable"

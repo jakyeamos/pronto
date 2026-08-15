@@ -35,7 +35,9 @@ const ANALYTICS_DEDUP_MINUTES: i64 = 15;
 const DEFAULT_QR_AUDIT_TIMEOUT_SECONDS: u64 = 120;
 const STORE_WRITE_LOCK_WAIT_SECONDS: u64 = 5;
 const STORE_WRITE_LOCK_STALE_SECONDS: u64 = 1_800;
-const QUALITY_READ_TIMEOUT_SECONDS: u64 = 10;
+// A full fleet detector import can legitimately take tens of seconds to project.
+// Keep the route bounded, but leave enough headroom for the registered fleet.
+const QUALITY_READ_TIMEOUT_SECONDS: u64 = 60;
 const TARGET_EVIDENCE_GATE_TIMEOUT_SECONDS: u64 = 120;
 const TARGET_EVIDENCE_TOTAL_TIMEOUT_SECONDS: u64 = 600;
 const DEFAULT_FLEET_DETECTOR_TIMEOUT_SECONDS: u64 = 600;
@@ -16011,7 +16013,7 @@ mod tests {
             60,
             "fleet",
             "storage",
-            "Fresh quality projection exceeded the 10 second deadline; rerun without --fresh for the cached snapshot or run `pronto quality refresh` separately.".to_string(),
+            "Fresh quality projection exceeded the 60 second deadline; rerun without --fresh for the cached snapshot or run `pronto quality refresh` separately.".to_string(),
         );
 
         assert!(report
