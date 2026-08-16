@@ -10,6 +10,10 @@
     {
       "change": "Split the renderer API barrel into defaults, review commands, and portfolio commands.",
       "reason": "Exports, Tauri command names, arguments, fallback values, and consumers are unchanged; this is an internal ownership refactor."
+    },
+    {
+      "change": "Split the renderer quality regression suite by product surface.",
+      "reason": "The exact 32-test behavior set, fixtures, assertions, and runtime components are unchanged; this is a test-ownership refactor that restores the repository file-size contract."
     }
   ],
   "surfaces": [
