@@ -1544,8 +1544,9 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("Fresh passing evidence");
     expect(markup).toContain("0/6");
     expect(markup).toContain("Tests (1)");
-    expect(markup).toContain("Mac Control semantic evidence");
-    expect(markup).toContain("0/8");
+    expect(markup).toContain("Mac Control maturity");
+    expect(markup).toContain("0.0");
+    expect(markup).not.toContain("Mac Control semantic evidence");
     expect(markup).toContain(
       "Legacy declarations: 8 recorded · non-scoring until v4 source evidence is established",
     );

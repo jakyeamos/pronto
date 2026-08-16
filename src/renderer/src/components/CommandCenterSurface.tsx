@@ -214,14 +214,12 @@ export function CommandCenterSurface({
           </div>
           {macControl ? (
             <div>
-              <span>Mac Control semantic evidence</span>
+              <span>Mac Control maturity</span>
               <strong>
-                {macControl.implementation_criteria_passed_count ?? 0}/
-                {macControl.implementation_criteria_total ?? 0}
-                <small> dimensions</small>
+                {macControl.implementation_score_display ?? "Not scored"}
+                {macControl.implementation_score_display && <small>/4</small>}
               </strong>
               <small>
-                {macControl.implementation_score_display ?? "Not scored"}/4 ·{" "}
                 {macControl.implementation_status ?? macControl.status} ·{" "}
                 {macControlFreshnessLabel(macControl.freshness)}
               </small>
