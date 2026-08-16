@@ -119,12 +119,13 @@ export function qualitySeries(): TrendSeries[] {
 export function findingSeries(): TrendSeries[] {
   return [
     {
-      label: "All detected findings",
+      label: "Detector findings",
       color: AMBER,
-      getValue: (sample) => sample.findings_total,
+      getValue: (sample) =>
+        sample.detector_findings_total ?? sample.findings_total,
     },
     {
-      label: "High severity",
+      label: "High-severity detector findings",
       color: CORAL,
       getValue: (sample) => sample.high_severity_findings,
     },
@@ -231,5 +232,5 @@ export function qualityPostureSummary(
   sample: AnalyticsMetricSample | undefined,
 ): string {
   if (!sample) return "No refresh sample is available for quality posture.";
-  return `Maturity ${formatScore(sample.maturity_score)} · Fresh passing evidence score ${formatScore(sample.ci_readiness_score)} · ${formatCount(sample.findings_total)} detected findings · Quality evidence ${sample.quality_freshness ?? "Unavailable"}`;
+  return `Maturity ${formatScore(sample.maturity_score)} · Fresh passing evidence score ${formatScore(sample.ci_readiness_score)} · ${formatCount(sample.detector_findings_total ?? sample.findings_total)} detector findings · Quality evidence ${sample.quality_freshness ?? "Unavailable"}`;
 }

@@ -818,6 +818,19 @@ export function QualityMaturitySummary({
             {maturity.audit_id ?? "No audit run"} ·{" "}
             {qualityFreshnessLabel(maturity.freshness)}
           </small>
+          <small aria-label="Maturity evidence separate from detector findings">
+            Maturity evidence is separate from detector findings ·{" "}
+            {repositoryMaturity?.evidence.assessed_dimension_count ??
+              Object.keys(maturity.dimension_scores ?? {}).length}{" "}
+            assessed /{" "}
+            {repositoryMaturity?.evidence.applicable_dimension_count ??
+              Object.keys(maturity.dimension_scores ?? {}).length +
+                (maturity.gaps ?? []).filter(
+                  (gap) =>
+                    !(gap.dimension in (maturity.dimension_scores ?? {})),
+                ).length}{" "}
+            applicable dimensions · {(maturity.gaps ?? []).length} maturity gaps
+          </small>
           {repositoryMaturity && (
             <div className="repository-maturity-meta">
               <StatusPill tone={agentUsabilityTone(repositoryMaturity.status)}>
@@ -1118,12 +1131,12 @@ export function qualityAttentionItems(
     : "verified";
   if (repository.quality.findings.high_severity_total > 0) {
     const findingsLabel = findingsTargetVerified
-      ? "High-severity QR findings"
+      ? "High-severity detector findings"
       : findingsEvidenceState === "stale"
-        ? "High-severity QR findings · stale branch evidence"
+        ? "High-severity detector findings · stale branch evidence"
         : findingsEvidenceState === "unscoped"
-          ? "High-severity QR findings · unscoped evidence"
-          : "High-severity QR findings · target unverified";
+          ? "High-severity detector findings · unscoped evidence"
+          : "High-severity detector findings · target unverified";
     const findingsDetail = findingsTargetVerified
       ? `${repository.quality.findings.high_severity_total} critical or high finding${repository.quality.findings.high_severity_total === 1 ? "" : "s"}`
       : findingsEvidenceState === "stale"

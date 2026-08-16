@@ -17,6 +17,12 @@ export interface AnalyticsMetricSample {
   maturity_score?: number | null;
   findings_total?: number | null;
   high_severity_findings?: number | null;
+  detector_findings_total?: number | null;
+  detector_actionable_findings?: number | null;
+  detector_unreviewed_findings?: number | null;
+  maturity_gap_total?: number | null;
+  detector_refresh_required?: boolean | null;
+  quality_evidence_fingerprint?: string | null;
   ci_readiness_scored_repository_count: number;
   maturity_scored_repository_count: number;
   findings_repository_count: number;
