@@ -31,7 +31,7 @@
         "cargo test --manifest-path src-tauri/Cargo.toml",
         "pnpm typecheck",
         "For maturity changes, verify pillar weighting, applicability, assessed versus applicable dimensions, evidence coverage, and critical caps in src-tauri/src/quality.rs tests.",
-        "For detector evidence changes, verify blocked or refresh-required receipts never become zero findings and preserve prior raw evidence without a current delta.",
+        "For detector evidence changes, verify blocked or refresh-required receipts never become zero findings, preserve prior raw evidence without a current delta, and import the newest valid canonical detector ledger during quality refresh.",
         "Run the parallel refresh coordinator tests and verify the locked merge preserves every scanned repository."
       ],
       "status": "applicable"
@@ -55,7 +55,7 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::analytics",
-        "Run the detector-evidence fingerprint regression proving a material imported change creates a new observation while an unchanged rerun deduplicates.",
+        "Run the detector-evidence fingerprint regression proving a material imported change creates a new observation while an unchanged rerun deduplicates; cover the canonical detector-ledger quality-refresh path.",
         "pnpm vitest run src/renderer/src/components/AnalyticsComponents.test.tsx",
         "pnpm typecheck",
         "pnpm build:web",

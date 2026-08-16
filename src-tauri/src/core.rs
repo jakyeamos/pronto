@@ -4489,6 +4489,12 @@ fn apply_quality_evidence_scoped(
     let feed_path = quality::canonical_maturity_feed_path();
     let audit = quality::maturity_feed_import(feed_path.as_deref(), &state.repositories);
     let fleet = quality::fleet_audit_import(fleet_audit_root, &state.repositories);
+    let detector_root = if fleet_audit_root.is_none() {
+        quality::latest_detector_refresh_root()
+    } else {
+        None
+    };
+    let detector = quality::detector_refresh_import(detector_root.as_deref(), &state.repositories);
     let mac_control_scope = state.repositories.clone();
     let mac_control = mac_control_maturity::evaluate_canonical(&mac_control_scope);
     state.quality = audit.portfolio;
@@ -4591,6 +4597,11 @@ fn apply_quality_evidence_scoped(
             imported.ingestion_status = "Available".to_string();
             imported.ingestion_message = None;
         }
+        if let Some(detector_findings) = detector.evidence.get(&repository.id) {
+            imported.findings = detector_findings.clone();
+            imported.ingestion_status = "Available".to_string();
+            imported.ingestion_message = None;
+        }
         if repository.target_branch_configured {
             if let Some((target_branch, target_commit)) = target_provenance.as_ref() {
                 imported
@@ -4637,6 +4648,7 @@ fn refresh_quality_at(path: &Path) -> Result<PortfolioSnapshot, String> {
     apply_quality_evidence(&mut state);
     apply_release_threshold_conditions(&mut state);
     save_store(path, &state)?;
+    record_analytics_samples(path, &state)?;
     Ok(snapshot_from_store(path, &state))
 }
 

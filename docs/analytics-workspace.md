@@ -32,6 +32,11 @@ imported evidence fingerprint deduplicates normally, and blocked or
 refresh-required detector evidence remains unavailable for current-count and
 delta claims.
 
+`quality refresh` records the imported maturity feed and the latest detector
+ledger in the same persisted snapshot before sampling analytics. The sample
+fingerprint therefore creates one new deduplicated observation when either
+feed materially changes and deduplicates an unchanged rerun.
+
 The curated workspace separates commit volume from branch divergence and also
 covers workspace activity composition, quality and evidence cohorts, finding
 severity, repository-by-gate coverage, release readiness, and remediation

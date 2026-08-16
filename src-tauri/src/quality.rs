@@ -21,6 +21,8 @@ pub const FINDING_DISPOSITIONS_SCHEMA: &str = "pronto-quality-finding-dispositio
 pub const FINDING_DISPOSITIONS_RELATIVE_PATH: &str = ".pronto/quality-finding-dispositions.json";
 pub const CANONICAL_MATURITY_FEED_RELATIVE_PATH: &str =
     ".quality-runner/fleet-audit/current/maturity.json";
+pub const CANONICAL_DETECTOR_REFRESH_RELATIVE_PATH: &str = ".quality-runner/fleet-detector-refresh";
+pub const DETECTOR_REFRESH_SCHEMA: &str = "quality-runner-fleet-detector-refresh/v1";
 const MATURITY_FEED_SCHEMAS: [&str; 2] = [
     "quality-runner-maturity-feed/v1",
     "quality-runner-maturity-feed/v2",
@@ -998,8 +1000,71 @@ pub struct FleetAuditImport {
     pub evidence: HashMap<String, FleetAuditEvidence>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct DetectorRefreshImport {
+    pub refresh_id: Option<String>,
+    pub observed_at: Option<String>,
+    pub ledger_path: Option<String>,
+    pub blocked_reason: Option<String>,
+    pub evidence: HashMap<String, QualityFindings>,
+}
+
 pub fn canonical_maturity_feed_path() -> Option<PathBuf> {
     dirs::home_dir().map(|home| home.join(CANONICAL_MATURITY_FEED_RELATIVE_PATH))
+}
+
+pub fn canonical_detector_refresh_root() -> Option<PathBuf> {
+    dirs::home_dir().map(|home| home.join(CANONICAL_DETECTOR_REFRESH_RELATIVE_PATH))
+}
+
+pub fn latest_detector_refresh_root() -> Option<PathBuf> {
+    let root = canonical_detector_refresh_root()?;
+    if !root.is_dir() || root.is_symlink() {
+        return None;
+    }
+    let mut candidates = fs::read_dir(&root)
+        .ok()?
+        .filter_map(Result::ok)
+        .filter_map(|entry| {
+            let path = entry.path();
+            let kind = entry.file_type().ok()?;
+            let ledger = path.join("detector-refresh.json");
+            if !kind.is_dir() || path.is_symlink() || !ledger.is_file() || ledger.is_symlink() {
+                return None;
+            }
+            let payload = read_json(&ledger).unwrap_or(Value::Null);
+            let modified_millis = fs::metadata(&ledger)
+                .ok()?
+                .modified()
+                .ok()?
+                .duration_since(std::time::UNIX_EPOCH)
+                .ok()?
+                .as_millis() as i128;
+            let observed_at = json_string_at(&payload, &["as_of"]);
+            let selection_millis = observed_at
+                .as_deref()
+                .and_then(|value| {
+                    DateTime::parse_from_rfc3339(value)
+                        .ok()
+                        .map(|parsed| parsed.timestamp_millis() as i128)
+                })
+                .unwrap_or(modified_millis);
+            Some((
+                selection_millis,
+                json_string_at(&payload, &["refresh_id"]),
+                path,
+            ))
+        })
+        .collect::<Vec<_>>();
+    candidates.sort_by(|left, right| {
+        left.0.cmp(&right.0).then_with(|| {
+            left.1
+                .as_deref()
+                .unwrap_or_default()
+                .cmp(right.1.as_deref().unwrap_or_default())
+        })
+    });
+    candidates.pop().map(|(_, _, path)| path)
 }
 
 pub fn is_stable_detector_report(report_path: Option<&str>) -> bool {
@@ -1348,6 +1413,338 @@ pub fn fleet_audit_import(
     FleetAuditImport {
         audit_id,
         observed_at,
+        evidence,
+    }
+}
+
+fn detector_report_payload(result: &Value) -> Option<(PathBuf, Value)> {
+    let paths = result.get("published_paths").and_then(Value::as_array)?;
+    for raw_path in paths.iter().filter_map(Value::as_str) {
+        let candidate = PathBuf::from(raw_path);
+        let report_path = if candidate
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name == "code-quality-scan.json")
+        {
+            candidate
+        } else {
+            candidate.join("code-quality-scan.json")
+        };
+        if !is_stable_detector_report(report_path.to_str())
+            || !report_path.is_file()
+            || report_path.is_symlink()
+        {
+            continue;
+        }
+        let Some(payload) = read_json(&report_path) else {
+            continue;
+        };
+        if payload.get("findings").and_then(Value::as_array).is_some() {
+            return Some((report_path, payload));
+        }
+    }
+    None
+}
+
+fn detector_payload_with_receipt(mut payload: Value, result: &Value) -> Value {
+    if payload
+        .get("detector_evidence")
+        .and_then(Value::as_array)
+        .is_none()
+    {
+        if let Some(receipt) = result.get("detector").filter(|value| value.is_object()) {
+            payload["detector_evidence"] = Value::Array(vec![receipt.clone()]);
+        }
+    }
+    payload
+}
+
+fn detector_target(result: &Value) -> (Option<String>, Option<String>) {
+    (
+        json_string_at(result, &["target", "branch"]),
+        json_string_at(result, &["target", "head"]),
+    )
+}
+
+fn detector_findings_from_scan(
+    result: &Value,
+    report_path: &Path,
+    payload: Value,
+    repository: &RepositorySnapshot,
+    fallback_observed_at: Option<&str>,
+) -> Option<QualityFindings> {
+    let findings = payload.get("findings").and_then(Value::as_array)?;
+    let (scanned_branch, scanned_commit) = detector_target(result);
+    let observed_at = json_string_at(result, &["detector", "scan_time"])
+        .or_else(|| fallback_observed_at.map(str::to_string));
+    let total = json_u64_at(&payload, &["finding_count"])
+        .or_else(|| json_u64_at(&payload, &["summary", "total_findings"]))
+        .or_else(|| json_u64_at(&payload, &["summary", "finding_counts", "total"]))
+        .unwrap_or(findings.len() as u64);
+    let severity_counts = severity_counts(&payload);
+    let high_severity_total = severity_counts
+        .iter()
+        .filter(|(severity, _)| matches!(severity.as_str(), "critical" | "high"))
+        .map(|(_, count)| *count)
+        .sum();
+    let mut imported = QualityFindings {
+        total,
+        severity_counts,
+        high_severity_total,
+        source: Some(QualitySource::Qr),
+        observed_at: observed_at.clone(),
+        scanned_commit,
+        scanned_branch,
+        freshness: evaluate_freshness_at(
+            observed_at.as_deref(),
+            json_string_at(result, &["target", "head"]).as_deref(),
+            json_string_at(result, &["target", "branch"]).as_deref(),
+            repository.workspace.last_commit.as_deref(),
+            Some(repository.branch.as_str()),
+            Utc::now(),
+        ),
+        report_path: Some(report_path.to_string_lossy().to_string()),
+        ..QualityFindings::default()
+    };
+    let payload = detector_payload_with_receipt(payload, result);
+    apply_detector_evidence(&mut imported, &payload);
+    if imported.target_sha.is_none() {
+        imported.target_sha = imported.scanned_commit.clone();
+    }
+    if imported.refresh_time.is_none() {
+        imported.refresh_time = imported.observed_at.clone();
+    }
+    Some(imported)
+}
+
+fn blocked_detector_findings(
+    result: &Value,
+    repository: &RepositorySnapshot,
+    fallback_observed_at: Option<&str>,
+    ledger_path: &Path,
+    reason: String,
+) -> QualityFindings {
+    let (scanned_branch, scanned_commit) = detector_target(result);
+    let observed_at = json_string_at(result, &["detector", "scan_time"])
+        .or_else(|| fallback_observed_at.map(str::to_string));
+    let mut imported = QualityFindings {
+        source: Some(QualitySource::Qr),
+        observed_at: observed_at.clone(),
+        scanned_commit,
+        scanned_branch,
+        freshness: evaluate_freshness_at(
+            observed_at.as_deref(),
+            json_string_at(result, &["target", "head"]).as_deref(),
+            json_string_at(result, &["target", "branch"]).as_deref(),
+            repository.workspace.last_commit.as_deref(),
+            Some(repository.branch.as_str()),
+            Utc::now(),
+        ),
+        report_path: Some(ledger_path.to_string_lossy().to_string()),
+        refresh_required: true,
+        refresh_required_reason: Some(reason.clone()),
+        detector_status: Some("blocked".to_string()),
+        target_sha: json_string_at(result, &["detector", "target_sha"])
+            .or_else(|| json_string_at(result, &["target", "head"])),
+        refresh_time: json_string_at(result, &["detector", "scan_time"])
+            .or_else(|| fallback_observed_at.map(str::to_string)),
+        ..QualityFindings::default()
+    };
+    if let Some(receipt) = result.get("detector").filter(|value| value.is_object()) {
+        let mut receipt = receipt.clone();
+        if receipt.get("reason").is_none() {
+            receipt["reason"] = Value::String(reason);
+        }
+        apply_detector_evidence(
+            &mut imported,
+            &serde_json::json!({"detector_evidence": [receipt]}),
+        );
+    }
+    imported.refresh_required = true;
+    imported.refresh_required_reason = imported
+        .refresh_required_reason
+        .or_else(|| Some("The detector refresh was blocked.".to_string()));
+    imported.detector_status = Some("blocked".to_string());
+    sync_detector_counts(&mut imported);
+    imported
+}
+
+fn not_applicable_detector_findings(
+    result: &Value,
+    repository: &RepositorySnapshot,
+    fallback_observed_at: Option<&str>,
+    report_path: Option<&Path>,
+) -> QualityFindings {
+    let (scanned_branch, scanned_commit) = detector_target(result);
+    let observed_at = json_string_at(result, &["detector", "scan_time"])
+        .or_else(|| fallback_observed_at.map(str::to_string));
+    let mut imported = QualityFindings {
+        source: Some(QualitySource::Qr),
+        observed_at: observed_at.clone(),
+        scanned_commit,
+        scanned_branch,
+        freshness: evaluate_freshness_at(
+            observed_at.as_deref(),
+            json_string_at(result, &["target", "head"]).as_deref(),
+            json_string_at(result, &["target", "branch"]).as_deref(),
+            repository.workspace.last_commit.as_deref(),
+            Some(repository.branch.as_str()),
+            Utc::now(),
+        ),
+        report_path: report_path.map(|path| path.to_string_lossy().to_string()),
+        target_sha: json_string_at(result, &["detector", "target_sha"])
+            .or_else(|| json_string_at(result, &["target", "head"])),
+        refresh_time: json_string_at(result, &["detector", "scan_time"])
+            .or_else(|| fallback_observed_at.map(str::to_string)),
+        ..QualityFindings::default()
+    };
+    let payload = serde_json::json!({
+        "detector_evidence": result.get("detector").cloned().into_iter().collect::<Vec<_>>()
+    });
+    apply_detector_evidence(&mut imported, &payload);
+    imported.detector_status = Some("not_applicable".to_string());
+    imported
+}
+
+fn blocked_detector_refresh_import(
+    ledger_path: &Path,
+    repositories: &[RepositorySnapshot],
+    refresh_id: Option<String>,
+    observed_at: Option<String>,
+    reason: &str,
+) -> DetectorRefreshImport {
+    let evidence = repositories
+        .iter()
+        .map(|repository| {
+            (
+                repository.id.clone(),
+                blocked_detector_findings(
+                    &Value::Null,
+                    repository,
+                    observed_at.as_deref(),
+                    ledger_path,
+                    reason.to_string(),
+                ),
+            )
+        })
+        .collect();
+    DetectorRefreshImport {
+        refresh_id,
+        observed_at,
+        ledger_path: Some(ledger_path.to_string_lossy().to_string()),
+        blocked_reason: Some(reason.to_string()),
+        evidence,
+    }
+}
+
+pub fn detector_refresh_import(
+    root: Option<&Path>,
+    repositories: &[RepositorySnapshot],
+) -> DetectorRefreshImport {
+    let Some(root) = root else {
+        return DetectorRefreshImport::default();
+    };
+    let ledger_path = root.join("detector-refresh.json");
+    let Some(ledger) = read_json(&ledger_path) else {
+        return blocked_detector_refresh_import(
+            &ledger_path,
+            repositories,
+            None,
+            None,
+            "The detector refresh ledger is missing or malformed.",
+        );
+    };
+    if ledger.get("schema").and_then(Value::as_str) != Some(DETECTOR_REFRESH_SCHEMA) {
+        return blocked_detector_refresh_import(
+            &ledger_path,
+            repositories,
+            json_string_at(&ledger, &["refresh_id"]),
+            json_string_at(&ledger, &["as_of"]),
+            &format!("The detector refresh ledger schema is not {DETECTOR_REFRESH_SCHEMA}."),
+        );
+    }
+    let Some(results) = ledger.get("results").and_then(Value::as_array) else {
+        return blocked_detector_refresh_import(
+            &ledger_path,
+            repositories,
+            json_string_at(&ledger, &["refresh_id"]),
+            json_string_at(&ledger, &["as_of"]),
+            "The detector refresh ledger has no result array.",
+        );
+    };
+
+    let observed_at = json_string_at(&ledger, &["as_of"]);
+    let refresh_id = json_string_at(&ledger, &["refresh_id"]);
+    let ledger_path_string = Some(ledger_path.to_string_lossy().to_string());
+    let mut evidence = HashMap::new();
+    for result in results.iter().filter(|value| value.is_object()) {
+        let candidate_path = json_string_at(result, &["primary_path"]);
+        let candidate_id = json_string_at(result, &["repo_id"]);
+        let Some(repository) = repositories.iter().find(|repository| {
+            candidate_id.as_deref() == Some(repository.id.as_str())
+                || canonical_path_matches(candidate_path.as_deref(), &repository.path)
+        }) else {
+            continue;
+        };
+        let status = json_string_at(result, &["status"]);
+        let detector_status = json_string_at(result, &["detector", "status"]);
+        let reason = json_string_at(result, &["detector", "reason"])
+            .or_else(|| json_string_at(result, &["reason"]))
+            .unwrap_or_else(|| {
+                "The detector refresh did not produce current evidence.".to_string()
+            });
+        let imported = if status.as_deref() == Some("unsupported") {
+            continue;
+        } else if status.as_deref() == Some("blocked")
+            || detector_status.as_deref() == Some("blocked")
+            || result
+                .get("detector")
+                .and_then(|value| value.get("refresh_required"))
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+        {
+            blocked_detector_findings(
+                result,
+                repository,
+                observed_at.as_deref(),
+                &ledger_path,
+                reason,
+            )
+        } else if let Some((report_path, payload)) = detector_report_payload(result) {
+            detector_findings_from_scan(
+                result,
+                &report_path,
+                payload,
+                repository,
+                observed_at.as_deref(),
+            )
+            .unwrap_or_else(|| {
+                blocked_detector_findings(
+                    result,
+                    repository,
+                    observed_at.as_deref(),
+                    &ledger_path,
+                    "The published detector report is malformed.".to_string(),
+                )
+            })
+        } else if detector_status.as_deref() == Some("not_applicable") {
+            not_applicable_detector_findings(result, repository, observed_at.as_deref(), None)
+        } else {
+            blocked_detector_findings(
+                result,
+                repository,
+                observed_at.as_deref(),
+                &ledger_path,
+                "The published detector report is missing or malformed.".to_string(),
+            )
+        };
+        evidence.insert(repository.id.clone(), imported);
+    }
+    DetectorRefreshImport {
+        refresh_id,
+        observed_at,
+        ledger_path: ledger_path_string,
+        blocked_reason: None,
         evidence,
     }
 }
@@ -6699,6 +7096,138 @@ mod tests {
         comparable.detector_findings_total = 3;
         update_detector_delta(&prior, &mut comparable);
         assert_eq!(comparable.delta_total, Some(1));
+    }
+
+    #[test]
+    fn detector_refresh_import_reads_published_reports_and_blocks_failed_results() {
+        let root = fixture_root();
+        let repository_path = root.join("repo");
+        fs::create_dir_all(&repository_path).expect("repository should be writable");
+        let repository = fixture_repository(&repository_path);
+        let refresh_root = root.join("detector-refresh-1");
+        let report_root = root.join("published");
+        fs::create_dir_all(&refresh_root).expect("refresh root should be writable");
+        fs::create_dir_all(&report_root).expect("report root should be writable");
+
+        let receipt = serde_json::json!({
+            "schema": "quality-runner-external-detector/v1",
+            "detector": "anti-slop",
+            "status": "passed",
+            "applicable": true,
+            "enabled_rules": ["anti-slop/rule-a", "anti-slop/rule-b"],
+            "producer": {
+                "name": "eslint-plugin-anti-slop",
+                "version": "0.5.0",
+                "source_sha": "producer-sha"
+            },
+            "qr_version": "0.7.0",
+            "target_sha": "target-sha",
+            "ruleset_hash": "ruleset-sha",
+            "configuration_hash": "configuration-sha",
+            "scan_time": "2026-08-16T08:00:00Z",
+            "refresh_required": false
+        });
+        fs::write(
+            report_root.join("code-quality-scan.json"),
+            serde_json::to_string(&serde_json::json!({
+                "schema": "quality-runner-code-quality-scan-v0.1",
+                "summary": {"total_findings": 2},
+                "findings": [
+                    {"fingerprint": "one", "severity": "warning"},
+                    {"fingerprint": "two", "severity": "high"}
+                ],
+                "detector_evidence": [receipt.clone()]
+            }))
+            .expect("detector report should encode"),
+        )
+        .expect("detector report should be writable");
+
+        let published_result = serde_json::json!({
+            "repo_id": "repo-1",
+            "primary_path": repository_path,
+            "status": "published",
+            "target": {"branch": "main", "head": "target-sha"},
+            "detector": receipt,
+            "published_paths": [report_root]
+        });
+        fs::write(
+            refresh_root.join("detector-refresh.json"),
+            serde_json::to_string(&serde_json::json!({
+                "schema": DETECTOR_REFRESH_SCHEMA,
+                "refresh_id": "detector-refresh-1",
+                "as_of": "2026-08-16T08:01:00Z",
+                "results": [published_result]
+            }))
+            .expect("detector ledger should encode"),
+        )
+        .expect("detector ledger should be writable");
+
+        let imported =
+            detector_refresh_import(Some(&refresh_root), std::slice::from_ref(&repository));
+        let findings = imported
+            .evidence
+            .get("repo-1")
+            .expect("published detector evidence should be imported");
+        assert_eq!(findings.total, 2);
+        assert_eq!(findings.detector_findings_total, 2);
+        assert_eq!(findings.enabled_detector_count, 1);
+        assert_eq!(findings.enabled_rule_count, 2);
+        assert_eq!(findings.target_sha.as_deref(), Some("target-sha"));
+        assert_eq!(findings.detector_status.as_deref(), Some("passed"));
+        assert!(!findings.refresh_required);
+
+        fs::write(
+            refresh_root.join("detector-refresh.json"),
+            serde_json::to_string(&serde_json::json!({
+                "schema": DETECTOR_REFRESH_SCHEMA,
+                "refresh_id": "detector-refresh-2",
+                "as_of": "2026-08-16T08:02:00Z",
+                "results": [{
+                    "repo_id": "repo-1",
+                    "primary_path": repository_path,
+                    "status": "blocked",
+                    "reason": "anti-slop command returned a failure",
+                    "target": {"branch": "main", "head": "target-sha"},
+                    "detector": {
+                        "detector": "anti-slop",
+                        "status": "blocked",
+                        "refresh_required": true,
+                        "reason": "anti-slop command returned a failure"
+                    }
+                }]
+            }))
+            .expect("blocked ledger should encode"),
+        )
+        .expect("blocked ledger should be writable");
+        let blocked =
+            detector_refresh_import(Some(&refresh_root), std::slice::from_ref(&repository));
+        let blocked_findings = blocked
+            .evidence
+            .get("repo-1")
+            .expect("blocked detector evidence should be represented");
+        assert_eq!(blocked_findings.total, 0);
+        assert!(blocked_findings.refresh_required);
+        assert_eq!(blocked_findings.detector_status.as_deref(), Some("blocked"));
+        assert_eq!(
+            blocked_findings.refresh_required_reason.as_deref(),
+            Some("anti-slop command returned a failure")
+        );
+
+        fs::write(&refresh_root.join("detector-refresh.json"), "{malformed")
+            .expect("malformed detector ledger should be writable");
+        let malformed =
+            detector_refresh_import(Some(&refresh_root), std::slice::from_ref(&repository));
+        let malformed_findings = malformed
+            .evidence
+            .get("repo-1")
+            .expect("malformed ledger should be represented as blocked evidence");
+        assert_eq!(malformed_findings.total, 0);
+        assert!(malformed_findings.refresh_required);
+        assert_eq!(
+            malformed_findings.detector_status.as_deref(),
+            Some("blocked")
+        );
+        fs::remove_dir_all(root).expect("detector fixture root should be removable");
     }
 
     #[test]

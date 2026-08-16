@@ -436,6 +436,11 @@ branch is `Stale`; an exact commit match remains authoritative.
   raw evidence while showing `refresh required`; it must not present that
   retained count as current or compute a comparable-scan delta until a fresh
   receipt is imported.
+- Ordinary `quality refresh` imports the newest valid QR detector ledger from
+  `~/.quality-runner/fleet-detector-refresh/<refresh-id>/detector-refresh.json`
+  and the published reports it names. Missing or malformed ledger/report
+  entries remain blocked and scoped fleet-audit imports are not overwritten by
+  the global detector ledger.
 - QR category `debloat` is projected as the conditional
   `Repository debloat review` gate. QR's deterministic findings are structural
   triggers, not proof of architectural bloat or a complete ownership-pressure

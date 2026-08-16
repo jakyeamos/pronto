@@ -103,6 +103,12 @@ target SHA, QR version, refresh time, and a comparable-scan delta. Missing,
 malformed, failed, or stale detector evidence is blocked and must render as
 `refresh required`, not as zero or as a credible current count. A retained
 prior count is raw evidence only until the required refresh succeeds.
+An ordinary `quality refresh` imports the newest valid QR detector ledger from
+`~/.quality-runner/fleet-detector-refresh/<refresh-id>/detector-refresh.json`
+and resolves each published `code-quality-scan.json` named by that ledger.
+Missing or malformed ledger results and published reports remain blocked
+evidence; a scoped fleet-audit import is not silently replaced by the global
+detector ledger.
 Finding categories are an open set: Pronto derives them from the report's
 finding records, supplements categories absent from those records with
 `summary.findings_by_category`, and renders every non-zero native, `skill:*`,
