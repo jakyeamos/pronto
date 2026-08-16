@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-13",
+  "last_reviewed": "2026-08-16",
   "surfaces": [
     {
       "id": "matrix-maintenance",
@@ -30,7 +30,8 @@
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml",
         "pnpm typecheck",
-        "For maturity changes, verify pillar weighting, applicability, evidence coverage, and critical caps in src-tauri/src/quality.rs tests.",
+        "For maturity changes, verify pillar weighting, applicability, assessed versus applicable dimensions, evidence coverage, and critical caps in src-tauri/src/quality.rs tests.",
+        "For detector evidence changes, verify blocked or refresh-required receipts never become zero findings and preserve prior raw evidence without a current delta.",
         "Run the parallel refresh coordinator tests and verify the locked merge preserves every scanned repository."
       ],
       "status": "applicable"
@@ -54,6 +55,7 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::analytics",
+        "Run the detector-evidence fingerprint regression proving a material imported change creates a new observation while an unchanged rerun deduplicates.",
         "pnpm vitest run src/renderer/src/components/AnalyticsComponents.test.tsx",
         "pnpm typecheck",
         "pnpm build:web",

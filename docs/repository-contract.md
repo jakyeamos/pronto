@@ -1,6 +1,6 @@
 # Pronto repository operating contract
 
-Last reviewed: 2026-08-13.
+Last reviewed: 2026-08-16.
 
 This is the repository-specific execution contract for contributors and
 agents. The canonical branch is `main`; work is developed on an isolated
@@ -96,6 +96,13 @@ For finding counts and the repository review ledger, prefer QR's fingerprinted
 `code-quality-scan.json` detector report. Aggregate `quality-audit.json`
 findings remain remediation context but must not replace stable detector
 identities; use the aggregate only when the fingerprinted report is absent.
+Detector findings are a separate projection from maturity rows: the imported
+quality evidence exposes detector total/actionable/unreviewed counts, enabled
+detector and rule counts, producer versions, ruleset/configuration fingerprints,
+target SHA, QR version, refresh time, and a comparable-scan delta. Missing,
+malformed, failed, or stale detector evidence is blocked and must render as
+`refresh required`, not as zero or as a credible current count. A retained
+prior count is raw evidence only until the required refresh succeeds.
 Finding categories are an open set: Pronto derives them from the report's
 finding records, supplements categories absent from those records with
 `summary.findings_by_category`, and renders every non-zero native, `skill:*`,
@@ -106,7 +113,9 @@ dispositions as the overall finding count.
 Fleet finding dimensions remain maturity evidence rather than duplicate code
 findings. Pronto preserves every scored dimension as an open set and exposes
 the complete score inventory in the maturity disclosure; descriptive gaps are
-bounded separately by the feed contract.
+bounded separately by the feed contract. Repository cards show assessed versus
+applicable maturity dimensions and maturity gaps separately from detector
+findings.
 
 The [Mac Control maturity gate](mac-control-maturity-gate.md) contributes
 implementation-contract and live-task-evidence dimensions to the consolidated

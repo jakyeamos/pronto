@@ -335,6 +335,11 @@ pub struct QualityGate {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QualityFindings {
     pub total: u64,
+    /// Compatibility count for the complete detector report. New consumers
+    /// should use the explicit detector fields below instead of treating this
+    /// value as a generic quality or maturity count.
+    #[serde(default)]
+    pub detector_findings_total: u64,
     #[serde(default)]
     pub category_counts: BTreeMap<String, u64>,
     #[serde(default)]
@@ -342,9 +347,13 @@ pub struct QualityFindings {
     #[serde(default)]
     pub actionable_total: u64,
     #[serde(default)]
+    pub detector_actionable_total: u64,
+    #[serde(default)]
     pub reviewed_total: u64,
     #[serde(default)]
     pub unreviewed_total: u64,
+    #[serde(default)]
+    pub detector_unreviewed_total: u64,
     #[serde(default)]
     pub disposition_counts: BTreeMap<String, u64>,
     #[serde(default)]
@@ -363,17 +372,46 @@ pub struct QualityFindings {
     pub scanned_branch: Option<String>,
     pub freshness: QualityFreshness,
     pub report_path: Option<String>,
+    #[serde(default)]
+    pub enabled_detector_count: u64,
+    #[serde(default)]
+    pub enabled_rule_count: u64,
+    #[serde(default)]
+    pub producer_versions: BTreeMap<String, String>,
+    #[serde(default)]
+    pub producer_source_shas: BTreeMap<String, String>,
+    #[serde(default)]
+    pub ruleset_fingerprints: BTreeMap<String, String>,
+    #[serde(default)]
+    pub configuration_fingerprints: BTreeMap<String, String>,
+    #[serde(default)]
+    pub qr_version: Option<String>,
+    #[serde(default)]
+    pub target_sha: Option<String>,
+    #[serde(default)]
+    pub refresh_time: Option<String>,
+    #[serde(default)]
+    pub delta_total: Option<i64>,
+    #[serde(default)]
+    pub refresh_required: bool,
+    #[serde(default)]
+    pub refresh_required_reason: Option<String>,
+    #[serde(default)]
+    pub detector_status: Option<String>,
 }
 
 impl Default for QualityFindings {
     fn default() -> Self {
         Self {
             total: 0,
+            detector_findings_total: 0,
             category_counts: BTreeMap::new(),
             actionable_category_counts: BTreeMap::new(),
             actionable_total: 0,
+            detector_actionable_total: 0,
             reviewed_total: 0,
             unreviewed_total: 0,
+            detector_unreviewed_total: 0,
             disposition_counts: BTreeMap::new(),
             stale_disposition_total: 0,
             disposition_status: default_disposition_status(),
@@ -387,6 +425,19 @@ impl Default for QualityFindings {
             scanned_branch: None,
             freshness: QualityFreshness::Unknown,
             report_path: None,
+            enabled_detector_count: 0,
+            enabled_rule_count: 0,
+            producer_versions: BTreeMap::new(),
+            producer_source_shas: BTreeMap::new(),
+            ruleset_fingerprints: BTreeMap::new(),
+            configuration_fingerprints: BTreeMap::new(),
+            qr_version: None,
+            target_sha: None,
+            refresh_time: None,
+            delta_total: None,
+            refresh_required: false,
+            refresh_required_reason: None,
+            detector_status: None,
         }
     }
 }
@@ -439,6 +490,10 @@ pub struct RepositoryMaturityPillar {
 pub struct RepositoryMaturityEvidence {
     pub applicable_pillar_count: u64,
     pub assessed_pillar_count: u64,
+    #[serde(default)]
+    pub applicable_dimension_count: u64,
+    #[serde(default)]
+    pub assessed_dimension_count: u64,
     pub applicable_weight: f64,
     pub assessed_weight: f64,
     pub evidence_coverage: f64,
@@ -954,6 +1009,176 @@ pub fn is_stable_detector_report(report_path: Option<&str>) -> bool {
         .is_some_and(|name| name == "code-quality-scan.json")
 }
 
+fn sync_detector_counts(findings: &mut QualityFindings) {
+    findings.detector_findings_total = findings.total;
+    findings.detector_actionable_total = findings.actionable_total;
+    findings.detector_unreviewed_total = findings.unreviewed_total;
+}
+
+fn apply_detector_evidence(findings: &mut QualityFindings, payload: &Value) {
+    let receipts = payload
+        .get("detector_evidence")
+        .and_then(Value::as_array)
+        .cloned()
+        .or_else(|| {
+            payload
+                .get("detector")
+                .is_some()
+                .then(|| vec![payload.clone()])
+        })
+        .unwrap_or_default();
+    if receipts.is_empty() {
+        sync_detector_counts(findings);
+        return;
+    }
+
+    let mut detectors = BTreeSet::new();
+    let mut rules = BTreeSet::new();
+    let mut statuses = BTreeSet::new();
+    for receipt in receipts.iter().filter(|receipt| receipt.is_object()) {
+        let detector = json_string_at(receipt, &["detector"]);
+        let status = json_string_at(receipt, &["status"]);
+        if let Some(status) = status.as_deref() {
+            statuses.insert(status.to_string());
+        }
+        let applicable = receipt
+            .get("applicable")
+            .and_then(Value::as_bool)
+            .unwrap_or(true);
+        if applicable && status.as_deref() != Some("not_applicable") {
+            if let Some(detector) = detector.as_deref() {
+                detectors.insert(detector.to_string());
+            }
+            if let Some(enabled_rules) = receipt.get("enabled_rules").and_then(Value::as_array) {
+                rules.extend(
+                    enabled_rules
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .map(str::to_string),
+                );
+            }
+        }
+        if let Some(detector) = detector.as_deref() {
+            if let Some(version) = json_string_at(receipt, &["producer", "version"]) {
+                findings
+                    .producer_versions
+                    .insert(detector.to_string(), version);
+            }
+            if let Some(source_sha) = json_string_at(receipt, &["producer", "source_sha"]) {
+                findings
+                    .producer_source_shas
+                    .insert(detector.to_string(), source_sha);
+            }
+            if let Some(ruleset_hash) = json_string_at(receipt, &["ruleset_hash"]) {
+                findings
+                    .ruleset_fingerprints
+                    .insert(detector.to_string(), ruleset_hash);
+            }
+            if let Some(configuration_hash) = json_string_at(receipt, &["configuration_hash"]) {
+                findings
+                    .configuration_fingerprints
+                    .insert(detector.to_string(), configuration_hash);
+            }
+        }
+        if findings.qr_version.is_none() {
+            findings.qr_version = json_string_at(receipt, &["qr_version"]);
+        }
+        if findings.target_sha.is_none() {
+            findings.target_sha = json_string_at(receipt, &["target_sha"]);
+        }
+        if let Some(scan_time) = json_string_at(receipt, &["scan_time"]) {
+            if findings
+                .refresh_time
+                .as_deref()
+                .is_none_or(|current| current < scan_time.as_str())
+            {
+                findings.refresh_time = Some(scan_time);
+            }
+        }
+        if receipt
+            .get("refresh_required")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+            || status.as_deref() == Some("blocked")
+        {
+            findings.refresh_required = true;
+            if findings.refresh_required_reason.is_none() {
+                findings.refresh_required_reason = json_string_at(receipt, &["reason"]);
+            }
+        }
+    }
+
+    findings.enabled_detector_count = detectors.len() as u64;
+    findings.enabled_rule_count = rules.len() as u64;
+    findings.detector_status = if statuses.contains("blocked") {
+        Some("blocked".to_string())
+    } else if statuses.contains("passed") {
+        Some("passed".to_string())
+    } else if statuses.contains("not_applicable") {
+        Some("not_applicable".to_string())
+    } else {
+        None
+    };
+    if findings.target_sha.is_none() {
+        findings.target_sha = findings.scanned_commit.clone();
+    }
+    sync_detector_counts(findings);
+}
+
+pub fn preserve_detector_evidence_on_refresh_failure(
+    prior: &QualityFindings,
+    current: &mut QualityFindings,
+) {
+    if !current.refresh_required
+        || current.detector_status.as_deref() != Some("blocked")
+        || prior.source.is_none()
+    {
+        return;
+    }
+    let mut preserved = prior.clone();
+    preserved.refresh_required = true;
+    preserved.refresh_required_reason = current
+        .refresh_required_reason
+        .clone()
+        .or_else(|| Some("The latest detector refresh was blocked.".to_string()));
+    preserved.detector_status = Some("blocked".to_string());
+    preserved.refresh_time = current.refresh_time.clone().or(prior.refresh_time.clone());
+    preserved.target_sha = current.target_sha.clone().or(prior.target_sha.clone());
+    preserved.qr_version = current.qr_version.clone().or(prior.qr_version.clone());
+    if current.report_path.is_some() && !is_stable_detector_report(current.report_path.as_deref()) {
+        preserved.refresh_required_reason = preserved.refresh_required_reason.or_else(|| {
+            Some(
+                "The detector receipt is blocked; the prior valid scan is retained for review."
+                    .to_string(),
+            )
+        });
+    }
+    *current = preserved;
+}
+
+pub fn update_detector_delta(prior: &QualityFindings, current: &mut QualityFindings) {
+    current.delta_total = None;
+    if current.refresh_required
+        || prior.refresh_required
+        || prior.source.is_none()
+        || current.source.is_none()
+        || prior.target_sha.is_none()
+        || current.target_sha.is_none()
+    {
+        return;
+    }
+    let same_identity = prior.target_sha == current.target_sha
+        && prior.qr_version == current.qr_version
+        && prior.producer_versions == current.producer_versions
+        && prior.producer_source_shas == current.producer_source_shas
+        && prior.ruleset_fingerprints == current.ruleset_fingerprints
+        && prior.configuration_fingerprints == current.configuration_fingerprints;
+    if same_identity {
+        current.delta_total =
+            Some(current.detector_findings_total as i64 - prior.detector_findings_total as i64);
+    }
+}
+
 pub fn fleet_audit_import(
     root: Option<&Path>,
     repositories: &[RepositorySnapshot],
@@ -1099,22 +1324,24 @@ pub fn fleet_audit_import(
             Some(repository.branch.as_str()),
             Utc::now(),
         );
+        let mut imported_findings = QualityFindings {
+            total: quality_findings.len() as u64,
+            severity_counts,
+            high_severity_total,
+            source: Some(QualitySource::Qr),
+            observed_at: run_observed_at.clone(),
+            scanned_commit,
+            scanned_branch,
+            freshness: findings_freshness,
+            report_path: Some(path.to_string_lossy().to_string()),
+            ..QualityFindings::default()
+        };
+        apply_detector_evidence(&mut imported_findings, &payload);
         evidence.insert(
             repository.id.clone(),
             FleetAuditEvidence {
                 maturity,
-                findings: QualityFindings {
-                    total: quality_findings.len() as u64,
-                    severity_counts,
-                    high_severity_total,
-                    source: Some(QualitySource::Qr),
-                    observed_at: run_observed_at.clone(),
-                    scanned_commit,
-                    scanned_branch,
-                    freshness: findings_freshness,
-                    report_path: Some(path.to_string_lossy().to_string()),
-                    ..QualityFindings::default()
-                },
+                findings: imported_findings,
             },
         );
     }
@@ -1804,6 +2031,20 @@ fn build_repository_maturity_model(maturity: &QualityMaturity) -> RepositoryMatu
     };
     let applicable_pillar_count = applicable.len() as u64;
     let assessed_pillar_count = assessed.len() as u64;
+    let assessed_dimension_count = maturity.dimension_scores.len() as u64;
+    let applicable_dimensions = maturity
+        .dimension_scores
+        .keys()
+        .cloned()
+        .chain(
+            maturity
+                .gaps
+                .iter()
+                .filter(|gap| gap.status != "not_applicable")
+                .map(|gap| gap.dimension.clone()),
+        )
+        .collect::<BTreeSet<_>>();
+    let applicable_dimension_count = applicable_dimensions.len() as u64;
 
     critical_reasons.sort();
     RepositoryMaturityModel {
@@ -1815,6 +2056,8 @@ fn build_repository_maturity_model(maturity: &QualityMaturity) -> RepositoryMatu
         evidence: RepositoryMaturityEvidence {
             applicable_pillar_count,
             assessed_pillar_count,
+            applicable_dimension_count,
+            assessed_dimension_count,
             applicable_weight: round_ratio(applicable_weight),
             assessed_weight: round_ratio(assessed_weight),
             evidence_coverage,
@@ -2582,6 +2825,14 @@ pub fn project_quality_snapshot_for_target(
             target_branch,
             target_commit,
         );
+    } else if snapshot.findings.refresh_required
+        && snapshot.findings.detector_status.as_deref() == Some("blocked")
+        && snapshot.findings.detector_findings_total > 0
+    {
+        // Keep the prior valid report available as stale/raw evidence when a
+        // replacement detector run is blocked. The target UI still refuses to
+        // present it as a verified result because refresh_required remains set.
+        snapshot.findings.freshness = QualityFreshness::Stale;
     } else {
         snapshot.findings = QualityFindings::default();
     }
@@ -2837,6 +3088,7 @@ pub fn non_actionable_finding_fingerprints(
 }
 
 pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut QualityFindings) {
+    sync_detector_counts(findings);
     findings.actionable_total = findings.total;
     findings.reviewed_total = 0;
     findings.unreviewed_total = findings.total;
@@ -2866,11 +3118,13 @@ pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut Qua
                 "No repository-owned finding disposition contract was found; every detected finding remains unreviewed and actionable."
                     .to_string(),
             );
+            sync_detector_counts(findings);
             return;
         }
         Err(error) => {
             findings.disposition_status = "Invalid".to_string();
             findings.disposition_message = Some(error);
+            sync_detector_counts(findings);
             return;
         }
     };
@@ -2882,6 +3136,7 @@ pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut Qua
                 .to_string(),
         );
         findings.stale_disposition_total = contract.dispositions.len() as u64;
+        sync_detector_counts(findings);
         return;
     };
     let identified_total = report_inventory.fingerprint_counts.values().sum::<u64>();
@@ -2892,6 +3147,7 @@ pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut Qua
             findings.total, identified_total
         ));
         findings.stale_disposition_total = contract.dispositions.len() as u64;
+        sync_detector_counts(findings);
         return;
     }
 
@@ -2939,6 +3195,7 @@ pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut Qua
     findings.unreviewed_total = findings.total.saturating_sub(findings.reviewed_total);
     findings.actionable_total = findings.unreviewed_total + actionable_reviewed;
     findings.disposition_status = "Ready".to_string();
+    sync_detector_counts(findings);
 }
 
 fn debloat_maturity_evidence(findings: &QualityFindings) -> Option<QualityEvidence> {
@@ -4144,6 +4401,30 @@ impl QrRun {
             .map(|name| self.run_dir.join(name))
             .find_map(|path| read_json(&path).map(|payload| (path, payload)))
         else {
+            let detector_path = self.run_dir.join("anti-slop-detector.json");
+            if let Some(payload) = read_json(&detector_path) {
+                let branch = self.branch();
+                let commit = self.commit();
+                let mut findings = QualityFindings {
+                    source: Some(QualitySource::Qr),
+                    observed_at: self.observed_at.clone(),
+                    scanned_commit: commit.clone(),
+                    scanned_branch: branch.clone(),
+                    target_sha: json_string_at(&payload, &["target_sha"]),
+                    freshness: evaluate_freshness_at(
+                        self.observed_at.as_deref(),
+                        commit.as_deref(),
+                        branch.as_deref(),
+                        repository.workspace.last_commit.as_deref(),
+                        Some(repository.branch.as_str()),
+                        Utc::now(),
+                    ),
+                    report_path: Some(detector_path.to_string_lossy().to_string()),
+                    ..QualityFindings::default()
+                };
+                apply_detector_evidence(&mut findings, &payload);
+                return findings;
+            }
             return QualityFindings::default();
         };
         let severity_counts = severity_counts(&payload);
@@ -4168,7 +4449,7 @@ impl QrRun {
             .sum();
         let branch = self.branch();
         let commit = self.commit();
-        QualityFindings {
+        let mut findings = QualityFindings {
             total,
             severity_counts,
             high_severity_total,
@@ -4186,7 +4467,9 @@ impl QrRun {
             ),
             report_path: Some(report_path.to_string_lossy().to_string()),
             ..QualityFindings::default()
-        }
+        };
+        apply_detector_evidence(&mut findings, &payload);
+        findings
     }
 }
 
@@ -6157,6 +6440,18 @@ mod tests {
                     "primary_path": repository_path.to_string_lossy(),
                     "checkouts": [{"path": repository_path.to_string_lossy(), "head": "abc", "branch": "main"}]
                 },
+                "detector_evidence": [{
+                    "detector": "anti-slop",
+                    "status": "passed",
+                    "applicable": true,
+                    "enabled_rules": ["anti-slop/no-known-value-widening", "anti-slop/no-widen-then-assert"],
+                    "producer": {"version": "0.8.0", "source_sha": "producer-sha"},
+                    "ruleset_hash": "ruleset-sha",
+                    "configuration_hash": "configuration-sha",
+                    "qr_version": "0.7.0",
+                    "target_sha": "abc",
+                    "scan_time": "2026-08-03T20:05:54Z"
+                }],
                 "agent_usability": {
                     "applicability": "applicable",
                     "schema": "quality-runner-agent-usability/v1",
@@ -6275,6 +6570,19 @@ mod tests {
         assert_eq!(agent_usability.covered_lane_count, 3);
         assert_eq!(agent_usability.lanes[2].id, "behavior_evidence");
         assert_eq!(evidence.findings.total, 1);
+        assert_eq!(evidence.findings.detector_findings_total, 1);
+        assert_eq!(evidence.findings.enabled_detector_count, 1);
+        assert_eq!(evidence.findings.enabled_rule_count, 2);
+        assert_eq!(
+            evidence.findings.producer_versions.get("anti-slop"),
+            Some(&"0.8.0".to_string())
+        );
+        assert_eq!(
+            evidence.findings.ruleset_fingerprints.get("anti-slop"),
+            Some(&"ruleset-sha".to_string())
+        );
+        assert_eq!(evidence.findings.target_sha.as_deref(), Some("abc"));
+        assert_eq!(evidence.findings.qr_version.as_deref(), Some("0.7.0"));
         assert_eq!(evidence.findings.high_severity_total, 1);
         assert_eq!(evidence.findings.severity_counts.get("high"), Some(&1));
         fs::remove_dir_all(root).expect("fixture root should be removable");
@@ -6339,6 +6647,58 @@ mod tests {
             "/tmp/pronto/.quality-runner/fleet-audit/findings/repo.json"
         )));
         assert!(!is_stable_detector_report(None));
+    }
+
+    #[test]
+    fn blocked_detector_refresh_retains_prior_evidence_and_suppresses_delta() {
+        let mut prior = QualityFindings {
+            total: 2,
+            detector_findings_total: 2,
+            source: Some(QualitySource::Qr),
+            target_sha: Some("target-sha".to_string()),
+            qr_version: Some("0.7.0".to_string()),
+            producer_versions: BTreeMap::from([("anti-slop".to_string(), "0.8.0".to_string())]),
+            producer_source_shas: BTreeMap::from([(
+                "anti-slop".to_string(),
+                "producer-sha".to_string(),
+            )]),
+            ruleset_fingerprints: BTreeMap::from([(
+                "anti-slop".to_string(),
+                "ruleset-sha".to_string(),
+            )]),
+            configuration_fingerprints: BTreeMap::from([(
+                "anti-slop".to_string(),
+                "configuration-sha".to_string(),
+            )]),
+            ..QualityFindings::default()
+        };
+        prior.delta_total = Some(1);
+        let mut blocked = QualityFindings {
+            source: Some(QualitySource::Qr),
+            target_sha: Some("target-sha".to_string()),
+            qr_version: Some("0.7.0".to_string()),
+            refresh_required: true,
+            refresh_required_reason: Some("Detector execution failed".to_string()),
+            detector_status: Some("blocked".to_string()),
+            report_path: Some("/tmp/anti-slop-detector.json".to_string()),
+            ..QualityFindings::default()
+        };
+
+        preserve_detector_evidence_on_refresh_failure(&prior, &mut blocked);
+        assert_eq!(blocked.detector_findings_total, 2);
+        assert_eq!(blocked.total, 2);
+        assert_eq!(blocked.ruleset_fingerprints, prior.ruleset_fingerprints);
+        assert!(blocked.refresh_required);
+        assert_eq!(blocked.detector_status.as_deref(), Some("blocked"));
+
+        update_detector_delta(&prior, &mut blocked);
+        assert_eq!(blocked.delta_total, None);
+
+        let mut comparable = prior.clone();
+        comparable.total = 3;
+        comparable.detector_findings_total = 3;
+        update_detector_delta(&prior, &mut comparable);
+        assert_eq!(comparable.delta_total, Some(1));
     }
 
     #[test]
