@@ -447,15 +447,24 @@ export function RepositoryDetailSurface({
           {repository.workspaces.map((workspace) => {
             const showingSyncDetail = selectedWorkspaceId === workspace.id;
             const gitStatusUnavailable = workspace.status_available === false;
+            const provenanceKind =
+              workspace.provenance?.kind ||
+              (workspace.is_primary ? "canonical" : "linked");
+            const provenanceLabel =
+              provenanceKind === "temporary"
+                ? "Temporary worktree"
+                : provenanceKind === "canonical"
+                  ? "Canonical checkout"
+                  : provenanceKind === "linked"
+                    ? "Linked worktree"
+                    : "Workspace provenance unknown";
             return (
               <Fragment key={workspace.id}>
                 <div className="workspace-card">
                   <div className="workspace-card-top">
                     <span className="workspace-name">
                       <MonitorDot size={13} />
-                      {workspace.is_primary
-                        ? "Primary checkout"
-                        : "Linked worktree"}
+                      {provenanceLabel}
                     </span>
                     <StatusPill
                       tone={
@@ -508,6 +517,17 @@ export function RepositoryDetailSurface({
                       {workspace.activity.manifest.title ||
                         workspace.activity.manifest.task_id ||
                         "Structured agent task metadata"}
+                    </small>
+                  )}
+                  {workspace.provenance && (
+                    <small>
+                      {workspace.provenance.owner
+                        ? `Owner: ${workspace.provenance.owner}`
+                        : "Owner: unknown"}
+                      {workspace.provenance.lease
+                        ? ` · Lease: ${workspace.provenance.lease}`
+                        : " · Lease: unknown"}
+                      {` · Cleanup: ${workspace.provenance.cleanup_state}`}
                     </small>
                   )}
                   <div className="workspace-actions">

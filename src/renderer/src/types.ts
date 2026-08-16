@@ -169,6 +169,16 @@ interface WorkspaceActivity {
   manifest?: AgentManifest;
 }
 
+interface WorkspaceProvenance {
+  kind: "canonical" | "linked" | "temporary" | "unknown" | string;
+  owner?: string;
+  lease?: string;
+  canonical_repository: string;
+  head?: string;
+  preservation_evidence?: string;
+  cleanup_state: string;
+}
+
 interface WorkspaceSyncDetail {
   reason: string;
   evidence_observed_at?: string;
@@ -208,6 +218,7 @@ export interface WorkspaceSummary {
   role: string;
   role_confidence: string;
   activity: WorkspaceActivity;
+  provenance?: WorkspaceProvenance;
   sync_detail?: WorkspaceSyncDetail;
 }
 

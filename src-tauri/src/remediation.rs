@@ -4570,7 +4570,7 @@ mod tests {
     use super::*;
     use crate::core::{
         ActivitySignal, BranchSummary, Condition, RemoteRepositorySnapshot, SubmoduleSummary,
-        WorkspaceActivity, WorkspaceSummary,
+        WorkspaceActivity, WorkspaceProvenance, WorkspaceSummary,
     };
     use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -4616,6 +4616,7 @@ mod tests {
                 role: "Primary".to_string(),
                 role_confidence: "High".to_string(),
                 activity: WorkspaceActivity::default(),
+                provenance: WorkspaceProvenance::default(),
                 sync_detail: None,
             },
             workspaces: Vec::new(),

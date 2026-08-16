@@ -690,7 +690,9 @@ pub fn inspect(repositories: &[RepositorySnapshot]) -> ShowcasePortfolioSnapshot
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{RepositorySnapshot, WorkspaceActivity, WorkspaceSummary};
+    use crate::core::{
+        RepositorySnapshot, WorkspaceActivity, WorkspaceProvenance, WorkspaceSummary,
+    };
     use std::fs;
     use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -735,6 +737,7 @@ mod tests {
             role: "Primary".to_string(),
             role_confidence: "High".to_string(),
             activity: WorkspaceActivity::default(),
+            provenance: WorkspaceProvenance::default(),
             sync_detail: None,
         };
         let repository = RepositorySnapshot {

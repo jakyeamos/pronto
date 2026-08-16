@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-13",
+  "last_reviewed": "2026-08-16",
   "surfaces": [
     {
       "id": "matrix-maintenance",
@@ -25,10 +25,12 @@
       "scope": "local",
       "path": "src-tauri/src/",
       "owner": "Pronto repository maintainers",
-      "condition": "Repository evidence, persistence, routing, provider, quality, remediation, or command contracts change.",
+      "condition": "Repository evidence, persistence, routing, provider, quality, remediation, command contracts, workspace provenance, missing-path classification, or transactional cleanup changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::temporary_worktree_cleanup_requires_fresh_clean_status_and_postconditions",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::doctor_ --no-fail-fast",
         "pnpm typecheck",
         "For maturity changes, verify pillar weighting, applicability, evidence coverage, and critical caps in src-tauri/src/quality.rs tests.",
         "Run the parallel refresh coordinator tests and verify the locked merge preserves every scanned repository."
@@ -40,7 +42,7 @@
       "scope": "local",
       "path": "src/renderer/src/",
       "owner": "Pronto repository maintainers",
-      "condition": "A projected field, state label, navigation surface, or user-visible remediation behavior changes.",
+      "condition": "A projected field, workspace provenance label, state label, navigation surface, or user-visible remediation behavior changes.",
       "operations": ["add", "change", "remove"],
       "validation": ["pnpm vitest run", "pnpm typecheck", "pnpm build:web"],
       "status": "applicable"
@@ -66,7 +68,7 @@
       "scope": "local",
       "path": "bin/pronto.mjs",
       "owner": "Pronto repository maintainers",
-      "condition": "The native CLI binary, command syntax, JSON schema, or prerequisite resolution changes.",
+      "condition": "The native CLI binary, command syntax, JSON schema, workspace cleanup contract, or prerequisite resolution changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm cli help",
@@ -81,7 +83,7 @@
       "scope": "local",
       "path": ".agents/context/ and .agents/agent-usability.json",
       "owner": "Pronto repository maintainers",
-      "condition": "Agent-visible commands, documentation and skill relationships, freshness semantics, authorization boundaries, or routing behavior changes.",
+      "condition": "Agent-visible commands, workspace lifecycle classification, documentation and skill relationships, freshness semantics, authorization boundaries, or routing behavior changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "Validate every documented command against pnpm cli help.",
@@ -96,10 +98,11 @@
       "scope": "external",
       "path": "~/.agents/skills/pronto/ and ~/.agents/skills/pronto/references/cli-contract.md",
       "owner": "Pronto repository maintainers and Codex skill routing",
-      "condition": "The Pronto CLI command surface or its agent operating boundary changes.",
+      "condition": "The Pronto CLI command surface, workspace cleanup contract, or its agent operating boundary changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "Verify the skill documents refresh-batch parallel scan, serialized merge, and conflict retry semantics.",
+        "Verify the skill documents read-only route, scoped stale-record refresh, provenance classification, and transactional cleanup postconditions.",
         "Run pnpm cli help and confirm the documented command is exposed."
       ],
       "status": "applicable"
@@ -109,7 +112,7 @@
       "scope": "local",
       "path": "docs/",
       "owner": "Pronto repository maintainers",
-      "condition": "Product boundaries, architecture, remediation order, quality gates, release behavior, or operator workflow changes.",
+      "condition": "Product boundaries, workspace lifecycle, architecture, remediation order, quality gates, release behavior, or operator workflow changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm format:check",
