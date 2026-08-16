@@ -34,7 +34,7 @@ jobs:
       matrix:
         include:
           - name: Build
-            command: pnpm build:bundle
+            command: pnpm build:release
             prerequisite: none
           - name: Tests
             command: pnpm test

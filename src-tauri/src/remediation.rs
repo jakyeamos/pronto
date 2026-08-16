@@ -22,6 +22,7 @@ pub const GITHUB_ONLY_VERIFICATION_ACTION_KEY: &str = "verification:github-only"
 const RESOLVED_BY_REFRESH_LABEL: &str = "Resolved by remediation refresh";
 const PROJECT_COMPASS_OPEN_ITEMS_KEY: &str = "product_truth:project-compass-open-items";
 const DEBLOAT_GATE_ACTION_KEY: &str = "qr_findings:debloat-maturity-gate";
+const PUBLIC_RELEASE_BOUNDARY_ACTION_KEY: &str = "release_boundary:public-distribution";
 const DEBLOAT_GROUP_CATEGORY_PREFIX: &str = "qr_findings:group:debloat|";
 const DEBLOAT_GROUP_KEY_PREFIX: &str = "qr_findings:group:debloat|debloat candidate review|";
 const LEGACY_DEBLOAT_GROUP_KEY_PREFIX: &str =
@@ -31,10 +32,11 @@ const LEGACY_PROJECT_COMPASS_OPEN_ITEM_KEYS: [&str; 2] = [
     "product_truth:project-compass-blockers",
     "product_truth:project-compass-drift",
 ];
-const DEFAULT_REMEDIATION_PHASE_IDS: [&str; 4] = [
+const DEFAULT_REMEDIATION_PHASE_IDS: [&str; 5] = [
     "preserve_and_reconcile",
     "product_and_provider_truth",
     "quality_and_maturity",
+    "public_distribution_boundary",
     "verify_and_close",
 ];
 const UNCLASSIFIED_REMEDIATION_PHASE_ID: &str = "unclassified_remediation";
@@ -51,7 +53,7 @@ const ALL_GATE_IDS: [&str; 9] = [
 ];
 const ALL_MATURITY_GATE_IDS: [&str; 1] = [mac_control_maturity::MAC_CONTROL_GATE_ID];
 
-const STAGE_ORDER: [&str; 11] = [
+const STAGE_ORDER: [&str; 12] = [
     "scope",
     "product_truth",
     "repository_health",
@@ -61,6 +63,7 @@ const STAGE_ORDER: [&str; 11] = [
     "ci_ideal",
     "qr_findings",
     "maturity",
+    "release_boundary",
     "verification",
     "complete",
 ];
@@ -431,6 +434,7 @@ fn goal_definition(target_state: &str) -> Option<RemediationGoalProfile> {
                 "The canonical branch and provider state are reconciled.",
                 "All release-quality gates have fresh passing evidence.",
                 "The repository has an explicit release rule and release recipe.",
+                "Public, optional-adapter, and local-only surfaces are classified and the built distribution passes the public-release boundary checks.",
                 "Packaging, documentation, versioning, and release evidence are verified.",
             ],
         ),
@@ -846,6 +850,10 @@ fn goal_requires_maturity(goal: &RemediationGoalProfile) -> bool {
 
 pub(crate) fn repository_requires_maturity(repository: &RepositorySnapshot) -> bool {
     goal_requires_maturity(&resolve_goal_profile(repository))
+}
+
+pub(crate) fn repository_requires_public_release_boundary(repository: &RepositorySnapshot) -> bool {
+    resolve_goal_profile(repository).target_state == "public_release"
 }
 
 pub(crate) fn repository_requires_maturity_gate(
@@ -1318,6 +1326,7 @@ fn build_plan(
     add_debloat_gate_seed(repository, qr_run.as_ref(), &mut seeds);
     add_branch_hygiene_seeds(repository, &mut seeds);
     add_submodule_seeds(repository, &mut seeds);
+    add_evidence_contract_seeds(repository, &mut seeds);
     if goal_requires_maturity(&goal) {
         add_maturity_seeds(repository, &mut seeds);
         add_maturity_gate_seeds(repository, &goal, &mut seeds);
@@ -1512,6 +1521,53 @@ fn add_goal_seeds(
                         "missing"
                     }
                 ),
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: None,
+        });
+    }
+    if goal.target_state == "public_release"
+        && !repository.quality.release_boundary.is_release_ready()
+    {
+        let boundary = &repository.quality.release_boundary;
+        let blocker_detail = if boundary.blocking_check_ids.is_empty() {
+            boundary.detail.clone()
+        } else {
+            format!(
+                "Blocking checks: {}. {}",
+                boundary.blocking_check_ids.join(", "),
+                boundary.detail
+            )
+        };
+        seeds.push(ActionSeed {
+            stable_key: PUBLIC_RELEASE_BOUNDARY_ACTION_KEY.to_string(),
+            domain: "release_boundary".to_string(),
+            title: if boundary.status == "Missing" {
+                "Create and pass the public-release boundary receipt".to_string()
+            } else {
+                "Refresh and pass the public-release boundary receipt".to_string()
+            },
+            summary: blocker_detail.clone(),
+            severity: "release".to_string(),
+            priority: "P1".to_string(),
+            weight: 3,
+            acceptance_criteria: vec![
+                "Every release-relevant source, configuration, and documentation surface is classified as public_core, public_adapter, or local_only; unclassified surfaces block release preparation.".to_string(),
+                "Tracked source and documentation contain no personal absolute paths, private repository inventories, credentials, or private operational defaults.".to_string(),
+                "Every built distribution is inspected against an explicit artifact allowlist, including wheel and sdist contents for Python packages where applicable.".to_string(),
+                "The packaged artifact installs and runs with an isolated temporary home while Pronto, Leverage, Mac Control, and other private workspace peers are absent.".to_string(),
+                "Optional integrations are verified through sanitized contract fixtures or consumer-owned tests without copying private data or setup-specific policy into the public release.".to_string(),
+            ],
+            evidence: vec![evidence_with_provenance(
+                "Quality Runner release boundary",
+                "Public-release receipt",
+                &boundary.status,
+                &boundary.freshness,
+                boundary.generated_at.as_deref(),
+                boundary.report_path.as_deref(),
+                &blocker_detail,
+                boundary.scanned_branch.as_deref(),
+                boundary.scanned_commit.as_deref(),
             )],
             related_finding_ids: Vec::new(),
             source_run_id: None,
@@ -2662,25 +2718,37 @@ fn add_branch_hygiene_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<Act
     }
 }
 
-fn workspace_activity_requires_coordination(activity: &crate::core::WorkspaceActivity) -> bool {
-    if activity.state.eq_ignore_ascii_case("active")
+pub(crate) fn workspace_activity_requires_coordination(
+    activity: &crate::core::WorkspaceActivity,
+) -> bool {
+    workspace_activity_execution_state(activity) != "clear"
+}
+
+pub(crate) fn workspace_activity_execution_state(
+    activity: &crate::core::WorkspaceActivity,
+) -> &'static str {
+    let explicitly_active = activity.state.eq_ignore_ascii_case("active")
         || activity
-            .signals
-            .iter()
-            .any(|signal| signal.summary == "Activity state uncertain")
-    {
-        return true;
+            .manifest
+            .as_ref()
+            .and_then(|manifest| manifest.status.as_deref())
+            .is_some_and(|status| {
+                matches!(
+                    status.to_ascii_lowercase().as_str(),
+                    "active" | "running" | "started" | "paused" | "interrupted"
+                )
+            });
+    if explicitly_active {
+        return "coordination_required";
     }
-    activity
-        .manifest
-        .as_ref()
-        .and_then(|manifest| manifest.status.as_deref())
-        .is_some_and(|status| {
-            matches!(
-                status.to_ascii_lowercase().as_str(),
-                "active" | "running" | "started" | "paused" | "interrupted"
-            )
-        })
+    if activity
+        .signals
+        .iter()
+        .any(|signal| signal.summary == "Activity state uncertain")
+    {
+        return "evidence_unavailable";
+    }
+    "clear"
 }
 
 fn add_submodule_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
@@ -2811,6 +2879,45 @@ fn add_maturity_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
     }
 }
 
+fn add_evidence_contract_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
+    for contract in repository
+        .quality
+        .evidence_contracts
+        .iter()
+        .filter(|contract| contract.status != "current")
+    {
+        let observed = contract.observed_schema.as_deref().unwrap_or("missing");
+        seeds.push(ActionSeed {
+            stable_key: format!("evidence-contract:{}", contract.contract_id),
+            domain: "evidence".to_string(),
+            title: format!("Re-audit {} against {}", contract.label, contract.target_schema),
+            summary: contract.message.clone(),
+            severity: "maturity".to_string(),
+            priority: "P1".to_string(),
+            weight: 3,
+            acceptance_criteria: vec![
+                format!(
+                    "The owning producer emits {} evidence for this repository.",
+                    contract.target_schema
+                ),
+                "Pronto refreshes the evidence and reports this repository's contract status as current.".to_string(),
+                "The audit preserves positive, negative, and ambiguous evidence; do not convert missing evidence into a pass.".to_string(),
+            ],
+            evidence: vec![evidence(
+                "Evidence contract",
+                &contract.label,
+                observed,
+                "Contract audit required",
+                None,
+                None,
+                &contract.message,
+            )],
+            related_finding_ids: Vec::new(),
+            source_run_id: None,
+        });
+    }
+}
+
 fn add_maturity_gate_seeds(
     repository: &RepositorySnapshot,
     goal: &RemediationGoalProfile,
@@ -2820,6 +2927,17 @@ fn add_maturity_gate_seeds(
         .maturity_gate_ids
         .iter()
         .any(|gate_id| gate_id == mac_control_maturity::MAC_CONTROL_GATE_ID)
+    {
+        return;
+    }
+    if repository
+        .quality
+        .evidence_contracts
+        .iter()
+        .any(|contract| {
+            contract.contract_id == mac_control_maturity::MAC_CONTROL_TASK_CONTRACT_ID
+                && contract.status != "current"
+        })
     {
         return;
     }
@@ -2946,6 +3064,11 @@ fn materialize_action(
         })
         .map(|action| action.status.clone())
         .unwrap_or_else(|| "open".to_string());
+    let preserved_status = if seed.stable_key == PUBLIC_RELEASE_BOUNDARY_ACTION_KEY {
+        "blocked".to_string()
+    } else {
+        preserved_status
+    };
     let notes = previous_action.and_then(|action| action.notes.clone());
     RemediationAction {
         id: stable_id(
@@ -3280,7 +3403,11 @@ fn build_ui_coverage(
                     .as_deref()
                     .unwrap_or("Unknown")
             ),
-            &["scope:release-contract", "release_evidence:"],
+            &[
+                "scope:release-contract",
+                "release_evidence:",
+                PUBLIC_RELEASE_BOUNDARY_ACTION_KEY,
+            ],
             goal.target_state != "public_release",
             actions,
         ),
@@ -3381,22 +3508,30 @@ fn default_remediation_phase_definitions() -> Vec<RemediationPhaseDefinition> {
         },
         RemediationPhaseDefinition {
             id: "quality_and_maturity".to_string(),
-            title: "Reach quality and maturity closure".to_string(),
+            title: "Reach quality and maturity threshold".to_string(),
             summary: "Refresh required evidence, clear actionable findings and gate failures, and reach the applicable maturity floor without manufacturing evidence.".to_string(),
             domains: ["evidence_refresh", "ci_ideal", "qr_findings", "maturity"]
                 .into_iter()
                 .map(str::to_string)
                 .collect(),
-            completion_criterion: "Required gates and quality evidence are fresh, actionable findings are cleared, and applicable maturity reaches its minimum closure score.".to_string(),
+            completion_criterion: "Required gates and quality evidence are fresh, actionable findings are cleared, and applicable maturity reaches its minimum threshold.".to_string(),
             after_phase_id: Some("product_and_provider_truth".to_string()),
         },
         RemediationPhaseDefinition {
-            id: "verify_and_close".to_string(),
-            title: "Refresh, verify, and close".to_string(),
-            summary: "Re-run the scoped evidence sources after the material work and confirm that the repository can leave the active queue.".to_string(),
-            domains: vec!["verification".to_string()],
-            completion_criterion: "A fresh scoped remediation projection reports no open or blocked actions and records the repository in closure history.".to_string(),
+            id: "public_distribution_boundary".to_string(),
+            title: "Prove the public distribution boundary".to_string(),
+            summary: "Separate public product surfaces from optional adapters and local-only operations, then verify the packaged artifact in an isolated environment.".to_string(),
+            domains: vec!["release_boundary".to_string()],
+            completion_criterion: "Every release-relevant surface is classified, the artifact allowlist passes, isolated installation succeeds, and optional integrations rely only on sanitized contracts.".to_string(),
             after_phase_id: Some("quality_and_maturity".to_string()),
+        },
+        RemediationPhaseDefinition {
+            id: "verify_and_close".to_string(),
+            title: "Refresh and re-evaluate".to_string(),
+            summary: "Re-run the scoped evidence sources after the material work and determine whether the current queue still has actionable work.".to_string(),
+            domains: vec!["verification".to_string()],
+            completion_criterion: "A fresh scoped remediation projection reports the current queue state and records any resolved actions in history without treating the repository as permanently complete.".to_string(),
+            after_phase_id: Some("public_distribution_boundary".to_string()),
         },
     ]
 }
@@ -3547,7 +3682,7 @@ fn build_remediation_explanation(
         "every active remediation action must appear in exactly one explanation phase"
     );
     let summary = if phases.is_empty() {
-        "No active remediation phase remains. Refresh scoped evidence before treating the repository as closed."
+        "No active remediation phase remains for this refresh. Refresh scoped evidence before treating the queue as current."
             .to_string()
     } else {
         let phase_noun = if phases.len() == 1 { "phase" } else { "phases" };
@@ -3562,7 +3697,7 @@ fn build_remediation_explanation(
             "actions"
         };
         format!(
-            "{} ordered remediation {phase_noun} {phase_verb} across {active_action_count} active {action_noun}. Work from the first unresolved phase and verify each result before closure.",
+            "{} ordered remediation {phase_noun} {phase_verb} across {active_action_count} active {action_noun}. Work from the first unresolved phase and verify each result before refreshing the queue.",
             phases.len(),
         )
     };
@@ -3592,7 +3727,7 @@ fn build_remediation_explanation(
         ));
     }
     closure_requirements.push(
-        "A final scoped refresh reports no open or blocked remediation actions; only then does the repository leave the active queue."
+        "A final scoped refresh reports the current open or blocked remediation actions; resolved actions are recorded as history and new evidence may reopen work."
             .to_string(),
     );
 
@@ -4251,12 +4386,14 @@ each repository's intended remediation outcome. Inferred goals remain active \
 until a repository-owned goal contract confirms them. \
 Each plan also classifies every repo-level surface tracked by the UI; unresolved \
 coverage entries link to concrete remediation actions. \
-Repositories leave the active table only after their plan reaches a terminal \
-evidence-backed disposition. Git, provider, publication, and pruning actions \
-still require their own authorization.\n\n\
+Repositories leave the active table when the current evidence produces no \
+actionable work or records an explicit deferral. That is a point-in-time queue \
+transition, not a permanent repository state; a later refresh may reopen the \
+same repository. Git, provider, publication, and pruning actions still require \
+their own authorization.\n\n\
 For maturity-applicable goals, **{MATURITY_CLOSURE_TARGET:.1}/4 is the minimum \
-closure score and {MATURITY_IDEAL_SCORE:.1}/4 is the evidence-backed ideal**. \
-Continue only material improvements after closure, and never add superficial \
+maturity threshold and {MATURITY_IDEAL_SCORE:.1}/4 is the evidence-backed ideal**. \
+Continue only material improvements after the threshold, and never add superficial \
 documentation, configuration, tests, or other artifacts solely to raise the \
 score.\n\n\
 Ranking preserves plan status, the earliest unresolved remediation domain, \
@@ -4264,7 +4401,7 @@ and action priority before fleet leverage. Pronto, AIOS, and Quality Runner \
 receive explicit control-plane or evidence-provider precedence before the \
 intended repository goal and raw action weight are used as tie-breakers.\n\n\
 ## Active queue\n\n\
-Active repositories: **{}**. Retained closures: **{}**. GitHub-only candidates: **{}**.\n\n\
+Active repositories: **{}**. Resolved action history entries: **{}**. GitHub-only candidates: **{}**.\n\n\
 <!-- prettier-ignore -->\n\
 | Rank | Repository | Goal | Goal source | Status | Current stage | Remaining path | Leverage | Tracked gaps | Active actions | First safe action |\n\
 | ---: | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | --- |\n",
@@ -4337,14 +4474,13 @@ Active repositories: **{}**. Retained closures: **{}**. GitHub-only candidates: 
             ));
         }
     }
-    output.push_str("\n## Closure ledger\n\n");
+    output.push_str("\n## Resolved action history\n\n");
     if run.closures.is_empty() {
-        output
-            .push_str("No repositories have left the active queue in this retained run history.\n");
+        output.push_str("No resolved action history is present in this run.\n");
     } else {
         output.push_str(
             "<!-- prettier-ignore -->\n\
-| Repository | Goal | Goal source | Disposition | Closed at | Resolved actions | Evidence observed at | Summary |\n\
+| Repository | Goal | Goal source | Disposition | Resolved at | Resolved actions | Evidence observed at | Summary |\n\
 | --- | --- | --- | --- | --- | ---: | --- | --- |\n",
         );
         for closure in &run.closures {
@@ -4843,7 +4979,7 @@ mod tests {
     }
 
     #[test]
-    fn terminal_plans_leave_the_active_queue_and_retain_a_closure() {
+    fn resolved_actions_leave_the_active_queue_and_retain_history() {
         let mut run = empty_run();
         run.plans = vec![fixture_plan(
             "pronto",
@@ -4867,7 +5003,7 @@ mod tests {
         let retained_policy = run.closures[0]
             .maturity_policy
             .as_ref()
-            .expect("closure should retain maturity policy");
+            .expect("resolved history should retain maturity policy");
         assert_eq!(retained_policy.minimum_closure_score, 3.0);
         assert_eq!(retained_policy.ideal_score, 4.0);
         assert_eq!(
@@ -4877,7 +5013,7 @@ mod tests {
     }
 
     #[test]
-    fn retained_closure_stays_out_of_queue_until_new_evidence_arrives() {
+    fn resolved_history_stays_out_of_queue_until_new_evidence_arrives() {
         let mut repository = fixture_repository("closure-retention");
         repository.last_scan_at = "2026-08-03T12:00:00Z".to_string();
         repository.last_fetch_at = Some("2026-08-03T12:00:00Z".to_string());
@@ -5068,6 +5204,171 @@ mod tests {
     }
 
     #[test]
+    fn public_release_goal_requires_an_explicit_distribution_boundary() {
+        let repository = fixture_repository("public-distribution-boundary");
+        let mut goal = goal_definition("public_release").expect("public release goal");
+        goal.source = "repository_contract".to_string();
+        let mut seeds = Vec::new();
+
+        add_goal_seeds(&repository, &goal, &mut seeds);
+
+        let boundary = seeds
+            .iter()
+            .find(|seed| seed.stable_key == PUBLIC_RELEASE_BOUNDARY_ACTION_KEY)
+            .expect("public release should require a distribution boundary action");
+        assert_eq!(boundary.domain, "release_boundary");
+        assert!(boundary
+            .acceptance_criteria
+            .iter()
+            .any(|criterion| criterion.contains("public_core")));
+        assert!(boundary
+            .acceptance_criteria
+            .iter()
+            .any(|criterion| criterion.contains("isolated temporary home")));
+        assert_eq!(
+            seeds
+                .iter()
+                .filter(|seed| seed.stable_key == PUBLIC_RELEASE_BOUNDARY_ACTION_KEY)
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn passing_release_boundary_removes_the_remediation_action() {
+        let mut repository = fixture_repository("public-boundary-passed");
+        repository.quality.release_boundary.status = "Passed".to_string();
+        repository.quality.release_boundary.freshness = "Fresh".to_string();
+        repository
+            .quality
+            .release_boundary
+            .blocking_check_ids
+            .clear();
+        repository.quality.release_boundary.checks = [
+            "source_provenance",
+            "surface_classification",
+            "tracked_public_content",
+            "public_adapter_fixtures",
+            "distribution_archives",
+            "clean_room_install",
+        ]
+        .into_iter()
+        .map(|id| crate::release_boundary::ReleaseBoundaryCheck {
+            id: id.to_string(),
+            status: "passed".to_string(),
+            reason: None,
+        })
+        .collect();
+        let goal = goal_definition("public_release").expect("public release goal");
+        let mut seeds = Vec::new();
+
+        add_goal_seeds(&repository, &goal, &mut seeds);
+
+        assert!(seeds
+            .iter()
+            .all(|seed| seed.stable_key != PUBLIC_RELEASE_BOUNDARY_ACTION_KEY));
+    }
+
+    #[test]
+    fn receipt_blockers_drive_remediation_and_manual_status_cannot_bypass_them() {
+        let mut repository = fixture_repository("public-boundary-blocked");
+        repository.quality.release_boundary.status = "Blocked".to_string();
+        repository.quality.release_boundary.freshness = "Stale".to_string();
+        repository.quality.release_boundary.blocking_check_ids = vec![
+            "artifact_digest_mismatch".to_string(),
+            "matrix_digest_mismatch".to_string(),
+        ];
+        repository.quality.release_boundary.detail =
+            "The receipt no longer matches the release inputs.".to_string();
+        let goal = goal_definition("public_release").expect("public release goal");
+        let mut seeds = Vec::new();
+        add_goal_seeds(&repository, &goal, &mut seeds);
+        let seed = seeds
+            .into_iter()
+            .find(|seed| seed.stable_key == PUBLIC_RELEASE_BOUNDARY_ACTION_KEY)
+            .expect("blocked receipt should produce remediation");
+        assert!(seed.summary.contains("artifact_digest_mismatch"));
+        assert!(seed.summary.contains("matrix_digest_mismatch"));
+
+        let mut previous_action = fixture_action(
+            PUBLIC_RELEASE_BOUNDARY_ACTION_KEY,
+            "release_boundary",
+            "P1",
+            3,
+            "verified",
+        );
+        previous_action.stable_key = PUBLIC_RELEASE_BOUNDARY_ACTION_KEY.to_string();
+        let previous = HashMap::from([(previous_action.stable_key.as_str(), &previous_action)]);
+        let action = materialize_action(&repository, seed, &previous, "2026-08-11T12:00:00Z");
+        assert_eq!(action.status, "blocked");
+    }
+
+    #[test]
+    fn non_public_and_ambiguous_goals_do_not_inherit_the_distribution_boundary() {
+        let repository = fixture_repository("non-public-distribution-boundary");
+        for target in [
+            "deployed_product",
+            "active_maintained",
+            "clean_only",
+            "prototype",
+            "archived",
+            "github_only",
+        ] {
+            let goal = goal_definition(target).expect("supported remediation goal");
+            let mut seeds = Vec::new();
+            add_goal_seeds(&repository, &goal, &mut seeds);
+            assert!(
+                seeds
+                    .iter()
+                    .all(|seed| seed.stable_key != PUBLIC_RELEASE_BOUNDARY_ACTION_KEY),
+                "{target} should not inherit public distribution work"
+            );
+        }
+
+        let inferred = inferred_goal_profile(&repository, None);
+        assert_eq!(inferred.target_state, "active_maintained");
+        let mut inferred_seeds = Vec::new();
+        add_goal_seeds(&repository, &inferred, &mut inferred_seeds);
+        assert!(inferred_seeds
+            .iter()
+            .any(|seed| seed.stable_key == "scope:confirm-remediation-goal"));
+        assert!(inferred_seeds
+            .iter()
+            .all(|seed| seed.stable_key != PUBLIC_RELEASE_BOUNDARY_ACTION_KEY));
+    }
+
+    #[test]
+    fn public_distribution_boundary_is_a_release_preparation_phase_and_surface() {
+        let repository = fixture_repository("public-boundary-coverage");
+        let mut goal = goal_definition("public_release").expect("public release goal");
+        goal.source = "repository_contract".to_string();
+        let mut seeds = Vec::new();
+        add_goal_seeds(&repository, &goal, &mut seeds);
+        let boundary_seed = seeds
+            .into_iter()
+            .find(|seed| seed.stable_key == PUBLIC_RELEASE_BOUNDARY_ACTION_KEY)
+            .expect("public release boundary seed");
+        let action = materialize_action(
+            &repository,
+            boundary_seed,
+            &HashMap::new(),
+            "2026-08-11T12:00:00Z",
+        );
+
+        let coverage = build_ui_coverage(&repository, &goal, std::slice::from_ref(&action));
+        let release_preparation = coverage
+            .iter()
+            .find(|entry| entry.surface == "release_preparation")
+            .expect("release preparation coverage");
+        assert_eq!(release_preparation.status, "blocked");
+        assert_eq!(release_preparation.action_ids, vec![action.id.clone()]);
+
+        let explanation = build_remediation_explanation(&goal, &[action], &coverage);
+        assert_eq!(explanation.phases.len(), 1);
+        assert_eq!(explanation.phases[0].id, "public_distribution_boundary");
+    }
+
+    #[test]
     fn repository_goal_contract_controls_required_gates_and_freshness() {
         let fixture_id = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
         let root = std::env::temp_dir().join(format!("pronto-goal-contract-{fixture_id}"));
@@ -5228,6 +5529,38 @@ mod tests {
     }
 
     #[test]
+    fn stale_evidence_contract_gets_one_generic_remediation_action() {
+        let mut repository = fixture_repository("contract-audit");
+        let contract = crate::evidence_contract::evaluate_repository_contract(
+            mac_control_maturity::MAC_CONTROL_TASK_CONTRACT_ID,
+            mac_control_maturity::MAC_CONTROL_TASK_CONTRACT_LABEL,
+            mac_control_maturity::MAC_CONTROL_TASK_MANIFEST_SCHEMA,
+            Some("mac-control-task-manifest/v2"),
+            &repository.id,
+            &repository.name,
+        );
+        repository.quality.evidence_contracts = vec![contract];
+        let goal = goal_definition("active_maintained").expect("goal fixture");
+        let mut seeds = Vec::new();
+
+        add_evidence_contract_seeds(&repository, &mut seeds);
+        add_maturity_gate_seeds(&repository, &goal, &mut seeds);
+
+        assert_eq!(seeds.len(), 1);
+        assert_eq!(
+            seeds[0].stable_key,
+            "evidence-contract:mac-control-task-manifest"
+        );
+        assert!(seeds[0]
+            .title
+            .contains(mac_control_maturity::MAC_CONTROL_TASK_MANIFEST_SCHEMA));
+        assert!(seeds[0]
+            .acceptance_criteria
+            .iter()
+            .any(|criterion| criterion.contains("ambiguous evidence")));
+    }
+
+    #[test]
     fn remediation_explanation_groups_work_into_ordered_phases_and_names_healthy_surfaces() {
         let mut preserve = fixture_action(
             "branch_hygiene:dirty:workspace",
@@ -5299,7 +5632,7 @@ mod tests {
         assert_eq!(explanation.phases[2].status, "blocked");
         assert_eq!(
             explanation.summary,
-            "4 ordered remediation phases remain across 4 active actions. Work from the first unresolved phase and verify each result before closure."
+            "4 ordered remediation phases remain across 4 active actions. Work from the first unresolved phase and verify each result before refreshing the queue."
         );
         assert!(!explanation
             .phases
@@ -5670,7 +6003,7 @@ mod tests {
     }
 
     #[test]
-    fn markdown_export_separates_active_queue_from_closure_history() {
+    fn markdown_export_separates_active_queue_from_resolved_action_history() {
         let mut run = empty_run();
         run.generated_at = "2026-07-29T13:00:00Z".to_string();
         run.plans = vec![fixture_plan(
@@ -5707,15 +6040,18 @@ mod tests {
         ));
         assert!(markdown.contains("| Remaining path |"));
         assert!(markdown.contains("Preserve and reconcile repository work"));
+        assert!(markdown.contains("## Resolved action history"));
+        assert!(markdown.contains("| Resolved at |"));
         assert!(markdown
             .contains("| `closed-repo` | active_maintained | repository_contract | verified |"));
         assert!(markdown.contains("GitHub-only candidates: **0**"));
         assert!(markdown.contains("## GitHub-only candidates"));
+        assert!(!markdown.contains("## Closure ledger"));
         assert!(!markdown.contains("| 2 | `closed-repo` |"));
     }
 
     #[test]
-    fn remediation_export_writes_markdown_and_retained_closure_data() {
+    fn remediation_export_writes_markdown_and_resolved_action_history_data() {
         let fixture_id = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
         let output_dir =
             std::env::temp_dir().join(format!("pronto-remediation-export-{fixture_id}"));
@@ -6239,6 +6575,11 @@ mod tests {
             .maturity
             .dimension_scores
             .insert("quality_commands".to_string(), 2.0);
+        repository
+            .quality
+            .maturity
+            .dimension_scores
+            .insert("matrix_maintenance".to_string(), 0.0);
         fs::write(
             findings_dir.join("repo.json"),
             serde_json::to_string(&serde_json::json!({
@@ -6257,6 +6598,16 @@ mod tests {
                     "score": 2,
                     "schema": "quality-runner-environment-legibility-finding-v0.1",
                     "severity": "observation"
+                }, {
+                    "applicable": true,
+                    "dimension": "matrix_maintenance",
+                    "finding_id": "finding-matrix-maintenance",
+                    "label": "change-matrix maintenance",
+                    "message": "The repository matrix does not require same-change updates.",
+                    "score": 0,
+                    "schema": "quality-runner-environment-legibility-finding-v0.1",
+                    "severity": "observation",
+                    "status": "missing"
                 }]
             }))
             .expect("fleet finding should encode"),
@@ -6282,6 +6633,13 @@ mod tests {
             plan.actions
                 .iter()
                 .filter(|action| action.stable_key == "maturity:dimension:quality_commands")
+                .count(),
+            1
+        );
+        assert_eq!(
+            plan.actions
+                .iter()
+                .filter(|action| action.stable_key == "maturity:dimension:matrix_maintenance")
                 .count(),
             1
         );

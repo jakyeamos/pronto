@@ -2,6 +2,10 @@
 default_profile = "pronto"
 allowed_package_managers = ["pnpm"]
 
+[quality_runner.web_readiness]
+applicability = "not_applicable"
+reason = "Pronto ships as a native Tauri application, not a deployed web surface"
+
 [quality_runner.profiles.pronto]
 extends = "default"
 required_capabilities = [
@@ -12,6 +16,7 @@ required_capabilities = [
   "formatter",
   "typecheck",
   "dead_code",
+  "failure_visibility",
   "security_secrets_scan",
   "security_dependency_audit",
 ]
@@ -65,6 +70,15 @@ severity = "blocker"
 [[quality_runner.gates]]
 id = "typecheck"
 command = "pnpm typecheck"
+ecosystem = "pnpm"
+source = "repository policy"
+owner = "Pronto repository maintainers"
+required = true
+severity = "blocker"
+
+[[quality_runner.gates]]
+id = "failure_visibility"
+command = "pnpm failure-visibility"
 ecosystem = "pnpm"
 source = "repository policy"
 owner = "Pronto repository maintainers"

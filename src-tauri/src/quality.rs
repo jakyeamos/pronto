@@ -1,10 +1,15 @@
+use crate::behavior_assurance::{
+    BehaviorAssurancePortfolioState, BehaviorAssuranceRepositoryState,
+};
 use crate::core::{CheckSnapshot, RemoteRepositorySnapshot, RepositorySnapshot};
+use crate::evidence_contract::{EvidenceContractFleetCoverage, EvidenceContractRepositoryStatus};
 use crate::mac_control_maturity::{MacControlPortfolioSnapshot, MacControlRepositoryState};
+use crate::release_boundary::{self, ReleaseBoundarySnapshot};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -23,6 +28,7 @@ const MATURITY_FEED_SCHEMAS: [&str; 2] = [
 pub(crate) const FLEET_MATURITY_FINDING_SCHEMA_PREFIX: &str =
     "quality-runner-environment-legibility-finding-";
 const MATURITY_FEED_STATUS: [&str; 2] = ["completed", "complete_with_blockers"];
+const MAX_MATURITY_GAPS: usize = 64;
 const QUALITY_GIT_TIMEOUT: StdDuration = StdDuration::from_secs(2);
 const MATURITY_FEED_FORBIDDEN_KEYS: [&str; 15] = [
     "prompt",
@@ -53,9 +59,10 @@ const CANONICAL_GATE_DEFINITIONS: [(&str, &str); 8] = [
     ("secrets_scan", "Secrets scan"),
 ];
 
-const CONDITIONAL_GATE_DEFINITIONS: [(&str, &str); 2] = [
+const CONDITIONAL_GATE_DEFINITIONS: [(&str, &str); 3] = [
     ("dependency_audit", "Dependency audit"),
     ("debloat", "Repository debloat review"),
+    ("web_readiness", "Web readiness"),
 ];
 const CI_READINESS_BASELINE_GATE_IDS: [&str; 6] = [
     "build",
@@ -65,8 +72,14 @@ const CI_READINESS_BASELINE_GATE_IDS: [&str; 6] = [
     "typecheck",
     "secrets_scan",
 ];
-const CI_READINESS_CONDITIONAL_GATE_IDS: [&str; 3] =
-    ["runtime_smoke", "dead_code", "dependency_audit"];
+const CI_READINESS_CONDITIONAL_GATE_IDS: [&str; 4] = [
+    "runtime_smoke",
+    "dead_code",
+    "dependency_audit",
+    "web_readiness",
+];
+const WEB_READINESS_SCHEMA: &str = "quality-runner-web-readiness/v1";
+const WEB_READINESS_RELATIVE_PATH: &str = ".quality-runner/web-readiness.json";
 const RECOMMENDATION_MATRIX_MARKDOWN: &str =
     include_str!("../../docs/quality-gate-recommendation-matrix.md");
 const RECOMMENDATION_MATRIX_GATE_COLUMNS: [(&str, usize); 9] = [
@@ -168,6 +181,55 @@ impl QualityFreshness {
 pub struct QualityGateRequirement {
     pub gate_id: String,
     pub source: QualitySource,
+    #[serde(default)]
+    pub minimum_verification_level: Option<QualityVerificationLevel>,
+    #[serde(default)]
+    pub policy: QualityRequirementPolicy,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum QualityVerificationLevel {
+    #[default]
+    Unknown,
+    SourceInferred,
+    ArtifactInspected,
+    BrowserRendered,
+    DeploymentVerified,
+}
+
+impl QualityVerificationLevel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Unknown => "unknown",
+            Self::SourceInferred => "source_inferred",
+            Self::ArtifactInspected => "artifact_inspected",
+            Self::BrowserRendered => "browser_rendered",
+            Self::DeploymentVerified => "deployment_verified",
+        }
+    }
+
+    fn rank(&self) -> u8 {
+        match self {
+            Self::Unknown => 0,
+            Self::SourceInferred => 1,
+            Self::ArtifactInspected => 2,
+            Self::BrowserRendered => 3,
+            Self::DeploymentVerified => 4,
+        }
+    }
+
+    fn satisfies(&self, minimum: &Self) -> bool {
+        self.rank() >= minimum.rank()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum QualityRequirementPolicy {
+    #[default]
+    Block,
+    Warn,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -185,6 +247,80 @@ pub struct QualityEvidence {
     pub report_url: Option<String>,
     pub report_kind: Option<String>,
     pub detail: String,
+    #[serde(default)]
+    pub verification_level: QualityVerificationLevel,
+    #[serde(default)]
+    pub target_kind: Option<String>,
+    #[serde(default)]
+    pub target_url: Option<String>,
+    #[serde(default)]
+    pub target_provider: Option<String>,
+    #[serde(default)]
+    pub deployment_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WebReadinessCheck {
+    pub id: String,
+    pub label: String,
+    pub category: String,
+    pub policy: String,
+    pub status: String,
+    pub verification_level: QualityVerificationLevel,
+    pub detail: String,
+    #[serde(default)]
+    pub routes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WebReadinessTarget {
+    pub kind: String,
+    pub commit: Option<String>,
+    pub url: Option<String>,
+    pub provider: Option<String>,
+    pub deployment_id: Option<String>,
+    pub artifact_digest: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WebReadinessSnapshot {
+    pub status: String,
+    pub applicability: String,
+    pub applicability_reason: Option<String>,
+    pub freshness: QualityFreshness,
+    pub observed_at: Option<String>,
+    pub scanned_commit: Option<String>,
+    pub scanned_branch: Option<String>,
+    pub report_path: Option<String>,
+    pub target: WebReadinessTarget,
+    pub checks: Vec<WebReadinessCheck>,
+    pub passed_count: u64,
+    pub failed_count: u64,
+    pub blocked_count: u64,
+    pub unknown_count: u64,
+    pub warning_count: u64,
+}
+
+impl Default for WebReadinessSnapshot {
+    fn default() -> Self {
+        Self {
+            status: "Unknown".to_string(),
+            applicability: "unknown".to_string(),
+            applicability_reason: None,
+            freshness: QualityFreshness::Unknown,
+            observed_at: None,
+            scanned_commit: None,
+            scanned_branch: None,
+            report_path: None,
+            target: WebReadinessTarget::default(),
+            checks: Vec::new(),
+            passed_count: 0,
+            failed_count: 0,
+            blocked_count: 0,
+            unknown_count: 0,
+            warning_count: 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -284,6 +420,72 @@ pub struct QualityMaturityGap {
     pub message: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct RepositoryMaturityPillar {
+    pub id: String,
+    pub label: String,
+    pub weight: f64,
+    pub applicability: String,
+    pub status: String,
+    pub score: Option<f64>,
+    pub dimension_scores: BTreeMap<String, f64>,
+    pub missing_capabilities: Vec<String>,
+    pub critical_dimensions: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct RepositoryMaturityEvidence {
+    pub applicable_pillar_count: u64,
+    pub assessed_pillar_count: u64,
+    pub applicable_weight: f64,
+    pub assessed_weight: f64,
+    pub evidence_coverage: f64,
+    pub fresh_evidence_coverage: f64,
+    pub unknown_applicability: Vec<String>,
+    pub unmapped_dimensions: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct RepositoryMaturityCriticalCap {
+    pub applied: bool,
+    pub maximum_score: Option<f64>,
+    pub reasons: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct RepositoryMaturityModel {
+    pub schema: String,
+    pub score: Option<f64>,
+    pub uncapped_score: Option<f64>,
+    pub status: String,
+    pub pillars: Vec<RepositoryMaturityPillar>,
+    pub evidence: RepositoryMaturityEvidence,
+    pub critical_cap: RepositoryMaturityCriticalCap,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct PortfolioMaturityPillar {
+    pub id: String,
+    pub label: String,
+    pub score: Option<f64>,
+    pub assessed_repository_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QualityRepositoryOutcome {
+    pub state: String,
+    pub label: String,
+    #[serde(default)]
+    pub disposition: Option<String>,
+    #[serde(default)]
+    pub next_step: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AgentUsabilityLane {
     pub id: String,
@@ -294,10 +496,11 @@ pub struct AgentUsabilityLane {
     pub message: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct AgentUsabilityGrowthHealth {
     pub status: String,
+    pub score: Option<f64>,
     pub message: String,
     pub document_count: u64,
     pub agent_document_count: u64,
@@ -321,6 +524,7 @@ impl Default for AgentUsabilityGrowthHealth {
     fn default() -> Self {
         Self {
             status: "unavailable".to_string(),
+            score: None,
             message: "Agent-usability growth evidence is unavailable.".to_string(),
             document_count: 0,
             agent_document_count: 0,
@@ -347,6 +551,7 @@ impl Default for AgentUsabilityGrowthHealth {
 pub struct AgentUsabilityMaturity {
     pub schema: String,
     pub status: String,
+    pub applicability: String,
     pub manifest_status: String,
     pub manifest_path: String,
     pub applicable_lane_count: u64,
@@ -360,6 +565,7 @@ impl Default for AgentUsabilityMaturity {
         Self {
             schema: "quality-runner-agent-usability/v1".to_string(),
             status: "unavailable".to_string(),
+            applicability: "applicable".to_string(),
             manifest_status: "missing".to_string(),
             manifest_path: ".agents/agent-usability.json".to_string(),
             applicable_lane_count: 0,
@@ -380,7 +586,11 @@ pub struct QualityMaturity {
     #[serde(default)]
     pub gaps: Vec<QualityMaturityGap>,
     #[serde(default)]
+    pub quality_outcome: Option<QualityRepositoryOutcome>,
+    #[serde(default)]
     pub agent_usability: Option<AgentUsabilityMaturity>,
+    #[serde(default)]
+    pub repository_maturity: Option<RepositoryMaturityModel>,
     pub audit_id: Option<String>,
     pub observed_at: Option<String>,
     #[serde(default)]
@@ -399,7 +609,9 @@ impl Default for QualityMaturity {
             scored_dimension_count: None,
             dimension_scores: BTreeMap::new(),
             gaps: Vec::new(),
+            quality_outcome: None,
             agent_usability: None,
+            repository_maturity: None,
             audit_id: None,
             observed_at: None,
             scanned_commit: None,
@@ -415,6 +627,10 @@ impl Default for QualityMaturity {
 pub struct QualityReadiness {
     pub score: Option<f64>,
     pub score_display: Option<String>,
+    #[serde(default)]
+    pub evidence_coverage_score: Option<f64>,
+    #[serde(default)]
+    pub evidence_coverage_score_display: Option<String>,
     #[serde(default)]
     pub configuration_score: Option<f64>,
     #[serde(default)]
@@ -438,6 +654,8 @@ impl Default for QualityReadiness {
         Self {
             score: None,
             score_display: None,
+            evidence_coverage_score: None,
+            evidence_coverage_score_display: None,
             configuration_score: None,
             configuration_score_display: None,
             applicable_gate_ids: Vec::new(),
@@ -464,6 +682,14 @@ pub struct QualitySnapshot {
     pub ci_readiness: QualityReadiness,
     #[serde(default)]
     pub mac_control_ideal_state: MacControlRepositoryState,
+    #[serde(default)]
+    pub behavior_assurance: BehaviorAssuranceRepositoryState,
+    #[serde(default)]
+    pub evidence_contracts: Vec<EvidenceContractRepositoryStatus>,
+    #[serde(default)]
+    pub web_readiness: WebReadinessSnapshot,
+    #[serde(default)]
+    pub release_boundary: ReleaseBoundarySnapshot,
     pub last_ingested_at: Option<String>,
     pub ingestion_status: String,
     pub ingestion_message: Option<String>,
@@ -478,6 +704,10 @@ impl Default for QualitySnapshot {
             target_fleet_audit_root: None,
             ci_readiness: QualityReadiness::default(),
             mac_control_ideal_state: MacControlRepositoryState::default(),
+            behavior_assurance: BehaviorAssuranceRepositoryState::default(),
+            evidence_contracts: Vec::new(),
+            web_readiness: WebReadinessSnapshot::default(),
+            release_boundary: ReleaseBoundarySnapshot::default(),
             last_ingested_at: None,
             ingestion_status: "No evidence".to_string(),
             ingestion_message: None,
@@ -501,6 +731,14 @@ pub struct QualityMeasurementConfidence {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QualityOutcomeDefinition {
+    pub label: String,
+    pub meaning: String,
+    #[serde(default)]
+    pub next_step: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QualityPortfolioSnapshot {
     pub audit_root: Option<String>,
     pub latest_audit_id: Option<String>,
@@ -512,11 +750,35 @@ pub struct QualityPortfolioSnapshot {
     pub scored_dimension_count: Option<u64>,
     #[serde(default)]
     pub measurement_confidence: Option<QualityMeasurementConfidence>,
+    #[serde(default)]
+    pub source_maturity_score: Option<f64>,
+    #[serde(default)]
+    pub source_maturity_score_display: Option<String>,
+    #[serde(default)]
+    pub source_scored_dimension_count: Option<u64>,
+    #[serde(default)]
+    pub maturity_pillars: Vec<PortfolioMaturityPillar>,
+    #[serde(default)]
+    pub maturity_evidence_coverage: Option<f64>,
+    #[serde(default)]
+    pub maturity_fresh_evidence_coverage: Option<f64>,
+    #[serde(default)]
+    pub maturity_provisional_repository_count: usize,
+    #[serde(default)]
+    pub maturity_capped_repository_count: usize,
     pub audit_status: String,
     #[serde(default)]
     pub ci_readiness_score: Option<f64>,
     #[serde(default)]
     pub ci_readiness_score_display: Option<String>,
+    #[serde(default)]
+    pub ci_evidence_coverage_score: Option<f64>,
+    #[serde(default)]
+    pub ci_evidence_coverage_score_display: Option<String>,
+    #[serde(default)]
+    pub ci_configuration_score: Option<f64>,
+    #[serde(default)]
+    pub ci_configuration_score_display: Option<String>,
     #[serde(default)]
     pub ci_readiness_full_repository_count: usize,
     #[serde(default)]
@@ -544,7 +806,15 @@ pub struct QualityPortfolioSnapshot {
     #[serde(default)]
     pub provenance_hash: Option<String>,
     #[serde(default)]
+    pub quality_outcome_counts: BTreeMap<String, u64>,
+    #[serde(default)]
+    pub quality_outcome_taxonomy: BTreeMap<String, QualityOutcomeDefinition>,
+    #[serde(default)]
     pub mac_control_ideal_state: MacControlPortfolioSnapshot,
+    #[serde(default)]
+    pub behavior_assurance: BehaviorAssurancePortfolioState,
+    #[serde(default)]
+    pub evidence_contracts: Vec<EvidenceContractFleetCoverage>,
 }
 
 impl Default for QualityPortfolioSnapshot {
@@ -559,9 +829,21 @@ impl Default for QualityPortfolioSnapshot {
             maturity_score_display: None,
             scored_dimension_count: None,
             measurement_confidence: None,
+            source_maturity_score: None,
+            source_maturity_score_display: None,
+            source_scored_dimension_count: None,
+            maturity_pillars: Vec::new(),
+            maturity_evidence_coverage: None,
+            maturity_fresh_evidence_coverage: None,
+            maturity_provisional_repository_count: 0,
+            maturity_capped_repository_count: 0,
             audit_status: "Not configured".to_string(),
             ci_readiness_score: None,
             ci_readiness_score_display: None,
+            ci_evidence_coverage_score: None,
+            ci_evidence_coverage_score_display: None,
+            ci_configuration_score: None,
+            ci_configuration_score_display: None,
             ci_readiness_full_repository_count: 0,
             ci_readiness_repository_count: 0,
             ci_readiness_unscored_repository_count: 0,
@@ -575,7 +857,11 @@ impl Default for QualityPortfolioSnapshot {
             ci_configuration_unscored_repository_count: 0,
             feed_schema: None,
             provenance_hash: None,
+            quality_outcome_counts: BTreeMap::new(),
+            quality_outcome_taxonomy: BTreeMap::new(),
             mac_control_ideal_state: MacControlPortfolioSnapshot::default(),
+            behavior_assurance: BehaviorAssurancePortfolioState::default(),
+            evidence_contracts: Vec::new(),
         }
     }
 }
@@ -584,6 +870,7 @@ impl Default for QualityPortfolioSnapshot {
 pub struct AuditImport {
     pub portfolio: QualityPortfolioSnapshot,
     pub maturities: HashMap<String, QualityMaturity>,
+    pub behavior_assurance: HashMap<String, BehaviorAssuranceRepositoryState>,
 }
 
 #[derive(Debug, Clone)]
@@ -776,18 +1063,31 @@ pub fn fleet_audit_import(
             .and_then(Value::as_array)
             .cloned()
             .unwrap_or_default();
-        let (dimension_scores, derived_score) = fleet_dimension_scores(&findings);
-        let score = payload
-            .get("mean_maturity")
-            .and_then(Value::as_f64)
-            .or(derived_score);
+        let agent_usability = payload
+            .get("agent_usability")
+            .filter(|value| value.is_object())
+            .and_then(|value| serde_json::from_value(value.clone()).ok());
+        let (mut dimension_scores, _) = fleet_dimension_scores(&findings);
+        let mut gaps = fleet_maturity_gaps(&findings);
+        if let Some(assessment) = agent_usability.as_ref() {
+            merge_agent_usability_dimensions(&mut dimension_scores, &mut gaps, assessment);
+        }
+        gaps.sort_by(|left, right| left.dimension.cmp(&right.dimension));
+        gaps.truncate(MAX_MATURITY_GAPS);
+        let score = fleet_score(&dimension_scores)
+            .or_else(|| payload.get("mean_maturity").and_then(Value::as_f64));
         let maturity = QualityMaturity {
             score,
             score_display: score.map(|value| format!("{value:.3}")),
             scored_dimension_count: Some(dimension_scores.len() as u64),
             dimension_scores,
-            gaps: fleet_maturity_gaps(&findings),
-            agent_usability: None,
+            gaps,
+            quality_outcome: payload
+                .get("quality_outcome")
+                .filter(|value| value.is_object())
+                .and_then(|value| serde_json::from_value(value.clone()).ok()),
+            agent_usability,
+            repository_maturity: None,
             audit_id: Some(run_id.clone()),
             observed_at: run_observed_at.clone(),
             scanned_commit: scanned_commit.clone(),
@@ -976,10 +1276,17 @@ pub fn evaluate_ci_readiness_for_ideal_with_configuration(
         let configuration_score = (configuration_score * 100.0).round() / 100.0;
         readiness.configuration_score = Some(configuration_score);
         readiness.configuration_score_display = Some(format_quality_score(configuration_score));
-        let score = (readiness.covered_gate_ids.len() as f64 / applicable_gate_count as f64) * 4.0;
-        let score = (score * 100.0).round() / 100.0;
-        readiness.score = Some(score);
-        readiness.score_display = Some(format_quality_score(score));
+        let evidence_coverage_score =
+            (readiness.covered_gate_ids.len() as f64 / applicable_gate_count as f64) * 4.0;
+        let evidence_coverage_score = (evidence_coverage_score * 100.0).round() / 100.0;
+        readiness.evidence_coverage_score = Some(evidence_coverage_score);
+        readiness.evidence_coverage_score_display =
+            Some(format_quality_score(evidence_coverage_score));
+        let fresh_passing_score =
+            (readiness.fresh_passing_gate_ids.len() as f64 / applicable_gate_count as f64) * 4.0;
+        let fresh_passing_score = (fresh_passing_score * 100.0).round() / 100.0;
+        readiness.score = Some(fresh_passing_score);
+        readiness.score_display = Some(format_quality_score(fresh_passing_score));
     }
     readiness
 }
@@ -1031,11 +1338,17 @@ pub fn ideal_gate_ids_for_repository(repository: &RepositorySnapshot) -> Option<
         .into_iter()
         .filter(|(project, _)| project == &key)
         .collect::<Vec<_>>();
-    if matches.len() != 1 {
-        return None;
-    }
-    let ideal_gate_ids = matches.into_iter().next()?.1;
-    (!ideal_gate_ids.is_empty()).then_some(ideal_gate_ids)
+    let ideal_gate_ids = (matches.len() == 1)
+        .then(|| matches.into_iter().next().map(|(_, gates)| gates))
+        .flatten()
+        .filter(|gates| !gates.is_empty())
+        .unwrap_or_else(|| {
+            CI_READINESS_BASELINE_GATE_IDS
+                .iter()
+                .map(|gate_id| (*gate_id).to_string())
+                .collect()
+        });
+    Some(ideal_gate_ids)
 }
 
 pub fn update_ci_readiness_summary(
@@ -1058,6 +1371,21 @@ pub fn update_ci_readiness_summary(
         Some((score * 100.0).round() / 100.0)
     };
     portfolio.ci_readiness_score_display = portfolio.ci_readiness_score.map(format_quality_score);
+    let evidence_coverage_scores = repositories
+        .iter()
+        .filter_map(|repository| repository.quality.ci_readiness.evidence_coverage_score)
+        .collect::<Vec<_>>();
+    portfolio.ci_evidence_coverage_score = average_quality_scores(&evidence_coverage_scores);
+    portfolio.ci_evidence_coverage_score_display = portfolio
+        .ci_evidence_coverage_score
+        .map(format_quality_score);
+    let configuration_scores = repositories
+        .iter()
+        .filter_map(|repository| repository.quality.ci_readiness.configuration_score)
+        .collect::<Vec<_>>();
+    portfolio.ci_configuration_score = average_quality_scores(&configuration_scores);
+    portfolio.ci_configuration_score_display =
+        portfolio.ci_configuration_score.map(format_quality_score);
     portfolio.ci_evidence_fresh_passing_gate_count = repositories
         .iter()
         .map(|repository| repository.quality.ci_readiness.fresh_passing_gate_ids.len())
@@ -1115,6 +1443,651 @@ pub fn update_ci_readiness_summary(
     }
 }
 
+const LEGACY_COMPOSITE_MATURITY_DIMENSIONS: [&str; 10] = [
+    "ci.configuration",
+    "ci.evidence_coverage",
+    "ci.fresh_passing",
+    "project_compass.mvp_progress",
+    "project_compass.complete_product_progress",
+    "mac_control.implementation_contract",
+    "mac_control.live_task_evidence",
+    "mac_control.task_usability",
+    "web_readiness.user_journey",
+    "product_readiness",
+];
+
+const REPOSITORY_MATURITY_PILLARS: [(&str, &str, f64, bool); 7] = [
+    (
+        "correctness_reliability",
+        "Correctness and reliability",
+        0.22,
+        true,
+    ),
+    (
+        "security_privacy_supply_chain",
+        "Security, privacy, and supply chain",
+        0.22,
+        true,
+    ),
+    (
+        "maintainability_evolvability",
+        "Maintainability and evolvability",
+        0.16,
+        true,
+    ),
+    (
+        "operability_release_safety",
+        "Operability and release safety",
+        0.14,
+        true,
+    ),
+    ("user_facing_quality", "User-facing quality", 0.10, false),
+    (
+        "human_agent_usability",
+        "Human and agent usability",
+        0.10,
+        false,
+    ),
+    (
+        "governance_sustainability",
+        "Governance and sustainability",
+        0.06,
+        false,
+    ),
+];
+
+pub fn update_composite_maturity_summary(
+    portfolio: &mut QualityPortfolioSnapshot,
+    repositories: &mut [RepositorySnapshot],
+) {
+    portfolio.source_maturity_score = portfolio.maturity_score;
+    portfolio.source_maturity_score_display = portfolio.maturity_score_display.clone();
+    portfolio.source_scored_dimension_count = portfolio.scored_dimension_count;
+
+    let mut implementation_scores = Vec::new();
+    let mut live_scores = Vec::new();
+    for repository in repositories.iter_mut() {
+        let maturity = &mut repository.quality.maturity;
+        for dimension in LEGACY_COMPOSITE_MATURITY_DIMENSIONS {
+            maturity.dimension_scores.remove(dimension);
+        }
+        maturity
+            .gaps
+            .retain(|gap| !LEGACY_COMPOSITE_MATURITY_DIMENSIONS.contains(&gap.dimension.as_str()));
+
+        merge_composite_dimension(
+            maturity,
+            "ci.fresh_passing",
+            repository.quality.ci_readiness.score,
+            "Fresh passing CI evidence",
+        );
+        let mac_control = &repository.quality.mac_control_ideal_state;
+        if mac_control.applicability != "Not applicable" {
+            let implementation_score = mac_control_implementation_score(mac_control);
+            let live_score = mac_control_live_score(mac_control);
+            merge_composite_dimension(
+                maturity,
+                "mac_control.task_usability",
+                average_quality_scores(&[implementation_score, live_score]),
+                "Mac Control implementation and live task usability",
+            );
+            implementation_scores.push(implementation_score);
+            live_scores.push(live_score);
+        }
+
+        merge_composite_dimension(
+            maturity,
+            "web_readiness.user_journey",
+            web_readiness_maturity_score(&repository.quality.web_readiness),
+            "User-facing route readiness",
+        );
+
+        let model = build_repository_maturity_model(maturity);
+        maturity.score = model.score;
+        maturity.score_display = model.score.map(|score| format!("{score:.3}"));
+        maturity.scored_dimension_count = Some(model.evidence.assessed_pillar_count);
+        maturity.repository_maturity = Some(model);
+        maturity
+            .gaps
+            .sort_by(|left, right| left.dimension.cmp(&right.dimension));
+    }
+
+    portfolio.mac_control_ideal_state.implementation_score =
+        average_quality_scores(&implementation_scores);
+    portfolio
+        .mac_control_ideal_state
+        .implementation_score_display = portfolio
+        .mac_control_ideal_state
+        .implementation_score
+        .map(format_quality_score);
+    portfolio.mac_control_ideal_state.live_score = average_quality_scores(&live_scores);
+    portfolio.mac_control_ideal_state.live_score_display = portfolio
+        .mac_control_ideal_state
+        .live_score
+        .map(format_quality_score);
+
+    let repository_scores = repositories
+        .iter()
+        .filter_map(|repository| {
+            repository
+                .quality
+                .maturity
+                .repository_maturity
+                .as_ref()
+                .and_then(|model| model.score)
+        })
+        .collect::<Vec<_>>();
+    portfolio.maturity_score = average_quality_scores(&repository_scores);
+    portfolio.maturity_score_display = portfolio.maturity_score.map(|score| format!("{score:.3}"));
+    portfolio.scored_dimension_count = Some(
+        repositories
+            .iter()
+            .filter_map(|repository| repository.quality.maturity.repository_maturity.as_ref())
+            .map(|model| model.evidence.assessed_pillar_count)
+            .sum(),
+    );
+    portfolio.maturity_pillars = REPOSITORY_MATURITY_PILLARS
+        .iter()
+        .map(|(id, label, _, _)| {
+            let scores = repositories
+                .iter()
+                .filter_map(|repository| repository.quality.maturity.repository_maturity.as_ref())
+                .flat_map(|model| model.pillars.iter())
+                .filter(|pillar| pillar.id == *id)
+                .filter_map(|pillar| pillar.score)
+                .collect::<Vec<_>>();
+            PortfolioMaturityPillar {
+                id: (*id).to_string(),
+                label: (*label).to_string(),
+                score: average_quality_scores(&scores),
+                assessed_repository_count: scores.len(),
+            }
+        })
+        .collect();
+    let evidence_coverages = repositories
+        .iter()
+        .filter_map(|repository| repository.quality.maturity.repository_maturity.as_ref())
+        .map(|model| model.evidence.evidence_coverage * 4.0)
+        .collect::<Vec<_>>();
+    portfolio.maturity_evidence_coverage =
+        average_quality_scores(&evidence_coverages).map(|score| score / 4.0);
+    let fresh_coverages = repositories
+        .iter()
+        .filter_map(|repository| repository.quality.maturity.repository_maturity.as_ref())
+        .map(|model| model.evidence.fresh_evidence_coverage * 4.0)
+        .collect::<Vec<_>>();
+    portfolio.maturity_fresh_evidence_coverage =
+        average_quality_scores(&fresh_coverages).map(|score| score / 4.0);
+    portfolio.maturity_provisional_repository_count = repositories
+        .iter()
+        .filter_map(|repository| repository.quality.maturity.repository_maturity.as_ref())
+        .filter(|model| model.status == "provisional")
+        .count();
+    portfolio.maturity_capped_repository_count = repositories
+        .iter()
+        .filter_map(|repository| repository.quality.maturity.repository_maturity.as_ref())
+        .filter(|model| model.critical_cap.applied)
+        .count();
+}
+
+fn web_readiness_maturity_score(readiness: &WebReadinessSnapshot) -> Option<f64> {
+    if readiness.applicability == "not_applicable" {
+        return None;
+    }
+    let total = readiness.passed_count
+        + readiness.failed_count
+        + readiness.blocked_count
+        + readiness.unknown_count;
+    (total > 0)
+        .then(|| ((readiness.passed_count as f64 / total as f64) * 4.0 * 1000.0).round() / 1000.0)
+}
+
+fn build_repository_maturity_model(maturity: &QualityMaturity) -> RepositoryMaturityModel {
+    let prior_critical_dimensions = maturity
+        .repository_maturity
+        .as_ref()
+        .map(|model| {
+            model
+                .pillars
+                .iter()
+                .flat_map(|pillar| pillar.critical_dimensions.iter().cloned())
+                .collect::<BTreeSet<_>>()
+        })
+        .unwrap_or_default();
+    let statuses = maturity
+        .gaps
+        .iter()
+        .map(|gap| (gap.dimension.as_str(), gap.status.as_str()))
+        .collect::<BTreeMap<_, _>>();
+    let agent_applicability = maturity
+        .agent_usability
+        .as_ref()
+        .map(|assessment| assessment.applicability.as_str())
+        .unwrap_or("unknown");
+    let mut assigned = BTreeSet::new();
+    let mut critical_reasons = Vec::new();
+    let mut pillars = Vec::new();
+
+    for (id, label, weight, required) in REPOSITORY_MATURITY_PILLARS {
+        let dimension_scores = maturity
+            .dimension_scores
+            .iter()
+            .filter(|(dimension, _)| maturity_dimension_pillar(dimension) == Some(id))
+            .map(|(dimension, score)| {
+                assigned.insert(dimension.clone());
+                (dimension.clone(), *score)
+            })
+            .collect::<BTreeMap<_, _>>();
+        let applicability = if required {
+            "applicable"
+        } else if id == "human_agent_usability" && agent_applicability == "not_applicable" {
+            "not_applicable"
+        } else if !dimension_scores.is_empty()
+            || (id == "human_agent_usability" && agent_applicability == "applicable")
+        {
+            "applicable"
+        } else {
+            "unknown"
+        };
+        let score = (applicability == "applicable")
+            .then(|| {
+                average_quality_scores(&dimension_scores.values().copied().collect::<Vec<_>>())
+            })
+            .flatten();
+        let critical_dimensions = dimension_scores
+            .keys()
+            .filter(|dimension| {
+                is_critical_maturity_pillar(id)
+                    && (prior_critical_dimensions.contains(*dimension)
+                        || statuses.get(dimension.as_str()) == Some(&"blocked"))
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        critical_reasons.extend(
+            critical_dimensions
+                .iter()
+                .map(|dimension| format!("{id}:{dimension}")),
+        );
+        let missing_capabilities = maturity_pillar_capabilities(id)
+            .iter()
+            .filter(|(_, patterns)| {
+                !dimension_scores
+                    .keys()
+                    .any(|dimension| maturity_dimension_matches(dimension, patterns))
+            })
+            .map(|(capability, _)| (*capability).to_string())
+            .collect::<Vec<_>>();
+        let pillar_status = if applicability == "not_applicable" {
+            "not_applicable".to_string()
+        } else if applicability == "unknown" || score.is_none() {
+            "unknown".to_string()
+        } else if !critical_dimensions.is_empty() {
+            "blocked".to_string()
+        } else if dimension_scores
+            .keys()
+            .any(|dimension| statuses.get(dimension.as_str()) == Some(&"blocked"))
+        {
+            "blocked".to_string()
+        } else if dimension_scores
+            .keys()
+            .any(|dimension| statuses.get(dimension.as_str()) == Some(&"stale"))
+        {
+            "stale".to_string()
+        } else if dimension_scores
+            .keys()
+            .any(|dimension| statuses.get(dimension.as_str()) == Some(&"unknown"))
+        {
+            "unknown".to_string()
+        } else if score == Some(4.0) {
+            "maintained".to_string()
+        } else {
+            "attention".to_string()
+        };
+        pillars.push(RepositoryMaturityPillar {
+            id: id.to_string(),
+            label: label.to_string(),
+            weight,
+            applicability: applicability.to_string(),
+            status: pillar_status,
+            score,
+            dimension_scores,
+            missing_capabilities,
+            critical_dimensions,
+        });
+    }
+
+    let applicable = pillars
+        .iter()
+        .filter(|pillar| pillar.applicability == "applicable")
+        .collect::<Vec<_>>();
+    let assessed = applicable
+        .iter()
+        .copied()
+        .filter(|pillar| pillar.score.is_some())
+        .collect::<Vec<_>>();
+    let applicable_weight = applicable.iter().map(|pillar| pillar.weight).sum::<f64>();
+    let scored_weight = assessed.iter().map(|pillar| pillar.weight).sum::<f64>();
+    let assessed_weight = applicable
+        .iter()
+        .map(|pillar| pillar.weight * maturity_pillar_capability_coverage(pillar))
+        .sum::<f64>();
+    let uncapped_score = (scored_weight > 0.0).then(|| {
+        round_quality_score(
+            assessed
+                .iter()
+                .map(|pillar| pillar.score.unwrap_or_default() * pillar.weight)
+                .sum::<f64>()
+                / scored_weight,
+        )
+    });
+    let maximum_score = (!critical_reasons.is_empty()).then_some(2.0);
+    let score = uncapped_score.map(|score| maximum_score.map_or(score, |cap| score.min(cap)));
+    let unknown_applicability = pillars
+        .iter()
+        .filter(|pillar| pillar.applicability == "unknown")
+        .map(|pillar| pillar.id.clone())
+        .collect::<Vec<_>>();
+    let evidence_coverage = if applicable_weight > 0.0 {
+        round_ratio(assessed_weight / applicable_weight)
+    } else {
+        0.0
+    };
+    let fresh_weight = assessed
+        .iter()
+        .filter(|pillar| !matches!(pillar.status.as_str(), "blocked" | "stale" | "unknown"))
+        .map(|pillar| pillar.weight * maturity_pillar_capability_coverage(pillar))
+        .sum::<f64>();
+    let fresh_evidence_coverage = if applicable_weight > 0.0 {
+        round_ratio(fresh_weight / applicable_weight)
+    } else {
+        0.0
+    };
+    let certified = score == Some(4.0)
+        && evidence_coverage == 1.0
+        && critical_reasons.is_empty()
+        && unknown_applicability.is_empty()
+        && applicable
+            .iter()
+            .all(|pillar| pillar.status == "maintained");
+    let status = if score.is_none() {
+        "unknown"
+    } else if !critical_reasons.is_empty() {
+        "blocked"
+    } else if certified {
+        "certified"
+    } else if evidence_coverage < 1.0 || !unknown_applicability.is_empty() {
+        "provisional"
+    } else {
+        "measured"
+    };
+    let applicable_pillar_count = applicable.len() as u64;
+    let assessed_pillar_count = assessed.len() as u64;
+
+    critical_reasons.sort();
+    RepositoryMaturityModel {
+        schema: "quality-runner-repository-maturity/v2".to_string(),
+        score,
+        uncapped_score,
+        status: status.to_string(),
+        pillars,
+        evidence: RepositoryMaturityEvidence {
+            applicable_pillar_count,
+            assessed_pillar_count,
+            applicable_weight: round_ratio(applicable_weight),
+            assessed_weight: round_ratio(assessed_weight),
+            evidence_coverage,
+            fresh_evidence_coverage,
+            unknown_applicability,
+            unmapped_dimensions: maturity
+                .dimension_scores
+                .keys()
+                .filter(|dimension| !assigned.contains(*dimension))
+                .cloned()
+                .collect(),
+        },
+        critical_cap: RepositoryMaturityCriticalCap {
+            applied: maximum_score.is_some(),
+            maximum_score,
+            reasons: critical_reasons,
+        },
+    }
+}
+
+fn maturity_dimension_pillar(dimension: &str) -> Option<&'static str> {
+    REPOSITORY_MATURITY_PILLARS
+        .iter()
+        .map(|(id, _, _, _)| *id)
+        .find(|pillar| {
+            maturity_pillar_patterns(pillar)
+                .iter()
+                .any(|pattern| dimension == *pattern || dimension.starts_with(pattern))
+        })
+}
+
+fn maturity_dimension_matches(dimension: &str, patterns: &[&str]) -> bool {
+    patterns
+        .iter()
+        .any(|pattern| dimension == *pattern || dimension.starts_with(pattern))
+}
+
+fn maturity_pillar_patterns(pillar: &str) -> &'static [&'static str] {
+    match pillar {
+        "correctness_reliability" => &[
+            "behavior_assurance",
+            "behavior_",
+            "ci.",
+            "dynamic_verification",
+            "quality_commands",
+            "reliability",
+            "test_",
+        ],
+        "security_privacy_supply_chain" => &[
+            "approval_gated_paths",
+            "dependency_",
+            "privacy",
+            "security_",
+            "secret_",
+            "slsa",
+            "supply_chain",
+            "vulnerability",
+        ],
+        "maintainability_evolvability" => &[
+            "architecture_boundaries",
+            "change_surface_coverage",
+            "coding_conventions",
+            "maintainability",
+            "strict_type_debt",
+        ],
+        "operability_release_safety" => &[
+            "deployment_rollback",
+            "diagnosability.",
+            "failure_modes",
+            "observability",
+            "operability",
+            "release_",
+        ],
+        "user_facing_quality" => &[
+            "accessibility",
+            "performance",
+            "user_journey",
+            "web_readiness",
+        ],
+        "human_agent_usability" => &[
+            "agent_usability.",
+            "context_routing",
+            "implementation_examples",
+            "mac_control.",
+            "skill_contract_quality",
+        ],
+        "governance_sustainability" => &[
+            "contributor_",
+            "definition_of_done",
+            "governance",
+            "license",
+            "maintained",
+            "matrix_maintenance",
+            "ownership_",
+        ],
+        _ => &[],
+    }
+}
+
+fn maturity_pillar_capabilities(
+    pillar: &str,
+) -> &'static [(&'static str, &'static [&'static str])] {
+    match pillar {
+        "correctness_reliability" => &[
+            (
+                "automated_quality_gates",
+                &["quality_commands", "dynamic_verification", "ci."],
+            ),
+            ("behavior_outcomes", &["behavior_assurance", "behavior_"]),
+            ("reliability_evidence", &["reliability", "test_"]),
+        ],
+        "security_privacy_supply_chain" => &[
+            (
+                "security_constraints",
+                &["security_constraints", "approval_gated_paths"],
+            ),
+            (
+                "dependency_and_vulnerability_risk",
+                &["dependency_", "vulnerability"],
+            ),
+            ("secret_and_privacy_controls", &["secret_", "privacy"]),
+            ("artifact_provenance", &["slsa", "supply_chain"]),
+        ],
+        "maintainability_evolvability" => &[
+            ("architecture_boundaries", &["architecture_boundaries"]),
+            ("change_impact_contract", &["change_surface_coverage"]),
+            (
+                "coding_and_type_health",
+                &["coding_conventions", "strict_type_debt"],
+            ),
+        ],
+        "operability_release_safety" => &[
+            (
+                "failure_and_recovery_contract",
+                &["failure_modes", "deployment_rollback"],
+            ),
+            ("diagnosability", &["diagnosability."]),
+            (
+                "operational_observability",
+                &["observability", "operability"],
+            ),
+        ],
+        "user_facing_quality" => &[
+            ("accessible_experience", &["accessibility"]),
+            ("performance_evidence", &["performance"]),
+            ("user_journey_evidence", &["user_journey", "web_readiness"]),
+        ],
+        "human_agent_usability" => &[
+            (
+                "documentation_contract",
+                &["agent_usability.documentation_contract"],
+            ),
+            (
+                "tool_skill_coverage",
+                &["agent_usability.tool_skill_coverage"],
+            ),
+            ("behavior_evidence", &["agent_usability.behavior_evidence"]),
+            (
+                "routing_and_examples",
+                &["context_routing", "implementation_examples"],
+            ),
+        ],
+        "governance_sustainability" => &[
+            ("ownership_and_governance", &["ownership_", "governance"]),
+            ("maintenance_continuity", &["maintained", "contributor_"]),
+            ("license_and_contribution", &["license"]),
+            (
+                "completion_and_matrix_discipline",
+                &["definition_of_done", "matrix_maintenance"],
+            ),
+        ],
+        _ => &[],
+    }
+}
+
+fn is_critical_maturity_pillar(pillar: &str) -> bool {
+    matches!(
+        pillar,
+        "correctness_reliability" | "security_privacy_supply_chain" | "operability_release_safety"
+    )
+}
+
+fn maturity_pillar_capability_coverage(pillar: &RepositoryMaturityPillar) -> f64 {
+    let capability_count = maturity_pillar_capabilities(&pillar.id).len();
+    if capability_count == 0 {
+        return 0.0;
+    }
+    (capability_count.saturating_sub(pillar.missing_capabilities.len())) as f64
+        / capability_count as f64
+}
+
+fn round_quality_score(score: f64) -> f64 {
+    (score * 1000.0).round() / 1000.0
+}
+
+fn round_ratio(value: f64) -> f64 {
+    (value * 1000.0).round() / 1000.0
+}
+
+fn merge_composite_dimension(
+    maturity: &mut QualityMaturity,
+    dimension: &str,
+    score: Option<f64>,
+    label: &str,
+) {
+    let Some(score) = score.filter(|score| score.is_finite() && (0.0..=4.0).contains(score)) else {
+        return;
+    };
+    maturity
+        .dimension_scores
+        .insert(dimension.to_string(), score);
+    if score < 4.0 {
+        maturity.gaps.push(QualityMaturityGap {
+            dimension: dimension.to_string(),
+            status: if score == 0.0 { "blocked" } else { "attention" }.to_string(),
+            score: Some(score),
+            message: format!("{label} is {score:.2}/4.00 and remains below the fleet ideal."),
+        });
+    }
+}
+
+fn mac_control_implementation_score(state: &MacControlRepositoryState) -> f64 {
+    if state.implementation_status == "Blocked" || state.implementation_criteria_total == 0 {
+        return 0.0;
+    }
+    let score = (state.implementation_criteria_passed_count as f64
+        / state.implementation_criteria_total as f64)
+        * 4.0;
+    cap_stale_maturity_score(score, &state.freshness)
+}
+
+fn mac_control_live_score(state: &MacControlRepositoryState) -> f64 {
+    if state.live_status == "Blocked" || state.live_task_count == 0 {
+        return 0.0;
+    }
+    let score = (state.measured_route_count as f64 / state.live_task_count as f64) * 4.0;
+    cap_stale_maturity_score(score, &state.freshness)
+}
+
+fn cap_stale_maturity_score(score: f64, freshness: &str) -> f64 {
+    let score = if freshness == "Fresh" {
+        score
+    } else {
+        score.min(3.0)
+    };
+    (score * 100.0).round() / 100.0
+}
+
+fn average_quality_scores(scores: &[f64]) -> Option<f64> {
+    (!scores.is_empty()).then(|| {
+        let score = scores.iter().sum::<f64>() / scores.len() as f64;
+        (score * 100.0).round() / 100.0
+    })
+}
+
 fn format_quality_score(score: f64) -> String {
     if score.fract() == 0.0 {
         format!("{score:.1}")
@@ -1149,6 +2122,9 @@ pub fn normalize_gate_id(value: &str) -> String {
         | "dependency_check"
         | "security_dependency_audit"
         | "software_composition_analysis" => "dependency_audit".to_string(),
+        "web_readiness" | "web_production_readiness" | "production_web_readiness" => {
+            "web_readiness".to_string()
+        }
         value if value.starts_with("unit_tests_") => "tests".to_string(),
         value if value.starts_with("integration_tests_") => "tests".to_string(),
         value if value.starts_with("e2e_tests_") => "tests".to_string(),
@@ -1287,6 +2263,206 @@ pub fn aggregate_gate_status(
     (status, freshness)
 }
 
+fn parse_verification_level(value: Option<&str>) -> QualityVerificationLevel {
+    match value.unwrap_or_default() {
+        "source_inferred" => QualityVerificationLevel::SourceInferred,
+        "artifact_inspected" => QualityVerificationLevel::ArtifactInspected,
+        "browser_rendered" => QualityVerificationLevel::BrowserRendered,
+        "deployment_verified" => QualityVerificationLevel::DeploymentVerified,
+        _ => QualityVerificationLevel::Unknown,
+    }
+}
+
+fn web_readiness_gate_status(status: &str) -> QualityGateStatus {
+    match status {
+        "ready" | "warnings" => QualityGateStatus::Passed,
+        "blocked" => QualityGateStatus::Failed,
+        "not_applicable" => QualityGateStatus::NotConfigured,
+        _ => QualityGateStatus::Blocked,
+    }
+}
+
+fn web_readiness_display_status(status: &str) -> String {
+    match status {
+        "ready" => "Ready",
+        "warnings" => "Warnings",
+        "blocked" => "Blocked",
+        "not_applicable" => "Not applicable",
+        _ => "Unknown",
+    }
+    .to_string()
+}
+
+fn web_readiness_target_level(kind: &str) -> QualityVerificationLevel {
+    match kind {
+        "deployment" => QualityVerificationLevel::DeploymentVerified,
+        "browser" => QualityVerificationLevel::BrowserRendered,
+        "artifact" => QualityVerificationLevel::ArtifactInspected,
+        "source" => QualityVerificationLevel::SourceInferred,
+        _ => QualityVerificationLevel::Unknown,
+    }
+}
+
+fn invalid_web_readiness_evidence(report_path: &Path, detail: String) -> QualityEvidence {
+    QualityEvidence {
+        id: "web_readiness".to_string(),
+        source: QualitySource::Qr,
+        status: QualityGateStatus::Blocked,
+        freshness: QualityFreshness::Unknown,
+        observed_at: None,
+        scanned_commit: None,
+        scanned_branch: None,
+        command: Some("qr web-readiness . --json".to_string()),
+        source_label: "Quality Runner web readiness".to_string(),
+        report_path: Some(report_path.to_string_lossy().to_string()),
+        report_url: None,
+        report_kind: Some("Quality Runner web readiness".to_string()),
+        detail,
+        verification_level: QualityVerificationLevel::Unknown,
+        target_kind: None,
+        target_url: None,
+        target_provider: None,
+        deployment_id: None,
+    }
+}
+
+fn import_web_readiness(
+    repository: &RepositorySnapshot,
+) -> (WebReadinessSnapshot, Option<QualityEvidence>) {
+    let report_path = Path::new(&repository.path).join(WEB_READINESS_RELATIVE_PATH);
+    if !report_path.is_file() {
+        return (WebReadinessSnapshot::default(), None);
+    }
+    let invalid = |detail: String| {
+        (
+            WebReadinessSnapshot {
+                report_path: Some(report_path.to_string_lossy().to_string()),
+                applicability_reason: Some(detail.clone()),
+                ..WebReadinessSnapshot::default()
+            },
+            Some(invalid_web_readiness_evidence(&report_path, detail)),
+        )
+    };
+    let contents = match fs::read_to_string(&report_path) {
+        Ok(contents) => contents,
+        Err(error) => return invalid(format!("Web-readiness report could not be read: {error}")),
+    };
+    let payload = match serde_json::from_str::<Value>(&contents) {
+        Ok(payload) => payload,
+        Err(error) => return invalid(format!("Web-readiness report is not valid JSON: {error}")),
+    };
+    if json_string_at(&payload, &["schema"]).as_deref() != Some(WEB_READINESS_SCHEMA) {
+        return invalid(format!(
+            "Web-readiness report must use schema {WEB_READINESS_SCHEMA}"
+        ));
+    }
+
+    let status = json_string_at(&payload, &["status"]).unwrap_or_else(|| "unknown".to_string());
+    let observed_at = json_string_at(&payload, &["generated_at"]);
+    let scanned_commit = json_string_at(&payload, &["repository", "head_sha"]);
+    let scanned_branch = json_string_at(&payload, &["repository", "branch"]);
+    let applicability = json_string_at(&payload, &["applicability", "status"])
+        .unwrap_or_else(|| "unknown".to_string());
+    let target_kind = json_string_at(&payload, &["target", "kind"]).unwrap_or_default();
+    let verification_level = web_readiness_target_level(&target_kind);
+    let freshness = evaluate_freshness_at(
+        observed_at.as_deref(),
+        scanned_commit.as_deref(),
+        scanned_branch.as_deref(),
+        repository.workspace.last_commit.as_deref(),
+        Some(repository.branch.as_str()),
+        Utc::now(),
+    );
+    let checks = payload
+        .get("checks")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|check| {
+            let id = json_string_at(check, &["id"])?;
+            let routes = check
+                .get("evidence")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(|item| json_string_at(item, &["route"]))
+                .collect::<Vec<_>>();
+            Some(WebReadinessCheck {
+                id,
+                label: json_string_at(check, &["label"]).unwrap_or_else(|| "Web check".to_string()),
+                category: json_string_at(check, &["category"])
+                    .unwrap_or_else(|| "baseline".to_string()),
+                policy: json_string_at(check, &["policy"]).unwrap_or_else(|| "block".to_string()),
+                status: json_string_at(check, &["status"]).unwrap_or_else(|| "unknown".to_string()),
+                verification_level: parse_verification_level(
+                    json_string_at(check, &["verification_level"]).as_deref(),
+                ),
+                detail: json_string_at(check, &["detail"]).unwrap_or_default(),
+                routes,
+            })
+        })
+        .collect::<Vec<_>>();
+    let warning_count = checks
+        .iter()
+        .filter(|check| check.policy == "warn" && check.status != "passed")
+        .count() as u64;
+    let target = WebReadinessTarget {
+        kind: target_kind.clone(),
+        commit: json_string_at(&payload, &["target", "commit"]),
+        url: json_string_at(&payload, &["target", "url"]),
+        provider: json_string_at(&payload, &["target", "provider"]),
+        deployment_id: json_string_at(&payload, &["target", "deployment_id"]),
+        artifact_digest: json_string_at(&payload, &["target", "artifact_digest"]),
+    };
+    let snapshot = WebReadinessSnapshot {
+        status: web_readiness_display_status(&status),
+        applicability,
+        applicability_reason: json_string_at(&payload, &["applicability", "reason"]),
+        freshness: freshness.clone(),
+        observed_at: observed_at.clone(),
+        scanned_commit: scanned_commit.clone(),
+        scanned_branch: scanned_branch.clone(),
+        report_path: Some(report_path.to_string_lossy().to_string()),
+        target: target.clone(),
+        passed_count: json_u64_at(&payload, &["summary", "passed"]).unwrap_or(0),
+        failed_count: json_u64_at(&payload, &["summary", "failed"]).unwrap_or(0),
+        blocked_count: json_u64_at(&payload, &["summary", "blocked"]).unwrap_or(0),
+        unknown_count: json_u64_at(&payload, &["summary", "unknown"]).unwrap_or(0),
+        warning_count,
+        checks,
+    };
+    let detail = format!(
+        "{} web readiness: {} passed, {} failed, {} blocked, {} unknown, {} warning",
+        snapshot.status,
+        snapshot.passed_count,
+        snapshot.failed_count,
+        snapshot.blocked_count,
+        snapshot.unknown_count,
+        snapshot.warning_count
+    );
+    let evidence = QualityEvidence {
+        id: "web_readiness".to_string(),
+        source: QualitySource::Qr,
+        status: web_readiness_gate_status(&status),
+        freshness,
+        observed_at,
+        scanned_commit,
+        scanned_branch,
+        command: Some("qr web-readiness . --json".to_string()),
+        source_label: "Quality Runner web readiness".to_string(),
+        report_path: snapshot.report_path.clone(),
+        report_url: target.url.clone(),
+        report_kind: Some("Quality Runner web readiness".to_string()),
+        detail,
+        verification_level,
+        target_kind: (!target.kind.is_empty()).then_some(target.kind),
+        target_url: target.url,
+        target_provider: target.provider,
+        deployment_id: target.deployment_id,
+    };
+    (snapshot, Some(evidence))
+}
+
 pub fn ingest_repository_quality(
     repository: &RepositorySnapshot,
     remote: Option<&RemoteRepositorySnapshot>,
@@ -1297,6 +2473,8 @@ pub fn ingest_repository_quality(
     let mut findings = QualityFindings::default();
     let mut last_ingested_at = None;
     let mut configured_gate_ids = Vec::new();
+    let (web_readiness, web_readiness_evidence) = import_web_readiness(repository);
+    let release_boundary = release_boundary::import_release_boundary(repository);
 
     if let Some(run) = latest_qr_run(Path::new(&repository.path)) {
         last_ingested_at = run.observed_at.clone();
@@ -1318,12 +2496,34 @@ pub fn ingest_repository_quality(
         add_evidence(&mut gates, evidence);
     }
 
+    if let Some(evidence) = web_readiness_evidence {
+        if web_readiness.applicability != "not_applicable" {
+            configured_gate_ids.push(evidence.id.clone());
+        }
+        add_evidence(&mut gates, evidence);
+        if last_ingested_at.as_deref() < web_readiness.observed_at.as_deref() {
+            last_ingested_at = web_readiness.observed_at.clone();
+        }
+    }
+
     for gate in &mut gates {
         let (status, freshness) = aggregate_gate_status(&gate.evidence);
         gate.status = status;
         gate.freshness = freshness;
     }
-    let ci_readiness = ideal_gate_ids
+    let effective_ideal_gate_ids = ideal_gate_ids.map(|gate_ids| {
+        let mut gate_ids = gate_ids.to_vec();
+        if matches!(
+            web_readiness.applicability.as_str(),
+            "public_web" | "internal_web"
+        ) && !gate_ids.iter().any(|gate_id| gate_id == "web_readiness")
+        {
+            gate_ids.push("web_readiness".to_string());
+        }
+        gate_ids
+    });
+    let ci_readiness = effective_ideal_gate_ids
+        .as_deref()
         .map(|gate_ids| {
             evaluate_ci_readiness_for_ideal_with_configuration(
                 &gates,
@@ -1342,6 +2542,10 @@ pub fn ingest_repository_quality(
         target_fleet_audit_root: None,
         ci_readiness,
         mac_control_ideal_state: MacControlRepositoryState::default(),
+        behavior_assurance: BehaviorAssuranceRepositoryState::default(),
+        evidence_contracts: Vec::new(),
+        web_readiness,
+        release_boundary,
         last_ingested_at,
         ingestion_status: if evidence_available || maturity_available {
             "Available".to_string()
@@ -1416,6 +2620,28 @@ pub fn project_quality_snapshot_for_target(
     } else {
         snapshot.maturity = QualityMaturity::default();
     }
+
+    if target_provenance_matches(
+        snapshot.web_readiness.scanned_branch.as_deref(),
+        snapshot.web_readiness.scanned_commit.as_deref(),
+        target_branch,
+        target_commit,
+    ) {
+        snapshot.web_readiness.freshness = QualityFreshness::Fresh;
+    } else if snapshot.web_readiness.report_path.is_some() {
+        snapshot.web_readiness.freshness = evaluate_target_freshness(
+            snapshot.web_readiness.scanned_branch.as_deref(),
+            snapshot.web_readiness.scanned_commit.as_deref(),
+            target_branch,
+            target_commit,
+        );
+    }
+
+    release_boundary::project_for_target(
+        &mut snapshot.release_boundary,
+        target_branch,
+        target_commit,
+    );
 
     let configured_gate_ids = snapshot
         .gates
@@ -1588,7 +2814,7 @@ fn report_finding_inventory(report_path: Option<&str>) -> Option<ReportFindingIn
     {
         for (category, count) in declared {
             if let Some(count) = count.as_u64() {
-                category_counts.insert(category.clone(), count);
+                category_counts.entry(category.clone()).or_insert(count);
             }
         }
     }
@@ -1713,7 +2939,7 @@ pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut Qua
         }
         if matches!(
             disposition.status.as_str(),
-            "false_positive" | "accepted_intentional"
+            "false_positive" | "accepted_intentional" | "accepted_risk"
         ) {
             if let Some(categories) = report_inventory
                 .fingerprint_category_counts
@@ -1773,6 +2999,11 @@ fn debloat_maturity_evidence(findings: &QualityFindings) -> Option<QualityEviden
         report_url: None,
         report_kind: Some("code-quality-scan".to_string()),
         detail,
+        verification_level: QualityVerificationLevel::SourceInferred,
+        target_kind: Some("source".to_string()),
+        target_url: None,
+        target_provider: None,
+        deployment_id: None,
     })
 }
 
@@ -1869,22 +3100,12 @@ pub fn evaluate_requirement(
             format!("{} has no imported evidence", gate_label(&gate_id)),
         );
     };
-    if gate.freshness == QualityFreshness::Conflicted {
-        return (
-            QualityGateStatus::Blocked,
-            QualityFreshness::Conflicted,
-            format!(
-                "{} has conflicting evidence across imported sources",
-                gate.label
-            ),
-        );
-    }
-    let evidence = gate
+    let source_evidence = gate
         .evidence
         .iter()
         .filter(|item| item.source == requirement.source)
         .collect::<Vec<_>>();
-    if evidence.is_empty() {
+    if source_evidence.is_empty() {
         return (
             QualityGateStatus::NotConfigured,
             QualityFreshness::Unknown,
@@ -1892,6 +3113,32 @@ pub fn evaluate_requirement(
                 "{} has no {} evidence",
                 gate.label,
                 requirement.source.as_str()
+            ),
+        );
+    }
+    let evidence = source_evidence
+        .into_iter()
+        .filter(|item| {
+            requirement
+                .minimum_verification_level
+                .as_ref()
+                .is_none_or(|minimum| item.verification_level.satisfies(minimum))
+        })
+        .collect::<Vec<_>>();
+    if evidence.is_empty() {
+        let minimum = requirement
+            .minimum_verification_level
+            .as_ref()
+            .map(QualityVerificationLevel::as_str)
+            .unwrap_or("unknown");
+        return (
+            QualityGateStatus::Blocked,
+            QualityFreshness::Unknown,
+            format!(
+                "{} has no {} evidence at or above {} verification",
+                gate.label,
+                requirement.source.as_str(),
+                minimum
             ),
         );
     }
@@ -1980,6 +3227,7 @@ pub fn audit_import(root: Option<&Path>, repositories: &[RepositorySnapshot]) ->
         return AuditImport {
             portfolio,
             maturities: HashMap::new(),
+            behavior_assurance: HashMap::new(),
         };
     };
     portfolio.latest_audit_id = run.audit_id.clone();
@@ -2022,7 +3270,9 @@ pub fn audit_import(root: Option<&Path>, repositories: &[RepositorySnapshot]) ->
                 scored_dimension_count: finding.scored_dimension_count,
                 dimension_scores: finding.dimension_scores.clone(),
                 gaps: Vec::new(),
+                quality_outcome: None,
                 agent_usability: None,
+                repository_maturity: None,
                 audit_id: run.audit_id.clone(),
                 observed_at: run.as_of.clone(),
                 scanned_commit: None,
@@ -2037,6 +3287,7 @@ pub fn audit_import(root: Option<&Path>, repositories: &[RepositorySnapshot]) ->
     AuditImport {
         portfolio,
         maturities: matches,
+        behavior_assurance: HashMap::new(),
     }
 }
 
@@ -2056,6 +3307,7 @@ pub fn maturity_feed_import(
         return AuditImport {
             portfolio,
             maturities: HashMap::new(),
+            behavior_assurance: HashMap::new(),
         };
     }
     let Some(feed) = read_json(feed_path) else {
@@ -2063,6 +3315,7 @@ pub fn maturity_feed_import(
         return AuditImport {
             portfolio,
             maturities: HashMap::new(),
+            behavior_assurance: HashMap::new(),
         };
     };
     if !validate_maturity_feed(&feed) {
@@ -2070,6 +3323,7 @@ pub fn maturity_feed_import(
         return AuditImport {
             portfolio,
             maturities: HashMap::new(),
+            behavior_assurance: HashMap::new(),
         };
     }
 
@@ -2093,6 +3347,21 @@ pub fn maturity_feed_import(
         .get("provenance_hash")
         .and_then(Value::as_str)
         .map(str::to_string);
+    portfolio.quality_outcome_counts = feed
+        .get("quality_outcome_counts")
+        .filter(|value| value.is_object())
+        .and_then(|value| serde_json::from_value(value.clone()).ok())
+        .unwrap_or_default();
+    portfolio.quality_outcome_taxonomy = feed
+        .get("quality_outcome_taxonomy")
+        .filter(|value| value.is_object())
+        .and_then(|value| serde_json::from_value(value.clone()).ok())
+        .unwrap_or_default();
+    portfolio.behavior_assurance = feed
+        .get("behavior_assurance")
+        .filter(|value| value.is_object())
+        .and_then(|value| serde_json::from_value(value.clone()).ok())
+        .unwrap_or_default();
     portfolio.latest_audit_id = audit_id.map(str::to_string);
     portfolio.latest_audit_at = as_of.map(str::to_string);
     portfolio.latest_audit_path = Some(feed_path.to_string_lossy().to_string());
@@ -2117,6 +3386,7 @@ pub fn maturity_feed_import(
         .filter_map(|value| value.as_object())
         .collect::<Vec<_>>();
     let mut matches = HashMap::new();
+    let mut behavior_assurance_matches = HashMap::new();
     for repository in repositories {
         let stable_id = repository_feed_id(repository);
         let projection = projections
@@ -2136,6 +3406,18 @@ pub fn maturity_feed_import(
         let Some(projection) = projection else {
             continue;
         };
+        if let Some(assurance) = projection
+            .get("behavior_assurance")
+            .filter(|value| value.is_object())
+            .and_then(|value| {
+                let mut assurance: BehaviorAssuranceRepositoryState =
+                    serde_json::from_value(value.clone()).ok()?;
+                assurance.normalize_state();
+                Some(assurance)
+            })
+        {
+            behavior_assurance_matches.insert(repository.id.clone(), assurance);
+        }
         let score = projection.get("maturity_score").and_then(Value::as_f64);
         let projection_freshness = if score.is_some() {
             freshness.clone()
@@ -2185,12 +3467,20 @@ pub fn maturity_feed_import(
                                     .collect(),
                             })
                         })
-                        .take(16)
+                        .take(MAX_MATURITY_GAPS)
                         .collect()
                 })
                 .unwrap_or_default(),
+            quality_outcome: projection
+                .get("quality_outcome")
+                .filter(|value| value.is_object())
+                .and_then(|value| serde_json::from_value(value.clone()).ok()),
             agent_usability: projection
                 .get("agent_usability")
+                .filter(|value| value.is_object())
+                .and_then(|value| serde_json::from_value(value.clone()).ok()),
+            repository_maturity: projection
+                .get("repository_maturity")
                 .filter(|value| value.is_object())
                 .and_then(|value| serde_json::from_value(value.clone()).ok()),
             audit_id: audit_id.map(str::to_string),
@@ -2209,9 +3499,18 @@ pub fn maturity_feed_import(
         matches.insert(repository.id.clone(), maturity);
     }
     portfolio.matched_repository_count = matches.len();
+    portfolio.behavior_assurance.state_counts.clear();
+    for assurance in behavior_assurance_matches.values() {
+        *portfolio
+            .behavior_assurance
+            .state_counts
+            .entry(assurance.state.clone())
+            .or_insert(0) += 1;
+    }
     AuditImport {
         portfolio,
         maturities: matches,
+        behavior_assurance: behavior_assurance_matches,
     }
 }
 
@@ -2219,10 +3518,8 @@ fn validate_maturity_feed(feed: &Value) -> bool {
     let Some(feed) = feed.as_object() else {
         return false;
     };
-    if !feed
-        .get("schema")
-        .and_then(Value::as_str)
-        .is_some_and(|schema| MATURITY_FEED_SCHEMAS.contains(&schema))
+    let feed_schema = feed.get("schema").and_then(Value::as_str);
+    if !feed_schema.is_some_and(|schema| MATURITY_FEED_SCHEMAS.contains(&schema))
         || !feed
             .get("status")
             .and_then(Value::as_str)
@@ -2267,6 +3564,11 @@ fn validate_maturity_feed(feed: &Value) -> bool {
             return false;
         };
         if repo_id.is_empty() || !repository_ids.insert(repo_id) {
+            return false;
+        }
+        if feed_schema == Some("quality-runner-maturity-feed/v2")
+            && !valid_repository_maturity_projection(repository)
+        {
             return false;
         }
     }
@@ -2381,6 +3683,54 @@ fn json_string_values(value: Option<&Value>) -> Vec<String> {
         .filter_map(Value::as_str)
         .map(str::to_string)
         .collect()
+}
+
+fn valid_repository_maturity_projection(repository: &Value) -> bool {
+    let Some(model) = repository
+        .get("repository_maturity")
+        .and_then(Value::as_object)
+    else {
+        return false;
+    };
+    if model.get("schema").and_then(Value::as_str) != Some("quality-runner-repository-maturity/v2")
+        || model.get("score").and_then(Value::as_f64)
+            != repository.get("maturity_score").and_then(Value::as_f64)
+    {
+        return false;
+    }
+    let Some(pillars) = model.get("pillars").and_then(Value::as_array) else {
+        return false;
+    };
+    let expected = [
+        "correctness_reliability",
+        "security_privacy_supply_chain",
+        "maintainability_evolvability",
+        "operability_release_safety",
+        "user_facing_quality",
+        "human_agent_usability",
+        "governance_sustainability",
+    ];
+    pillars.len() == expected.len()
+        && pillars.iter().zip(expected).all(|(pillar, expected_id)| {
+            pillar.get("id").and_then(Value::as_str) == Some(expected_id)
+                && pillar
+                    .get("weight")
+                    .and_then(Value::as_f64)
+                    .is_some_and(|weight| weight.is_finite() && weight > 0.0)
+                && pillar.get("score").is_some_and(|score| {
+                    score.is_null()
+                        || score
+                            .as_f64()
+                            .is_some_and(|value| value.is_finite() && (0.0..=4.0).contains(&value))
+                })
+        })
+        && (pillars
+            .iter()
+            .filter_map(|pillar| pillar.get("weight").and_then(Value::as_f64))
+            .sum::<f64>()
+            - 1.0)
+            .abs()
+            < 0.000_001
 }
 
 fn maturity_feed_hash(feed: &Value) -> Option<String> {
@@ -2685,6 +4035,11 @@ fn ci_evidence(
                     .conclusion
                     .clone()
                     .unwrap_or_else(|| check.state.clone()),
+                verification_level: QualityVerificationLevel::SourceInferred,
+                target_kind: Some("source".to_string()),
+                target_url: None,
+                target_provider: Some("github".to_string()),
+                deployment_id: None,
             }
         })
         .collect()
@@ -2938,6 +4293,11 @@ impl QrRun {
                     report_url: None,
                     report_kind: Some("QR gate verification".to_string()),
                     detail,
+                    verification_level: QualityVerificationLevel::SourceInferred,
+                    target_kind: Some("source".to_string()),
+                    target_url: None,
+                    target_provider: None,
+                    deployment_id: None,
                 })
             })
             .collect()
@@ -3289,6 +4649,72 @@ fn fleet_dimension_scores(findings: &[Value]) -> (BTreeMap<String, f64>, Option<
     (scores, mean)
 }
 
+fn fleet_score(scores: &BTreeMap<String, f64>) -> Option<f64> {
+    (!scores.is_empty()).then(|| scores.values().sum::<f64>() / scores.len() as f64)
+}
+
+fn merge_agent_usability_dimensions(
+    scores: &mut BTreeMap<String, f64>,
+    gaps: &mut Vec<QualityMaturityGap>,
+    assessment: &AgentUsabilityMaturity,
+) {
+    if assessment.applicability == "not_applicable" || assessment.status == "not_applicable" {
+        return;
+    }
+    for lane in assessment.lanes.iter().filter(|lane| lane.applicable) {
+        let Some(score) = lane
+            .score
+            .filter(|score| score.is_finite() && (0.0..=4.0).contains(score))
+        else {
+            continue;
+        };
+        merge_agent_usability_dimension(
+            scores,
+            gaps,
+            format!("agent_usability.{}", lane.id),
+            score,
+            &lane.status,
+            &lane.message,
+        );
+    }
+    let growth = &assessment.growth_health;
+    let growth_score = growth.score.or(match growth.status.as_str() {
+        "blocked" => Some(0.0),
+        "attention" => Some(2.0),
+        "healthy" => Some(4.0),
+        _ => None,
+    });
+    if let Some(score) = growth_score.filter(|score| score.is_finite()) {
+        merge_agent_usability_dimension(
+            scores,
+            gaps,
+            "agent_usability.growth_health".to_string(),
+            score,
+            &growth.status,
+            &growth.message,
+        );
+    }
+}
+
+fn merge_agent_usability_dimension(
+    scores: &mut BTreeMap<String, f64>,
+    gaps: &mut Vec<QualityMaturityGap>,
+    dimension: String,
+    score: f64,
+    status: &str,
+    message: &str,
+) {
+    scores.insert(dimension.clone(), score);
+    if score < 4.0 {
+        gaps.push(QualityMaturityGap {
+            dimension,
+            status: status.to_string(),
+            score: Some(score),
+            message: message.chars().take(240).collect(),
+        });
+    }
+}
+
 fn fleet_maturity_gaps(findings: &[Value]) -> Vec<QualityMaturityGap> {
     findings
         .iter()
@@ -3317,7 +4743,6 @@ fn fleet_maturity_gaps(findings: &[Value]) -> Vec<QualityMaturityGap> {
                     .collect(),
             })
         })
-        .take(16)
         .collect()
 }
 
@@ -3448,6 +4873,11 @@ mod tests {
             report_url: None,
             report_kind: None,
             detail: String::new(),
+            verification_level: QualityVerificationLevel::Unknown,
+            target_kind: None,
+            target_url: None,
+            target_provider: None,
+            deployment_id: None,
         }
     }
 
@@ -3498,7 +4928,7 @@ mod tests {
     fn fixture_maturity_feed(repository: &RepositorySnapshot, as_of: &str) -> Value {
         let summary_hash = "b".repeat(64);
         let mut feed = serde_json::json!({
-            "schema": MATURITY_FEED_SCHEMAS[1],
+            "schema": MATURITY_FEED_SCHEMAS[0],
             "status": "completed",
             "feed_timestamp": as_of,
             "generated_at": as_of,
@@ -3531,9 +4961,21 @@ mod tests {
                 "unresolved_measurement_gap_count": 0,
                 "deterministic_replay": true,
             },
-            "dimension_means": {"architecture_boundaries": 3.5},
+            "dimension_means": {
+                "agent_usability.documentation_contract": 3.0,
+                "agent_usability.growth_health": 4.0,
+                "architecture_boundaries": 3.5
+            },
             "maturity_certified_repository_count": 0,
             "maturity_status_counts": {"not_certified": 1},
+            "quality_outcome_counts": {"healthy": 1},
+            "quality_outcome_taxonomy": {
+                "healthy": {
+                    "label": "Quality healthy",
+                    "meaning": "Verification passed or was safely reused and all applicable dimensions are maintained.",
+                    "next_step": "Keep the evidence checkpoint current."
+                }
+            },
             "finding_counts": {},
             "unresolved_measurement_gaps": [],
             "repositories": [{
@@ -3544,7 +4986,11 @@ mod tests {
                 "target_head": "abc",
                 "maturity_score": 3.5,
                 "maturity_status": "not_certified",
-                "dimension_scores": {"architecture_boundaries": 3.5},
+                "dimension_scores": {
+                    "agent_usability.documentation_contract": 3.0,
+                    "agent_usability.growth_health": 4.0,
+                    "architecture_boundaries": 3.5
+                },
                 "dimension_gaps": [{
                     "dimension": "change_surface_coverage",
                     "status": "missing",
@@ -3552,9 +4998,15 @@ mod tests {
                     "message": "No repository-owned change-surface matrix was found."
                 }],
                 "quality_status": "healthy",
+                "quality_outcome": {
+                    "state": "healthy",
+                    "label": "Quality healthy",
+                    "disposition": "Applicable dimensions are maintained with current evidence.",
+                    "next_step": "Keep the evidence checkpoint current."
+                },
                 "finding_count": 0,
                 "blocker_count": 0,
-                "dynamic_status": "reused",
+                "dynamic_status": "reused"
             }],
             "privacy": {
                 "private_local_feed": true,
@@ -3567,7 +5019,47 @@ mod tests {
             },
             "provenance_hash": "",
         });
+        feed["behavior_assurance"] = serde_json::json!({
+            "schema": "quality-runner-behavior-assurance-summary/v1",
+            "status": "gaps_present",
+            "repository_count": 1,
+            "ready_repository_count": 0,
+            "applicability_counts": {"applicable": 1},
+            "result_status_counts": {"unknown": 1},
+            "required_scenario_count": 2,
+            "passed_scenario_count": 1,
+            "gap_count": 1
+        });
+        feed["repositories"][0]["behavior_assurance"] = serde_json::json!({
+            "schema": "quality-runner-behavior-assurance/v1",
+            "applicability": "applicable",
+            "contract_status": "current",
+            "result_status": "unknown",
+            "freshness": "stale",
+            "release_ready": false,
+            "score": 2,
+            "contract_path": ".pronto/behavior-assurance.json",
+            "receipt_directory": ".quality-runner/behavior-assurance/receipts",
+            "contract_digest": "contract-fixture",
+            "target_branch": "dev",
+            "target_commit": "abc",
+            "observed_at": as_of,
+            "required_scenario_count": 2,
+            "passed_scenario_count": 1,
+            "accepted_defect_count": 0,
+            "receipt_count": 1,
+            "verified": [],
+            "gaps": [{
+                "kind": "receipt_stale",
+                "message": "One required scenario needs a current receipt.",
+                "behavior_id": "save-state",
+                "scenario_id": "reload-restores-value"
+            }],
+            "detail": "1/2 required Tier-0 scenarios have current trusted receipts.",
+            "next_step": "Resolve the listed contract or receipt gaps, then rerun the Quality Runner fleet audit."
+        });
         feed["repositories"][0]["agent_usability"] = serde_json::json!({
+            "applicability": "applicable",
             "schema": "quality-runner-agent-usability/v1",
             "status": "attention",
             "manifest_status": "present",
@@ -3578,21 +5070,30 @@ mod tests {
                 "id": "documentation_contract",
                 "label": "Documentation contract",
                 "applicable": true,
-                "score": 4,
+                "score": 3,
                 "status": "maintained",
                 "message": "Every declared tool has fresh, routed documentation."
             }],
             "growth_health": {
                 "status": "healthy",
+                "score": 4,
                 "message": "Documentation and skill structure remains proportionate and routed.",
                 "document_count": 12,
                 "agent_document_count": 3,
                 "routed_agent_document_count": 3,
+                "unrouted_agent_document_count": 0,
+                "oversized_document_count": 0,
                 "skill_count": 4,
                 "family_count": 2,
+                "largest_family_size": 2,
+                "unclassified_skill_count": 0,
+                "oversized_skill_count": 0,
                 "tool_count": 2,
                 "documented_tool_count": 2,
-                "skill_covered_tool_count": 2
+                "skill_covered_tool_count": 2,
+                "behavior_declared_tool_count": 0,
+                "behavior_verified_tool_count": 0,
+                "inventory_truncated": false
             }
         });
         feed["provenance_hash"] =
@@ -3672,6 +5173,70 @@ mod tests {
         assert_eq!(findings.disposition_counts.get("confirmed"), Some(&1));
         assert_eq!(findings.stale_disposition_total, 1);
         assert_eq!(findings.disposition_status, "Ready");
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn preserves_open_finding_categories_and_reconciles_accepted_risk() {
+        let root = fixture_root();
+        let report_path = root.join("code-quality-scan.json");
+        fs::write(
+            &report_path,
+            r#"{"summary":{"findings_by_category":{"maintenance-surface":0,"speed":1,"skill:future-review":1,"future-category":1}},"findings":[{"fingerprint":"surface-1","category":"maintenance-surface"},{"fingerprint":"speed-1","category":"speed"},{"fingerprint":"skill-1","category":"skill:future-review"},{"fingerprint":"future-1","category":"future-category"}]}"#,
+        )
+        .expect("finding report should be writable");
+        let contract_path = root.join(FINDING_DISPOSITIONS_RELATIVE_PATH);
+        fs::create_dir_all(
+            contract_path
+                .parent()
+                .expect("contract should have a parent"),
+        )
+        .expect("contract directory should be writable");
+        fs::write(
+            &contract_path,
+            format!(
+                r#"{{
+  "schema_version": "{FINDING_DISPOSITIONS_SCHEMA}",
+  "updated_at": "2026-08-11T13:00:00Z",
+  "dispositions": [
+    {{
+      "fingerprint": "surface-1",
+      "status": "accepted_risk",
+      "reason": "The maintenance burden is documented and explicitly accepted.",
+      "reviewer": "test-reviewer",
+      "reviewed_at": "2026-08-11T13:00:00Z"
+    }}
+  ]
+}}"#
+            ),
+        )
+        .expect("disposition contract should be writable");
+        let mut findings = QualityFindings {
+            total: 4,
+            report_path: Some(report_path.to_string_lossy().to_string()),
+            ..QualityFindings::default()
+        };
+
+        reconcile_finding_dispositions(&root, &mut findings);
+
+        assert_eq!(
+            findings.category_counts.get("maintenance-surface"),
+            Some(&1)
+        );
+        assert_eq!(findings.category_counts.get("speed"), Some(&1));
+        assert_eq!(
+            findings.category_counts.get("skill:future-review"),
+            Some(&1)
+        );
+        assert_eq!(findings.category_counts.get("future-category"), Some(&1));
+        assert_eq!(
+            findings
+                .actionable_category_counts
+                .get("maintenance-surface"),
+            Some(&0)
+        );
+        assert_eq!(findings.actionable_total, 3);
+        assert_eq!(findings.disposition_counts.get("accepted_risk"), Some(&1));
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
@@ -3801,13 +5366,39 @@ mod tests {
             .portfolio
             .measurement_confidence
             .as_ref()
-            .expect("v2 feed should expose measurement confidence");
+            .expect("feed should expose measurement confidence");
         assert_eq!(confidence.level, "high");
         assert_eq!(confidence.expected_repository_count, 1);
         assert_eq!(confidence.observed_repository_count, 1);
         assert_eq!(confidence.excluded_repository_count, 2);
         assert_eq!(confidence.unresolved_measurement_gap_count, 0);
+        assert_eq!(imported.portfolio.behavior_assurance.status, "gaps_present");
+        assert_eq!(
+            imported.portfolio.behavior_assurance.ready_repository_count,
+            0
+        );
+        assert_eq!(
+            imported.portfolio.quality_outcome_counts.get("healthy"),
+            Some(&1)
+        );
+        assert_eq!(
+            imported.portfolio.quality_outcome_taxonomy["healthy"].label,
+            "Quality healthy"
+        );
+        assert_eq!(
+            imported.maturities[&repository.id]
+                .quality_outcome
+                .as_ref()
+                .and_then(|outcome| outcome.disposition.as_deref()),
+            Some("Applicable dimensions are maintained with current evidence.")
+        );
         assert_eq!(imported.maturities[&repository.id].score, Some(3.5));
+        assert_eq!(
+            imported.maturities[&repository.id]
+                .dimension_scores
+                .get("agent_usability.growth_health"),
+            Some(&4.0)
+        );
         assert_eq!(imported.maturities[&repository.id].gaps.len(), 1);
         assert_eq!(
             imported.maturities[&repository.id].gaps[0].dimension,
@@ -3821,6 +5412,12 @@ mod tests {
         assert_eq!(agent_usability.lanes[0].id, "documentation_contract");
         assert_eq!(agent_usability.growth_health.skill_count, 4);
         assert_eq!(agent_usability.growth_health.family_count, 2);
+        let behavior_assurance = &imported.behavior_assurance[&repository.id];
+        assert_eq!(behavior_assurance.contract_status, "current");
+        assert_eq!(behavior_assurance.state, "legacy_v1");
+        assert_eq!(behavior_assurance.result_status, "unknown");
+        assert!(!behavior_assurance.release_ready);
+        assert_eq!(behavior_assurance.gaps[0].kind, "receipt_stale");
         assert_eq!(
             imported.maturities[&repository.id].freshness,
             QualityFreshness::Fresh
@@ -3853,6 +5450,61 @@ mod tests {
             Some(MATURITY_FEED_SCHEMAS[0])
         );
         assert!(imported.portfolio.measurement_confidence.is_none());
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn imports_holistic_v2_maturity_projection() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root.join("repo"));
+        let feed_path = root.join("maturity-v2.json");
+        let as_of = Utc::now().to_rfc3339();
+        let mut feed = fixture_maturity_feed(&repository, &as_of);
+        feed["schema"] = Value::String("quality-runner-maturity-feed/v2".to_string());
+        feed["repositories"][0]["repository_maturity"] = serde_json::json!({
+            "schema": "quality-runner-repository-maturity/v2",
+            "score": 3.5,
+            "uncapped_score": 3.5,
+            "status": "provisional",
+            "pillars": [
+                {"id": "correctness_reliability", "label": "Correctness and reliability", "weight": 0.22, "applicability": "applicable", "status": "attention", "score": 3.5},
+                {"id": "security_privacy_supply_chain", "label": "Security, privacy, and supply chain", "weight": 0.22, "applicability": "applicable", "status": "unknown", "score": null},
+                {"id": "maintainability_evolvability", "label": "Maintainability and evolvability", "weight": 0.16, "applicability": "applicable", "status": "attention", "score": 3.5},
+                {"id": "operability_release_safety", "label": "Operability and release safety", "weight": 0.14, "applicability": "applicable", "status": "unknown", "score": null},
+                {"id": "user_facing_quality", "label": "User-facing quality", "weight": 0.10, "applicability": "unknown", "status": "unknown", "score": null},
+                {"id": "human_agent_usability", "label": "Human and agent usability", "weight": 0.10, "applicability": "applicable", "status": "attention", "score": 3.5},
+                {"id": "governance_sustainability", "label": "Governance and sustainability", "weight": 0.06, "applicability": "unknown", "status": "unknown", "score": null}
+            ],
+            "evidence": {
+                "applicable_pillar_count": 5,
+                "assessed_pillar_count": 3,
+                "applicable_weight": 0.84,
+                "assessed_weight": 0.48,
+                "evidence_coverage": 0.571,
+                "fresh_evidence_coverage": 0.571,
+                "unknown_applicability": ["user_facing_quality", "governance_sustainability"],
+                "unmapped_dimensions": []
+            },
+            "critical_cap": {"applied": false, "maximum_score": null, "reasons": []}
+        });
+        feed["provenance_hash"] =
+            Value::String(maturity_feed_hash(&feed).expect("v2 fixture feed should hash"));
+        fs::write(
+            &feed_path,
+            serde_json::to_string(&feed).expect("v2 feed should serialize"),
+        )
+        .expect("v2 feed should be writable");
+
+        let imported = maturity_feed_import(Some(&feed_path), std::slice::from_ref(&repository));
+
+        assert_eq!(imported.portfolio.audit_status, "Ready");
+        let model = imported.maturities[&repository.id]
+            .repository_maturity
+            .as_ref()
+            .expect("v2 feed should preserve the repository model");
+        assert_eq!(model.status, "provisional");
+        assert_eq!(model.pillars.len(), 7);
+        assert_eq!(model.evidence.evidence_coverage, 0.571);
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
@@ -3979,7 +5631,25 @@ mod tests {
         );
 
         repository.name = "Book-documents-github".to_string();
-        assert_eq!(ideal_gate_ids_for_repository(&repository), None);
+        assert_eq!(
+            ideal_gate_ids_for_repository(&repository),
+            Some(
+                CI_READINESS_BASELINE_GATE_IDS
+                    .iter()
+                    .map(|gate_id| (*gate_id).to_string())
+                    .collect()
+            )
+        );
+        repository.name = "newly-registered-repository".to_string();
+        assert_eq!(
+            ideal_gate_ids_for_repository(&repository),
+            Some(
+                CI_READINESS_BASELINE_GATE_IDS
+                    .iter()
+                    .map(|gate_id| (*gate_id).to_string())
+                    .collect()
+            )
+        );
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
@@ -4009,6 +5679,11 @@ mod tests {
                     report_url: None,
                     report_kind: None,
                     detail: "fixture".to_string(),
+                    verification_level: QualityVerificationLevel::SourceInferred,
+                    target_kind: Some("source".to_string()),
+                    target_url: None,
+                    target_provider: None,
+                    deployment_id: None,
                 })
                 .into_iter()
                 .collect(),
@@ -4105,7 +5780,8 @@ mod tests {
             .collect::<Vec<_>>();
 
         let readiness = evaluate_ci_readiness_for_ideal(&gates, &ideal_gate_ids);
-        assert_eq!(readiness.score, Some(3.33));
+        assert_eq!(readiness.score, Some(2.67));
+        assert_eq!(readiness.evidence_coverage_score, Some(3.33));
         assert_eq!(readiness.applicable_gate_ids, ideal_gate_ids);
         assert_eq!(
             readiness.covered_gate_ids,
@@ -4317,6 +5993,11 @@ mod tests {
             report_url: None,
             report_kind: None,
             detail: "fixture failure".to_string(),
+            verification_level: QualityVerificationLevel::SourceInferred,
+            target_kind: Some("source".to_string()),
+            target_url: None,
+            target_provider: None,
+            deployment_id: None,
         });
         let lint = snapshot
             .gates
@@ -4337,6 +6018,11 @@ mod tests {
             report_url: None,
             report_kind: None,
             detail: "mismatched fixture".to_string(),
+            verification_level: QualityVerificationLevel::SourceInferred,
+            target_kind: Some("source".to_string()),
+            target_url: None,
+            target_provider: None,
+            deployment_id: None,
         });
         snapshot.findings = QualityFindings {
             total: 3,
@@ -4662,11 +6348,128 @@ mod tests {
             &QualityGateRequirement {
                 gate_id: "lint".to_string(),
                 source: QualitySource::Ci,
+                minimum_verification_level: None,
+                policy: QualityRequirementPolicy::Block,
             },
         );
         assert_eq!(status, QualityGateStatus::NotConfigured);
         assert_eq!(freshness, QualityFreshness::Unknown);
         assert!(detail.contains("CI evidence"));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn verification_level_requirement_rejects_weaker_passing_evidence() {
+        let root = fixture_root();
+        let mut repository = fixture_repository(&root.join("repo"));
+        let mut source = evidence(
+            QualitySource::Qr,
+            QualityGateStatus::Passed,
+            QualityFreshness::Fresh,
+        );
+        source.id = "web_readiness".to_string();
+        source.verification_level = QualityVerificationLevel::SourceInferred;
+        repository.quality.gates = vec![QualityGate {
+            id: "web_readiness".to_string(),
+            label: "Web readiness".to_string(),
+            status: QualityGateStatus::Passed,
+            freshness: QualityFreshness::Fresh,
+            evidence: vec![source],
+        }];
+        let requirement = QualityGateRequirement {
+            gate_id: "web_readiness".to_string(),
+            source: QualitySource::Qr,
+            minimum_verification_level: Some(QualityVerificationLevel::DeploymentVerified),
+            policy: QualityRequirementPolicy::Block,
+        };
+
+        let (status, freshness, detail) = evaluate_requirement(&repository, &requirement);
+        assert_eq!(status, QualityGateStatus::Blocked);
+        assert_eq!(freshness, QualityFreshness::Unknown);
+        assert!(detail.contains("deployment_verified"));
+
+        let mut deployment = repository.quality.gates[0].evidence[0].clone();
+        deployment.verification_level = QualityVerificationLevel::DeploymentVerified;
+        deployment.target_kind = Some("deployment".to_string());
+        repository.quality.gates[0].evidence.push(deployment);
+        let (status, freshness, _) = evaluate_requirement(&repository, &requirement);
+        assert_eq!(status, QualityGateStatus::Passed);
+        assert_eq!(freshness, QualityFreshness::Fresh);
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn web_readiness_import_preserves_target_identity_and_categorical_status() {
+        let root = fixture_root();
+        let repository_path = root.join("repo");
+        fs::create_dir_all(repository_path.join(".quality-runner"))
+            .expect("web-readiness directory should be writable");
+        let repository = fixture_repository(&repository_path);
+        fs::write(
+            repository_path.join(WEB_READINESS_RELATIVE_PATH),
+            serde_json::to_string(&serde_json::json!({
+                "schema": WEB_READINESS_SCHEMA,
+                "status": "warnings",
+                "generated_at": Utc::now().to_rfc3339(),
+                "repository": {"path": repository.path, "branch": "main", "head_sha": "abc"},
+                "applicability": {"status": "public_web", "reason": "Public product"},
+                "summary": {"passed": 2, "failed": 1, "blocked": 0, "unknown": 0},
+                "target": {
+                    "kind": "deployment",
+                    "commit": "abc",
+                    "url": "https://preview.example.test",
+                    "provider": "fixture",
+                    "deployment_id": "dep-123"
+                },
+                "checks": [
+                    {
+                        "id": "route_titles", "label": "Route titles", "category": "baseline",
+                        "policy": "block", "status": "passed", "verification_level": "deployment_verified",
+                        "detail": "Unique titles", "evidence": [{"route": "/"}]
+                    },
+                    {
+                        "id": "social_image", "label": "Social image", "category": "polish",
+                        "policy": "warn", "status": "failed", "verification_level": "deployment_verified",
+                        "detail": "Missing image", "evidence": [{"route": "/"}]
+                    }
+                ]
+            }))
+            .expect("web-readiness fixture should encode"),
+        )
+        .expect("web-readiness fixture should be writable");
+
+        let snapshot = ingest_repository_quality(
+            &repository,
+            None,
+            None,
+            Some(&ideal_gate_ids_for_repository(&repository).expect("gate profile")),
+        );
+        assert_eq!(snapshot.web_readiness.status, "Warnings");
+        assert_eq!(snapshot.web_readiness.applicability, "public_web");
+        assert_eq!(
+            snapshot.web_readiness.target.deployment_id.as_deref(),
+            Some("dep-123")
+        );
+        assert_eq!(snapshot.web_readiness.warning_count, 1);
+        assert!(snapshot
+            .ci_readiness
+            .applicable_gate_ids
+            .contains(&"web_readiness".to_string()));
+        let evidence = snapshot
+            .gates
+            .iter()
+            .find(|gate| gate.id == "web_readiness")
+            .and_then(|gate| gate.evidence.first())
+            .expect("web-readiness evidence should be projected");
+        assert_eq!(evidence.status, QualityGateStatus::Passed);
+        assert_eq!(
+            evidence.verification_level,
+            QualityVerificationLevel::DeploymentVerified
+        );
+        assert_eq!(
+            evidence.target_url.as_deref(),
+            Some("https://preview.example.test")
+        );
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
@@ -4691,6 +6494,60 @@ mod tests {
                     "primary_path": repository_path.to_string_lossy(),
                     "checkouts": [{"path": repository_path.to_string_lossy(), "head": "abc", "branch": "main"}]
                 },
+                "agent_usability": {
+                    "applicability": "applicable",
+                    "schema": "quality-runner-agent-usability/v1",
+                    "status": "attention",
+                    "manifest_status": "present",
+                    "manifest_path": ".agents/agent-usability.json",
+                    "applicable_lane_count": 4,
+                    "covered_lane_count": 3,
+                    "lanes": [
+                        {
+                            "id": "documentation_contract",
+                            "label": "Documentation contract",
+                            "applicable": true,
+                            "score": 3,
+                            "status": "validated",
+                            "message": "Documentation exists."
+                        },
+                        {
+                            "id": "tool_skill_coverage",
+                            "label": "Tool-to-skill coverage",
+                            "applicable": true,
+                            "score": 3,
+                            "status": "static_validated",
+                            "message": "Skill mapping exists."
+                        },
+                        {
+                            "id": "behavior_evidence",
+                            "label": "Behavior evidence",
+                            "applicable": true,
+                            "score": 1,
+                            "status": "missing",
+                            "message": "Behavior evidence remains unverified."
+                        },
+                        {
+                            "id": "freshness_portability",
+                            "label": "Freshness and portability",
+                            "applicable": true,
+                            "score": 3,
+                            "status": "static_validated",
+                            "message": "References are portable."
+                        }
+                    ],
+                    "growth_health": {
+                        "status": "healthy",
+                        "score": 4,
+                        "message": "Documentation and skill structure remains proportionate and routed.",
+                        "document_count": 4,
+                        "agent_document_count": 2,
+                        "routed_agent_document_count": 2,
+                        "skill_count": 1,
+                        "family_count": 1,
+                        "tool_count": 1
+                    }
+                },
                 "findings": [
                     {
                         "applicable": true,
@@ -4707,6 +6564,14 @@ mod tests {
                         "pack": "quality-runner-environment-legibility-finding-v0.1",
                         "severity": "observation",
                         "status": "maintained"
+                    },
+                    {
+                        "applicable": true,
+                        "dimension": "matrix_maintenance",
+                        "score": 2,
+                        "schema": "quality-runner-environment-legibility-finding-v0.1",
+                        "severity": "observation",
+                        "status": "incomplete"
                     },
                     {
                         "finding_id": "finding-real",
@@ -4726,8 +6591,26 @@ mod tests {
             .get("repo-1")
             .expect("repository evidence should be imported");
 
-        assert_eq!(evidence.maturity.score, Some(4.0));
-        assert_eq!(evidence.maturity.dimension_scores.len(), 2);
+        assert_eq!(evidence.maturity.score_display.as_deref(), Some("3.000"));
+        assert_eq!(evidence.maturity.dimension_scores.len(), 8);
+        assert_eq!(
+            evidence.maturity.dimension_scores.get("matrix_maintenance"),
+            Some(&2.0)
+        );
+        assert_eq!(
+            evidence
+                .maturity
+                .dimension_scores
+                .get("agent_usability.behavior_evidence"),
+            Some(&1.0)
+        );
+        let agent_usability = evidence
+            .maturity
+            .agent_usability
+            .as_ref()
+            .expect("per-repository audits should retain agent-usability evidence");
+        assert_eq!(agent_usability.covered_lane_count, 3);
+        assert_eq!(agent_usability.lanes[2].id, "behavior_evidence");
         assert_eq!(evidence.findings.total, 1);
         assert_eq!(evidence.findings.high_severity_total, 1);
         assert_eq!(evidence.findings.severity_counts.get("high"), Some(&1));
@@ -4899,6 +6782,113 @@ mod tests {
         assert_eq!(imported.portfolio.matched_repository_count, 0);
         assert!(imported.maturities.is_empty());
         fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn composite_maturity_uses_pillars_and_excludes_product_progress() {
+        let root = fixture_root();
+        let mut repository = fixture_repository(&root.join("repo"));
+        repository.quality.maturity.dimension_scores =
+            BTreeMap::from([("source.one".to_string(), 4.0)]);
+        repository.quality.ci_readiness.configuration_score = Some(4.0);
+        repository.quality.ci_readiness.evidence_coverage_score = Some(2.0);
+        repository.quality.ci_readiness.score = Some(0.0);
+        repository.quality.mac_control_ideal_state.applicability = "Not applicable".to_string();
+        let mut repositories = vec![repository];
+        let mut portfolio = QualityPortfolioSnapshot {
+            maturity_score: Some(2.0),
+            maturity_score_display: Some("2.000".to_string()),
+            scored_dimension_count: Some(10),
+            ..QualityPortfolioSnapshot::default()
+        };
+
+        update_composite_maturity_summary(&mut portfolio, &mut repositories);
+
+        assert_eq!(portfolio.source_maturity_score, Some(2.0));
+        assert_eq!(portfolio.source_scored_dimension_count, Some(10));
+        assert_eq!(portfolio.scored_dimension_count, Some(1));
+        assert_eq!(portfolio.maturity_score, Some(0.0));
+        assert_eq!(
+            repositories[0]
+                .quality
+                .maturity
+                .dimension_scores
+                .get("ci.fresh_passing"),
+            Some(&0.0)
+        );
+        assert!(!repositories[0]
+            .quality
+            .maturity
+            .dimension_scores
+            .contains_key("project_compass.mvp_progress"));
+        let model = repositories[0]
+            .quality
+            .maturity
+            .repository_maturity
+            .as_ref()
+            .expect("composite summary should expose the holistic model");
+        assert_eq!(model.status, "blocked");
+        assert!(model.critical_cap.applied);
+        assert_eq!(model.evidence.assessed_pillar_count, 1);
+        assert!(model
+            .evidence
+            .unmapped_dimensions
+            .contains(&"source.one".to_string()));
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn repository_maturity_caps_critical_blockers() {
+        let maturity = QualityMaturity {
+            dimension_scores: BTreeMap::from([
+                ("quality_commands".to_string(), 4.0),
+                ("security_constraints".to_string(), 4.0),
+                ("architecture_boundaries".to_string(), 4.0),
+                ("observability".to_string(), 4.0),
+            ]),
+            gaps: vec![QualityMaturityGap {
+                dimension: "security_constraints".to_string(),
+                status: "blocked".to_string(),
+                score: Some(4.0),
+                message: "Security verification is blocked.".to_string(),
+            }],
+            ..QualityMaturity::default()
+        };
+
+        let model = build_repository_maturity_model(&maturity);
+
+        assert_eq!(model.uncapped_score, Some(4.0));
+        assert_eq!(model.score, Some(2.0));
+        assert_eq!(model.status, "blocked");
+        assert!(model.critical_cap.applied);
+    }
+
+    #[test]
+    fn repository_maturity_keeps_conditional_applicability_explicit() {
+        let maturity = QualityMaturity {
+            dimension_scores: BTreeMap::from([
+                ("quality_commands".to_string(), 4.0),
+                ("security_constraints".to_string(), 4.0),
+                ("architecture_boundaries".to_string(), 4.0),
+                ("observability".to_string(), 4.0),
+            ]),
+            agent_usability: Some(AgentUsabilityMaturity {
+                applicability: "not_applicable".to_string(),
+                ..AgentUsabilityMaturity::default()
+            }),
+            ..QualityMaturity::default()
+        };
+
+        let model = build_repository_maturity_model(&maturity);
+
+        assert_eq!(model.score, Some(4.0));
+        assert_eq!(model.status, "provisional");
+        assert_eq!(model.pillars[4].applicability, "unknown");
+        assert_eq!(model.pillars[5].applicability, "not_applicable");
+        assert_eq!(model.pillars[6].applicability, "unknown");
+        assert_eq!(model.evidence.assessed_pillar_count, 4);
+        assert_eq!(model.evidence.assessed_weight, 0.228);
+        assert_eq!(model.evidence.evidence_coverage, 0.309);
     }
 
     #[test]

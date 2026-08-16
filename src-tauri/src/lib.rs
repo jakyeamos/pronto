@@ -1,15 +1,43 @@
+pub mod behavior_assurance;
 pub mod change_matrix;
 pub mod core;
+pub mod evidence_contract;
+#[cfg(target_os = "macos")]
+mod mac_accessibility;
 pub mod mac_control_maturity;
 pub mod papercuts;
 pub mod project_compass;
 pub mod promotion;
+
 pub mod quality;
+pub mod release_boundary;
 pub mod remediation;
+pub mod showcase;
+pub mod skill_usage_collector;
 pub mod skills;
+
+use tauri::Manager;
 
 #[cfg(desktop)]
 const WINDOW_EDGE_SNAP_THRESHOLD: i32 = 16;
+
+#[cfg(desktop)]
+fn restore_main_window(app: &tauri::AppHandle) {
+    let Some(window) = app.get_webview_window("main") else {
+        log::warn!("cannot restore the main window because it is not registered");
+        return;
+    };
+
+    if let Err(error) = window.show() {
+        log::warn!("failed to show the main window: {error}");
+    }
+    if let Err(error) = window.unminimize() {
+        log::warn!("failed to unminimize the main window: {error}");
+    }
+    if let Err(error) = window.set_focus() {
+        log::warn!("failed to focus the main window: {error}");
+    }
+}
 
 #[cfg(desktop)]
 fn snapped_window_position(
@@ -62,14 +90,36 @@ fn snap_window_to_work_area(window: &tauri::Window, position: tauri::PhysicalPos
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default();
+
+    // Tauri requires the single-instance plugin to be registered before every
+    // other plugin so a duplicate launch exits before it can create a window.
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(
+            |app, _arguments, _working_directory| restore_main_window(app),
+        ));
+    }
+
+    let builder = builder
         .plugin(tauri_plugin_dialog::init())
         .on_window_event(|window, event| {
             #[cfg(desktop)]
             if let tauri::WindowEvent::Moved(position) = event {
                 snap_window_to_work_area(window, *position);
             }
-        })
+        });
+
+    #[cfg(target_os = "macos")]
+    let builder = builder.on_page_load(|webview, payload| {
+        if payload.event() == tauri::webview::PageLoadEvent::Finished {
+            if let Err(error) = mac_accessibility::install(webview.clone()) {
+                log::error!("failed to install Mac Control accessibility targets: {error}");
+            }
+        }
+    });
+
+    let app = builder
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -78,22 +128,35 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            #[cfg(target_os = "macos")]
+            if let Some(window) = app.get_webview_window("main") {
+                for webview in window.as_ref().window().webviews() {
+                    mac_accessibility::install(webview)?;
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             core::get_snapshot,
             core::get_analytics,
+            core::save_analytics_view,
+            core::delete_analytics_view,
+            core::set_default_analytics_view,
             core::get_skills,
             core::refresh_skills,
             core::open_skill_source,
             core::register_root,
             core::refresh,
+            core::refresh_batch,
             core::refresh_quality,
             core::refresh_repository_target_evidence,
             core::refresh_github,
             core::refresh_remediation,
             core::set_remediation_action_status,
             core::check_remediation_handoff,
+            core::check_remediation_execution_gate,
             core::export_remediation,
             core::set_maturity_audit_root,
             core::open_quality_report,
@@ -125,8 +188,15 @@ pub fn run() {
             papercuts::set_multiplier_proposal_status,
             papercuts::set_papercut_status,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|_app_handle, _event| {
+        #[cfg(target_os = "macos")]
+        if let tauri::RunEvent::Reopen { .. } = _event {
+            restore_main_window(_app_handle);
+        }
+    });
 }
 
 #[cfg(all(test, desktop))]

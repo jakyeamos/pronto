@@ -1,13 +1,13 @@
+use crate::skill_usage_collector;
 use chrono::{DateTime, Duration, Utc};
 use rusqlite::{params, Connection, OpenFlags, OptionalExtension};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub const SCHEMA: &str = "pronto-skills/v3";
+pub const SCHEMA: &str = "pronto-skills/v4";
 const QUALITY_RUNNER_CAPABILITY_SCHEMA: &str = "quality-runner-skill-capability/v1";
 const QUALITY_RUNNER_CAPABILITY_FEED: &str =
     ".quality-runner/skill-capabilities/current/capabilities.json";
@@ -15,16 +15,298 @@ const BUILT_IN_PAPERCUTS_ID: &str = "papercuts";
 const RECENT_DAYS: i64 = 30;
 const MAX_FILES: usize = 3_000;
 const MAX_FILE_BYTES: u64 = 256 * 1024;
-const MAX_TELEMETRY_FILES: usize = 10;
-const MAX_SESSION_FILE_BYTES: u64 = 512 * 1024;
+const CODEX_USAGE_DATABASE: &str = "state_5.sqlite";
+const CODEX_USAGE_SOURCE: &str =
+    "Codex structured skill-invocation state (~/.codex/state_5.sqlite)";
+const CODEX_OTLP_USAGE_SOURCE: &str = "Codex OTLP skill metric compatibility feed (localhost)";
+const STRUCTURED_USAGE_UNAVAILABLE_REASON: &str =
+    "The installed Codex state database does not expose the structured skill_invocations feed yet.";
+const STRUCTURED_USAGE_SOURCE: &str =
+    "Unavailable; catalog, prompt, and transcript text are never counted as invocations.";
+const PARTIAL_USAGE_GAP: &str = "Codex usage is observed from runtime events; Claude, Gemini, Cursor, and pre-instrumentation history remain unavailable.";
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+fn default_usage_state() -> String {
+    "unavailable".into()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SkillUsage {
+    #[serde(default = "default_usage_state")]
+    pub state: String,
+    #[serde(default)]
     pub recent_count: u64,
+    #[serde(default)]
     pub all_time_count: u64,
+    #[serde(default)]
     pub by_provider: BTreeMap<String, u64>,
+    #[serde(default)]
     pub last_seen_at: Option<String>,
+    #[serde(default)]
     pub telemetry_source: String,
+    #[serde(default)]
+    pub reason: String,
+}
+
+impl Default for SkillUsage {
+    fn default() -> Self {
+        Self {
+            state: default_usage_state(),
+            recent_count: 0,
+            all_time_count: 0,
+            by_provider: BTreeMap::new(),
+            last_seen_at: None,
+            telemetry_source: STRUCTURED_USAGE_SOURCE.into(),
+            reason: STRUCTURED_USAGE_UNAVAILABLE_REASON.into(),
+        }
+    }
+}
+
+#[derive(Debug)]
+enum CodexUsageFeed {
+    Observed {
+        usage: HashMap<String, SkillUsage>,
+        empty_usage: SkillUsage,
+    },
+    Unavailable(String),
+}
+
+fn codex_usage_database_path() -> PathBuf {
+    std::env::var_os("CODEX_SQLITE_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home().join(".codex"))
+        .join(CODEX_USAGE_DATABASE)
+}
+
+fn read_codex_usage_feed(path: &Path) -> CodexUsageFeed {
+    if !path.is_file() {
+        return CodexUsageFeed::Unavailable(format!(
+            "Codex state database was not found at {}.",
+            path.display()
+        ));
+    }
+    let connection = match Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY) {
+        Ok(connection) => connection,
+        Err(error) => {
+            return CodexUsageFeed::Unavailable(format!(
+                "Could not open Codex state database at {}: {error}",
+                path.display()
+            ));
+        }
+    };
+    let has_table = match connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'skill_invocations')",
+        [],
+        |row| row.get::<_, bool>(0),
+    ) {
+        Ok(has_table) => has_table,
+        Err(error) => {
+            return CodexUsageFeed::Unavailable(format!(
+                "Could not inspect Codex skill invocation storage: {error}"
+            ));
+        }
+    };
+    if !has_table {
+        return CodexUsageFeed::Unavailable(STRUCTURED_USAGE_UNAVAILABLE_REASON.into());
+    }
+
+    let cutoff_ms = (Utc::now() - Duration::days(RECENT_DAYS)).timestamp_millis();
+    let mut statement = match connection.prepare(
+        r#"
+SELECT
+    lower(skill_name),
+    COUNT(*),
+    SUM(CASE WHEN occurred_at_ms >= ?1 THEN 1 ELSE 0 END),
+    MAX(occurred_at_ms)
+FROM skill_invocations
+WHERE status = 'ok'
+GROUP BY lower(skill_name)
+"#,
+    ) {
+        Ok(statement) => statement,
+        Err(error) => {
+            return CodexUsageFeed::Unavailable(format!(
+                "Could not prepare the Codex skill usage query: {error}"
+            ));
+        }
+    };
+    let rows = match statement.query_map(params![cutoff_ms], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, i64>(1)?,
+            row.get::<_, i64>(2)?,
+            row.get::<_, i64>(3)?,
+        ))
+    }) {
+        Ok(rows) => rows,
+        Err(error) => {
+            return CodexUsageFeed::Unavailable(format!(
+                "Could not query Codex skill invocation storage: {error}"
+            ));
+        }
+    };
+
+    let mut usage = HashMap::new();
+    for row in rows {
+        let (name, all_time_count, recent_count, last_seen_at_ms) = match row {
+            Ok(row) => row,
+            Err(error) => {
+                return CodexUsageFeed::Unavailable(format!(
+                    "Could not decode a Codex skill invocation row: {error}"
+                ));
+            }
+        };
+        let Some(last_seen_at) = DateTime::<Utc>::from_timestamp_millis(last_seen_at_ms) else {
+            return CodexUsageFeed::Unavailable(format!(
+                "Codex skill invocation storage contains an invalid timestamp: {last_seen_at_ms}"
+            ));
+        };
+        let all_time_count = all_time_count.max(0) as u64;
+        let recent_count = recent_count.max(0) as u64;
+        usage.insert(
+            name,
+            SkillUsage {
+                state: "observed".into(),
+                recent_count,
+                all_time_count,
+                by_provider: BTreeMap::from([("codex".into(), all_time_count)]),
+                last_seen_at: Some(last_seen_at.to_rfc3339()),
+                telemetry_source: CODEX_USAGE_SOURCE.into(),
+                reason:
+                    "Recorded by the Codex runtime; failed loads and transcript text are excluded."
+                        .into(),
+            },
+        );
+    }
+    CodexUsageFeed::Observed {
+        usage,
+        empty_usage: SkillUsage {
+            state: "observed".into(),
+            recent_count: 0,
+            all_time_count: 0,
+            by_provider: BTreeMap::from([("codex".into(), 0)]),
+            last_seen_at: None,
+            telemetry_source: CODEX_USAGE_SOURCE.into(),
+            reason: "No successful Codex runtime invocation has been recorded for this skill since the structured feed was installed.".into(),
+        },
+    }
+}
+
+fn read_preferred_codex_usage_feed(
+    sqlite_path: &Path,
+    otlp_path: &Path,
+    now: DateTime<Utc>,
+) -> CodexUsageFeed {
+    let sqlite_feed = read_codex_usage_feed(sqlite_path);
+    if matches!(sqlite_feed, CodexUsageFeed::Observed { .. }) {
+        return sqlite_feed;
+    }
+    let sqlite_reason = match sqlite_feed {
+        CodexUsageFeed::Unavailable(reason) => reason,
+        CodexUsageFeed::Observed { .. } => unreachable!(),
+    };
+    let cutoff_ms = (now - Duration::days(RECENT_DAYS)).timestamp_millis();
+    let otlp = match skill_usage_collector::read_usage_snapshot(
+        otlp_path,
+        cutoff_ms,
+        now.timestamp_millis(),
+    ) {
+        Ok(otlp) => otlp,
+        Err(otlp_reason) => {
+            return CodexUsageFeed::Unavailable(format!(
+                "{sqlite_reason} The Codex OTLP compatibility feed is also unavailable: {otlp_reason}"
+            ));
+        }
+    };
+    let coverage_started_at = DateTime::<Utc>::from_timestamp_millis(otlp.coverage_started_at_ms)
+        .map(|time| time.to_rfc3339())
+        .unwrap_or_else(|| otlp.coverage_started_at_ms.to_string());
+    let last_heartbeat_at = DateTime::<Utc>::from_timestamp_millis(otlp.last_heartbeat_at_ms)
+        .map(|time| time.to_rfc3339())
+        .unwrap_or_else(|| otlp.last_heartbeat_at_ms.to_string());
+    let health_note = if otlp.healthy {
+        format!("The localhost collector is healthy as of {last_heartbeat_at}.")
+    } else {
+        format!(
+            "Recorded counts remain valid, but the localhost collector heartbeat is stale at {last_heartbeat_at}; current coverage may be interrupted."
+        )
+    };
+    let reason = format!(
+        "Recorded from Codex OTLP metric deltas since {coverage_started_at}; earlier history and non-Codex providers remain unavailable. {health_note}"
+    );
+    let usage = otlp
+        .usage
+        .into_iter()
+        .filter_map(|(skill_name, usage)| {
+            DateTime::<Utc>::from_timestamp_millis(usage.last_seen_at_ms).map(|last_seen_at| {
+                (
+                    skill_name,
+                    SkillUsage {
+                        state: "observed".into(),
+                        recent_count: usage.recent_count,
+                        all_time_count: usage.all_time_count,
+                        by_provider: BTreeMap::from([("codex".into(), usage.all_time_count)]),
+                        last_seen_at: Some(last_seen_at.to_rfc3339()),
+                        telemetry_source: CODEX_OTLP_USAGE_SOURCE.into(),
+                        reason: reason.clone(),
+                    },
+                )
+            })
+        })
+        .collect();
+    CodexUsageFeed::Observed {
+        usage,
+        empty_usage: SkillUsage {
+            state: "observed".into(),
+            recent_count: 0,
+            all_time_count: 0,
+            by_provider: BTreeMap::from([("codex".into(), 0)]),
+            last_seen_at: None,
+            telemetry_source: CODEX_OTLP_USAGE_SOURCE.into(),
+            reason,
+        },
+    }
+}
+
+fn usage_for_skill(skill_id: &str, feed: &CodexUsageFeed) -> SkillUsage {
+    match feed {
+        CodexUsageFeed::Observed { usage, empty_usage } => usage
+            .get(&skill_id.to_ascii_lowercase())
+            .cloned()
+            .unwrap_or_else(|| empty_usage.clone()),
+        CodexUsageFeed::Unavailable(reason) => SkillUsage {
+            reason: reason.clone(),
+            ..SkillUsage::default()
+        },
+    }
+}
+
+fn update_snapshot_usage_summary(snapshot: &mut SkillsSnapshot) {
+    if snapshot
+        .skills
+        .iter()
+        .any(|skill| skill.usage.state == "observed")
+    {
+        let observed = snapshot
+            .skills
+            .iter()
+            .find(|skill| skill.usage.state == "observed")
+            .expect("observed usage exists");
+        snapshot.source = format!("Local skill roots and {}", observed.usage.telemetry_source);
+        snapshot.telemetry_gap = if observed.usage.telemetry_source == CODEX_USAGE_SOURCE {
+            PARTIAL_USAGE_GAP.into()
+        } else {
+            observed.usage.reason.clone()
+        };
+    } else {
+        snapshot.source = "Local skill roots; usage requires structured provider telemetry".into();
+        snapshot.telemetry_gap = snapshot
+            .skills
+            .iter()
+            .find_map(|skill| {
+                (!skill.usage.reason.trim().is_empty()).then(|| skill.usage.reason.clone())
+            })
+            .unwrap_or_else(|| STRUCTURED_USAGE_UNAVAILABLE_REASON.into());
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -413,7 +695,7 @@ fn built_in_papercuts_skill() -> SkillRecord {
             "Native Pronto skill surface; provider parity is not applicable.".into(),
         ],
         usage: SkillUsage {
-            telemetry_source: "Pronto local backlog; invocation telemetry is not recorded.".into(),
+            reason: "Papercuts activity is tracked in its backlog; skill invocation telemetry is not recorded.".into(),
             ..SkillUsage::default()
         },
         finding_capability: papercuts_finding_capability(),
@@ -668,93 +950,6 @@ fn provider_state(
     }
 }
 
-fn invocation_candidates(
-    root: &Path,
-    provider: &str,
-    names: &HashSet<String>,
-    counts: &mut HashMap<String, SkillUsage>,
-) {
-    let mut files = Vec::new();
-    collect_jsonl_files(root, 0, &mut files);
-    for path in files.into_iter().take(MAX_TELEMETRY_FILES) {
-        if fs::metadata(&path)
-            .map(|metadata| metadata.len() > MAX_SESSION_FILE_BYTES)
-            .unwrap_or(true)
-        {
-            continue;
-        }
-        let Ok(contents) = fs::read_to_string(&path) else {
-            continue;
-        };
-        for line in contents
-            .lines()
-            .filter(|line| line.to_ascii_lowercase().contains("skill"))
-        {
-            let timestamp = serde_json::from_str::<Value>(line).ok().and_then(|value| {
-                value
-                    .get("timestamp")
-                    .and_then(Value::as_str)
-                    .map(str::to_string)
-            });
-            for name in names {
-                let marker = format!("${name}");
-                if !line.contains(&marker) && !line.contains(&format!("\"{name}\"")) {
-                    continue;
-                }
-                let entry = counts.entry(name.clone()).or_default();
-                entry.all_time_count += 1;
-                *entry.by_provider.entry(provider.to_string()).or_default() += 1;
-                let is_recent = timestamp
-                    .as_deref()
-                    .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
-                    .map(|date| {
-                        date.with_timezone(&Utc) >= Utc::now() - Duration::days(RECENT_DAYS)
-                    })
-                    .unwrap_or(false);
-                if is_recent {
-                    entry.recent_count += 1;
-                }
-                if timestamp.as_ref().is_some_and(|value| {
-                    entry.last_seen_at.as_ref().map_or(true, |old| value > old)
-                }) {
-                    entry.last_seen_at = timestamp.clone();
-                }
-                entry.telemetry_source =
-                    "Local session records; prompts and bodies are not retained".into();
-            }
-        }
-    }
-}
-
-fn collect_jsonl_files(root: &Path, depth: usize, output: &mut Vec<PathBuf>) {
-    if output.len() >= MAX_FILES || depth > 5 {
-        return;
-    }
-    let Ok(entries) = fs::read_dir(root) else {
-        return;
-    };
-    for entry in entries.flatten() {
-        if output.len() >= MAX_FILES {
-            break;
-        }
-        let path = entry.path();
-        if fs::symlink_metadata(&path)
-            .map(|metadata| metadata.file_type().is_symlink())
-            .unwrap_or(true)
-        {
-            continue;
-        }
-        if path.is_dir() {
-            collect_jsonl_files(&path, depth + 1, output);
-        } else if path
-            .extension()
-            .is_some_and(|extension| extension == "jsonl")
-        {
-            output.push(path);
-        }
-    }
-}
-
 fn contains_any(value: &str, terms: &[&str]) -> bool {
     terms.iter().any(|term| value.contains(term))
 }
@@ -918,6 +1113,11 @@ fn skill_family_label(seed: &str) -> String {
 
 fn build_snapshot() -> SkillsSnapshot {
     let (candidates, roots) = discover_candidates();
+    let codex_usage = read_preferred_codex_usage_feed(
+        &codex_usage_database_path(),
+        &skill_usage_collector::usage_database_path(),
+        Utc::now(),
+    );
     let mut grouped: BTreeMap<String, Vec<Candidate>> = BTreeMap::new();
     for candidate in candidates {
         grouped
@@ -931,14 +1131,6 @@ fn build_snapshot() -> SkillsSnapshot {
             .entry(skill_family_seed(name))
             .or_insert(0usize) += 1;
     }
-    let names = grouped
-        .values()
-        .flat_map(|items| items.iter().map(|item| item.name.clone()))
-        .collect::<HashSet<_>>();
-    let mut usage = HashMap::new();
-    let home = home();
-    invocation_candidates(&home.join(".codex/sessions"), "codex", &names, &mut usage);
-    invocation_candidates(&home.join(".claude/projects"), "claude", &names, &mut usage);
     let mut skills = grouped
         .into_iter()
         .map(|(id, candidates)| {
@@ -1008,14 +1200,7 @@ fn build_snapshot() -> SkillsSnapshot {
                 providers,
                 parity_score: None,
                 parity_evidence,
-                usage: usage
-                    .remove(
-                        &candidates
-                            .first()
-                            .map(|candidate| candidate.name.clone())
-                            .unwrap_or_default(),
-                    )
-                    .unwrap_or_default(),
+                usage: usage_for_skill(&id, &codex_usage),
                 finding_capability: fallback_finding_capability(
                     &id,
                     candidates
@@ -1037,13 +1222,14 @@ fn build_snapshot() -> SkillsSnapshot {
         generated_at: iso_now(),
         refreshed_at: Some(iso_now()),
         freshness: format!("Observed through {}", iso_now()),
-        source: "Local skill roots and local session records".into(),
+        source: "Local skill roots; usage requires structured provider telemetry".into(),
         recent_days: RECENT_DAYS,
         roots,
         skills,
-        telemetry_gap: "Invocation evidence is best-effort: only recognizable local session records are counted; missing or provider-blocked telemetry remains unknown.".into(),
+        telemetry_gap: STRUCTURED_USAGE_UNAVAILABLE_REASON.into(),
     };
     ensure_builtin_skills(&mut snapshot);
+    update_snapshot_usage_summary(&mut snapshot);
     apply_finding_capabilities(&mut snapshot);
     snapshot
 }
@@ -1057,6 +1243,9 @@ fn classify_snapshot(snapshot: &mut SkillsSnapshot) {
             .or_insert(0usize) += 1;
     }
     for skill in &mut snapshot.skills {
+        if !observed_usage_is_valid(&skill.usage) {
+            skill.usage = SkillUsage::default();
+        }
         if skill.id.eq_ignore_ascii_case(BUILT_IN_PAPERCUTS_ID) {
             continue;
         }
@@ -1069,7 +1258,33 @@ fn classify_snapshot(snapshot: &mut SkillsSnapshot) {
         skill.category = classify_skill_category(&skill.name, &skill.description);
     }
     snapshot.schema_version = SCHEMA.into();
+    update_snapshot_usage_summary(snapshot);
     apply_finding_capabilities(snapshot);
+}
+
+fn observed_usage_is_valid(usage: &SkillUsage) -> bool {
+    if usage.state != "observed"
+        || usage.telemetry_source.trim().is_empty()
+        || usage.by_provider.is_empty()
+        || usage.recent_count > usage.all_time_count
+    {
+        return false;
+    }
+    let Some(provider_total) = usage
+        .by_provider
+        .values()
+        .try_fold(0_u64, |total, count| total.checked_add(*count))
+    else {
+        return false;
+    };
+    if provider_total != usage.all_time_count {
+        return false;
+    }
+    match (usage.all_time_count, usage.last_seen_at.as_deref()) {
+        (0, None) => true,
+        (0, Some(_)) | (_, None) => false,
+        (_, Some(timestamp)) => DateTime::parse_from_rfc3339(timestamp).is_ok(),
+    }
 }
 
 fn iso_now() -> String {
@@ -1099,7 +1314,7 @@ pub fn load(path: &Path) -> Result<SkillsSnapshot, String> {
             generated_at: iso_now(),
             refreshed_at: None,
             freshness: "Unavailable until the first skills refresh".into(),
-            source: "Local skill roots and local session records".into(),
+            source: "Local skill roots; usage requires structured provider telemetry".into(),
             recent_days: RECENT_DAYS,
             roots: Vec::new(),
             skills: Vec::new(),
@@ -1143,7 +1358,7 @@ fn empty_snapshot() -> SkillsSnapshot {
         generated_at: iso_now(),
         refreshed_at: None,
         freshness: "Unavailable until the first skills refresh".into(),
-        source: "Local skill roots and local session records".into(),
+        source: "Local skill roots; usage requires structured provider telemetry".into(),
         recent_days: RECENT_DAYS,
         roots: Vec::new(),
         skills: Vec::new(),
@@ -1323,5 +1538,298 @@ mod tests {
                 .count(),
             1
         );
+    }
+
+    #[test]
+    fn legacy_unstructured_usage_is_invalidated_on_load() {
+        let mut snapshot = empty_snapshot();
+        let skill = snapshot
+            .skills
+            .iter_mut()
+            .find(|skill| skill.id == BUILT_IN_PAPERCUTS_ID)
+            .expect("built-in skill");
+        skill.usage = serde_json::from_value(serde_json::json!({
+            "recent_count": 2,
+            "all_time_count": 2,
+            "by_provider": { "claude": 2 },
+            "last_seen_at": "2026-07-08T03:52:57.943Z",
+            "telemetry_source": "Local session records"
+        }))
+        .expect("legacy usage");
+
+        classify_snapshot(&mut snapshot);
+
+        let usage = &snapshot
+            .skills
+            .iter()
+            .find(|skill| skill.id == BUILT_IN_PAPERCUTS_ID)
+            .expect("built-in skill")
+            .usage;
+        assert_eq!(snapshot.schema_version, SCHEMA);
+        assert_eq!(usage.state, "unavailable");
+        assert_eq!(usage.recent_count, 0);
+        assert_eq!(usage.all_time_count, 0);
+        assert!(usage.by_provider.is_empty());
+        assert!(usage.last_seen_at.is_none());
+    }
+
+    #[test]
+    fn structured_observed_usage_survives_snapshot_classification() {
+        let mut snapshot = empty_snapshot();
+        let skill = snapshot
+            .skills
+            .iter_mut()
+            .find(|skill| skill.id == BUILT_IN_PAPERCUTS_ID)
+            .expect("built-in skill");
+        skill.usage = SkillUsage {
+            state: "observed".into(),
+            recent_count: 3,
+            all_time_count: 7,
+            by_provider: BTreeMap::from([("codex".into(), 7)]),
+            last_seen_at: Some("2026-08-10T20:00:00Z".into()),
+            telemetry_source: "Structured test provider feed".into(),
+            reason: "Structured usage evidence observed.".into(),
+        };
+
+        classify_snapshot(&mut snapshot);
+
+        let usage = &snapshot
+            .skills
+            .iter()
+            .find(|skill| skill.id == BUILT_IN_PAPERCUTS_ID)
+            .expect("built-in skill")
+            .usage;
+        assert_eq!(usage.state, "observed");
+        assert_eq!(usage.recent_count, 3);
+        assert_eq!(usage.all_time_count, 7);
+        assert_eq!(usage.by_provider.get("codex"), Some(&7));
+    }
+
+    #[test]
+    fn malformed_observed_usage_fails_closed_on_snapshot_classification() {
+        for invalid_usage in [
+            SkillUsage {
+                state: "observed".into(),
+                recent_count: 8,
+                all_time_count: 7,
+                by_provider: BTreeMap::from([("codex".into(), 7)]),
+                last_seen_at: Some("2026-08-10T20:00:00Z".into()),
+                telemetry_source: "Structured test provider feed".into(),
+                reason: "Structured usage evidence observed.".into(),
+            },
+            SkillUsage {
+                state: "observed".into(),
+                recent_count: 3,
+                all_time_count: 7,
+                by_provider: BTreeMap::from([("codex".into(), 6)]),
+                last_seen_at: Some("not-a-timestamp".into()),
+                telemetry_source: "".into(),
+                reason: "Structured usage evidence observed.".into(),
+            },
+        ] {
+            let mut snapshot = empty_snapshot();
+            let skill = snapshot
+                .skills
+                .iter_mut()
+                .find(|skill| skill.id == BUILT_IN_PAPERCUTS_ID)
+                .expect("built-in skill");
+            skill.usage = invalid_usage;
+
+            classify_snapshot(&mut snapshot);
+
+            let usage = &snapshot
+                .skills
+                .iter()
+                .find(|skill| skill.id == BUILT_IN_PAPERCUTS_ID)
+                .expect("built-in skill")
+                .usage;
+            assert_eq!(usage.state, "unavailable");
+            assert_eq!(usage.all_time_count, 0);
+            assert!(usage.by_provider.is_empty());
+        }
+    }
+
+    fn usage_test_database() -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "pronto-codex-skill-usage-{}-{}.sqlite",
+            std::process::id(),
+            Utc::now().timestamp_nanos_opt().unwrap_or_default()
+        ))
+    }
+
+    #[test]
+    fn codex_usage_feed_counts_only_successful_structured_events() {
+        let path = usage_test_database();
+        let connection = Connection::open(&path).expect("open usage fixture");
+        connection
+            .execute_batch(
+                r#"
+CREATE TABLE skill_invocations (
+    thread_id TEXT NOT NULL,
+    turn_id TEXT NOT NULL,
+    skill_name TEXT NOT NULL,
+    skill_path TEXT NOT NULL,
+    skill_scope TEXT NOT NULL,
+    invocation_type TEXT NOT NULL,
+    status TEXT NOT NULL,
+    occurred_at_ms INTEGER NOT NULL,
+    PRIMARY KEY (thread_id, turn_id, skill_path, invocation_type)
+);
+"#,
+            )
+            .expect("create usage fixture");
+        let recent = Utc::now().timestamp_millis();
+        let old = (Utc::now() - Duration::days(RECENT_DAYS + 1)).timestamp_millis();
+        for (turn, invocation_type, status, timestamp) in [
+            ("turn-1", "explicit", "ok", old),
+            ("turn-2", "implicit", "ok", recent),
+            ("turn-3", "explicit", "error", recent),
+        ] {
+            connection
+                .execute(
+                    "INSERT INTO skill_invocations VALUES (?1, ?2, 'Example', '/skills/example/SKILL.md', 'user', ?3, ?4, ?5)",
+                    params!["thread-1", turn, invocation_type, status, timestamp],
+                )
+                .expect("insert usage fixture");
+        }
+        drop(connection);
+
+        let CodexUsageFeed::Observed { usage, .. } = read_codex_usage_feed(&path) else {
+            panic!("expected observed Codex usage feed");
+        };
+        let example = usage.get("example").expect("example usage");
+        assert_eq!(example.recent_count, 1);
+        assert_eq!(example.all_time_count, 2);
+        assert_eq!(example.by_provider.get("codex"), Some(&2));
+        assert!(example.last_seen_at.is_some());
+        fs::remove_file(path).expect("remove usage fixture");
+    }
+
+    #[test]
+    fn empty_structured_feed_is_observed_zero_not_unavailable() {
+        let path = usage_test_database();
+        let connection = Connection::open(&path).expect("open usage fixture");
+        connection
+            .execute_batch(
+                r#"
+CREATE TABLE skill_invocations (
+    thread_id TEXT NOT NULL,
+    turn_id TEXT NOT NULL,
+    skill_name TEXT NOT NULL,
+    skill_path TEXT NOT NULL,
+    skill_scope TEXT NOT NULL,
+    invocation_type TEXT NOT NULL,
+    status TEXT NOT NULL,
+    occurred_at_ms INTEGER NOT NULL
+);
+"#,
+            )
+            .expect("create usage fixture");
+        drop(connection);
+
+        let feed = read_codex_usage_feed(&path);
+        let usage = usage_for_skill("not-yet-used", &feed);
+        assert_eq!(usage.state, "observed");
+        assert_eq!(usage.all_time_count, 0);
+        assert_eq!(usage.by_provider.get("codex"), Some(&0));
+        fs::remove_file(path).expect("remove usage fixture");
+    }
+
+    #[test]
+    fn missing_structured_table_fails_closed() {
+        let path = usage_test_database();
+        drop(Connection::open(&path).expect("open usage fixture"));
+
+        let feed = read_codex_usage_feed(&path);
+        let usage = usage_for_skill("example", &feed);
+        assert_eq!(usage.state, "unavailable");
+        assert!(usage.reason.contains("skill_invocations"));
+        fs::remove_file(path).expect("remove usage fixture");
+    }
+
+    fn otlp_usage_payload(skill: &str, count: u64, timestamp_ms: i64) -> Vec<u8> {
+        serde_json::to_vec(&serde_json::json!({
+            "resourceMetrics": [{
+                "resource": {"attributes": [{"key": "service.name", "value": {"stringValue": "codex"}}]},
+                "scopeMetrics": [{
+                    "metrics": [{
+                        "name": "codex.skill.injected",
+                        "sum": {
+                            "aggregationTemporality": 2,
+                            "dataPoints": [{
+                                "attributes": [
+                                    {"key": "skill", "value": {"stringValue": skill}},
+                                    {"key": "status", "value": {"stringValue": "ok"}},
+                                    {"key": "invoke_type", "value": {"stringValue": "explicit"}}
+                                ],
+                                "startTimeUnixNano": ((timestamp_ms - 1_000) * 1_000_000).to_string(),
+                                "timeUnixNano": (timestamp_ms * 1_000_000).to_string(),
+                                "asInt": count.to_string()
+                            }]
+                        }
+                    }]
+                }]
+            }]
+        }))
+        .expect("encode OTLP usage fixture")
+    }
+
+    #[test]
+    fn otlp_compatibility_feed_is_used_when_structured_state_is_missing() {
+        let sqlite_path = usage_test_database();
+        let otlp_path = sqlite_path.with_extension("otlp.sqlite");
+        let now = Utc::now();
+        skill_usage_collector::ingest_otlp_json(
+            &otlp_path,
+            &otlp_usage_payload("Example", 3, now.timestamp_millis()),
+            now.timestamp_millis(),
+        )
+        .expect("ingest OTLP fixture");
+
+        let feed = read_preferred_codex_usage_feed(&sqlite_path, &otlp_path, now);
+        let usage = usage_for_skill("example", &feed);
+        assert_eq!(usage.state, "observed");
+        assert_eq!(usage.all_time_count, 3);
+        assert_eq!(usage.telemetry_source, CODEX_OTLP_USAGE_SOURCE);
+        assert!(usage.reason.contains("earlier history"));
+        fs::remove_file(otlp_path).expect("remove OTLP fixture");
+    }
+
+    #[test]
+    fn structured_state_remains_preferred_over_otlp_compatibility_feed() {
+        let sqlite_path = usage_test_database();
+        let otlp_path = sqlite_path.with_extension("otlp.sqlite");
+        let connection = Connection::open(&sqlite_path).expect("open structured fixture");
+        connection
+            .execute_batch(
+                r#"
+CREATE TABLE skill_invocations (
+    thread_id TEXT NOT NULL,
+    turn_id TEXT NOT NULL,
+    skill_name TEXT NOT NULL,
+    skill_path TEXT NOT NULL,
+    skill_scope TEXT NOT NULL,
+    invocation_type TEXT NOT NULL,
+    status TEXT NOT NULL,
+    occurred_at_ms INTEGER NOT NULL
+);
+"#,
+            )
+            .expect("create structured fixture");
+        drop(connection);
+        let now = Utc::now();
+        skill_usage_collector::ingest_otlp_json(
+            &otlp_path,
+            &otlp_usage_payload("Example", 5, now.timestamp_millis()),
+            now.timestamp_millis(),
+        )
+        .expect("ingest OTLP fixture");
+
+        let feed = read_preferred_codex_usage_feed(&sqlite_path, &otlp_path, now);
+        let usage = usage_for_skill("example", &feed);
+        assert_eq!(usage.all_time_count, 0);
+        assert_eq!(usage.telemetry_source, CODEX_USAGE_SOURCE);
+        fs::remove_file(sqlite_path).expect("remove structured fixture");
+        fs::remove_file(otlp_path).expect("remove OTLP fixture");
     }
 }
