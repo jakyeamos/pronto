@@ -1420,7 +1420,10 @@ test("Book uses owner-approved synthetic text and copyright-free music while pre
       ?.observed_status,
     "not_determined",
   );
-  assert.match(ledger.claim_boundary.join(" | "), /No rights clearance for the real chapter/);
+  assert.match(
+    ledger.claim_boundary.join(" | "),
+    /No rights clearance for the real chapter/,
+  );
 
   assert.equal(
     fixture.schema_version,
@@ -1438,10 +1441,7 @@ test("Book uses owner-approved synthetic text and copyright-free music while pre
 
   assert.equal(blocker.gap, "BK-1");
   assert.equal(blocker.status, "resolved_scoped");
-  assert.equal(
-    blocker.disposition,
-    "owner_approved_scoped_synthetic_case",
-  );
+  assert.equal(blocker.disposition, "owner_approved_scoped_synthetic_case");
   assert.equal(blocker.resolution.selected_mode, "synthetic_only");
   assert.match(blocker.blocked_action, /Do not publish/i);
   assert.equal(blocker.synthetic_fallback.does_not_clear_real_asset_path, true);
