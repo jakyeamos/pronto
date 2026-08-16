@@ -108,6 +108,25 @@ export interface PromotionDiscoverySummary {
   jas_mutation: boolean;
 }
 
+export interface PromotionFunnel {
+  schema_version: string;
+  status: string;
+  evaluation_candidate_drafts: number;
+  ready_behavior_identity_clusters: number;
+  selected_forward_test_work_items: number;
+  promotion_packets: number;
+  forward_test_pass: number;
+  forward_test_failed: number;
+  forward_test_blocked: number;
+  packets_blocked: number;
+  packets_failed: number;
+  quantification_pending: number;
+  promotion_candidates: number;
+  source_triage_artifact?: string | null;
+  manual_review_required: boolean;
+  jas_mutation: boolean;
+}
+
 export interface PromotionInbox {
   schema_version: string;
   visibility: string;
@@ -117,6 +136,7 @@ export interface PromotionInbox {
   counts: PromotionCounts;
   coverage?: PromotionCoverage | null;
   discovery?: PromotionDiscoverySummary | null;
+  funnel?: PromotionFunnel | null;
   errors: unknown[];
   manual_review_required: boolean;
   jas_mutation: boolean;

@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-13",
+  "last_reviewed": "2026-08-16",
   "surfaces": [
     {
       "id": "matrix-maintenance",
@@ -43,6 +43,22 @@
       "condition": "A projected field, state label, navigation surface, or user-visible remediation behavior changes.",
       "operations": ["add", "change", "remove"],
       "validation": ["pnpm vitest run", "pnpm typecheck", "pnpm build:web"],
+      "status": "applicable"
+    },
+    {
+      "id": "promotion-inbox-contract",
+      "scope": "local",
+      "path": "src-tauri/src/promotion.rs, src/renderer/src/components/PromotionSurface.tsx, src/renderer/src/components/PromotionSurface.test.tsx, src/renderer/src/types/promotion.ts, src/renderer/src/styles.css, and docs/promotion-inbox.md",
+      "owner": "Pronto repository maintainers",
+      "condition": "The AWL evaluation funnel, promotion queue eligibility, decision-history display, or JAS admission boundary changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml promotion::tests",
+        "pnpm vitest run src/renderer/src/components/PromotionSurface.test.tsx",
+        "pnpm typecheck",
+        "pnpm build:web",
+        "Review docs/promotion-inbox.md against the AWL candidate inbox and native decision bridge."
+      ],
       "status": "applicable"
     },
     {

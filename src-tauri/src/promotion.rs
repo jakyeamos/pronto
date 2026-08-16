@@ -44,6 +44,10 @@ pub struct PromotionCandidate {
     #[serde(default)]
     pub decision_artifact: Option<String>,
     #[serde(default)]
+    pub jas_projection_status: Option<String>,
+    #[serde(default)]
+    pub jas_projection_visibility: Option<String>,
+    #[serde(default)]
     pub jas_admission: Option<Value>,
     pub next_action: String,
 }
@@ -71,6 +75,8 @@ pub struct PromotionInbox {
     pub coverage: Option<Value>,
     #[serde(default)]
     pub discovery: Option<Value>,
+    #[serde(default)]
+    pub funnel: Option<Value>,
     pub errors: Vec<Value>,
     pub manual_review_required: bool,
     pub jas_mutation: bool,
@@ -208,6 +214,7 @@ fn unavailable(message: String) -> PromotionInbox {
         counts: PromotionCounts::default(),
         coverage: None,
         discovery: None,
+        funnel: None,
         errors: vec![Value::String(message.clone())],
         manual_review_required: true,
         jas_mutation: false,
@@ -221,6 +228,32 @@ fn unavailable(message: String) -> PromotionInbox {
 fn parse_inbox(value: Value) -> Result<PromotionInbox, String> {
     serde_json::from_value(value)
         .map_err(|error| format!("AWL promotion inbox is malformed: {error}"))
+}
+
+fn validate_decision_candidate(inbox: &PromotionInbox, candidate_id: &str) -> Result<(), String> {
+    if inbox.status != "pass" {
+        return Err(inbox
+            .message
+            .clone()
+            .unwrap_or_else(|| "AWL promotion review is not available.".to_string()));
+    }
+    let candidate = inbox
+        .candidates
+        .iter()
+        .find(|candidate| candidate.candidate_id == candidate_id)
+        .ok_or_else(|| {
+            format!("Promotion candidate {candidate_id} is not in the current AWL inbox.")
+        })?;
+    if candidate.decision.is_some() {
+        return Err("Promotion decisions can only be recorded once.".to_string());
+    }
+    if candidate.candidate_kind != "complete" {
+        return Err(
+            "Promotion decisions require a complete candidate packet; this record remains in the AWL pipeline."
+                .to_string(),
+        );
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -244,6 +277,9 @@ pub fn decide_promotion(
     reason: Option<String>,
 ) -> Result<PromotionInbox, String> {
     let root = awl_root()?;
+    let current_inbox = run_awl(&root, &["candidate".into(), "inbox".into(), "--all".into()])
+        .and_then(parse_inbox)?;
+    validate_decision_candidate(&current_inbox, &candidate_id)?;
     let decision_text = decision.clone();
     let mut args = vec![
         "candidate".to_string(),
@@ -455,6 +491,19 @@ fn jas_blocked(candidate_id: &str, decision: &str, message: &str) -> Value {
 mod tests {
     use super::*;
 
+    fn test_inbox(candidate_kind: &str, decision: Option<&str>) -> PromotionInbox {
+        let mut inbox = unavailable("test unavailable".to_string());
+        inbox.status = "pass".to_string();
+        inbox.message = None;
+        inbox.candidates = vec![PromotionCandidate {
+            candidate_id: "candidate-1".to_string(),
+            candidate_kind: candidate_kind.to_string(),
+            decision: decision.map(str::to_string),
+            ..PromotionCandidate::default()
+        }];
+        inbox
+    }
+
     #[test]
     fn unavailable_inbox_preserves_the_non_mutating_boundary() {
         let inbox = unavailable("test unavailable".to_string());
@@ -462,5 +511,36 @@ mod tests {
         assert!(!inbox.jas_mutation);
         assert!(inbox.manual_review_required);
         assert!(inbox.jas_admission.is_none());
+    }
+
+    #[test]
+    fn decisions_require_complete_undecided_candidates() {
+        let draft = test_inbox("draft", None);
+        let draft_error = validate_decision_candidate(&draft, "candidate-1").unwrap_err();
+        assert!(draft_error.contains("complete candidate packet"));
+
+        let decided = test_inbox("complete", Some("defer"));
+        let decided_error = validate_decision_candidate(&decided, "candidate-1").unwrap_err();
+        assert!(decided_error.contains("only be recorded once"));
+
+        let complete = test_inbox("complete", None);
+        assert!(validate_decision_candidate(&complete, "candidate-1").is_ok());
+    }
+
+    #[test]
+    fn candidate_projection_preserves_jas_readiness_metadata() {
+        let candidate = PromotionCandidate {
+            jas_projection_status: Some("ready".to_string()),
+            jas_projection_visibility: Some("private".to_string()),
+            ..PromotionCandidate::default()
+        };
+        let encoded = serde_json::to_value(&candidate).expect("candidate should serialize");
+        let decoded: PromotionCandidate =
+            serde_json::from_value(encoded).expect("candidate should deserialize");
+        assert_eq!(decoded.jas_projection_status.as_deref(), Some("ready"));
+        assert_eq!(
+            decoded.jas_projection_visibility.as_deref(),
+            Some("private")
+        );
     }
 }

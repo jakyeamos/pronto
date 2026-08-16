@@ -122,6 +122,7 @@ export const emptyPromotionInbox: PromotionInbox = {
   },
   coverage: null,
   discovery: null,
+  funnel: null,
   errors: [],
   manual_review_required: true,
   jas_mutation: false,
