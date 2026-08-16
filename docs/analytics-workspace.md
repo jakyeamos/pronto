@@ -22,6 +22,12 @@ The requested range defaults to 30 days and is capped by configured retention.
 Existing v1 sample rows remain untouched and are adapted into governed metric
 observations when read.
 
+`quality refresh --json` records an Analytics observation only after Pronto
+accepts and persists the canonical Quality Runner audit. The existing sample
+fingerprint suppresses an unchanged repeat inside the deduplication window;
+changed accepted evidence appends a new observation, while rejected or
+unavailable evidence appends nothing.
+
 The curated workspace separates commit volume from branch divergence and also
 covers workspace activity composition, quality and evidence cohorts, finding
 severity, repository-by-gate coverage, release readiness, and remediation

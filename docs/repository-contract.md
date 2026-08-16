@@ -106,6 +106,10 @@ quality as unavailable, startup runs the existing bounded quality refresh once
 and replaces the stale view with the accepted feed projection. The UI labels
 Pronto's evidence-governed aggregate separately from Quality Runner's retained
 source score; neither value may be presented as the other.
+An accepted quality refresh also passes the persisted state through the normal
+Analytics recorder. Changed evidence therefore appears as a new observation,
+an unchanged repeat deduplicates, and rejected or unavailable evidence never
+creates Analytics history.
 
 For finding counts and the repository review ledger, prefer QR's fingerprinted
 `code-quality-scan.json` detector report. Aggregate `quality-audit.json`

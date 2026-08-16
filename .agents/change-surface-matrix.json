@@ -85,10 +85,12 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::analytics",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::quality_refresh_records_changed_analytics_and_deduplicates_unchanged_imports",
         "pnpm vitest run src/renderer/src/components/AnalyticsComponents.test.tsx",
         "pnpm typecheck",
         "pnpm build:web",
-        "Verify Portfolio contains no chart and Analytics is reachable from primary navigation and the Portfolio text link."
+        "Verify Portfolio contains no chart and Analytics is reachable from primary navigation and the Portfolio text link.",
+        "Verify an accepted changed quality import appends an Analytics observation, an unchanged repeat deduplicates, and rejected or unavailable evidence appends nothing."
       ],
       "status": "applicable"
     },

@@ -4458,13 +4458,32 @@ fn apply_quality_evidence_scoped(
     );
 }
 
-fn refresh_quality_at(path: &Path) -> Result<PortfolioSnapshot, String> {
+fn quality_refresh_import_was_accepted(quality: &QualityPortfolioSnapshot) -> bool {
+    quality.latest_audit_id.is_some()
+        && matches!(
+            quality.audit_status.as_str(),
+            "Ready" | "Ready with blockers" | "Stale" | "Unknown"
+        )
+}
+
+fn refresh_quality_at_with(
+    path: &Path,
+    apply_quality: impl FnOnce(&mut StoreState),
+) -> Result<PortfolioSnapshot, String> {
     let _lock = acquire_store_write_lock(path)?;
     let mut state = load_store(path)?;
-    apply_quality_evidence(&mut state);
+    apply_quality(&mut state);
     apply_release_threshold_conditions(&mut state);
+    let accepted_import = quality_refresh_import_was_accepted(&state.quality);
     save_store(path, &state)?;
+    if accepted_import {
+        record_analytics_samples(path, &state)?;
+    }
     Ok(snapshot_from_store(path, &state))
+}
+
+fn refresh_quality_at(path: &Path) -> Result<PortfolioSnapshot, String> {
+    refresh_quality_at_with(path, apply_quality_evidence)
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -20663,6 +20682,66 @@ mod tests {
         assert_eq!(old_count, 0);
 
         fs::remove_dir_all(root).expect("analytics retention fixture should be removable");
+    }
+
+    #[test]
+    fn quality_refresh_records_changed_analytics_and_deduplicates_unchanged_imports() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let database = root.join("registry.db");
+        let mut state = StoreState::default();
+        state.repositories = vec![scan_repository(&repository_path, None, &[])];
+        save_store(&database, &state).expect("quality refresh fixture should persist");
+
+        let apply_import = |state: &mut StoreState, audit_id: &str, score: f64| {
+            state.quality.latest_audit_id = Some(audit_id.to_string());
+            state.quality.latest_audit_at = Some(iso_now());
+            state.quality.audit_status = "Ready".to_string();
+            state.repositories[0].quality.maturity.audit_id = Some(audit_id.to_string());
+            state.repositories[0].quality.maturity.observed_at = Some(iso_now());
+            state.repositories[0].quality.maturity.score = Some(score);
+            state.repositories[0].quality.maturity.freshness = QualityFreshness::Fresh;
+        };
+
+        refresh_quality_at_with(&database, |state| {
+            state.quality.audit_status = "Unavailable".to_string();
+            state.quality.latest_audit_id = None;
+        })
+        .expect("an unavailable import should remain a successful cached refresh");
+        let connection = open_store(&database).expect("analytics database should open");
+        let unavailable_count: i64 = connection
+            .query_row(
+                "SELECT count(*) FROM analytics_samples WHERE repository_id IS NULL",
+                [],
+                |row| row.get(0),
+            )
+            .expect("unavailable import sample count should be readable");
+        assert_eq!(
+            unavailable_count, 0,
+            "rejected evidence must not create history"
+        );
+        drop(connection);
+
+        refresh_quality_at_with(&database, |state| apply_import(state, "audit-one", 1.0))
+            .expect("accepted quality import should persist");
+        refresh_quality_at_with(&database, |state| apply_import(state, "audit-one", 1.0))
+            .expect("repeated accepted quality import should persist");
+        let analytics = load_analytics_at(&database, None).expect("analytics should load");
+        assert_eq!(analytics.portfolio_samples.len(), 1);
+        assert_eq!(analytics.repositories[0].samples.len(), 1);
+
+        refresh_quality_at_with(&database, |state| apply_import(state, "audit-two", 2.0))
+            .expect("changed accepted quality import should persist");
+        let analytics = load_analytics_at(&database, None).expect("changed analytics should load");
+        assert_eq!(analytics.portfolio_samples.len(), 2);
+        assert_eq!(analytics.repositories[0].samples.len(), 2);
+        assert_eq!(
+            analytics.portfolio_samples[1].maturity_score,
+            Some(2.0),
+            "the new audit should be represented by the latest observation"
+        );
+
+        fs::remove_dir_all(root).expect("quality refresh analytics fixture should be removable");
     }
 
     #[test]
