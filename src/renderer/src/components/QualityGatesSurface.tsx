@@ -82,7 +82,7 @@ export function QualityGatesSurface({
       {showOverview && (
         <section className="quality-overview-grid">
           <div className="quality-overview-card quality-overview-card-accent">
-            <span>Fleet maturity</span>
+            <span>Consolidated fleet maturity</span>
             <strong>
               {portfolioQuality.maturity_score_display ?? "—"}
               <small>/4</small>

@@ -23,6 +23,7 @@ vi.mock("./api", async (importOriginal) => {
     pickRoot: vi.fn(),
     registerRoot: vi.fn(),
     refresh: vi.fn(),
+    refreshQuality: vi.fn(),
     refreshGithub: vi.fn(),
     refreshRemediation: vi.fn(),
   };
@@ -74,9 +75,48 @@ async function renderApp(): Promise<void> {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.mocked(api.getSnapshot).mockResolvedValue(api.emptySnapshot);
   vi.mocked(api.getAnalytics).mockResolvedValue(api.emptyAnalytics);
   vi.mocked(api.getSkills).mockResolvedValue(api.emptySkills);
+  vi.mocked(api.refreshQuality).mockResolvedValue(api.emptySnapshot);
+});
+
+it("recovers an unavailable cached quality snapshot on startup", async () => {
+  const unavailable = {
+    ...api.emptySnapshot,
+    quality: {
+      audit_status: "Unavailable",
+      audit_root:
+        "/Users/jakyeamos/.quality-runner/fleet-audit/current/maturity.json",
+      matched_repository_count: 0,
+    },
+  };
+  const refreshed = {
+    ...unavailable,
+    quality: {
+      ...unavailable.quality,
+      audit_status: "Ready",
+      latest_audit_id: "audit-current-v2",
+      latest_audit_at: "2026-08-15T20:56:04Z",
+      matched_repository_count: 66,
+      maturity_score: 1.19,
+      maturity_score_display: "1.190",
+      source_maturity_score: 1.39,
+      source_maturity_score_display: "1.390",
+      feed_schema: "quality-runner-maturity-feed/v2",
+    },
+  };
+  vi.mocked(api.getSnapshot).mockResolvedValue(unavailable);
+  vi.mocked(api.refreshQuality).mockResolvedValue(refreshed);
+
+  render(<App />);
+
+  await waitFor(() => expect(api.refreshQuality).toHaveBeenCalledOnce());
+  expect(await screen.findByText("audit-current-v2")).toBeTruthy();
+  expect(screen.getByText("1.190")).toBeTruthy();
+  expect(screen.getByText(/QR source 1.390\/4/)).toBeTruthy();
+  expect(api.getAnalytics).toHaveBeenCalledOnce();
 });
 
 afterEach(cleanup);

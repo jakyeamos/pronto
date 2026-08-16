@@ -100,6 +100,13 @@ A conclusive failing quality check can support high measurement confidence even
 though it lowers maturity; incomplete population, disabled dynamic verification,
 or unresolved measurement gaps cannot.
 
+The desktop app renders its persisted portfolio snapshot immediately. When that
+snapshot names the canonical audit path but has no accepted audit and reports
+quality as unavailable, startup runs the existing bounded quality refresh once
+and replaces the stale view with the accepted feed projection. The UI labels
+Pronto's evidence-governed aggregate separately from Quality Runner's retained
+source score; neither value may be presented as the other.
+
 For finding counts and the repository review ledger, prefer QR's fingerprinted
 `code-quality-scan.json` detector report. Aggregate `quality-audit.json`
 findings remain remediation context but must not replace stable detector

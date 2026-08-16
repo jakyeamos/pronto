@@ -55,7 +55,8 @@
         "pnpm vitest run",
         "pnpm typecheck",
         "pnpm build:web",
-        "Verify the Dock Refresh action invokes refresh_batch and renders the returned merged snapshot."
+        "Verify the Dock Refresh action invokes refresh_batch and renders the returned merged snapshot.",
+        "Verify startup retains the cached portfolio immediately and automatically recovers an unavailable canonical quality audit without conflating Pronto's consolidated score with the Quality Runner source score."
       ],
       "status": "applicable"
     },

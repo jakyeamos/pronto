@@ -55,6 +55,14 @@ async function registerPickedRoot(loadSnapshot: LoadSnapshot): Promise<void> {
   await loadSnapshot(() => api.registerRoot(root));
 }
 
+function shouldRecoverUnavailableQuality(snapshot: PortfolioSnapshot): boolean {
+  return (
+    snapshot.quality.audit_status === "Unavailable" &&
+    Boolean(snapshot.quality.audit_root) &&
+    !snapshot.quality.latest_audit_id
+  );
+}
+
 export function usePortfolioController() {
   const [snapshot, setSnapshot] = useState<PortfolioSnapshot>(
     api.emptySnapshot,
@@ -92,8 +100,32 @@ export function usePortfolioController() {
     [],
   );
 
+  const loadInitialSnapshot = useCallback(async (): Promise<void> => {
+    setIsRefreshing(true);
+    setError(null);
+    setNotice(null);
+    try {
+      let loaded = await api.getSnapshot();
+      setSnapshot(loaded);
+      if (shouldRecoverUnavailableQuality(loaded)) {
+        loaded = await api.refreshQuality();
+        setSnapshot(loaded);
+      }
+      await loadAnalytics(setAnalytics, setError);
+    } catch (caught) {
+      setError(
+        messageFromCaught(
+          caught,
+          "Pronto could not load the current portfolio evidence.",
+        ),
+      );
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
   useEffect(() => {
-    void loadSnapshot(api.getSnapshot);
+    void loadInitialSnapshot();
     void api
       .getSkills()
       .then(setSkills)
@@ -106,7 +138,7 @@ export function usePortfolioController() {
       .getPapercutBacklog()
       .then(setPapercutBacklog)
       .catch(() => setPapercutBacklog(api.emptyPapercutBacklog));
-  }, [loadSnapshot]);
+  }, [loadInitialSnapshot]);
 
   const handleRefreshSkills = useCallback(async (): Promise<void> => {
     setIsRefreshing(true);

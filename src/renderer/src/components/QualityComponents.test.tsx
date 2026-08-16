@@ -1486,6 +1486,7 @@ describe("quality evidence surfaces", () => {
     );
 
     expect(markup).toContain("CI configuration vs ideal");
+    expect(markup).toContain("Consolidated fleet maturity");
     expect(markup).toContain("1.933");
     expect(markup).toContain("1/6");
     expect(markup).toContain("Fresh passing evidence");
@@ -1742,7 +1743,7 @@ describe("quality evidence surfaces", () => {
     );
     expect(markup).toContain("Quality gate matrix");
     expect(markup).not.toContain("Repositories matched");
-    expect(markup).not.toContain("Fleet maturity");
+    expect(markup).not.toContain("Consolidated fleet maturity");
   });
 
   it("separates Tier-0 release assurance from whole-inventory edge durability", () => {

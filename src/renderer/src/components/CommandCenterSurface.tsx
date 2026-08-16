@@ -130,9 +130,9 @@ export function CommandCenterSurface({
             <p className="eyebrow">Quality evidence</p>
             <h2>CI configuration vs ideal</h2>
             <p>
-              Imported maturity stays exact. This compares discovered gate
-              configuration with each repository&apos;s recommended profile;
-              execution evidence remains separate.
+              Quality Runner&apos;s source score stays visible. Pronto
+              consolidates it with current local evidence while keeping CI
+              configuration and execution evidence separate.
             </p>
           </div>
           <div className="command-quality-summary-heading-actions">
@@ -172,12 +172,17 @@ export function CommandCenterSurface({
         </div>
         <div className="command-quality-score-grid">
           <div>
-            <span>Fleet maturity</span>
+            <span>Consolidated fleet maturity</span>
             <strong>
               {quality.maturity_score_display ?? "Not scored"}
               {quality.maturity_score_display && <small>/4</small>}
             </strong>
-            <small>Quality Runner audit</small>
+            <small>
+              Pronto evidence-governed score
+              {quality.source_maturity_score_display
+                ? ` · QR source ${quality.source_maturity_score_display}/4`
+                : ""}
+            </small>
           </div>
           <div>
             <span>CI configuration</span>
