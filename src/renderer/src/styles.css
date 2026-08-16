@@ -280,6 +280,24 @@
 .analytics-chart-frame-tall {
   height: 340px;
 }
+.analytics-tooltip {
+  display: grid;
+  gap: 4px;
+  min-width: 150px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+}
+.analytics-tooltip strong {
+  font-size: 13px;
+}
+.analytics-tooltip span {
+  color: var(--muted);
+}
 .analytics-state {
   display: grid;
   place-items: center;

@@ -7265,6 +7265,30 @@ fn process_activity_signals(path: &Path) -> (Vec<ActivitySignal>, bool) {
     }
 }
 
+fn workspace_activity_state(
+    manifest_present: bool,
+    manifest_active: bool,
+    process_active: bool,
+    process_inspection_complete: bool,
+    uncertain: bool,
+    dirty: bool,
+    ahead: u64,
+) -> &'static str {
+    if manifest_active || process_active {
+        "Active"
+    } else if dirty {
+        "Interrupted with dirty work"
+    } else if ahead > 0 {
+        "Interrupted with unpushed commits"
+    } else if manifest_present {
+        "Recently active"
+    } else if process_inspection_complete && !uncertain {
+        "Idle"
+    } else {
+        "Unknown"
+    }
+}
+
 fn collect_workspace_activity(path: &Path, dirty: bool, ahead: u64) -> WorkspaceActivity {
     let (manifest, manifest_signal) = read_agent_manifest(path);
     let (mut signals, process_inspection_complete) = process_activity_signals(path);
@@ -7297,17 +7321,15 @@ fn collect_workspace_activity(path: &Path, dirty: bool, ahead: u64) -> Workspace
             None,
         ));
     }
-    let state = if manifest_active || process_active {
-        "Active"
-    } else if dirty {
-        "Interrupted with dirty work"
-    } else if ahead > 0 {
-        "Interrupted with unpushed commits"
-    } else if manifest.is_some() {
-        "Recently active"
-    } else {
-        "Unknown"
-    };
+    let state = workspace_activity_state(
+        manifest.is_some(),
+        manifest_active,
+        process_active,
+        process_inspection_complete,
+        uncertain,
+        dirty,
+        ahead,
+    );
     let confidence = if manifest_active {
         "High"
     } else if process_active {
@@ -18988,6 +19010,26 @@ mod tests {
         let encoded = serde_json::to_string(&workspace).expect("workspace should serialize");
         assert!(!encoded.contains("terminal contents"));
         fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn classifies_clean_inspected_workspaces_as_idle_instead_of_unknown() {
+        assert_eq!(
+            workspace_activity_state(false, false, false, true, false, false, 0),
+            "Idle"
+        );
+        assert_eq!(
+            workspace_activity_state(false, false, false, false, true, false, 0),
+            "Unknown"
+        );
+        assert_eq!(
+            workspace_activity_state(false, false, false, true, false, true, 0),
+            "Interrupted with dirty work"
+        );
+        assert_eq!(
+            workspace_activity_state(false, false, false, true, false, false, 1),
+            "Interrupted with unpushed commits"
+        );
     }
 
     #[test]

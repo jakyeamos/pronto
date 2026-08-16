@@ -120,6 +120,7 @@ export interface QualityFindings {
   scanned_branch?: string;
   freshness: QualityFreshness;
   report_path?: string;
+  report_paths?: string[];
 }
 
 export interface QualityMaturity {

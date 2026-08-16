@@ -363,6 +363,8 @@ pub struct QualityFindings {
     pub scanned_branch: Option<String>,
     pub freshness: QualityFreshness,
     pub report_path: Option<String>,
+    #[serde(default)]
+    pub report_paths: Vec<String>,
 }
 
 impl Default for QualityFindings {
@@ -387,6 +389,7 @@ impl Default for QualityFindings {
             scanned_branch: None,
             freshness: QualityFreshness::Unknown,
             report_path: None,
+            report_paths: Vec::new(),
         }
     }
 }
@@ -2770,58 +2773,66 @@ struct ReportFindingInventory {
     category_counts: BTreeMap<String, u64>,
 }
 
-fn report_finding_inventory(report_path: Option<&str>) -> Option<ReportFindingInventory> {
-    let payload = report_path.and_then(|path| read_json(Path::new(path)))?;
-    let findings = payload.get("findings")?.as_array()?;
+fn report_finding_inventory(report_paths: &[String]) -> Option<ReportFindingInventory> {
     let mut fingerprint_counts = HashMap::new();
     let mut fingerprint_category_counts: HashMap<String, BTreeMap<String, u64>> = HashMap::new();
     let mut derived_category_counts = BTreeMap::new();
-    for finding in findings {
-        let category = finding
-            .get("category")
-            .and_then(Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty());
-        if let Some(category) = category {
-            *derived_category_counts
-                .entry(category.to_string())
-                .or_insert(0) += 1;
-        }
-        let Some(fingerprint) = finding
-            .get("fingerprint")
-            .and_then(Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-        else {
+    let mut prior_report_fingerprints: HashSet<String> = HashSet::new();
+    let mut saw_findings = false;
+    for payload in report_paths
+        .iter()
+        .filter_map(|path| read_json(Path::new(path)))
+    {
+        let Some(findings) = payload.get("findings").and_then(Value::as_array) else {
             continue;
         };
-        *fingerprint_counts
-            .entry(fingerprint.to_string())
-            .or_insert(0) += 1;
-        if let Some(category) = category {
-            *fingerprint_category_counts
+        saw_findings = true;
+        let mut current_report_fingerprints = HashSet::new();
+        for finding in findings {
+            let fingerprint = finding
+                .get("fingerprint")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty());
+            if fingerprint.is_some_and(|value| prior_report_fingerprints.contains(value)) {
+                continue;
+            }
+            if let Some(fingerprint) = fingerprint {
+                current_report_fingerprints.insert(fingerprint.to_string());
+            }
+            let category = finding
+                .get("category")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty());
+            if let Some(category) = category {
+                *derived_category_counts
+                    .entry(category.to_string())
+                    .or_insert(0) += 1;
+            }
+            let Some(fingerprint) = fingerprint else {
+                continue;
+            };
+            *fingerprint_counts
                 .entry(fingerprint.to_string())
-                .or_default()
-                .entry(category.to_string())
                 .or_insert(0) += 1;
-        }
-    }
-    let mut category_counts = derived_category_counts;
-    if let Some(declared) = payload
-        .get("summary")
-        .and_then(|summary| summary.get("findings_by_category"))
-        .and_then(Value::as_object)
-    {
-        for (category, count) in declared {
-            if let Some(count) = count.as_u64() {
-                category_counts.entry(category.clone()).or_insert(count);
+            if let Some(category) = category {
+                *fingerprint_category_counts
+                    .entry(fingerprint.to_string())
+                    .or_default()
+                    .entry(category.to_string())
+                    .or_insert(0) += 1;
             }
         }
+        prior_report_fingerprints.extend(current_report_fingerprints);
+    }
+    if !saw_findings {
+        return None;
     }
     Some(ReportFindingInventory {
         fingerprint_counts,
         fingerprint_category_counts,
-        category_counts,
+        category_counts: derived_category_counts,
     })
 }
 
@@ -2867,7 +2878,12 @@ pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut Qua
             .to_string(),
     );
     findings.disposition_message = None;
-    let report_inventory = report_finding_inventory(findings.report_path.as_deref());
+    let report_paths = if findings.report_paths.is_empty() {
+        findings.report_path.iter().cloned().collect::<Vec<_>>()
+    } else {
+        findings.report_paths.clone()
+    };
+    let report_inventory = report_finding_inventory(&report_paths);
     if let Some(inventory) = report_inventory.as_ref() {
         findings.category_counts = inventory.category_counts.clone();
         findings.actionable_category_counts = inventory.category_counts.clone();
@@ -4096,7 +4112,7 @@ fn repository_provenance_for_branch<'a>(
 }
 
 impl QrRun {
-    fn finding_report(&self) -> Option<(PathBuf, Value)> {
+    fn finding_reports(&self) -> Vec<(PathBuf, Value)> {
         let report_names = [
             "code-quality-scan.json",
             "quality-audit.json",
@@ -4149,12 +4165,17 @@ impl QrRun {
             }
         }
 
-        report_names.iter().find_map(|name| {
-            run_dirs.iter().find_map(|run_dir| {
-                let path = run_dir.join(name);
-                read_json(&path).map(|payload| (path, payload))
+        let mut seen = HashSet::new();
+        report_names
+            .iter()
+            .flat_map(|name| {
+                run_dirs.iter().filter_map(move |run_dir| {
+                    let path = run_dir.join(name);
+                    read_json(&path).map(|payload| (path, payload))
+                })
             })
-        })
+            .filter(|(path, _)| seen.insert(path.clone()))
+            .collect()
     }
 
     fn configured_gate_ids(&self) -> Vec<String> {
@@ -4320,24 +4341,49 @@ impl QrRun {
     }
 
     fn findings(&self, repository: &RepositorySnapshot) -> QualityFindings {
-        let Some((report_path, payload)) = self.finding_report() else {
+        let reports = self.finding_reports();
+        let Some((report_path, payload)) = reports.first() else {
             return QualityFindings::default();
         };
-        let severity_counts = severity_counts(&payload);
-        let total = json_u64_at(&payload, &["finding_count"])
-            .or_else(|| json_u64_at(&payload, &["summary", "finding_count"]))
-            .or_else(|| json_u64_at(&payload, &["finding_counts", "total"]))
-            .or_else(|| json_u64_at(&payload, &["summary", "finding_counts", "total"]))
-            .unwrap_or_else(|| {
-                if severity_counts.is_empty() {
-                    payload
-                        .get("findings")
-                        .and_then(Value::as_array)
-                        .map_or(0, |items| items.len() as u64)
-                } else {
-                    severity_counts.values().sum()
+        let mut merged_findings = Vec::new();
+        let mut prior_report_fingerprints = HashSet::new();
+        for (_, report) in &reports {
+            let mut current_report_fingerprints = HashSet::new();
+            for finding in report
+                .get("findings")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                let fingerprint = finding
+                    .get("fingerprint")
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty());
+                if fingerprint.is_some_and(|value| prior_report_fingerprints.contains(value)) {
+                    continue;
                 }
-            });
+                if let Some(fingerprint) = fingerprint {
+                    current_report_fingerprints.insert(fingerprint.to_string());
+                }
+                merged_findings.push(finding.clone());
+            }
+            prior_report_fingerprints.extend(current_report_fingerprints);
+        }
+        let (total, severity_counts) = if merged_findings.is_empty() {
+            let severity_counts = severity_counts(payload);
+            let total = json_u64_at(payload, &["finding_count"])
+                .or_else(|| json_u64_at(payload, &["summary", "finding_count"]))
+                .or_else(|| json_u64_at(payload, &["finding_counts", "total"]))
+                .or_else(|| json_u64_at(payload, &["summary", "finding_counts", "total"]))
+                .unwrap_or_else(|| severity_counts.values().sum());
+            (total, severity_counts)
+        } else {
+            (
+                merged_findings.len() as u64,
+                fleet_severity_counts(&merged_findings),
+            )
+        };
         let high_severity_total = severity_counts
             .iter()
             .filter(|(severity, _)| matches!(severity.as_str(), "critical" | "high"))
@@ -4364,6 +4410,10 @@ impl QrRun {
                 Utc::now(),
             ),
             report_path: Some(report_path.to_string_lossy().to_string()),
+            report_paths: reports
+                .iter()
+                .map(|(path, _)| path.to_string_lossy().to_string())
+                .collect(),
             ..QualityFindings::default()
         }
     }
@@ -6128,8 +6178,10 @@ mod tests {
         fs::write(
             run.join("quality-audit.json"),
             r#"{"findings":[
-                {"severity":"critical"}, {"severity":"high"},
-                {"severity":"warning"}, {"severity":"low"}
+                {"fingerprint":"audit-1","severity":"critical"},
+                {"fingerprint":"audit-2","severity":"high"},
+                {"fingerprint":"audit-3","severity":"warning"},
+                {"fingerprint":"audit-4","severity":"low"}
             ]}"#,
         )
         .expect("QR report should be writable");
@@ -6165,7 +6217,7 @@ mod tests {
             .gates
             .iter()
             .any(|gate| gate.id == "custom:review" && gate.status == QualityGateStatus::Blocked));
-        assert_eq!(snapshot.findings.total, 2);
+        assert_eq!(snapshot.findings.total, 6);
         assert_eq!(snapshot.findings.category_counts.get("debloat"), Some(&1));
         let debloat = snapshot
             .gates
@@ -6177,8 +6229,11 @@ mod tests {
         assert!(debloat.evidence[0]
             .detail
             .contains("no signal authorizes deletion"));
-        assert_eq!(snapshot.findings.high_severity_total, 0);
-        assert_eq!(snapshot.findings.severity_counts.get("medium"), Some(&1));
+        assert_eq!(snapshot.findings.high_severity_total, 2);
+        assert_eq!(snapshot.findings.severity_counts.get("critical"), Some(&1));
+        assert_eq!(snapshot.findings.severity_counts.get("high"), Some(&1));
+        assert_eq!(snapshot.findings.severity_counts.get("medium"), Some(&2));
+        assert_eq!(snapshot.findings.report_paths.len(), 2);
         assert!(snapshot
             .findings
             .report_path
