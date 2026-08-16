@@ -146,6 +146,66 @@ export function RepositoryInventoryPanels({
           })}
         </div>
       </div>
+      {repository.custody && (
+        <div className="drawer-section">
+          <div className="drawer-section-title">
+            <h3>Custody</h3>
+            <span>{repository.custody.lanes.length}</span>
+          </div>
+          <StatusPill
+            tone={
+              repository.custody.status === "attention_required"
+                ? "amber"
+                : "mint"
+            }
+          >
+            {repository.custody.status.replaceAll("_", " ")}
+          </StatusPill>
+          <small>
+            Read-only projection · {repository.custody.source} · no mutation
+            authority
+          </small>
+          <small>{repository.custody.next_safe_step}</small>
+          {repository.custody.unleased_worktrees.length > 0 && (
+            <div className="workspace-card">
+              <strong>Unleased worktrees</strong>
+              <span>
+                {repository.custody.unleased_worktrees.length} worktree(s)
+                require a lease review.
+              </span>
+            </div>
+          )}
+          {repository.custody.lanes.length > 0 ? (
+            <div className="branch-table">
+              {repository.custody.lanes.map((lane) => (
+                <div className="branch-row" key={lane.task_id}>
+                  <div>
+                    <strong>{lane.task_id}</strong>
+                    <span>
+                      {lane.state} · {lane.disposition}
+                    </span>
+                    {lane.branch && <span>{lane.branch}</span>}
+                    <small>{lane.next_action}</small>
+                  </div>
+                  <StatusPill
+                    tone={
+                      lane.state === "active" || lane.state === "closed"
+                        ? "mint"
+                        : lane.state === "unknown" || lane.state === "contested"
+                          ? "coral"
+                          : "amber"
+                    }
+                  >
+                    {lane.disposition}
+                  </StatusPill>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="drawer-empty">No custody lanes recorded.</div>
+          )}
+        </div>
+      )}
       {repository.submodules.length > 0 && (
         <div className="drawer-section">
           <div className="drawer-section-title">

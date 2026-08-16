@@ -105,6 +105,34 @@ describe("repository detail surfaces", () => {
           integration_state: "No unique commits",
         },
       ],
+      custody: {
+        schema_version: "pronto-custody-projection/v1",
+        generated_at: "2026-07-28T00:00:00Z",
+        repository: "/tmp/pronto",
+        source: "live Git and local custody receipts",
+        read_only: true,
+        implementation_allowed: false,
+        mutation_risk: "read-only",
+        status: "attention_required",
+        next_safe_step:
+          "Resolve the named custody disposition before mutation.",
+        lanes: [
+          {
+            task_id: "task-legacy",
+            branch: "codex/task-legacy",
+            state: "unknown",
+            disposition: "legacy_unsigned_receipt",
+            dispositions: ["legacy_unsigned_receipt"],
+            next_action:
+              "Use the bounded legacy owner-return or adoption review; do not infer custody from age.",
+          },
+        ],
+        unleased_worktrees: [],
+        counts: { unknown: 1 },
+        disposition_counts: { legacy_unsigned_receipt: 1 },
+        overlaps: [],
+        integrity: { hmac_identity: "not_verified_by_pronto" },
+      },
     });
     const markup = renderToStaticMarkup(
       <RepositoryDetailSurface
@@ -144,6 +172,10 @@ describe("repository detail surfaces", () => {
     expect(markup).toContain("Complete product");
     expect(markup).toContain("Release rule trace");
     expect(markup).toContain("Workspaces");
+    expect(markup).toContain("Custody");
+    expect(markup).toContain("legacy_unsigned_receipt");
+    expect(markup).toContain("Read-only projection");
+    expect(markup).toContain("no mutation authority");
     expect(markup).toContain("Conditions");
     expect(markup).toContain("Branches");
     expect(markup).toContain("Not scored");

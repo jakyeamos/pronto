@@ -4675,6 +4675,7 @@ mod tests {
             releases: Vec::new(),
             quality: Default::default(),
             project_compass: Default::default(),
+            custody: Default::default(),
             release_rule: None,
             release_recipe: None,
             confirmed_release_version: None,

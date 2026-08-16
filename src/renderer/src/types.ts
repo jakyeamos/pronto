@@ -227,6 +227,46 @@ interface BranchSummary {
   last_commit_at?: string;
 }
 
+export interface CustodyLane {
+  task_id: string;
+  work_item_id?: string;
+  branch?: string;
+  worktree?: string;
+  state: string;
+  disposition: string;
+  dispositions: string[];
+  next_action: string;
+  custodian?: string;
+  blockers?: string[];
+  evidence?: string[];
+  head_sha?: string;
+  last_activity_at?: string;
+  lease_expires_at?: string;
+}
+
+export interface CustodySnapshot {
+  schema_version: string;
+  generated_at: string;
+  repository: string;
+  source: string;
+  read_only: boolean;
+  implementation_allowed: boolean;
+  mutation_risk: string;
+  status: string;
+  next_safe_step: string;
+  lanes: CustodyLane[];
+  unleased_worktrees: string[];
+  counts: Record<string, number>;
+  disposition_counts: Record<string, number>;
+  overlaps: Array<{
+    left_task_id: string;
+    right_task_id: string;
+    paths: string[];
+    status: string;
+  }>;
+  integrity: Record<string, string>;
+}
+
 export interface RepositorySnapshot {
   id: string;
   name: string;
@@ -243,6 +283,7 @@ export interface RepositorySnapshot {
   workspace: WorkspaceSummary;
   workspaces: WorkspaceSummary[];
   branches: BranchSummary[];
+  custody?: CustodySnapshot;
   submodules: SubmoduleSummary[];
   pull_requests: PullRequestSnapshot[];
   releases: ReleaseSnapshot[];

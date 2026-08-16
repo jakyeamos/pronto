@@ -159,6 +159,63 @@
           }
         }
       ]
+    },
+    {
+      "id": "custody-projection",
+      "title": "Pronto exposes live custody evidence without granting mutation authority",
+      "tier": 0,
+      "automation": "permanent",
+      "change_triggers": [
+        "src-tauri/src/custody.rs",
+        "src-tauri/src/core.rs",
+        "src-tauri/src/lib.rs",
+        "src-tauri/src/showcase.rs",
+        "src-tauri/src/remediation.rs",
+        "src/renderer/src/types.ts",
+        "src/renderer/src/components/RepositoryInventoryPanels.tsx",
+        "docs/integrations/pronto-custody.md"
+      ],
+      "invariants": [
+        "Custody state comes from live Git and local receipts rather than cached Pronto labels.",
+        "Lifecycle state is separate from granular disposition and next action; unknown is never the only explanation.",
+        "Unsupported, malformed, legacy unsigned, binding-mismatched, dirty, active-operation, and unavailable-evidence lanes remain preserved and are never projected as adoptable.",
+        "The CLI and renderer show the projection as read-only and never imply permission to adopt, integrate, delete, or push."
+      ],
+      "scenarios": [
+        {
+          "id": "custody-cli-readback",
+          "title": "Custody CLI exposes machine-readable live evidence",
+          "oracle": "pronto custody --json emits pronto-custody-cli/v1 with lane states, disposition_counts, next_safe_step, read_only=true, and implementation_allowed=false; a synthetic unleased worktree is surfaced without changing Git state.",
+          "verification_level": "automated",
+          "edge_profile": {
+            "categories": ["environment_and_cross_surface", "authorization_and_session"],
+            "risk": "hostile",
+            "side_effects": "none"
+          }
+        },
+        {
+          "id": "custody-disposition-projection",
+          "title": "Evidence gaps remain actionable rather than catch-all unknown",
+          "oracle": "Malformed, unsupported-schema, legacy-unsigned, binding-mismatch, dirty, operation-active, and unavailable-evidence fixtures retain distinct dispositions, next actions, and non-adoptable states.",
+          "verification_level": "automated",
+          "edge_profile": {
+            "categories": ["input_and_encoding", "state_and_ordering", "interruption_and_recovery"],
+            "risk": "hostile",
+            "side_effects": "none"
+          }
+        },
+        {
+          "id": "custody-renderer-readback",
+          "title": "Repository detail shows custody state and reason",
+          "oracle": "The repository detail surface displays custody lifecycle counts and each lane's granular disposition and next action without offering mutation controls.",
+          "verification_level": "direct_surface",
+          "edge_profile": {
+            "categories": ["environment_and_cross_surface", "input_and_encoding"],
+            "risk": "routine",
+            "side_effects": "none"
+          }
+        }
+      ]
     }
   ]
 }

@@ -12,6 +12,7 @@ use crate::skills::{self, SkillsSnapshot};
 use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use rusqlite::{params, Connection as SqliteConnection, OpenFlags, OptionalExtension, Row};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::ffi::OsStr;
@@ -503,6 +504,8 @@ pub struct RepositorySnapshot {
     pub quality: QualitySnapshot,
     #[serde(default)]
     pub project_compass: ProjectCompassSummary,
+    #[serde(default)]
+    pub custody: crate::custody::CustodySnapshot,
     #[serde(default)]
     pub release_rule: Option<ReleaseRuleConfig>,
     #[serde(default)]
@@ -10167,6 +10170,7 @@ fn scan_repository(
         &observed_at,
     );
     let submodules = parse_submodules(path);
+    let custody = crate::custody::project(path).unwrap_or_default();
     let lifecycle_candidate = if primary.last_activity_at.as_ref().is_some_and(|value| {
         DateTime::parse_from_rfc3339(value)
             .map(|date| {
@@ -10214,6 +10218,7 @@ fn scan_repository(
             .map(|repository| repository.quality.clone())
             .unwrap_or_default(),
         project_compass: project_compass::inspect(path),
+        custody,
         release_rule: existing.and_then(|repository| repository.release_rule.clone()),
         release_recipe: existing.and_then(|repository| repository.release_recipe.clone()),
         confirmed_release_version: existing
@@ -14762,7 +14767,7 @@ fn print_cli_json_error(command: &str, error: &str) {
 
 fn print_cli_usage() {
     println!(
-        "Usage: pronto . | pronto analytics [--range-days <days>] [--json] | pronto analytics view list|save --config-json <json|@file>|delete <id>|default <id> [--json] | pronto skills [<skill-id>] [--json] | pronto papercuts list --json | pronto papercuts observe --stdin --json [--dry-run] | pronto papercuts contract --json | pronto papercuts digest --week current --json | pronto papercuts propose --stdin --json | pronto papercuts proposal set-status <id> <status> --json | pronto papercuts health --json | pronto behavior [<repository>] [--filter <missing|legacy|unprofiled|partially_verified|stale|failed|blocked|unknown|current|not_applicable>] [--fresh] [--json] | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--fresh] [--json] | pronto quality [<repository>] [--json] | pronto quality refresh [--json] | pronto quality detector-refresh [--qr-bin <path>] [--timeout-seconds <positive-integer>] [--agent-review-mode <off|auto|parallel|required>] [--json] | pronto refresh [<repository|group|product|repository-path>] [--json] | pronto refresh-batch [<repository|group|product|repository-path>] [--parallelism <positive-integer>] [--json] | pronto prepare <repository> [--workspace <id>] [--fresh] [--json] | pronto release preview <repository> [--workspace <id>] [--fresh] [--json] | pronto remediation gate <repository> [--workspace <id>] [--json] | pronto remediation handoff-check <repository> [--workspace <id>] [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] | pronto repo set-target <repository> <branch> [--json] | pronto status [--fresh] [--json] | pronto help"
+        "Usage: pronto . | pronto analytics [--range-days <days>] [--json] | pronto analytics view list|save --config-json <json|@file>|delete <id>|default <id> [--json] | pronto skills [<skill-id>] [--json] | pronto custody [<repository>] [--json] | pronto papercuts list --json | pronto papercuts observe --stdin --json [--dry-run] | pronto papercuts contract --json | pronto papercuts digest --week current --json | pronto papercuts propose --stdin --json | pronto papercuts proposal set-status <id> <status> --json | pronto papercuts health --json | pronto behavior [<repository>] [--filter <missing|legacy|unprofiled|partially_verified|stale|failed|blocked|unknown|current|not_applicable>] [--fresh] [--json] | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--fresh] [--json] | pronto quality [<repository>] [--json] | pronto quality refresh [--json] | pronto quality detector-refresh [--qr-bin <path>] [--timeout-seconds <positive-integer>] [--agent-review-mode <off|auto|parallel|required>] [--json] | pronto refresh [<repository|group|product|repository-path>] [--json] | pronto refresh-batch [<repository|group|product|repository-path>] [--parallelism <positive-integer>] [--json] | pronto prepare <repository> [--workspace <id>] [--fresh] [--json] | pronto release preview <repository> [--workspace <id>] [--fresh] [--json] | pronto remediation gate <repository> [--workspace <id>] [--json] | pronto remediation handoff-check <repository> [--workspace <id>] [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] | pronto repo set-target <repository> <branch> [--json] | pronto status [--fresh] [--json] | pronto help"
     );
 }
 
@@ -14773,6 +14778,109 @@ pub fn run_cli(arguments: Vec<String>) {
     match command {
         "help" | "-h" | "--help" => {
             print_cli_usage();
+        }
+        "custody" => {
+            let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if positionals.len() > 1 {
+                eprintln!("Usage: pronto custody [<repository>] [--json]");
+                std::process::exit(2);
+            }
+            let result = if let Some(query) = positionals.first() {
+                let candidate = Path::new(query);
+                if candidate.exists() {
+                    crate::custody::project(candidate)
+                } else {
+                    load_store_read_only(&path)
+                        .map(|state| snapshot_from_store(&path, &state))
+                        .and_then(|snapshot| {
+                            find_cli_repository(&snapshot, query)
+                                .map(|repository| repository.path.clone())
+                        })
+                        .and_then(|repository| crate::custody::project(Path::new(&repository)))
+                }
+                .map(|snapshot| {
+                    serde_json::json!({
+                        "schema_version": "pronto-custody-cli/v1",
+                        "generated_at": iso_now(),
+                        "scope": "repository",
+                        "custody": snapshot
+                    })
+                })
+            } else {
+                load_store_read_only(&path)
+                    .map(|state| snapshot_from_store(&path, &state))
+                    .and_then(|snapshot| {
+                        let mut repositories = Vec::new();
+                        for repository in snapshot.repositories {
+                            repositories
+                                .push(crate::custody::project(Path::new(&repository.path))?);
+                        }
+                        Ok(serde_json::json!({
+                            "schema_version": "pronto-custody-cli/v1",
+                            "generated_at": iso_now(),
+                            "scope": "fleet",
+                            "repositories": repositories
+                        }))
+                    })
+            };
+            match result {
+                Ok(report) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(report) => {
+                    if let Some(snapshot) = report.get("custody") {
+                        println!(
+                            "PRONTO CUSTODY · {} · {}",
+                            snapshot
+                                .get("status")
+                                .and_then(Value::as_str)
+                                .unwrap_or("unknown"),
+                            snapshot
+                                .get("repository")
+                                .and_then(Value::as_str)
+                                .unwrap_or("unknown")
+                        );
+                        println!(
+                            "Lanes: {} · unleased worktrees: {} · overlaps: {}",
+                            snapshot
+                                .get("lanes")
+                                .and_then(Value::as_array)
+                                .map_or(0, Vec::len),
+                            snapshot
+                                .get("unleased_worktrees")
+                                .and_then(Value::as_array)
+                                .map_or(0, Vec::len),
+                            snapshot
+                                .get("overlaps")
+                                .and_then(Value::as_array)
+                                .map_or(0, Vec::len)
+                        );
+                        if let Some(next) = snapshot.get("next_safe_step").and_then(Value::as_str) {
+                            println!("Next: {next}");
+                        }
+                    } else {
+                        println!("PRONTO CUSTODY · fleet projection");
+                        println!(
+                            "Repositories: {}",
+                            report
+                                .get("repositories")
+                                .and_then(Value::as_array)
+                                .map_or(0, Vec::len)
+                        );
+                    }
+                }
+                Err(error) => {
+                    if json {
+                        print_cli_json_error("custody", &error);
+                    }
+                    eprintln!("Pronto could not project custody: {error}");
+                    std::process::exit(1);
+                }
+            }
         }
         "skills" => {
             let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {

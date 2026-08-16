@@ -51,6 +51,24 @@
       "status": "applicable"
     },
     {
+      "id": "custody-ledger-projection",
+      "scope": "local and external consumer contract",
+      "path": "src-tauri/src/custody.rs, src-tauri/src/core.rs, src-tauri/src/lib.rs, src-tauri/src/showcase.rs, src-tauri/src/remediation.rs, src/renderer/src/types.ts, src/renderer/src/components/RepositoryInventoryPanels.tsx, docs/integrations/pronto-custody.md, .agents/context/commands.md",
+      "owner": "Pronto and isolated-change-workflow integration owners",
+      "condition": "Custody lifecycle projection, live Git evidence, granular disposition taxonomy, CLI/API surface, or read-only UI behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml custody::tests",
+        "cargo check --manifest-path src-tauri/Cargo.toml --lib",
+        "pnpm cli custody --json and pnpm cli custody <repository-path> --json",
+        "pnpm typecheck",
+        "pnpm vitest run src/renderer/src/components/RepositoryDetailSurfaces.test.tsx",
+        "Verify unsupported, malformed, legacy unsigned, binding-mismatched, dirty, operation-active, and unavailable-evidence lanes retain granular dispositions and never become adoptable.",
+        "Verify the command and renderer expose read_only=true and implementation_allowed=false."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "renderer",
       "scope": "local",
       "path": "src/renderer/src/",

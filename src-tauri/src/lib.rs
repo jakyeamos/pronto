@@ -1,6 +1,7 @@
 pub mod behavior_assurance;
 pub mod change_matrix;
 pub mod core;
+pub mod custody;
 pub mod evidence_contract;
 pub mod installed_runtime;
 #[cfg(target_os = "macos")]
@@ -174,6 +175,7 @@ pub fn run() {
             core::set_release_version,
             core::set_ai_permission,
             core::preview_ai_summary,
+            custody::get_custody,
             core::set_retention_days,
             core::upsert_product,
             core::delete_product,
