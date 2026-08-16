@@ -121,12 +121,12 @@ export function qualityAttentionItems(
     : "verified";
   if (repository.quality.findings.high_severity_total > 0) {
     const findingsLabel = findingsTargetVerified
-      ? "High-severity QR findings"
+      ? "High-severity detector findings"
       : findingsEvidenceState === "stale"
-        ? "High-severity QR findings · stale branch evidence"
+        ? "High-severity detector findings · stale branch evidence"
         : findingsEvidenceState === "unscoped"
-          ? "High-severity QR findings · unscoped evidence"
-          : "High-severity QR findings · target unverified";
+          ? "High-severity detector findings · unscoped evidence"
+          : "High-severity detector findings · target unverified";
     const findingsDetail = findingsTargetVerified
       ? `${repository.quality.findings.high_severity_total} critical or high finding${repository.quality.findings.high_severity_total === 1 ? "" : "s"}`
       : findingsEvidenceState === "stale"

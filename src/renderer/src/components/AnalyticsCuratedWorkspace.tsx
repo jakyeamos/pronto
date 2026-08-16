@@ -74,7 +74,10 @@ function RepositoryTable({
     if (key === "repository") return row.series.name.toLocaleLowerCase();
     if (key === "maturity") return row.sample?.maturity_score ?? -1;
     if (key === "evidence") return row.sample?.ci_readiness_score ?? -1;
-    if (key === "findings") return row.sample?.findings_total ?? -1;
+    if (key === "findings")
+      return (
+        row.sample?.detector_findings_total ?? row.sample?.findings_total ?? -1
+      );
     if (key === "dirty") return row.sample?.dirty_workspace_count ?? -1;
     return row.sample?.unsynced_workspace_count ?? -1;
   };
@@ -117,7 +120,7 @@ function RepositoryTable({
             {header("Repository", "repository")}
             {header("Maturity", "maturity")}
             {header("Evidence", "evidence")}
-            {header("Findings", "findings")}
+            {header("Detector findings", "findings")}
             {header("Dirty", "dirty")}
             {header("Sync", "sync")}
           </tr>
@@ -136,7 +139,11 @@ function RepositoryTable({
               </th>
               <td>{count(sample?.maturity_score)}</td>
               <td>{count(sample?.ci_readiness_score)}</td>
-              <td>{count(sample?.findings_total)}</td>
+              <td>
+                {count(
+                  sample?.detector_findings_total ?? sample?.findings_total,
+                )}
+              </td>
               <td>{count(sample?.dirty_workspace_count)}</td>
               <td>{count(sample?.unsynced_workspace_count)}</td>
             </tr>
@@ -201,9 +208,9 @@ export function AnalyticsCuratedWorkspace({
     ],
     [
       "Finding trend",
-      "Severity over time",
-      "Raw findings and high-severity findings share source, denominator, aggregation, and time semantics.",
-      ["findings.total", "findings.high_severity"],
+      "Detector finding severity over time",
+      "Raw detector findings and high-severity detector findings share source, denominator, aggregation, and time semantics; maturity gaps remain a separate metric.",
+      ["findings.detector_total", "findings.high_severity"],
       "Finding severity trend",
     ],
   ] as const;
@@ -251,7 +258,7 @@ export function AnalyticsCuratedWorkspace({
           <small>Trailing 30-day window</small>
         </div>
         <div>
-          <span>High-severity findings</span>
+          <span>High-severity detector findings</span>
           <strong>{count(latestSample?.high_severity_findings)}</strong>
           <small>
             {latestSample?.quality_freshness ?? "Evidence unavailable"}

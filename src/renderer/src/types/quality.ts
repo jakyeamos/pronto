@@ -102,11 +102,14 @@ export interface QualityGate {
 
 export interface QualityFindings {
   total: number;
+  detector_findings_total?: number;
   category_counts?: Record<string, number>;
   actionable_category_counts?: Record<string, number>;
   actionable_total: number;
+  detector_actionable_total?: number;
   reviewed_total: number;
   unreviewed_total: number;
+  detector_unreviewed_total?: number;
   disposition_counts: Record<string, number>;
   stale_disposition_total: number;
   disposition_status: string;
@@ -121,6 +124,19 @@ export interface QualityFindings {
   freshness: QualityFreshness;
   report_path?: string;
   report_paths?: string[];
+  enabled_detector_count?: number;
+  enabled_rule_count?: number;
+  producer_versions?: Record<string, string>;
+  producer_source_shas?: Record<string, string>;
+  ruleset_fingerprints?: Record<string, string>;
+  configuration_fingerprints?: Record<string, string>;
+  qr_version?: string;
+  target_sha?: string;
+  refresh_time?: string;
+  delta_total?: number | null;
+  refresh_required?: boolean;
+  refresh_required_reason?: string;
+  detector_status?: string;
 }
 
 export interface QualityMaturity {
@@ -166,6 +182,8 @@ interface RepositoryMaturityModel {
   evidence: {
     applicable_pillar_count: number;
     assessed_pillar_count: number;
+    applicable_dimension_count?: number;
+    assessed_dimension_count?: number;
     applicable_weight: number;
     assessed_weight: number;
     evidence_coverage: number;

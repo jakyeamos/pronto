@@ -37,6 +37,7 @@ import {
   qualityAttentionItems,
 } from "./QualityComponents";
 import { QualityGatesSurface } from "./QualityGatesSurface";
+import { QualityFindingsSummary } from "./QualityFindingsSummary";
 import { RepositoryDetailSurface } from "./Drawers";
 import { PortfolioCollectionsSurface } from "./PortfolioCollectionsSurface";
 import { navItems } from "../navigation";
@@ -696,10 +697,12 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("Show 1 custom gate");
     expect(markup).not.toContain("Security Scan");
     expect(markup).toContain("4");
-    expect(markup).toContain("QR findings verified for target");
-    expect(markup).not.toContain("QR findings detected in scanned evidence");
+    expect(markup).toContain("Detector findings verified for target");
+    expect(markup).not.toContain(
+      "Detector findings detected in scanned evidence",
+    );
     expect(markup).toContain("3</b> actionable");
-    expect(markup).toContain("2</b> awaiting review");
+    expect(markup).toContain("2</b> unreviewed detector findings");
     expect(markup).toContain("1</b> false positive");
     expect(markup).toContain("Review ledger: Ready");
     expect(markup).toContain("critical");
@@ -732,6 +735,53 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("Required evidence is not current or confirmed");
     expect(markup).not.toContain("evidence_unknown");
     expect(markup).not.toContain("unknown");
+  });
+
+  it("shows refresh-required detector evidence without presenting the retained count as current", () => {
+    const markup = renderToStaticMarkup(
+      <QualityFindingsSummary
+        findings={makeFindings({
+          total: 3,
+          detector_findings_total: 3,
+          actionable_total: 2,
+          detector_actionable_total: 2,
+          unreviewed_total: 1,
+          detector_unreviewed_total: 1,
+          source: "QR",
+          scanned_branch: "main",
+          scanned_commit: "target-commit-1234567890",
+          freshness: "Fresh",
+          enabled_detector_count: 1,
+          enabled_rule_count: 3,
+          producer_versions: { "anti-slop": "0.8.0" },
+          producer_source_shas: { "anti-slop": "producer-sha" },
+          ruleset_fingerprints: { "anti-slop": "ruleset-sha" },
+          configuration_fingerprints: { "anti-slop": "config-sha" },
+          qr_version: "0.7.0",
+          target_sha: "target-commit-1234567890",
+          refresh_time: "2026-08-16T03:00:00Z",
+          refresh_required: true,
+          refresh_required_reason:
+            "The anti-slop ruleset changed; refresh required.",
+          detector_status: "blocked",
+        })}
+        targetBranch="main"
+        targetCommit="target-commit-1234567890"
+      />,
+    );
+
+    expect(markup).toContain("Detector findings refresh required");
+    expect(markup).toContain("Refresh-required detector evidence");
+    expect(markup).toContain(
+      "Detector findings retained from scanned evidence",
+    );
+    expect(markup).toContain(">3</strong>");
+    expect(markup).toContain("1 detector");
+    expect(markup).toContain("3 rules");
+    expect(markup).toContain("anti-slop 0.8.0");
+    expect(markup).toContain("Detector fingerprints");
+    expect(markup).toContain("refresh required");
+    expect(markup).toContain("quality-findings-total-unverified");
   });
 
   it("shows exact target evidence provenance instead of implying branch-specific stats", () => {
@@ -773,7 +823,7 @@ describe("quality evidence surfaces", () => {
     expect(mismatch).toContain(
       "Target main is not verified; this scan is from dev.",
     );
-    expect(mismatch).toContain("Target QR findings unavailable");
+    expect(mismatch).toContain("Target detector findings unavailable");
     expect(mismatch).toContain("Raw scanned evidence");
     expect(mismatch).toContain(
       '<details class="quality-findings-raw-details">',
@@ -805,8 +855,8 @@ describe("quality evidence surfaces", () => {
       />,
     );
     expect(matching).toContain("Verified for target main @ target-c");
-    expect(matching).toContain("QR findings verified for target");
-    expect(matching).not.toContain("Target QR findings unavailable");
+    expect(matching).toContain("Detector findings verified for target");
+    expect(matching).not.toContain("Target detector findings unavailable");
     expect(matching).not.toContain("quality-findings-raw-details");
 
     const staleCommitRepository = {
@@ -846,14 +896,16 @@ describe("quality evidence surfaces", () => {
       "Target dev is not verified; this scan is 0b7ffd91, target is a6d1dac1.",
     );
     expect(staleCommit).toContain("4,022");
-    expect(staleCommit).toContain("QR findings from stale branch evidence");
+    expect(staleCommit).toContain(
+      "Detector findings from stale branch evidence",
+    );
     expect(staleCommit).toContain(
       "Breakdown is from the selected branch at an older head",
     );
-    expect(staleCommit).not.toContain("Target QR findings unavailable");
+    expect(staleCommit).not.toContain("Target detector findings unavailable");
   });
 
-  it("exposes native, skill, and future QR finding categories without a consumer whitelist", () => {
+  it("exposes native, skill, and future detector finding categories without a consumer whitelist", () => {
     const repository = makeRepository({
       quality: makeQuality({
         findings: makeFindings({
@@ -886,7 +938,7 @@ describe("quality evidence surfaces", () => {
     );
 
     expect(markup).toContain("4 finding categories");
-    expect(markup).toContain('aria-label="QR finding categories"');
+    expect(markup).toContain('aria-label="Detector finding categories"');
     expect(markup).toContain("maintenance surface");
     expect(markup).toContain("skill performance readiness");
     expect(markup).toContain("future category");
@@ -1168,12 +1220,12 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("1.909");
     expect(markup).toContain("Unscoped maturity evidence");
     expect(markup).toContain("4,022");
-    expect(markup).toContain("QR findings from stale branch evidence");
+    expect(markup).toContain("Detector findings from stale branch evidence");
     expect(markup).toContain("Stale branch evidence");
     expect(markup).toContain("Blocked");
     expect(markup).not.toContain("Target maturity unavailable");
     expect(markup).not.toContain("Target readiness unavailable");
-    expect(markup).not.toContain("Target QR findings unavailable");
+    expect(markup).not.toContain("Target detector findings unavailable");
   });
 
   it("projects gate, maturity, and readiness evidence from the selected target", () => {
@@ -1243,7 +1295,7 @@ describe("quality evidence surfaces", () => {
     expect(mismatch).toContain("Raw maturity evidence");
     expect(mismatch).toContain("Raw readiness evidence");
     expect(mismatch).toContain("Raw scanned evidence");
-    expect(mismatch).toContain("Target QR findings unavailable");
+    expect(mismatch).toContain("Target detector findings unavailable");
 
     const matchingEvidence = {
       scanned_branch: targetBranch,
@@ -1285,7 +1337,7 @@ describe("quality evidence surfaces", () => {
     expect(matching).not.toContain("Target maturity unavailable");
     expect(matching).not.toContain("Target readiness unavailable");
     expect(matching).not.toContain("Target evidence unavailable");
-    expect(matching).not.toContain("Target QR findings unavailable");
+    expect(matching).not.toContain("Target detector findings unavailable");
 
     const ambiguousRepository = {
       ...mismatchedRepository,
@@ -1330,7 +1382,7 @@ describe("quality evidence surfaces", () => {
     expect(ambiguous).toContain("0");
     expect(ambiguous).not.toContain("Target maturity unavailable");
     expect(ambiguous).not.toContain("Target readiness unavailable");
-    expect(ambiguous).not.toContain("Target QR findings unavailable");
+    expect(ambiguous).not.toContain("Target detector findings unavailable");
   });
 
   it("renders empty and unconfigured repository states", () => {

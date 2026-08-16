@@ -452,7 +452,7 @@ export function EvidenceHeatmap({
         const sample = series.samples.at(-1);
         const states = [
           sample?.ci_readiness_score != null,
-          sample?.findings_total != null,
+          (sample?.detector_findings_total ?? sample?.findings_total) != null,
           sample != null,
           (sample?.release_rule_repository_count ?? 0) > 0,
         ];

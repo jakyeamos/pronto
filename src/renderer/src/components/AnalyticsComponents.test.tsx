@@ -44,6 +44,10 @@ function makeSample(
     maturity_score: 3,
     findings_total: 4,
     high_severity_findings: 1,
+    detector_findings_total: 4,
+    detector_actionable_findings: 2,
+    detector_unreviewed_findings: 3,
+    maturity_gap_total: 1,
     ci_readiness_scored_repository_count: 2,
     maturity_scored_repository_count: 2,
     findings_repository_count: 2,
@@ -120,6 +124,10 @@ describe("analytics charts", () => {
             maturity_score: undefined,
             findings_total: undefined,
             high_severity_findings: undefined,
+            detector_findings_total: undefined,
+            detector_actionable_findings: undefined,
+            detector_unreviewed_findings: undefined,
+            maturity_gap_total: undefined,
             quality_freshness: "Unavailable",
           }),
         ])}
@@ -225,7 +233,7 @@ describe("analytics charts", () => {
 
     expect(markup).toContain("Sortable evidence table");
     expect(markup).toContain('aria-sort="descending"');
-    expect(markup).toContain(">Findings ↓</button>");
+    expect(markup).toContain(">Detector findings ↓</button>");
     expect(markup).toContain(">Repository</button>");
   });
 
@@ -238,6 +246,10 @@ describe("analytics charts", () => {
             maturity_score: null,
             findings_total: null,
             high_severity_findings: null,
+            detector_findings_total: null,
+            detector_actionable_findings: null,
+            detector_unreviewed_findings: null,
+            maturity_gap_total: null,
             quality_freshness: "Fresh",
           }),
         ])}
@@ -248,7 +260,7 @@ describe("analytics charts", () => {
     expect(unavailable).toContain(
       "Quality and evidence coverage are unavailable",
     );
-    expect(unavailable).toContain("High-severity findings");
+    expect(unavailable).toContain("High-severity detector findings");
     expect(unavailable).toContain("Unavailable");
   });
 

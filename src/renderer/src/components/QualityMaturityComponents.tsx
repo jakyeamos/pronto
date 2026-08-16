@@ -220,6 +220,19 @@ export function QualityMaturitySummary({
             {maturity.audit_id ?? "No audit run"} ·{" "}
             {qualityFreshnessLabel(maturity.freshness)}
           </small>
+          <small aria-label="Maturity evidence separate from detector findings">
+            Maturity evidence is separate from detector findings ·{" "}
+            {repositoryMaturity?.evidence.assessed_dimension_count ??
+              Object.keys(maturity.dimension_scores ?? {}).length}{" "}
+            assessed /{" "}
+            {repositoryMaturity?.evidence.applicable_dimension_count ??
+              Object.keys(maturity.dimension_scores ?? {}).length +
+                (maturity.gaps ?? []).filter(
+                  (gap) =>
+                    !(gap.dimension in (maturity.dimension_scores ?? {})),
+                ).length}{" "}
+            applicable dimensions · {(maturity.gaps ?? []).length} maturity gaps
+          </small>
           {repositoryMaturity && (
             <div className="repository-maturity-meta">
               <StatusPill tone={agentUsabilityTone(repositoryMaturity.status)}>

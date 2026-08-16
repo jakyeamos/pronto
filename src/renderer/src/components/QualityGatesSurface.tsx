@@ -237,7 +237,7 @@ export function QualityGatesSurface({
             <CheckCircle2 size={18} />
           </div>
           <div className="quality-overview-card">
-            <span>High-severity QR findings in imported scans</span>
+            <span>High-severity detector findings in imported scans</span>
             <strong>{highFindings}</strong>
             <small>Target matching is shown per repository below</small>
             <ShieldCheck size={18} />
@@ -333,7 +333,7 @@ export function QualityGatesSurface({
                     scope="col"
                     className="quality-matrix-sticky quality-matrix-findings-column"
                   >
-                    QR findings
+                    Detector findings
                   </th>
                   <th scope="col" className="quality-matrix-gate-column">
                     <span className="quality-matrix-gate-heading">

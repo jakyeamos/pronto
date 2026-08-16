@@ -14,6 +14,12 @@ function readableQualityEvidenceText(value: string): string {
   return value.replace(/\bunknown\b/gi, "not confirmed");
 }
 
+function recordSummary(record: Record<string, string> | undefined): string {
+  return Object.entries(record ?? {})
+    .map(([key, value]) => key + " " + value)
+    .join(" · ");
+}
+
 export function QualityFindingsSummary({
   findings,
   onOpenReport,
@@ -82,6 +88,8 @@ export function QualityFindingsSummary({
     : evidenceState === "stale"
       ? "warning"
       : "unknown";
+  const refreshRequired = findings.refresh_required === true;
+  const targetEvidenceUsable = targetMatchesEvidence && !refreshRequired;
   const provenanceMessage = targetEvidenceMessage({
     targetBranch: normalizedTargetBranch,
     targetCommit: normalizedTargetCommit,
@@ -92,24 +100,34 @@ export function QualityFindingsSummary({
     scannedBranch,
     scannedCommit,
   });
-  const findingsCount = findings.total.toLocaleString();
+  const findingsCount = (
+    findings.detector_findings_total ?? findings.total
+  ).toLocaleString();
+  const actionableCount = (
+    findings.detector_actionable_total ?? findings.actionable_total
+  ).toLocaleString();
+  const unreviewedCount = (
+    findings.detector_unreviewed_total ?? findings.unreviewed_total
+  ).toLocaleString();
   const findingsBreakdown = (
     <div className="quality-findings-breakdown">
       <span className="quality-findings-scope-note">
-        {targetMatchesEvidence
-          ? "Breakdown matches the selected target."
-          : evidenceState === "stale"
-            ? "Breakdown is from the selected branch at an older head; it is not the current target result."
-            : evidenceState === "unscoped"
-              ? "Breakdown is from evidence without branch/head provenance; it is not a target result."
-              : "Breakdown below is from the scanned evidence and is not a target result."}
+        {refreshRequired
+          ? "The prior detector count is retained as raw evidence, but the pinned detector receipt requires a refresh."
+          : targetMatchesEvidence
+            ? "Breakdown matches the selected target."
+            : evidenceState === "stale"
+              ? "Breakdown is from the selected branch at an older head; it is not the current target result."
+              : evidenceState === "unscoped"
+                ? "Breakdown is from evidence without branch/head provenance; it is not a target result."
+                : "Breakdown below is from the scanned evidence and is not a target result."}
       </span>
       <div className="quality-severity-list">
         <span>
-          <b>{findings.actionable_total.toLocaleString()}</b> actionable
+          <b>{actionableCount}</b> actionable detector findings
         </span>
         <span>
-          <b>{findings.unreviewed_total.toLocaleString()}</b> awaiting review
+          <b>{unreviewedCount}</b> unreviewed detector findings
         </span>
       </div>
       {severity.length > 0 ? (
@@ -139,7 +157,7 @@ export function QualityFindingsSummary({
             {categories.length === 1 ? "category" : "categories"}
           </summary>
           <div
-            aria-label="QR finding categories"
+            aria-label="Detector finding categories"
             className="quality-finding-category-list"
           >
             {categories.map(({ category, detected, actionable }) => (
@@ -157,40 +175,54 @@ export function QualityFindingsSummary({
   return (
     <div className="quality-findings-summary">
       <div
-        className={`quality-findings-total${targetMatchesEvidence ? "" : " quality-findings-total-unverified"}`}
+        className={`quality-findings-total${targetEvidenceUsable ? "" : " quality-findings-total-unverified"}`}
       >
         <strong
           aria-label={
-            branchEvidenceVisible ? undefined : "Target QR findings unavailable"
+            targetEvidenceUsable
+              ? undefined
+              : refreshRequired
+                ? "Detector findings refresh required"
+                : branchEvidenceVisible
+                  ? undefined
+                  : "Target detector findings unavailable"
           }
         >
-          {branchEvidenceVisible ? findingsCount : "—"}
+          {targetEvidenceUsable || (!refreshRequired && branchEvidenceVisible)
+            ? findingsCount
+            : "—"}
         </strong>
         <span>
-          {targetMatchesEvidence
-            ? "QR findings verified for target"
-            : evidenceState === "stale"
-              ? "QR findings from stale branch evidence"
-              : evidenceState === "unscoped"
-                ? "QR findings from unscoped evidence"
-                : "Target QR findings unavailable"}
+          {refreshRequired
+            ? "Detector findings refresh required"
+            : targetMatchesEvidence
+              ? "Detector findings verified for target"
+              : evidenceState === "stale"
+                ? "Detector findings from stale branch evidence"
+                : evidenceState === "unscoped"
+                  ? "Detector findings from unscoped evidence"
+                  : "Target detector findings unavailable"}
         </span>
       </div>
-      {branchEvidenceVisible ? (
+      {branchEvidenceVisible && !refreshRequired ? (
         findingsBreakdown
       ) : (
         <details className="quality-findings-raw-details">
           <summary className="quality-findings-raw">
-            <span>Raw scanned evidence</span>
+            <span>
+              {refreshRequired
+                ? "Refresh-required detector evidence"
+                : "Raw scanned evidence"}
+            </span>
             <strong>{findingsCount}</strong>
-            <span>QR findings detected in scanned evidence</span>
+            <span>Detector findings retained from scanned evidence</span>
           </summary>
           {findingsBreakdown}
         </details>
       )}
       <div
-        className={`quality-findings-provenance quality-findings-provenance-${provenanceTone}`}
-        aria-label="QR findings provenance"
+        className={`quality-findings-provenance quality-findings-provenance-${refreshRequired ? "warning" : provenanceTone}`}
+        aria-label="Detector findings provenance"
         role="status"
       >
         <span>
@@ -201,6 +233,70 @@ export function QualityFindingsSummary({
           <b>Evidence:</b> {evidenceDescriptor || "branch/commit unavailable"}
         </span>
         <span>{provenanceMessage}</span>
+      </div>
+      {refreshRequired && (
+        <div className="quality-findings-refresh-warning" role="alert">
+          <b>Refresh required.</b>{" "}
+          {readableQualityEvidenceText(
+            findings.refresh_required_reason ??
+              "The detector configuration or execution evidence is not current.",
+          )}
+        </div>
+      )}
+      <div className="quality-findings-detector-meta">
+        <span>
+          <b>Enabled:</b> {findings.enabled_detector_count ?? 0} detector
+          {(findings.enabled_detector_count ?? 0) === 1 ? "" : "s"} ·{" "}
+          {findings.enabled_rule_count ?? 0} rule
+          {(findings.enabled_rule_count ?? 0) === 1 ? "" : "s"}
+        </span>
+        {recordSummary(findings.producer_versions) && (
+          <span>
+            <b>Producer:</b> {recordSummary(findings.producer_versions)}
+          </span>
+        )}
+        {findings.qr_version && (
+          <span>
+            <b>QR:</b> {findings.qr_version}
+          </span>
+        )}
+        {findings.target_sha && (
+          <span>
+            <b>Target SHA:</b> {findings.target_sha.slice(0, 12)}
+          </span>
+        )}
+        {findings.refresh_time && (
+          <span>
+            <b>Detector refresh:</b> {formatTime(findings.refresh_time)}
+          </span>
+        )}
+        {typeof findings.delta_total === "number" && (
+          <span>
+            <b>Delta since prior comparable scan:</b>{" "}
+            {findings.delta_total > 0 ? "+" : ""}
+            {findings.delta_total}
+          </span>
+        )}
+        {(Object.keys(findings.ruleset_fingerprints ?? {}).length > 0 ||
+          Object.keys(findings.configuration_fingerprints ?? {}).length > 0 ||
+          Object.keys(findings.producer_source_shas ?? {}).length > 0) && (
+          <details>
+            <summary>Detector fingerprints</summary>
+            <span>
+              Ruleset:{" "}
+              {recordSummary(findings.ruleset_fingerprints) || "not reported"}
+            </span>
+            <span>
+              Configuration:{" "}
+              {recordSummary(findings.configuration_fingerprints) ||
+                "not reported"}
+            </span>
+            <span>
+              Producer source:{" "}
+              {recordSummary(findings.producer_source_shas) || "not reported"}
+            </span>
+          </details>
+        )}
       </div>
       <div className="quality-findings-meta">
         <span>{readableQualityEvidenceText(findings.freshness)}</span>
