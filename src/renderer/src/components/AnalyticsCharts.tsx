@@ -20,6 +20,17 @@ import type {
   AnalyticsRepositorySeries,
   MetricDefinition,
 } from "../types";
+import {
+  dailyLatestSamples,
+  formatAnalyticsDate,
+  formatAnalyticsNumber,
+  formatAnalyticsTimestamp,
+  metricValue,
+} from "./AnalyticsChartFormatting";
+import {
+  QualityScatterTooltip,
+  type QualityScatterTooltipPayload,
+} from "./AnalyticsScatterTooltip";
 
 const COLORS = [
   "var(--blue)",
@@ -28,37 +39,6 @@ const COLORS = [
   "var(--coral)",
   "var(--violet)",
 ];
-
-function metricValue(sample: AnalyticsMetricSample, id: string): number | null {
-  const governed = sample.metrics?.[id];
-  if (governed !== undefined) return governed;
-  const legacy: Record<string, number | null | undefined> = {
-    "git.commits.trailing_30_days": sample.commits_last_30_days,
-    "git.ahead_commits": sample.ahead_commit_count,
-    "git.behind_commits": sample.behind_commit_count,
-    "conditions.active": sample.active_condition_count,
-    "workspaces.dirty": sample.dirty_workspace_count,
-    "workspaces.unsynced": sample.unsynced_workspace_count,
-    "workspaces.activity.active": sample.active_workspace_count,
-    "workspaces.activity.interrupted": sample.interrupted_workspace_count,
-    "workspaces.activity.idle": sample.idle_workspace_count,
-    "workspaces.activity.unknown": sample.unknown_workspace_count,
-    "quality.maturity_score": sample.maturity_score,
-    "quality.evidence_score": sample.ci_readiness_score,
-    "findings.total": sample.findings_total,
-    "findings.high_severity": sample.high_severity_findings,
-    "release.ready_repositories": sample.release_ready_repository_count,
-    "release.configured_repositories": sample.release_rule_repository_count,
-    "remediation.actions.open": sample.remediation_open_action_count,
-    "remediation.actions.in_progress":
-      sample.remediation_in_progress_action_count,
-    "remediation.actions.blocked": sample.remediation_blocked_action_count,
-    "remediation.actions.deferred": sample.remediation_deferred_action_count,
-    "remediation.actions.verified": sample.remediation_verified_action_count,
-    "remediation.progress_percent": sample.remediation_progress_percent,
-  };
-  return legacy[id] ?? null;
-}
 
 export function metricsShareAxis(metrics: MetricDefinition[]): boolean {
   const [first] = metrics;
@@ -73,13 +53,6 @@ export function metricsShareAxis(metrics: MetricDefinition[]): boolean {
         metric.window_days === first.window_days,
     )
   );
-}
-
-function dateLabel(value: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(value));
 }
 
 export function GovernedTrend({
@@ -113,9 +86,9 @@ export function GovernedTrend({
         This metric was unavailable in the recorded history.
       </div>
     );
-  const data = samples.map((sample) => ({
+  const data = dailyLatestSamples(samples).map((sample) => ({
     observedAt: sample.observed_at,
-    label: dateLabel(sample.observed_at),
+    timestamp: Date.parse(sample.observed_at),
     ...Object.fromEntries(
       metrics.map((metric) => [metric.id, metricValue(sample, metric.id)]),
     ),
@@ -130,7 +103,11 @@ export function GovernedTrend({
         >
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
           <XAxis
-            dataKey="label"
+            dataKey="timestamp"
+            type="number"
+            scale="time"
+            domain={["dataMin", "dataMax"]}
+            tickFormatter={(value) => formatAnalyticsDate(Number(value))}
             tick={{ fill: "var(--muted)", fontSize: 12 }}
             tickLine={false}
             axisLine={false}
@@ -148,8 +125,14 @@ export function GovernedTrend({
               borderRadius: 12,
             }}
             labelFormatter={(_, payload) =>
-              payload?.[0]?.payload?.observedAt ?? "Observation"
+              formatAnalyticsTimestamp(
+                payload?.[0]?.payload?.observedAt ?? Date.now(),
+              )
             }
+            formatter={(value, name) => [
+              formatAnalyticsNumber(Number(value)),
+              name,
+            ]}
           />
           <Legend />
           {metrics.map((metric, index) => (
@@ -203,19 +186,26 @@ export function GovernedBars({
         This metric was unavailable in the recorded history.
       </div>
     );
-  const data = samples.slice(-12).map((sample) => ({
-    label: dateLabel(sample.observed_at),
-    ...Object.fromEntries(
-      metrics.map((item) => [item.id, metricValue(sample, item.id)]),
-    ),
-  }));
+  const data = dailyLatestSamples(samples)
+    .slice(-12)
+    .map((sample) => ({
+      observedAt: sample.observed_at,
+      timestamp: Date.parse(sample.observed_at),
+      ...Object.fromEntries(
+        metrics.map((item) => [item.id, metricValue(sample, item.id)]),
+      ),
+    }));
   return (
     <div className="analytics-chart-frame" role="img" aria-label={ariaLabel}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} accessibilityLayer>
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
           <XAxis
-            dataKey="label"
+            dataKey="timestamp"
+            type="number"
+            scale="time"
+            domain={["dataMin", "dataMax"]}
+            tickFormatter={(value) => formatAnalyticsDate(Number(value))}
             tick={{ fill: "var(--muted)", fontSize: 12 }}
           />
           <YAxis tick={{ fill: "var(--muted)", fontSize: 12 }} />
@@ -225,6 +215,15 @@ export function GovernedBars({
               border: "1px solid var(--line)",
               borderRadius: 12,
             }}
+            labelFormatter={(_, payload) =>
+              formatAnalyticsTimestamp(
+                payload?.[0]?.payload?.observedAt ?? Date.now(),
+              )
+            }
+            formatter={(value, name) => [
+              formatAnalyticsNumber(Number(value)),
+              name,
+            ]}
           />
           <Legend />
           {metrics.map((item, index) => (
@@ -369,6 +368,7 @@ export function QualityCoverageScatter({
             dataKey="evidence"
             name="Evidence coverage"
             domain={[0, 4]}
+            tickFormatter={(value) => formatAnalyticsNumber(Number(value))}
             tick={{ fill: "var(--muted)" }}
             label={{
               value: "Evidence coverage",
@@ -382,6 +382,7 @@ export function QualityCoverageScatter({
             dataKey="maturity"
             name="Maturity"
             domain={[0, 4]}
+            tickFormatter={(value) => formatAnalyticsNumber(Number(value))}
             tick={{ fill: "var(--muted)" }}
           />
           <ReferenceLine
@@ -396,11 +397,15 @@ export function QualityCoverageScatter({
           />
           <Tooltip
             cursor={{ strokeDasharray: "3 3" }}
-            contentStyle={{
-              background: "var(--panel)",
-              border: "1px solid var(--line)",
-              borderRadius: 12,
-            }}
+            content={({ active, payload }) => (
+              <QualityScatterTooltip
+                active={active}
+                payload={
+                  payload as
+                    ReadonlyArray<QualityScatterTooltipPayload> | undefined
+                }
+              />
+            )}
           />
           <Scatter name="Repositories" data={data} fill="var(--mint)">
             {data.map((entry) => (

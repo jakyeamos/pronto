@@ -79,18 +79,20 @@
     {
       "id": "analytics-contract",
       "scope": "local",
-      "path": "src-tauri/src/core.rs, src/renderer/src/components/Analytics*, and docs/analytics-workspace.md",
+      "path": "src-tauri/src/core.rs, src-tauri/src/quality.rs, src/renderer/src/components/Analytics*, src/renderer/src/types/quality.ts, src/renderer/src/styles.css, and docs/analytics-workspace.md",
       "owner": "Pronto repository maintainers",
       "condition": "Analytics metrics, sampling, compatibility, findings, ranges, saved views, or chart behavior changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::analytics",
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::quality_refresh_records_changed_analytics_and_deduplicates_unchanged_imports",
+        "cargo test --manifest-path src-tauri/Cargo.toml quality::tests::ingests_qr_gates_and_severity_breakdown_without_running_commands",
         "pnpm vitest run src/renderer/src/components/AnalyticsComponents.test.tsx",
         "pnpm typecheck",
         "pnpm build:web",
         "Verify Portfolio contains no chart and Analytics is reachable from primary navigation and the Portfolio text link.",
-        "Verify an accepted changed quality import appends an Analytics observation, an unchanged repeat deduplicates, and rejected or unavailable evidence appends nothing."
+        "Verify an accepted changed quality import appends an Analytics observation, an unchanged repeat deduplicates, and rejected or unavailable evidence appends nothing.",
+        "Verify complementary QR reports retain critical and high findings without duplicating stable fingerprints, clean inspected workspaces classify as idle, repository scatter tooltips name repositories with rounded values, and every chart uses daily UTC observations with full UTC tooltip timestamps."
       ],
       "status": "applicable"
     },

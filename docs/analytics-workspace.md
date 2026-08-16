@@ -35,6 +35,23 @@ backlog and progress. Metrics introduced after a historical observation are
 shown as unavailable for that observation rather than being backfilled as
 zero.
 
+Workspace activity reserves `Unknown` for incomplete or uncertain process
+inspection. A clean, synchronized workspace with a completed inspection and no
+associated process is `Idle`; dirty or unpublished work remains `Interrupted`.
+
+Quality Runner findings are deduplicated by stable fingerprint across the
+recognized reports in an accepted run. The fingerprinted code-quality scan
+remains the preferred report link, but complementary audit findings still
+contribute to the total and severity breakdown, so critical and high evidence
+cannot disappear merely because the preferred report contains only medium or
+observational findings.
+
+Charts use one UTC time contract. Trend and composition views retain the latest
+observation for each UTC day, plot those observations on a time scale, and show
+full UTC timestamps in tooltips. Metric labels and tooltips round displayed
+values to at most two decimal places; repository comparison tooltips always
+name the repository.
+
 Saved views are stored only in Pronto's SQLite database:
 
 ```sh

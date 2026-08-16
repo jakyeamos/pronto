@@ -9,6 +9,12 @@ import type {
 import { AnalyticsSurface } from "./AnalyticsComponents";
 import { metricsShareAxis } from "./AnalyticsCharts";
 import {
+  dailyLatestSamples,
+  formatAnalyticsNumber,
+  formatAnalyticsTimestamp,
+} from "./AnalyticsChartFormatting";
+import { QualityScatterTooltip } from "./AnalyticsScatterTooltip";
+import {
   HorizontalBarChart,
   StackedBarChart,
   TrendChart,
@@ -162,6 +168,45 @@ describe("analytics charts", () => {
         },
       ]),
     ).toBe(false);
+  });
+
+  it("normalizes chart observations by UTC day and formats exact timestamps consistently", () => {
+    const samples = [
+      makeSample({ observed_at: "2026-08-15T01:00:00Z", findings_total: 1 }),
+      makeSample({ observed_at: "2026-08-15T23:17:35Z", findings_total: 2 }),
+      makeSample({ observed_at: "2026-08-16T02:00:00Z", findings_total: 3 }),
+    ];
+
+    expect(
+      dailyLatestSamples(samples).map((sample) => sample.findings_total),
+    ).toEqual([2, 3]);
+    expect(formatAnalyticsTimestamp(samples[1].observed_at)).toContain(
+      "Aug 15, 2026",
+    );
+    expect(formatAnalyticsTimestamp(samples[1].observed_at)).toContain("UTC");
+  });
+
+  it("names repositories and rounds quality scatter values", () => {
+    const markup = renderToStaticMarkup(
+      <QualityScatterTooltip
+        active
+        payload={[
+          {
+            payload: {
+              name: "Pronto",
+              maturity: 1.7202399872854417,
+              evidence: 2.3617142857142857,
+            },
+          },
+        ]}
+      />,
+    );
+
+    expect(formatAnalyticsNumber(1.7202399872854417)).toBe("1.72");
+    expect(markup).toContain("Pronto");
+    expect(markup).toContain("Maturity 1.72");
+    expect(markup).toContain("Evidence 2.36");
+    expect(markup).not.toContain("1.7202399872854417");
   });
 
   it("exposes keyboard-operable repository comparison sorting", () => {
