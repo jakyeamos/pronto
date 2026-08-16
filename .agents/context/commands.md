@@ -1,6 +1,6 @@
 # Agent command contract
 
-Last reviewed: 2026-08-15.
+Last reviewed: 2026-08-16.
 
 ## Invocation
 
@@ -458,11 +458,21 @@ branch is `Stale`; an exact commit match remains authoritative.
 - A preview or configured ideal is not execution proof. Keep source tests,
   local validation, live browser/device evidence, and release/provider proof
   distinct.
-- Quality finding `total` remains the immutable detector count.
+- Quality finding `total` remains the immutable detector count; it never
+  includes maturity rows. The explicit detector projection also exposes
+  `detector_findings_total`, `detector_actionable_total`, and
+  `detector_unreviewed_total`, plus enabled detector/rule counts, producer
+  versions and source SHAs, ruleset/configuration fingerprints, QR version,
+  target SHA, refresh time, and the delta since the prior comparable scan.
   `actionable_total`, `reviewed_total`, `unreviewed_total`, and
   `disposition_counts` are reconciled from the repository-owned
   `pronto-quality-finding-dispositions/v1` ledger. Missing, invalid, expired,
   absent, or scope-mismatched dispositions never suppress a finding.
+- A missing, malformed, failed, or stale detector receipt is blocked evidence,
+  never a zero-finding result. Pronto may retain the prior detector count as
+  raw evidence while showing `refresh required`; it must not present that
+  retained count as current or compute a comparable-scan delta until a fresh
+  receipt is imported.
 - QR category `debloat` is projected as the conditional
   `Repository debloat review` gate. QR's deterministic findings are structural
   triggers, not proof of architectural bloat or a complete ownership-pressure

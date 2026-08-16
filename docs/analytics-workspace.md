@@ -28,6 +28,16 @@ fingerprint suppresses an unchanged repeat inside the deduplication window;
 changed accepted evidence appends a new observation, while rejected or
 unavailable evidence appends nothing.
 
+Quality analytics keeps detector evidence and maturity evidence on separate
+metrics. `findings.detector_total`, `findings.detector_actionable`, and
+`findings.detector_unreviewed` describe code-detector findings; `maturity.gaps`
+describes maturity gaps and must not be added to those counts. A material
+change to imported detector or maturity evidence creates a new deduplicated
+observation even inside the normal five-minute refresh window. An unchanged
+imported evidence fingerprint deduplicates normally, and blocked or
+refresh-required detector evidence remains unavailable for current-count and
+delta claims.
+
 The curated workspace separates commit volume from branch divergence and also
 covers workspace activity composition, quality and evidence cohorts, finding
 severity, repository-by-gate coverage, release readiness, and remediation

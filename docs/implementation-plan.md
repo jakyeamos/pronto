@@ -95,7 +95,10 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
   - `pronto release preview <repository> --json` for the release-specific evidence and review boundary.
 - These projections are derived from the same SQLite-backed snapshot consumed by the renderer. They are local/private outputs and are not public-export contracts.
 - Quality findings preserve the raw detector total while separately projecting
-  actionable, reviewed, and unreviewed counts. The versioned
+  detector actionable, reviewed, and unreviewed counts, detector/rule
+  coverage, producer provenance, fingerprints, target SHA, refresh state, and
+  comparable-scan delta. Maturity gaps and assessed/applicable dimensions stay
+  outside code-detector totals. The versioned
   `.pronto/quality-finding-dispositions.json` ledger records fingerprint,
   status, reason, reviewer, review time, evidence, and optional expiry. A
   missing, invalid, expired, no-longer-detected, or report-scope-mismatched

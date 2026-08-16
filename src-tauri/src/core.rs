@@ -882,6 +882,18 @@ pub struct AnalyticsMetricSample {
     pub maturity_score: Option<f64>,
     pub findings_total: Option<u64>,
     pub high_severity_findings: Option<u64>,
+    #[serde(default)]
+    pub detector_findings_total: Option<u64>,
+    #[serde(default)]
+    pub detector_actionable_findings: Option<u64>,
+    #[serde(default)]
+    pub detector_unreviewed_findings: Option<u64>,
+    #[serde(default)]
+    pub maturity_gap_total: Option<u64>,
+    #[serde(default)]
+    pub detector_refresh_required: Option<bool>,
+    #[serde(default)]
+    pub quality_evidence_fingerprint: Option<String>,
     pub ci_readiness_scored_repository_count: u64,
     pub maturity_scored_repository_count: u64,
     pub findings_repository_count: u64,
@@ -2268,6 +2280,59 @@ fn quality_metric_is_available(repository: &RepositorySnapshot) -> bool {
         || repository.quality.findings.freshness != QualityFreshness::Unknown
 }
 
+fn quality_evidence_fingerprint(repository: &RepositorySnapshot) -> Option<String> {
+    let findings = &repository.quality.findings;
+    let maturity = &repository.quality.maturity;
+    let has_evidence = quality_metric_is_available(repository)
+        || maturity.score.is_some()
+        || !maturity.dimension_scores.is_empty()
+        || !maturity.gaps.is_empty();
+    if !has_evidence {
+        return None;
+    }
+    let comparable = serde_json::json!({
+        "detector_findings_total": findings.detector_findings_total,
+        "detector_actionable_total": findings.detector_actionable_total,
+        "detector_unreviewed_total": findings.detector_unreviewed_total,
+        "enabled_detector_count": findings.enabled_detector_count,
+        "enabled_rule_count": findings.enabled_rule_count,
+        "producer_versions": findings.producer_versions,
+        "producer_source_shas": findings.producer_source_shas,
+        "ruleset_fingerprints": findings.ruleset_fingerprints,
+        "configuration_fingerprints": findings.configuration_fingerprints,
+        "qr_version": findings.qr_version,
+        "target_sha": findings.target_sha,
+        "refresh_required": findings.refresh_required,
+        "detector_status": findings.detector_status,
+        "maturity_score": maturity.score,
+        "maturity_dimensions": maturity.dimension_scores,
+        "maturity_gaps": maturity.gaps.iter().map(|gap| serde_json::json!({
+            "dimension": gap.dimension,
+            "status": gap.status,
+            "score": gap.score,
+        })).collect::<Vec<_>>(),
+    });
+    let encoded = serde_json::to_vec(&comparable).ok()?;
+    let mut digest = Sha256::new();
+    digest.update(encoded);
+    Some(format!("{:x}", digest.finalize()))
+}
+
+fn aggregate_quality_evidence_fingerprint(samples: &[AnalyticsMetricSample]) -> Option<String> {
+    let mut fingerprints = samples
+        .iter()
+        .filter_map(|sample| sample.quality_evidence_fingerprint.clone())
+        .collect::<Vec<_>>();
+    if fingerprints.is_empty() {
+        return None;
+    }
+    fingerprints.sort();
+    let encoded = serde_json::to_vec(&fingerprints).ok()?;
+    let mut digest = Sha256::new();
+    digest.update(encoded);
+    Some(format!("{:x}", digest.finalize()))
+}
+
 fn local_commit_count_since(path: &Path, observed_at: &str) -> Option<u64> {
     let observed = DateTime::parse_from_rfc3339(observed_at)
         .ok()?
@@ -2365,6 +2430,21 @@ fn analytics_repository_sample(
         findings_total: findings_available.then_some(repository.quality.findings.total),
         high_severity_findings: findings_available
             .then_some(repository.quality.findings.high_severity_total),
+        detector_findings_total: findings_available
+            .then_some(repository.quality.findings.detector_findings_total),
+        detector_actionable_findings: findings_available
+            .then_some(repository.quality.findings.detector_actionable_total),
+        detector_unreviewed_findings: findings_available
+            .then_some(repository.quality.findings.detector_unreviewed_total),
+        maturity_gap_total: repository
+            .quality
+            .maturity
+            .score
+            .is_some()
+            .then_some(repository.quality.maturity.gaps.len() as u64),
+        detector_refresh_required: findings_available
+            .then_some(repository.quality.findings.refresh_required),
+        quality_evidence_fingerprint: quality_evidence_fingerprint(repository),
         ci_readiness_scored_repository_count: u64::from(ci_readiness_score.is_some()),
         maturity_scored_repository_count: u64::from(maturity_score.is_some()),
         findings_repository_count: u64::from(findings_available),
@@ -2488,6 +2568,24 @@ fn analytics_portfolio_sample(
         high_severity_findings: sum_optional_metric(&samples, |sample| {
             sample.high_severity_findings
         }),
+        detector_findings_total: sum_optional_metric(&samples, |sample| {
+            sample.detector_findings_total
+        }),
+        detector_actionable_findings: sum_optional_metric(&samples, |sample| {
+            sample.detector_actionable_findings
+        }),
+        detector_unreviewed_findings: sum_optional_metric(&samples, |sample| {
+            sample.detector_unreviewed_findings
+        }),
+        maturity_gap_total: sum_optional_metric(&samples, |sample| sample.maturity_gap_total),
+        detector_refresh_required: {
+            let values = samples
+                .iter()
+                .filter_map(|sample| sample.detector_refresh_required)
+                .collect::<Vec<_>>();
+            (!values.is_empty()).then(|| values.into_iter().any(|value| value))
+        },
+        quality_evidence_fingerprint: aggregate_quality_evidence_fingerprint(&samples),
         ci_readiness_scored_repository_count: samples
             .iter()
             .map(|sample| sample.ci_readiness_scored_repository_count)
@@ -2606,6 +2704,19 @@ fn adapt_analytics_sample(mut sample: AnalyticsMetricSample) -> AnalyticsMetricS
         "findings.high_severity",
         sample.high_severity_findings.map(|v| v as f64),
     );
+    insert(
+        "findings.detector_total",
+        sample.detector_findings_total.map(|v| v as f64),
+    );
+    insert(
+        "findings.detector_actionable",
+        sample.detector_actionable_findings.map(|v| v as f64),
+    );
+    insert(
+        "findings.detector_unreviewed",
+        sample.detector_unreviewed_findings.map(|v| v as f64),
+    );
+    insert("maturity.gaps", sample.maturity_gap_total.map(|v| v as f64));
     insert(
         "release.ready_repositories",
         Some(sample.release_ready_repository_count as f64),
@@ -3068,8 +3179,8 @@ fn analytics_metric_catalog() -> Vec<MetricDefinition> {
         ),
         metric_definition(
             "findings.total",
-            "Detected findings",
-            "Raw detector findings before disposition.",
+            "Detector findings",
+            "Raw detector findings before disposition; maturity gaps are excluded.",
             "findings",
             "scanned repositories",
             "repository",
@@ -3082,8 +3193,8 @@ fn analytics_metric_catalog() -> Vec<MetricDefinition> {
         ),
         metric_definition(
             "findings.high_severity",
-            "High-severity findings",
-            "High-severity detector findings.",
+            "High-severity detector findings",
+            "High-severity findings emitted by code detectors.",
             "findings",
             "scanned repositories",
             "repository",
@@ -3093,6 +3204,62 @@ fn analytics_metric_catalog() -> Vec<MetricDefinition> {
             "lower-is-better",
             "quality-runner",
             &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "findings.detector_actionable",
+            "Actionable detector findings",
+            "Detector findings still requiring action after repository dispositions.",
+            "findings",
+            "scanned repositories",
+            "repository",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "quality-runner",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "findings.detector_unreviewed",
+            "Unreviewed detector findings",
+            "Detector findings without a current repository review disposition.",
+            "findings",
+            "scanned repositories",
+            "repository",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "quality-runner",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "findings.detector_total",
+            "Detector findings",
+            "Explicit detector finding count, separate from maturity gaps.",
+            "findings",
+            "scanned repositories",
+            "repository",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "quality-runner",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "maturity.gaps",
+            "Maturity gaps",
+            "Maturity dimensions below the maintained threshold; not code findings.",
+            "gaps",
+            "assessed repositories",
+            "repository",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "quality-runner",
+            &["line", "bar", "table"],
         ),
         metric_definition(
             "release.ready_repositories",
@@ -4336,6 +4503,7 @@ fn apply_quality_evidence_scoped(
         if target_repository_ids.is_some_and(|targets| !targets.contains(&repository.id)) {
             continue;
         }
+        let prior_findings = repository.quality.findings.clone();
         let remote = repository
             .remote_url
             .as_deref()
@@ -4435,10 +4603,15 @@ fn apply_quality_evidence_scoped(
                 );
             }
         }
+        quality::preserve_detector_evidence_on_refresh_failure(
+            &prior_findings,
+            &mut imported.findings,
+        );
         quality::reconcile_finding_dispositions(
             Path::new(&repository.path),
             &mut imported.findings,
         );
+        quality::update_detector_delta(&prior_findings, &mut imported.findings);
         repository.quality = imported;
     }
     for repository in &mut state.repositories {
@@ -20784,6 +20957,65 @@ mod tests {
         );
 
         fs::remove_dir_all(root).expect("quality refresh analytics fixture should be removable");
+    }
+
+    #[test]
+    fn material_detector_evidence_change_creates_a_new_analytics_observation() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let database = root.join("registry.db");
+        let mut state = StoreState::default();
+        let mut repository = scan_repository(&repository_path, None, &[]);
+        repository.quality.findings.source = Some(quality::QualitySource::Qr);
+        repository.quality.findings.observed_at = Some("2026-08-16T03:00:00Z".to_string());
+        repository.quality.findings.detector_findings_total = 1;
+        repository.quality.findings.detector_actionable_total = 1;
+        repository.quality.findings.detector_unreviewed_total = 1;
+        repository.quality.findings.enabled_detector_count = 1;
+        repository.quality.findings.enabled_rule_count = 3;
+        repository
+            .quality
+            .findings
+            .ruleset_fingerprints
+            .insert("anti-slop".to_string(), "ruleset-before".to_string());
+        state.repositories = vec![repository];
+        save_store(&database, &state).expect("analytics fixture state should persist");
+
+        let base = Utc::now() - chrono::Duration::minutes(20);
+        let first = base.to_rfc3339();
+        let second = (base + chrono::Duration::minutes(5)).to_rfc3339();
+        let rerun = (base + chrono::Duration::minutes(6)).to_rfc3339();
+        record_analytics_samples_at(&database, &state, &first)
+            .expect("initial detector evidence should persist");
+
+        let findings = &mut state.repositories[0].quality.findings;
+        findings.detector_findings_total = 2;
+        findings.detector_actionable_total = 2;
+        findings
+            .ruleset_fingerprints
+            .insert("anti-slop".to_string(), "ruleset-after".to_string());
+        record_analytics_samples_at(&database, &state, &second)
+            .expect("material detector evidence change should persist");
+        record_analytics_samples_at(&database, &state, &rerun)
+            .expect("unchanged changed-evidence rerun should deduplicate");
+
+        let analytics = load_analytics_at(&database, None).expect("analytics should load");
+        assert_eq!(analytics.portfolio_samples.len(), 2);
+        assert_eq!(analytics.repositories[0].samples.len(), 2);
+        assert_eq!(
+            analytics.repositories[0].samples[0].detector_findings_total,
+            Some(1)
+        );
+        assert_eq!(
+            analytics.repositories[0].samples[1].detector_findings_total,
+            Some(2)
+        );
+        assert_ne!(
+            analytics.repositories[0].samples[0].quality_evidence_fingerprint,
+            analytics.repositories[0].samples[1].quality_evidence_fingerprint
+        );
+
+        fs::remove_dir_all(root).expect("analytics evidence fixture should be removable");
     }
 
     #[test]

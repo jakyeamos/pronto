@@ -39,7 +39,8 @@
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::fresh_route_timeout_names_the_cached_fallback",
         "pnpm cli route --fresh --json against the imported full fleet detector corpus",
         "pnpm typecheck",
-        "For maturity changes, verify pillar weighting, applicability, evidence coverage, and critical caps in src-tauri/src/quality.rs tests.",
+        "For maturity changes, verify pillar weighting, applicability, assessed versus applicable dimensions, evidence coverage, and critical caps in src-tauri/src/quality.rs tests.",
+        "For detector evidence changes, verify blocked or refresh-required receipts never become zero findings and preserve prior raw evidence without a current delta.",
         "Run the parallel refresh coordinator tests and verify the locked merge preserves every scanned repository."
       ],
       "status": "applicable"
@@ -86,6 +87,7 @@
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::analytics",
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::quality_refresh_records_changed_analytics_and_deduplicates_unchanged_imports",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::material_detector_evidence_change_creates_a_new_analytics_observation",
         "cargo test --manifest-path src-tauri/Cargo.toml quality::tests::ingests_qr_gates_and_severity_breakdown_without_running_commands",
         "pnpm vitest run src/renderer/src/components/AnalyticsComponents.test.tsx",
         "pnpm typecheck",
