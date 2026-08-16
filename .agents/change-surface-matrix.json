@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-15",
+  "last_reviewed": "2026-08-16",
   "reviewed_no_impact": [
     {
       "change": "Split the renderer API barrel into defaults, review commands, and portfolio commands.",
@@ -363,6 +363,8 @@
         "scripts/test_papercuts_capture.py::PapercutsCaptureTests::test_flush_quarantines_invalid_contract_and_continues",
         "scripts/test_papercuts_capture.py::PapercutsCaptureTests::test_persist_immediately_quarantines_downstream_contract_rejection",
         "src-tauri/src/papercuts.rs::tests::observation_contract_matches_the_agent_hook_surface",
+        "src/renderer/src/components/AnalyticsComponents.tsx::AnalyticsSurface::toolbar-before-workspace-content",
+        "src/renderer/src/styles.css::.analytics-toolbar::sticky-top-12-z-index-10-panel",
         "src-tauri/src/core.rs::tests::ordinary_refresh_retains_persisted_scoped_maturity_evidence",
         "src-tauri/src/core.rs::tests::qr_audit_runtime_arguments_apply_the_requested_timeout",
         "src-tauri/src/core.rs::tests::registering_new_repository_enters_the_normal_fleet_without_mutating_showcase",
