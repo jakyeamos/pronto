@@ -6,10 +6,9 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  classifyInstalledAppProcesses,
   digestBundle,
   digestFile,
-  installedAppLaunchArguments,
+  findExecutableProcessIds,
   replaceAppBundle,
 } from "./install-app-lib.mjs";
 
@@ -27,16 +26,18 @@ const targetApp = "/Applications/Pronto.app";
 const sourceExecutable = join(sourceApp, "Contents", "MacOS", "pronto");
 const targetExecutable = join(targetApp, "Contents", "MacOS", "pronto");
 const checkOnly = globalThis.process.argv.includes("--check");
-const appBundleIdentifier = "com.pronto.desktop";
-const collectorLaunchAgentLabel = "com.pronto.skill-usage-collector";
-const collectorLaunchAgentPlist = join(
+const collectorArgument = "--skill-usage-collector";
+const collectorLabel = "com.pronto.skill-usage-collector";
+const userId = globalThis.process.getuid?.();
+const launchDomain = userId == null ? null : `gui/${userId}`;
+const collectorService =
+  launchDomain == null ? null : `${launchDomain}/${collectorLabel}`;
+const collectorPlistPath = join(
   homedir(),
   "Library",
   "LaunchAgents",
-  `${collectorLaunchAgentLabel}.plist`,
+  `${collectorLabel}.plist`,
 );
-const launchAgentDomain = `gui/${globalThis.process.getuid()}`;
-const collectorLaunchAgentTarget = `${launchAgentDomain}/${collectorLaunchAgentLabel}`;
 
 function fail(message) {
   globalThis.console.error(
@@ -48,7 +49,7 @@ function fail(message) {
 function assertBundle(path, label) {
   if (!existsSync(path)) {
     fail(
-      `${label} is missing at ${path}. Run ${checkOnly ? "pnpm build first" : "pnpm build before installing"}.`,
+      `${label} is missing at ${path}. Run pnpm build:bundle ${checkOnly ? "before checking the installed app" : "before installing"}.`,
     );
     return false;
   }
@@ -59,31 +60,61 @@ function assertBundle(path, label) {
   return true;
 }
 
-function installedAppProcessState() {
-  const processList = execFileSync("/bin/ps", ["-ax", "-o", "command="], {
+function installedAppProcessIds({ includeCollector = true } = {}) {
+  const processList = execFileSync("/bin/ps", ["-ax", "-o", "pid=,command="], {
     encoding: "utf8",
   });
-  return classifyInstalledAppProcesses(processList, targetExecutable);
+  return findExecutableProcessIds(
+    processList,
+    targetExecutable,
+    includeCollector ? [] : [collectorArgument],
+  );
 }
 
-function waitForInstalledProcessesToQuit(timeoutMilliseconds = 10_000) {
+function terminateInstalledApp(processIds) {
+  for (const processId of processIds) {
+    try {
+      globalThis.process.kill(processId, "SIGTERM");
+    } catch (error) {
+      if (!(
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ESRCH"
+      )) {
+        throw error;
+      }
+    }
+  }
+}
+
+function waitForInstalledAppToQuit(timeoutMilliseconds = 10_000) {
   const deadline = Date.now() + timeoutMilliseconds;
   const waitState = new Int32Array(new SharedArrayBuffer(4));
-  while (true) {
-    const state = installedAppProcessState();
-    if (!state.foregroundRunning && !state.collectorRunning) return;
+  while (installedAppProcessIds().length > 0) {
     if (Date.now() >= deadline) {
       throw new Error(
-        "Pronto processes did not quit within 10 seconds; the installed bundle was not replaced.",
+        "Pronto did not quit within 10 seconds; the installed bundle was not replaced.",
       );
     }
     Atomics.wait(waitState, 0, 0, 100);
   }
 }
 
-function collectorLaunchAgentIsLoaded() {
+function waitForInstalledAppToStart(timeoutMilliseconds = 10_000) {
+  const deadline = Date.now() + timeoutMilliseconds;
+  const waitState = new Int32Array(new SharedArrayBuffer(4));
+  while (installedAppProcessIds({ includeCollector: false }).length === 0) {
+    if (Date.now() >= deadline) {
+      throw new Error("Pronto did not start within 10 seconds.");
+    }
+    Atomics.wait(waitState, 0, 0, 100);
+  }
+}
+
+function collectorServiceIsLoaded() {
+  if (collectorService == null) return false;
   try {
-    execFileSync("/bin/launchctl", ["print", collectorLaunchAgentTarget], {
+    execFileSync("/bin/launchctl", ["print", collectorService], {
       stdio: "ignore",
     });
     return true;
@@ -92,23 +123,34 @@ function collectorLaunchAgentIsLoaded() {
   }
 }
 
-function stopCollectorLaunchAgent() {
-  execFileSync("/bin/launchctl", ["bootout", collectorLaunchAgentTarget]);
+function stopCollectorService() {
+  if (collectorService == null) {
+    throw new Error(
+      "A macOS user ID is required to stop the Pronto collector.",
+    );
+  }
+  execFileSync("/bin/launchctl", ["bootout", collectorService]);
 }
 
-function startCollectorLaunchAgent() {
-  execFileSync("/bin/launchctl", [
-    "bootstrap",
-    launchAgentDomain,
-    collectorLaunchAgentPlist,
-  ]);
+function startCollectorService() {
+  if (launchDomain == null || collectorService == null) {
+    throw new Error(
+      "A macOS user ID is required to start the Pronto collector.",
+    );
+  }
+  if (!collectorServiceIsLoaded()) {
+    execFileSync("/bin/launchctl", [
+      "bootstrap",
+      launchDomain,
+      collectorPlistPath,
+    ]);
+  }
+  execFileSync("/bin/launchctl", ["kickstart", "-k", collectorService]);
 }
 
 function launchInstalledApp() {
-  execFileSync(
-    "/usr/bin/open",
-    installedAppLaunchArguments(appBundleIdentifier),
-  );
+  execFileSync("/usr/bin/open", ["-n", targetApp]);
+  waitForInstalledAppToStart();
 }
 
 if (!assertBundle(sourceApp, "The local release bundle"))
@@ -143,7 +185,7 @@ if (checkOnly) {
   );
   if (sourceBundleDigest !== targetBundleDigest) {
     fail(
-      "Applications is stale. Run pnpm app to build and install the current checkout.",
+      "Applications is stale. Run pnpm app:update to promote the current checkout.",
     );
     globalThis.process.exit(1);
   }
@@ -162,38 +204,31 @@ if (existsSync(targetApp) && lstatSync(targetApp).isSymbolicLink()) {
 
 let installedAppWasRunning = false;
 let collectorWasLoaded = false;
-let collectorWasStopped = false;
 try {
-  const processState = installedAppProcessState();
-  installedAppWasRunning = processState.foregroundRunning;
-  collectorWasLoaded = collectorLaunchAgentIsLoaded();
-  if (collectorWasLoaded) {
-    stopCollectorLaunchAgent();
-    collectorWasStopped = true;
+  const allInstalledProcessIdsBeforeUpdate = installedAppProcessIds();
+  installedAppWasRunning =
+    installedAppProcessIds({ includeCollector: false }).length > 0;
+  collectorWasLoaded = collectorServiceIsLoaded();
+  if (collectorWasLoaded) stopCollectorService();
+  if (allInstalledProcessIdsBeforeUpdate.length > 0) {
+    terminateInstalledApp(allInstalledProcessIdsBeforeUpdate);
+    waitForInstalledAppToQuit();
   }
-  if (installedAppWasRunning) {
-    execFileSync("/usr/bin/osascript", [
-      "-e",
-      `tell application id "${appBundleIdentifier}" to quit`,
-    ]);
-  }
-  waitForInstalledProcessesToQuit();
   replaceAppBundle(sourceApp, targetApp);
-  if (collectorWasStopped) {
-    startCollectorLaunchAgent();
-    collectorWasStopped = false;
-  }
+  if (collectorWasLoaded) startCollectorService();
 } catch (error) {
-  let collectorRecoveryError = null;
-  if (collectorWasStopped) {
+  if (collectorWasLoaded && existsSync(targetApp)) {
     try {
-      startCollectorLaunchAgent();
-      collectorWasStopped = false;
-    } catch (recoveryError) {
-      collectorRecoveryError = recoveryError;
+      startCollectorService();
+    } catch {
+      // Preserve the original installation failure as the actionable error.
     }
   }
-  if (installedAppWasRunning && existsSync(targetApp)) {
+  if (
+    installedAppWasRunning &&
+    existsSync(targetApp) &&
+    installedAppProcessIds({ includeCollector: false }).length === 0
+  ) {
     try {
       launchInstalledApp();
     } catch {
@@ -203,14 +238,6 @@ try {
   fail(
     `Could not replace the local release bundle at ${targetApp}: ${
       error instanceof Error ? error.message : String(error)
-    }${
-      collectorRecoveryError
-        ? `; the collector could not be restored: ${
-            collectorRecoveryError instanceof Error
-              ? collectorRecoveryError.message
-              : String(collectorRecoveryError)
-          }`
-        : ""
     }`,
   );
   globalThis.process.exit(1);
@@ -246,6 +273,3 @@ globalThis.console.log(
     ? "Reopened Pronto with the installed replacement."
     : "Pronto was not running; open it when you are ready.",
 );
-if (collectorWasLoaded) {
-  globalThis.console.log("Restored the Pronto skill-usage collector.");
-}

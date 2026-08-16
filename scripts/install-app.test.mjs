@@ -4,11 +4,33 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import {
-  classifyInstalledAppProcesses,
   digestBundle,
-  installedAppLaunchArguments,
+  findExecutableProcessIds,
   replaceAppBundle,
 } from "./install-app-lib.mjs";
+
+test("selects only the exact installed app process for termination", () => {
+  const executable = "/Applications/Pronto.app/Contents/MacOS/pronto";
+  const processList = `
+  41 ${executable}
+  42 ${executable} --skill-usage-collector
+  43 ${executable} --skill-usage-collector --verbose
+  44 ${executable} --diagnostic
+  45 /tmp/Pronto.app/Contents/MacOS/pronto
+  46 ${executable}-helper
+  `;
+
+  assert.deepEqual(
+    findExecutableProcessIds(processList, executable, [
+      "--skill-usage-collector",
+    ]),
+    [41, 44],
+  );
+  assert.deepEqual(
+    findExecutableProcessIds(processList, executable),
+    [41, 42, 43, 44],
+  );
+});
 
 function writeBundle(bundlePath, executableContents) {
   mkdirSync(join(bundlePath, "Contents", "MacOS"), { recursive: true });
@@ -41,41 +63,4 @@ test("replaces the installed bundle instead of retaining obsolete files", () => 
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
-});
-
-test("distinguishes the foreground app from its launchd collector", () => {
-  const executable = "/Applications/Pronto.app/Contents/MacOS/pronto";
-  const processList = [
-    `${executable} --skill-usage-collector`,
-    executable,
-    "/Applications/Other.app/Contents/MacOS/other",
-  ].join("\n");
-
-  assert.deepEqual(classifyInstalledAppProcesses(processList, executable), {
-    foregroundRunning: true,
-    collectorRunning: true,
-  });
-});
-
-test("does not mistake the launchd collector for the foreground app", () => {
-  const executable = "/Applications/Pronto.app/Contents/MacOS/pronto";
-
-  assert.deepEqual(
-    classifyInstalledAppProcesses(
-      `${executable} --skill-usage-collector\n`,
-      executable,
-    ),
-    {
-      foregroundRunning: false,
-      collectorRunning: true,
-    },
-  );
-});
-
-test("forces a distinct foreground launch while the collector is running", () => {
-  assert.deepEqual(installedAppLaunchArguments("com.pronto.desktop"), [
-    "-n",
-    "-b",
-    "com.pronto.desktop",
-  ]);
 });
