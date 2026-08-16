@@ -1,0 +1,192 @@
+{
+  "schema_version": "pronto-showcase-dsci-proj-decision-contract/v1",
+  "project": "Dsci-proj",
+  "gap": "DS-0",
+  "observed_at": "2026-08-13T17:31:20Z",
+  "status": "passed_as_product_contract",
+  "implementation_status": "not_yet_proven",
+  "purpose": "Turn a backlog into a configurable, explainable next-work queue without hiding judgment inside an opaque score.",
+  "decision_owner": "The user owns criteria, weights, constraints, and the final decision; the system supplies ranked evidence and tradeoff explanations.",
+  "item_model": {
+    "required": ["id", "title", "state", "source_type", "evidence"],
+    "optional": [
+      "created_at",
+      "labels",
+      "description",
+      "owner",
+      "external_url"
+    ],
+    "evidence": {
+      "numeric": [
+        "reactions_7d_total",
+        "unique_commenters_7d",
+        "label_count",
+        "predicted_median_time_to_close_days",
+        "reopen_count",
+        "comment_velocity_24h",
+        "reach",
+        "support_cost",
+        "deadline_days"
+      ],
+      "boolean": ["has_priority_label", "has_security_label"],
+      "categorical": ["primary_type", "customer_segment", "source_status"],
+      "provenance_required": true
+    }
+  },
+  "criteria": [
+    {
+      "id": "impact",
+      "label": "Impact",
+      "direction": "higher_is_better",
+      "default_weight": 0.35,
+      "evidence_examples": [
+        "reactions_7d_total",
+        "unique_commenters_7d",
+        "has_priority_label",
+        "has_security_label",
+        "reach"
+      ]
+    },
+    {
+      "id": "urgency",
+      "label": "Urgency",
+      "direction": "higher_is_better",
+      "default_weight": 0.2,
+      "evidence_examples": ["deadline_days", "state", "source_status"]
+    },
+    {
+      "id": "effort",
+      "label": "Effort",
+      "direction": "lower_is_better",
+      "default_weight": 0.2,
+      "evidence_examples": [
+        "predicted_median_time_to_close_days",
+        "reopen_count",
+        "comment_velocity_24h",
+        "support_cost"
+      ]
+    },
+    {
+      "id": "strategic_fit",
+      "label": "Strategic fit",
+      "direction": "higher_is_better",
+      "default_weight": 0.15,
+      "evidence_examples": ["customer_segment", "primary_type", "roadmap_theme"]
+    },
+    {
+      "id": "confidence",
+      "label": "Evidence confidence",
+      "direction": "higher_is_better",
+      "default_weight": 0.1,
+      "evidence_examples": [
+        "source_status",
+        "model_confidence",
+        "evidence_completeness"
+      ]
+    }
+  ],
+  "scoring": {
+    "normalization": "Normalize each criterion within the imported backlog; preserve the raw value and normalization metadata.",
+    "formula": "sum(enabled_criterion.weight * enabled_criterion.normalized_value)",
+    "effort_inversion": "For lower_is_better criteria, normalized_value = 1 - normalized_effort.",
+    "weights": {
+      "must_sum_to": 1,
+      "user_editable": true,
+      "invalid_policy": "fail_closed"
+    },
+    "rounding": 6,
+    "tie_break": ["score desc", "impact desc", "effort asc", "id asc"]
+  },
+  "constraints": {
+    "user_editable": true,
+    "supported": [
+      "include or exclude states",
+      "required evidence fields",
+      "maximum queue length",
+      "minimum confidence",
+      "must_include source types"
+    ],
+    "missing_input_policy": "label_unknown_and_reduce_confidence; never silently treat missing evidence as positive impact",
+    "advisory_boundary": "Constraints narrow or annotate the queue; they do not execute work or make the final decision."
+  },
+  "explanation": {
+    "per_item_required": [
+      "final_score",
+      "rank",
+      "criterion_contributions",
+      "source_evidence_refs",
+      "missing_inputs",
+      "uncertainty_label",
+      "assumptions"
+    ],
+    "language_rule": "Every recommendation must state which supplied evidence moved the score and what remains unknown.",
+    "claim_limit": "A ranking is decision support, not a guarantee that the chosen item is objectively best."
+  },
+  "scenario_comparison": {
+    "required_inputs": ["baseline_contract", "changed_criteria_or_weights"],
+    "outputs": [
+      "before_rank",
+      "after_rank",
+      "rank_delta",
+      "score_delta",
+      "changed_contributions"
+    ],
+    "determinism": "Same normalized inputs, contract version, and weights must produce the same ordering and deltas."
+  },
+  "output_contract": {
+    "queue_fields": [
+      "rank",
+      "id",
+      "title",
+      "score",
+      "criteria_summary",
+      "uncertainty",
+      "next_step"
+    ],
+    "export_fields": [
+      "contract_version",
+      "input_manifest",
+      "criteria",
+      "weights",
+      "constraints",
+      "queue",
+      "generated_at"
+    ],
+    "review_state": [
+      "recommended",
+      "needs_evidence",
+      "excluded_by_constraint",
+      "deferred"
+    ],
+    "human_handoff": "Export the chosen next-work list with the decision contract and provenance attached."
+  },
+  "current_native_mapping": {
+    "observed_source_refs": [
+      "pipeline/src/triage/impact_formula.py",
+      "pipeline/src/triage/difficulty_formula.py",
+      "pipeline/src/triage/roi_ranking.py",
+      "pipeline/src/triage/quadrants.py",
+      "pipeline/src/explainability/render_why_bullets.py"
+    ],
+    "currently_supported": [
+      "fixed engagement and priority/security impact components",
+      "predicted-time, reopen, and velocity difficulty calculation",
+      "repo-local percentile quadrants",
+      "deterministic ROI ordering",
+      "top-factor plain-English why bullets"
+    ],
+    "not_yet_supported": [
+      "user-editable criteria and weights",
+      "generic adapter contract for a second backlog schema",
+      "before/after scenario comparison",
+      "source-to-criterion provenance for every configurable input",
+      "export of a user-owned decision contract"
+    ]
+  },
+  "claim_boundary": [
+    "DS-0 is closed as a versioned product and decision contract.",
+    "The current repository implements a narrower issue-triage profile; it does not yet prove the configurable generalized product.",
+    "No cross-backlog result, user-edited scenario, or public product walkthrough is claimed."
+  ],
+  "next_gap": "DS-1"
+}

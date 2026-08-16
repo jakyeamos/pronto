@@ -1,0 +1,36 @@
+{
+  "schema_version": "pronto-showcase-rdw-provenance/v1",
+  "recorded_at": "2026-08-12",
+  "installed_cli": {
+    "resolved_path": "/Users/jakyeamos/.local/bin/rdw",
+    "version": "0.2.0",
+    "distribution_source": "file:///Users/jakyeamos/.codex/worktrees/6315/research-domain-writing/dist/research_domain_writing-0.2.0-py3-none-any.whl",
+    "distribution_source_available": false,
+    "embedded_source_revision": null
+  },
+  "installed_basketball_pack": {
+    "validation_command": "rdw validate-pack basketball",
+    "validation_result": "OK basketball: specialized/production",
+    "domain_config_sha1": "cdbcf2d6e4a92e6fd70592da3aa899937760ef08"
+  },
+  "matching_repository_content": {
+    "repository": "/Users/jakyeamos/projects/research-domain-writing",
+    "revision": "aa46b36b2b80eee7f3e8ab67c1a2de681bf0869a",
+    "domain_config_sha1": "cdbcf2d6e4a92e6fd70592da3aa899937760ef08",
+    "relationship": "installed domain contract is byte-identical to this repository revision"
+  },
+  "active_source_checkout": {
+    "branch": "codex/rdw-gpt56-modernization",
+    "revision": "3747e6d67f8fa1ce8fb8b7c7b006f2827d043947",
+    "upstream_ahead": 3,
+    "upstream_behind": 15,
+    "domain_contract_matches_installed": false
+  },
+  "disposition": {
+    "installed_pack_behavior": "verified",
+    "matching_repository_content": "verified",
+    "release_artifact_to_source_revision": "not_verified",
+    "rdw_0_status": "partial",
+    "remaining_blocker": "The wheel has no embedded source revision, its recorded build worktree no longer exists, and the active source checkout differs. A release owner must select the intended source revision and rebuild or attest the artifact before release provenance can close."
+  }
+}

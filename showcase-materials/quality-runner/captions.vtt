@@ -1,0 +1,30 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:07.000
+Quality Runner's job isn't to make a warning count disappear.
+It helps decide what should actually change.
+
+00:00:07.000 --> 00:00:14.800
+In this Tenure case, a branch comparison produced 684 candidates.
+Those were a review surface, not 684 confirmed defects.
+
+00:00:14.800 --> 00:00:28.800
+The tempting route was a bulk cleanup. We rehearsed that route on a disposable snapshot:
+127 files changed, 15 integration or type errors, and stronger behavior disappeared.
+So the shortcut was rejected before merge.
+
+00:00:28.800 --> 00:00:35.800
+Instead, the work moved through semantic triage and five bounded repair lanes,
+each tied to regression evidence.
+
+00:00:35.800 --> 00:00:47.000
+The final candidate at 83b1318e has seven gates recorded in the canonical historical report.
+A later provider readback recorded the dev branch at e3b81e1a containing that candidate.
+
+00:00:47.000 --> 00:00:59.400
+Those proof levels stay separate. The case-study surface rendered locally at desktop and mobile widths,
+but that is not browser proof of the Tenure product. Deployment is still not verified.
+
+00:00:59.400 --> 00:01:05.600
+The result isn't a cleaner score.
+It's a safer engineering decision with an auditable reason.

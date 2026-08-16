@@ -1,0 +1,74 @@
+{
+  "schema_version": "review-sandbox-showcase-evidence-v0.1",
+  "project": "review-sandbox",
+  "source_repository": "review-sandbox",
+  "source_revision": "6d657e2fc1efdb06255bef00b7ffdd89c07f58e7",
+  "fixture_target_revision": "46f1fd134024b08d9de186004b0015423c953db5",
+  "observed_at": "2026-08-13T23:45:18Z",
+  "preview": {
+    "status": "ready",
+    "source_revision": "46f1fd134024b08d9de186004b0015423c953db5",
+    "setup_command": "printf setup-ready",
+    "run_command": "printf scenario-passed",
+    "cleanup": "remove only after clean and inactive proof"
+  },
+  "scenarios": [
+    {
+      "id": "clean",
+      "setup": "passed",
+      "outcome": "passed",
+      "cleanup": "removed",
+      "cleanup_proof": "git worktree status was clean"
+    },
+    {
+      "id": "conflict",
+      "status": "blocked",
+      "reason": "Sandbox path already exists; no overwrite is attempted."
+    },
+    {
+      "id": "failed-gate",
+      "setup": "failed",
+      "exit_code": 3,
+      "outcome": "not_run",
+      "cleanup": "removed",
+      "cleanup_proof": "git worktree status was clean"
+    },
+    {
+      "id": "retained-dirty",
+      "setup": "passed",
+      "outcome": "passed",
+      "cleanup": "retained",
+      "reason": "Sandbox is dirty; it was not removed.",
+      "recovery": "after the owned artifact was removed, cleanup returned removed"
+    },
+    {
+      "id": "cancelled-launch",
+      "setup": "passed",
+      "outcome": "failed",
+      "exit_code": 130,
+      "output": "cancelled-launch",
+      "cleanup": "removed",
+      "classification": "The prototype records exit 130 as failed; cancellation is not a distinct receipt state."
+    }
+  ],
+  "primary_checkout": {
+    "target_revision_unchanged": true,
+    "remaining_worktrees_after_cleanup": [
+      "/private/tmp/codex-showcase-review-sandbox"
+    ],
+    "ref_mutation": false,
+    "dirty_state_claim": "The fixture scenario file was changed between probes; unrelated-dirty preservation was not claimed."
+  },
+  "omissions": [
+    "hosted services",
+    "credentials",
+    "unowned processes",
+    "direct process/port ownership proof"
+  ],
+  "privacy": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local Git fixture"
+  },
+  "claim_boundary": "This receipt proves bounded local preview/create/cleanup behavior, conflict refusal, failed setup preservation, dirty retention, and a cancellation limitation. It does not claim process ownership, port safety, a distinct cancellation state, hosting, or publication."
+}

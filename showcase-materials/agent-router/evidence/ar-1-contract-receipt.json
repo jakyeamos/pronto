@@ -1,0 +1,122 @@
+{
+  "schema_version": "pronto-showcase-agent-router-gap-receipt/v1",
+  "project": "agent-router",
+  "gap": "AR-1",
+  "observed_at": "2026-08-13T17:48:57Z",
+  "status": "passed_as_replay_spec",
+  "source": {
+    "repository": "agent-router",
+    "branch": "dev",
+    "commit": "4f0c7db5405caaf1915a972c8c6eb9806a3209e6",
+    "checkout_status": "clean_at_inspection",
+    "package_manager": "pnpm@10.12.4",
+    "evidence_refs": [
+      "packages/schemas/src/index.ts#TaskIntentSchema",
+      "packages/schemas/src/index.ts#TaskGraphSchema",
+      "packages/core/src/classify.ts",
+      "packages/core/src/planning.ts#buildGraph",
+      "packages/core/src/router.ts#createTaskPlan",
+      "showcase-materials/agent-router/replay-case.json"
+    ]
+  },
+  "verification": {
+    "dependency_install": {
+      "command": "pnpm install --frozen-lockfile --ignore-scripts",
+      "runtime": "pnpm@10.12.4",
+      "status": "passed"
+    },
+    "repository_quality": [
+      {
+        "command": "pnpm test",
+        "status": "passed",
+        "tests": "15 passed"
+      },
+      {
+        "command": "pnpm typecheck",
+        "status": "passed"
+      },
+      {
+        "command": "pnpm lint",
+        "status": "passed"
+      }
+    ],
+    "runtime_probe": {
+      "status": "passed",
+      "intent_id": "ar-1-launch-readiness",
+      "classification": {
+        "task_type": "repo_edit_with_tests",
+        "complexity": "complex",
+        "risk": "high",
+        "planner_reasoning_tier": "max",
+        "should_route": true
+      },
+      "graph": {
+        "stable_graph_id": false,
+        "root_task_id": "ar-1-launch-readiness",
+        "subtask_count": 3,
+        "subtask_ids": [
+          "ar-1-launch-readiness-plan",
+          "ar-1-launch-readiness-execute",
+          "ar-1-launch-readiness-verify"
+        ],
+        "edge_count": 2,
+        "edges": [
+          ["ar-1-launch-readiness-plan", "ar-1-launch-readiness-execute"],
+          ["ar-1-launch-readiness-execute", "ar-1-launch-readiness-verify"]
+        ],
+        "all_subtasks_typed": true,
+        "all_subtasks_attributable_to_root": true,
+        "intent_constraints_preserved": true
+      }
+    }
+  },
+  "contract_checks": [
+    {
+      "id": "stable-replay-input",
+      "status": "passed",
+      "evidence": "The fixture uses a fixed intent ID, task type, risk hint, repository placeholder, and constraints."
+    },
+    {
+      "id": "typed-dependency-graph",
+      "status": "passed",
+      "evidence": "The runtime probe produced three typed subtasks with plan -> execute -> verify dependencies."
+    },
+    {
+      "id": "authority-carried",
+      "status": "passed",
+      "evidence": "The three authority constraints remained attached to the parsed intent consumed by planning."
+    },
+    {
+      "id": "stable-comparison-boundary",
+      "status": "passed",
+      "evidence": "The comparison excludes the random graph ID and compares the root, typed subtask IDs, dependencies, edges, and constraint presence."
+    }
+  ],
+  "implementation_comparison": {
+    "native_current_surface": [
+      "Zod-validated task intent",
+      "classifier with caller task-type and risk overrides",
+      "three-node code-task graph builder",
+      "typed routing decisions for the replay catalog"
+    ],
+    "not_yet_proven": [
+      "provider-backed execution",
+      "approval enforcement before writes",
+      "parallel worktree execution",
+      "cost and quality reconciliation across receipts",
+      "public visual explorer"
+    ],
+    "status": "partial_native"
+  },
+  "synthetic_appendix": {
+    "path": "replay-case.json",
+    "negative_cases": 3,
+    "role": "appendix_only"
+  },
+  "claim_boundary": [
+    "AR-1 is closed as a reproducible graph/spec and native planner probe.",
+    "AR-1 is not a live multi-provider execution result and does not establish a route winner as a public comparison claim.",
+    "The next evidence-bearing work is AR-2 candidate alternatives and AR-3 selection rationale."
+  ],
+  "next_gap": "AR-2"
+}

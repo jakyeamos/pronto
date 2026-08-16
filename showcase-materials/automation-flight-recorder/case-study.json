@@ -1,0 +1,35 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "automation-flight-recorder",
+  "status": "candidate_local",
+  "title": "Automation Flight Recorder: see what caused what",
+  "audience": "Developers inheriting a partially completed automation run who need causal evidence without raw machine state.",
+  "promise": "Record one declared workflow as a bounded parent/child trace, redact output, preserve omissions and partial failure, and make rerun eligibility explicit.",
+  "story": [
+    "A declared quality workflow records each child under one parent identity.",
+    "A passing trace preserves timing-era output boundaries, hashes, omissions, and mutation declarations.",
+    "A failed child leaves earlier work intact and marks later work not-run.",
+    "Rerun eligibility is guidance to review, not implicit permission to replay."
+  ],
+  "evidence": [
+    "evidence/afr-w3-gate-traces.json",
+    "evidence/afr-w3-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
+    "../../../projects/automation-flight-recorder/README.md",
+    "../../../projects/automation-flight-recorder/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Passing parent/child trace with redacted output and named omissions.",
+    "Failed child preserves siblings and marks later work not-run.",
+    "Source tests, lint, and package checks pass, including timeout-to-cancelled coverage.",
+    "Current dev pass, failure, cancellation, and inspect flows were rerun headlessly.",
+    "1600×900 PNG/SVG preview was regenerated and visually reviewed."
+  ],
+  "open_gates": [
+    "Connect one real Workflow Gateboard action and preserve cross-tool parent identity.",
+    "Expand cancellation, missing-artifact, and stale-rerun scenario receipts.",
+    "Connect the local case to a hosted no-auth URL and verify it.",
+    "Record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves a local W3 trace slice; it does not claim Gateboard integration, complete recovery coverage, permission to rerun, hosting, or publication."
+}

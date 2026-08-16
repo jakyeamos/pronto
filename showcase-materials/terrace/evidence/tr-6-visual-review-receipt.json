@@ -1,0 +1,61 @@
+{
+  "schema_version": "pronto-showcase-terrace-evidence/v1",
+  "project": "Terrace",
+  "gap_id": "TR-6",
+  "generated_at": "2026-08-13T03:17:00Z",
+  "disposition": "local_static_artifact_reviewed",
+  "artifact": {
+    "capture_state": "pre_integration_local_dev",
+    "html": "showcase-materials/terrace/workflow-preview.html",
+    "css": "showcase-materials/terrace/workflow-preview.css",
+    "comprehension_review": "showcase-materials/terrace/comprehension-review.md",
+    "desktop_capture": {
+      "path": "showcase-materials/terrace/evidence/tr-6-desktop.png",
+      "viewport": "1488x1037",
+      "sha256": "4eb47e93d2999e4d0f5fad53f309e0a33f20a4765a2b4c320b320e7317394cc3"
+    },
+    "mobile_capture": {
+      "path": "showcase-materials/terrace/evidence/tr-6-mobile.png",
+      "viewport": "390x844",
+      "sha256": "bb1f7547f7ab54c950cbadb02761072bdac60a5a80daac96571da31023051713"
+    },
+    "crop_safe_preview": {
+      "path": "showcase-materials/terrace/preview-16x9.png",
+      "viewport": "1600x900",
+      "sha256": "ec986402ef15845402c42d904a735c36e7aea7f9053665a6dfd6af020fb0931a"
+    }
+  },
+  "review": {
+    "browser": "external Chrome",
+    "desktop_horizontal_overflow": false,
+    "mobile_horizontal_overflow": false,
+    "mobile_ledger_reflowed": true,
+    "console_warnings_or_errors": 0,
+    "resume_receipt_link_present": true,
+    "bypass_receipt_link_present": true,
+    "focus_visible_rule_present": true,
+    "generated_board_role": "composition reference only; no generated names, dates, durations, sizes, claims, or controls were copied",
+    "impeccable_detector": {
+      "run_count": 1,
+      "initial_result": "one overused-font warning for an unused Inter-first stack",
+      "disposition": "removed Inter from the stack; the page uses the native system sans stack and no font download"
+    }
+  },
+  "acceptance": {
+    "stop_precedes_supporting_ledger": true,
+    "correction_bridges_execute_attempts": true,
+    "plan_attempt_one_is_visibly_preserved": true,
+    "claim_boundary_is_visible": true,
+    "mobile_reading_order_is_complete": true,
+    "crop_safe_16_9_preview_created": true,
+    "tr_6_local_visual_package_reviewed": true,
+    "tr_6_closed": true
+  },
+  "limitations": [
+    "The review proves the local static artifact, not hosted publication or third-party audience comprehension.",
+    "The captures were rendered before local dev integration; their visible source-candidate/integration-pending label is intentionally time-bounded.",
+    "A refreshed post-integration capture is pending because the available browser surfaces reject the local file:// URL under their URL policy.",
+    "The keyboard-focus API exposed by the browser controller did not support programmatic focus; semantic links and explicit focus-visible CSS were verified, while a manual keyboard traversal remains an optional follow-up.",
+    "A fresh finish review found that the bypass paragraph initially linked only to TR-4; the final artifact exposes separate TR-4 bounded-resume and TR-5 bypass-resistance receipts."
+  ]
+}

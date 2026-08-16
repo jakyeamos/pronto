@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Behavior Coverage Atlas preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #101820;
+        --panel: #1c2b31;
+        --text: #f5f8f4;
+        --muted: #adbfbd;
+        --mint: #9af0c0;
+        --amber: #ffc779;
+        --red: #ff8e86;
+        --line: rgba(210, 240, 230, 0.2);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(
+            circle at 8% 10%,
+            rgba(154, 240, 192, 0.14),
+            transparent 32%
+          ),
+          var(--bg);
+        color: var(--text);
+        font:
+          16px/1.5 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      .frame {
+        width: min(1600px, 100vw);
+        aspect-ratio: 16 / 9;
+        padding: 7vw;
+        display: grid;
+        grid-template-columns: 0.85fr 1.15fr;
+        gap: 6vw;
+        align-items: center;
+      }
+      .kicker {
+        color: var(--mint);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 650px;
+        margin: 16px 0 22px;
+        font-size: clamp(2.8rem, 5.8vw, 6rem);
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+      }
+      .lede {
+        max-width: 50ch;
+        color: var(--muted);
+        font-size: clamp(1rem, 1.5vw, 1.24rem);
+      }
+      .card {
+        padding: clamp(22px, 3vw, 42px);
+        border: 1px solid var(--line);
+        border-radius: 16px 4px 16px 4px;
+        background: linear-gradient(
+          145deg,
+          rgba(37, 67, 68, 0.94),
+          rgba(28, 43, 49, 0.94)
+        );
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.28);
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .states {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1px;
+        margin: 26px 0;
+        background: var(--line);
+        border: 1px solid var(--line);
+      }
+      .state {
+        min-height: 118px;
+        padding: 18px;
+        background: rgba(16, 24, 32, 0.72);
+      }
+      .state strong {
+        display: block;
+        margin-bottom: 10px;
+        color: var(--mint);
+        font-size: 0.84rem;
+      }
+      .state span {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .state .bad {
+        display: block;
+        margin-top: 8px;
+        color: var(--amber);
+        font-weight: 700;
+      }
+      .footer {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      @media (max-width: 760px) {
+        .frame {
+          aspect-ratio: auto;
+          min-height: 100vh;
+          grid-template-columns: 1fr;
+          padding: 12vw 8vw;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="frame" data-material-status="candidate-local">
+      <section>
+        <div class="kicker">Behavior Coverage Atlas · current dev</div>
+        <h1>Know what the test proves.</h1>
+        <p class="lede">
+          Map named behaviors to receipts, separate assertion from execution,
+          and keep stale and missing evidence visible.
+        </p>
+      </section>
+      <section class="card" aria-label="Behavior Coverage Atlas preview">
+        <div class="row">
+          <span>four declared behaviors</span><span>fresh matrix</span>
+        </div>
+        <div class="states">
+          <div class="state">
+            <strong>VERIFIED</strong><span>Checkout assertion passed</span>
+          </div>
+          <div class="state">
+            <strong>EXECUTED</strong><span>Profile ran without assertion</span>
+          </div>
+          <div class="state">
+            <strong>FAILED</strong><span>Billing assertion failed</span
+            ><span class="bad">review evidence</span>
+          </div>
+          <div class="state">
+            <strong>UNKNOWN</strong><span>Search link is missing</span
+            ><span class="bad">not coverage</span>
+          </div>
+        </div>
+        <div class="footer">
+          Current local material · review handoff, hosting, and publication
+          remain gated.
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

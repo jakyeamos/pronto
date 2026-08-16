@@ -1,0 +1,32 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "readiness-inspector",
+  "status": "candidate_local",
+  "title": "Readiness Inspector: ready for what?",
+  "audience": "Maintainers who need a goal-specific readiness answer without hiding missing, stale, blocked, or failed checks behind one score.",
+  "promise": "Declare a goal, inspect each owner-bound predicate, preserve its evidence and state, and follow the next action.",
+  "story": [
+    "A versioned release-candidate profile declares individual checks and binds them to one target revision.",
+    "A passing test and a failed dependency audit remain separate, each with its own owner, evidence, and next action.",
+    "A publish check is blocked because it would mutate external state without separate authority.",
+    "A missing profile remains unsupported instead of becoming an inferred pass, while upstream projection and stale matrices stay visible as open gates."
+  ],
+  "evidence": [
+    "evidence/ri-w5-upstream-projection.json",
+    "../../../projects/readiness-inspector/README.md",
+    "../../../projects/readiness-inspector/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Real CLI inspect and run commands on a versioned temporary profile.",
+    "Passed, failed, blocked, and unsupported outcomes retained as individual checks.",
+    "Every recorded receipt is bound to the fixture target revision.",
+    "Source tests, lint, and package checks pass."
+  ],
+  "open_gates": [
+    "Project Quality Setup and Evidence Replay receipts as owner-bound checks.",
+    "Expand stale, contradictory, and not-applicable state coverage.",
+    "Prove native follow-up navigation for failed checks.",
+    "Capture crop-safe preview, hosted no-auth case, and external destination readbacks."
+  ],
+  "claim_boundary": "This is a local candidate packet for explainable goal-specific checks; it does not claim a complete upstream projection, hosting, or publication."
+}

@@ -1,0 +1,95 @@
+schema_version: 1
+kind: draft_claim_ledger
+output_id: mac-control-showcase-materials
+pass: true
+confidence_score: 0.88
+needs_human_review: false
+issues:
+  - id: qa-001
+    severity: minor
+    category: audience
+    description: "The explainer is technically dense, so the final packet should lead with the plain-language outcome before architecture."
+    suggested_fix: "Use the short description and demo opener as the first public-facing copy."
+  - id: qa-002
+    severity: minor
+    category: missing_caveat
+    description: "The final preview and recording cannot be marked complete until a fresh real capture is reviewed."
+    suggested_fix: "Preserve capture_pending status in the authoring checklist."
+blocking_issue_count: 0
+draft_sha256: "sha256:39aec4403563a9fbb122898eb2fb791e39ee98e5a3d09456c4592a5b3122c054"
+revised_draft_path: null
+claim_ledger:
+  - claim_id: claim-local-control-plane
+    text: "Mac Control provides a local typed path from agent requests to native macOS execution and redacted evidence."
+    fact_ids: [fact-001, fact-002, fact-003]
+    source_ids: [source-repo-readme, source-installed-capabilities]
+    draft_block_ids: [draft-block-001-6c1f484d403e]
+    uncertainty: none
+    location: paragraph-1
+    required: true
+  - claim_id: claim-failure-interface
+    text: "Wrong foreground state, ambiguous targets, permission drift, and unverified mutations are explicit failure conditions rather than implicit success."
+    fact_ids: [fact-003, fact-005, fact-006]
+    source_ids:
+      [source-repo-readme, source-tier1-policy, source-installed-release-check]
+    draft_block_ids: [draft-block-002-4c012e45271b]
+    uncertainty: none
+    location: paragraph-2
+    required: true
+  - claim_id: claim-approval-capabilities-boundary
+    text: "Sensitive workflows use short-lived single-use authority; the installed surface exposes named typed capabilities and keeps browser content outside the native provider."
+    fact_ids: [fact-002, fact-003]
+    source_ids: [source-repo-readme, source-installed-capabilities]
+    draft_block_ids: [draft-block-003-238b99f722a4]
+    uncertainty: none
+    location: paragraph-3
+    required: true
+  - claim_id: claim-system-settings-benchmark
+    text: "The project-authored Phase 2 report records the named System Settings focus medians and sample result."
+    fact_ids: [fact-004]
+    source_ids: [source-benchmark-method, source-benchmark-results]
+    draft_block_ids: [draft-block-004-208304fb8936]
+    uncertainty: required
+    location: paragraph-4
+    required: true
+  - claim_id: claim-negative-current-evidence
+    text: "Finder scroll comparisons were insufficient, and the current installed release check did not pass."
+    fact_ids: [fact-005, fact-006]
+    source_ids: [source-benchmark-results, source-installed-release-check]
+    draft_block_ids: [draft-block-005-e9c59e1d5bf8]
+    uncertainty: none
+    location: paragraph-5
+    required: true
+  - claim_id: claim-human-control
+    text: "The product contract keeps safety, authority, redaction, verification, and evidence thresholds human-owned and fail closed."
+    fact_ids: [fact-002, fact-003, fact-006]
+    source_ids:
+      [
+        source-repo-readme,
+        source-tier1-policy,
+        source-installed-capabilities,
+        source-installed-release-check,
+      ]
+    draft_block_ids: [draft-block-006-9df69ea659db]
+    uncertainty: none
+    location: paragraph-6
+    required: true
+rules:
+  - rule_id: draft.claims.traceable
+    status: pass
+    evidence: "Every prose block maps to fact and source IDs."
+  - rule_id: draft.performance.scope_preserved
+    status: pass
+    evidence: "The benchmark is attributed to one named project-authored comparison with its sample size."
+  - rule_id: draft.lifecycle.current_state
+    status: pass
+    evidence: "Current blocked and failed release evidence remains explicit."
+  - rule_id: draft.production_readiness.forbidden
+    status: pass
+    evidence: "The draft explicitly declines a production-ready claim."
+  - rule_id: draft.browser_boundary.preserved
+    status: pass
+    evidence: "Browser page content remains assigned to a separate provider."
+  - rule_id: draft.forbidden_phrases.absent
+    status: pass
+    evidence: "No seamless, cutting-edge, robust, or buzzword use of leverage appears."

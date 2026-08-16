@@ -1,0 +1,68 @@
+{
+  "schema_version": "pronto-showcase-fleet-radar-w5/v1",
+  "project": "fleet-radar",
+  "status": "candidate_local",
+  "observed_at": "2026-08-14T00:05:02Z",
+  "source_revision": "9d02de1a035c2f96383e42f6507999cb33d12892",
+  "fixture_revisions": {
+    "alpha": "1df23719c26147e81f32bfb7d77820e501a12020",
+    "beta_before_refresh": "1d80509c7b1b139c51d79b9b3fcb89de5b0f030d",
+    "beta_receipt_target": "8d4b55a6557baba87882d4a5d78b6458a47fe6e6"
+  },
+  "registry": {
+    "version": 1,
+    "repositories": ["alpha", "beta"],
+    "explicit_paths": true
+  },
+  "snapshot": {
+    "status": "ready",
+    "repositories": [
+      {
+        "name": "alpha",
+        "state": "ready",
+        "freshness": "fresh",
+        "check": "tests=passed",
+        "owner": "alpha",
+        "native_receipt": true,
+        "blocker": null
+      },
+      {
+        "name": "beta",
+        "state": "failed",
+        "freshness": "stale",
+        "check": "tests=failed",
+        "owner": "beta",
+        "native_receipt": true,
+        "blocker": "tests: failed"
+      }
+    ],
+    "attention": ["beta"]
+  },
+  "refresh_safety": {
+    "first_refresh_status": "ready",
+    "second_refresh_status": "ready",
+    "alpha_ref_unchanged": true,
+    "beta_ref_unchanged": true,
+    "repository_files_mutated": false,
+    "snapshot_written": true
+  },
+  "state_boundary": {
+    "missing_receipt": "visible as missing/unknown",
+    "failed_check": "visible as failed",
+    "stale_receipt": "visible as stale",
+    "aggregate_readiness": "not_inferred"
+  },
+  "verification": {
+    "source_tests": "passed: 4",
+    "source_lint": "passed",
+    "source_package": "passed",
+    "fixture_generated_receipts_removed_after_capture": true
+  },
+  "open_gates": [
+    "Prove upstream receipt contracts across two real portfolio producers.",
+    "Prove native deep links from a blocker to its owning evidence.",
+    "Expand moved-path, duplicate-identity, unreadable-path, mixed-schema, and refresh-race fixtures.",
+    "Capture a crop-safe preview, hosted no-auth case, and external destination readbacks."
+  ],
+  "claim_boundary": "This packet proves a local explicit-registry read-only refresh with fresh and stale native receipts; it does not claim complete upstream contracts, hosted proof, or publication."
+}

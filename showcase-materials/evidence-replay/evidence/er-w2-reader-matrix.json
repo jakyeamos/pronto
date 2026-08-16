@@ -1,0 +1,50 @@
+{
+  "schema_version": "evidence-replay-showcase-evidence-v0.1",
+  "project": "evidence-replay",
+  "source_repository": "evidence-replay",
+  "source_revision": "72c29a0f7457b5a043a8c862cee7737ddbbe64bf",
+  "fixture_receipt": "fixtures/debug-trail-receipt.json",
+  "fixture_receipt_id": "receipt-fixture-001",
+  "fixture_receipt_schema": "debug-trail-continuation-receipt-v0.1",
+  "observed_at": "2026-08-13T23:11:00Z",
+  "observed_target": {
+    "repository_root": "/Users/jakyeamos/projects/evidence-replay",
+    "revision": "72c29a0f7457b5a043a8c862cee7737ddbbe64bf",
+    "dirty_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "inspect": {
+    "support": "supported",
+    "contract": "legacy",
+    "historical_outcome": "passed",
+    "current_outcome": "not-run",
+    "freshness": "stale",
+    "freshness_reason": "Repository revision changed since the receipt was produced.",
+    "opening_executes": false,
+    "omissions": ["No automatic environment or terminal-history capture."]
+  },
+  "rerun_preview": {
+    "status": "blocked",
+    "reason": "Rerun blocked: Repository revision changed since the receipt was produced.",
+    "command_id": "fixture-check",
+    "mutation": "read-only",
+    "authorization": "A human must review the preview and authorize every execution.",
+    "interface": "debug-trail run --trail <trail.json> --command <command-id> --authorize"
+  },
+  "negative_contracts": {
+    "malformed_json": "verified_by_unit_test",
+    "unsupported_schema": "verified_by_unit_test",
+    "partial_target_binding": "verified_by_unit_test",
+    "unknown_target_applicability": "verified_by_unit_test"
+  },
+  "producer_seams": {
+    "debug-trail": "legacy adapter inspected in this W2 fixture",
+    "rule-lab": "shared envelope adapter covered by the local test suite"
+  },
+  "privacy": {
+    "source": "local fixture",
+    "credentials_collected": false,
+    "external_write": false,
+    "raw_environment_persisted": false
+  },
+  "claim_boundary": "This matrix proves local inspect-only behavior, stale-target classification, and a blocked rerun preview. It does not claim a hosted receipt viewer, a complete producer matrix, direct UI acceptance, or publication."
+}

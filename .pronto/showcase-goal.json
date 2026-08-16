@@ -1,0 +1,1995 @@
+{
+  "projects": [
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Strong applied-AI, product, and sports-analytics signal.",
+        "score": 4.8,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Existing public AI Showcase entry has a coherent visual walkthrough and outcome narrative.",
+        "score": 4.3,
+        "status": "assessed"
+      },
+      "display_name": "CourtIQ",
+      "disposition_source": "GitHub profile: Product Work",
+      "missing_materials": [],
+      "next_step": "Keep the existing showcase entry current as the reference-quality demo.",
+      "product_readiness": {
+        "evidence": "Working draft-room runtime and product flows; provisional source audit, not a hosted-production claim.",
+        "score": 4.4,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "Bballedu"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Distinctive agent-control, safety, macOS, and systems-engineering story.",
+        "score": 5.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A verified description, evidence-bound case-study copy, baseline shot list, aspirational storyboard, and build-gap specification are tracked in showcase-materials/mac-control; the real preview, hosted page, and redacted live proof remain missing. Concept work does not raise the evidence-backed score; video is optional.",
+        "score": 2.4,
+        "status": "assessed"
+      },
+      "display_name": "Mac Control",
+      "disposition_source": "GitHub profile: Staged Local Systems (macctl)",
+      "missing_materials": [
+        "crop-safe 16:9 Handshake preview",
+        "public no-auth demo or case-study page",
+        "redacted authorization receipt and outcome proof"
+      ],
+      "next_step": "Close MC-2 from showcase-materials/mac-control/route-plan.md: prove the bounded document-open and layout routes through installed live progress, safe partial failure, and a structured result receipt.",
+      "next_step_category": "product",
+      "product_readiness": {
+        "evidence": "Product-capable owner-only control plane with explicit authorization and verification boundaries; live route evidence remains separate.",
+        "score": 4.7,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "mac-control",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The control plane is product-capable; one ambitious composed flow still needs bounded behavior and live proof."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Strong local-first product, Rust, React, evidence, and portfolio-operations signal.",
+        "score": 5.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Product screenshots exist, but no concise recruiter-facing before/after walkthrough package is complete.",
+        "score": 1.8,
+        "status": "assessed"
+      },
+      "display_name": "Pronto",
+      "disposition_source": "GitHub profile: Public Systems",
+      "missing_materials": [
+        "crop-safe 16:9 Handshake preview",
+        "verified Handshake description (500 characters or fewer)",
+        "public no-auth demo or case-study page",
+        "45-90 second captioned demo recording and shot list",
+        "portfolio-to-action outcome proof"
+      ],
+      "next_step": "Demonstrate one repository moving from uncertain fleet state to an evidence-backed next safe action.",
+      "product_readiness": {
+        "evidence": "Public v1 desktop surface and stable read-only projections; installed-app behavior must remain separately verified.",
+        "score": 4.5,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "pronto"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Clear vertical-AI product and workflow-automation story.",
+        "score": 4.8,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "No finished public walkthrough or outcome-proof packet was found.",
+        "score": 1.1,
+        "status": "assessed"
+      },
+      "display_name": "BidCamp",
+      "disposition_source": "Owner decision: client work excluded from AI Showcase",
+      "missing_materials": [],
+      "next_step": "Keep private; do not create, publish, or derive AI Showcase materials.",
+      "product_readiness": {
+        "evidence": "Substantial bid discovery and preparation flows; provisional source audit, not hosted-production proof.",
+        "score": 4.2,
+        "status": "assessed"
+      },
+      "public_eligibility": "private_client",
+      "repository_name": "BidCamp"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Strong AI tooling, quality, CLI, and evidence-contract signal.",
+        "score": 4.7,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "The corrected real Tenure case now explains the values-driven 4,022-finding baseline, the historical 537-raw/0-open reconciliation, and its evidence boundaries on a tested responsive surface. The older August-only public assets are superseded; refreshed packaging, hosting, and owner-approved copy remain incomplete. Video is optional.",
+        "score": 3.8,
+        "status": "assessed"
+      },
+      "display_name": "Quality Runner",
+      "disposition_source": "GitHub profile: Public Releases",
+      "missing_materials": [
+        "crop-safe 16:9 Handshake preview",
+        "verified Handshake description (500 characters or fewer)",
+        "public no-auth demo or case-study page",
+        "owner-approved public copy and linked proof"
+      ],
+      "next_step": "Close QR-8 from showcase-materials/quality-runner/route-plan.md: refresh the corrected Tenure public page, preview, short description, linked proof, and hosted verification; video rehearsal is optional.",
+      "next_step_category": "packaging",
+      "product_readiness": {
+        "evidence": "Released PyPI CLI and MCP product with machine-readable evidence surfaces.",
+        "score": 4.8,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "quality-runner",
+      "work_disposition": "largely_product_ready",
+      "work_disposition_summary": "The released CLI and MCP are product-ready; Showcase work is primarily a representative case, exact proof, and visual packaging."
+    },
+    {
+      "blockers": [
+        "CF-0 is blocked: no owner-visible backing repository or exact deployed revision is registered in Pronto or disclosed by the public surface; return when provenance is supplied."
+      ],
+      "career_signal": {
+        "evidence": "Strong multi-model research, independent evaluation, iterative refinement, agent-skill, and productization signal.",
+        "score": 4.8,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "The public landing page provides a polished product narrative and concept build-console visual, but no real end-to-end case, judge receipt, or downloadable output excerpt was verified. Video is optional.",
+        "score": 2.5,
+        "status": "assessed"
+      },
+      "display_name": "Chiron's Forge",
+      "disposition_source": "Owner direction and live public product review at https://www.chironsforge.com/ on 2026-08-12; backing repository remains unregistered in Pronto",
+      "missing_materials": [
+        "registered backing repository and deployed-revision provenance",
+        "real before-and-after case study",
+        "independent judge scorecard and refinement trace",
+        "public-safe output excerpt",
+        "privacy and deletion evidence"
+      ],
+      "next_step": "Park CF-0 from showcase-materials/chirons-forge/route-plan.md with evidence/cf-0-blocker.json and continue the queue; return when the owner supplies the backing repository and exact deployed revision.",
+      "next_step_category": "evidence",
+      "product_readiness": {
+        "evidence": "The live public site exposes authentication, per-build pricing, and skill, research-report, and Cursor-rules outputs; no authenticated build or backing-repository revision was verified.",
+        "score": 3.9,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "chirons-forge",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The public product, output formats, pricing, and multi-model judge-and-refine promise are live; CF-0 is explicitly blocked because repository/deployment provenance is unavailable, while authenticated behavior and inspectable public proof remain unresolved."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Relevant AI workflow, evidence-bound writing, and product-operations story.",
+        "score": 4.5,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "No concise public walkthrough packet was found.",
+        "score": 1.3,
+        "status": "assessed"
+      },
+      "display_name": "Jakye Hirability Console",
+      "disposition_source": "GitHub profile: Active Systems",
+      "missing_materials": [
+        "demo brief",
+        "60-90 second narrated walkthrough",
+        "approved-draft outcome proof",
+        "showcase thumbnail"
+      ],
+      "next_step": "Demonstrate one claim-safe draft moving from evidence ingestion through human approval without sending it.",
+      "product_readiness": {
+        "evidence": "Useful local product workflows exist, with current source and runtime evidence still mixed.",
+        "score": 3.6,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "BIP-Console"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Strong applied-AI, research, and safety story.",
+        "score": 4.5,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A real Tatum case, interactive source-to-claim trace, public copy, captions, and responsive local browser proof are assembled as a publication candidate.",
+        "score": 4.1,
+        "status": "assessed"
+      },
+      "display_name": "Research Domain Writing",
+      "disposition_source": "GitHub profile: Public Releases",
+      "missing_materials": [
+        "release-source attestation or rebuild",
+        "human editorial approval",
+        "showcase thumbnail",
+        "no-auth hosted verification"
+      ],
+      "next_step": "Close RDW-0 from showcase-materials/research-domain-writing/route-plan.md: a release owner must bind the installed artifact to the intended source revision; agent-owned material work is parked.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "Released research-grounded writing pipeline with staged improvements.",
+        "score": 4.3,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "research-domain-writing",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The source packet, unsafe-claim QA path, installed pack behavior, and responsive visual package are proven locally; exact release provenance, editorial approval, thumbnail, and public hosting remain."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "High systems and agent-platform signal if narrowed to one coherent outcome.",
+        "score": 4.7,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "No single recruiter-ready product story is complete.",
+        "score": 1.2,
+        "status": "assessed"
+      },
+      "display_name": "AIOS",
+      "disposition_source": "GitHub profile: Active Systems",
+      "missing_materials": [
+        "bounded demo scope",
+        "demo brief",
+        "60-90 second narrated walkthrough",
+        "outcome proof",
+        "showcase thumbnail"
+      ],
+      "next_step": "Finish and verify one bounded product slice before producing showcase materials.",
+      "product_readiness": {
+        "evidence": "Broad active system with substantial capability; bounded product slice and live evidence remain incomplete.",
+        "score": 3.2,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "AIOS"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Visually strong consumer-AI/social product story once product-ready.",
+        "score": 4.8,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A polished visual demo would be valuable, but materials would outrun current product evidence.",
+        "score": 1.0,
+        "status": "assessed"
+      },
+      "display_name": "Soundscape",
+      "disposition_source": "Owner decision: excluded from AI Showcase",
+      "missing_materials": [],
+      "next_step": "No AI Showcase work; retain readiness scores as audit context only.",
+      "product_readiness": {
+        "evidence": "Compelling product concept and typed monorepo, but the end-to-end demo path is not yet stable enough.",
+        "score": 2.2,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "soundscape-app"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Strong AI evaluation infrastructure signal.",
+        "score": 4.2,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Package proof exists; visual evaluation story is incomplete.",
+        "score": 2.5,
+        "status": "assessed"
+      },
+      "display_name": "Agent Eval Contract",
+      "disposition_source": "GitHub profile: Public Releases",
+      "missing_materials": [
+        "visual evaluation walkthrough",
+        "comparative result artifact",
+        "showcase thumbnail"
+      ],
+      "next_step": "Show two agent runs evaluated against one rubric with explainable result differences.",
+      "product_readiness": {
+        "evidence": "Released typed contract package with a validated staged candidate.",
+        "score": 4.4,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "agent-eval-contract"
+    },
+    {
+      "blockers": [
+        "The owner-approved always-on atomic-node ideal state is not yet behavior-verified."
+      ],
+      "career_signal": {
+        "evidence": "Strong MCP, agent workflow, and multi-provider signal.",
+        "score": 4.2,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Materials for the superseded bounded-compiler story do not count toward the intended product target; reassess after TM-0 passes.",
+        "status": "blocked"
+      },
+      "display_name": "TMCP",
+      "disposition_source": "Owner product-direction decision: defer until the always-on atomic-node ideal state is behavior-verified",
+      "missing_materials": [],
+      "next_step": "Defer AI Showcase work until TM-0 in showcase-materials/tmcp/route-plan.md passes; then redesign the ideal demo around the proven always-on atomic-node system.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "The distributed compiler exists, but Showcase readiness is blocked because it does not yet prove the intended always-on atomic-node product state.",
+        "status": "blocked"
+      },
+      "public_eligibility": "blocked",
+      "repository_name": "tmcp",
+      "work_disposition": "conditional_gate",
+      "work_disposition_summary": "The bounded packet-compiler story materially undershoots the intended always-on atomic-node product; Showcase production is deferred until that product state is specified and proven."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Career signal is carried by the combined stack story rather than counted as a separate project card.",
+        "score": null,
+        "status": "not_applicable"
+      },
+      "demo_materials": {
+        "evidence": "The reviewed Pronto case is supporting evidence for the combined AI Code Quality Stack, not a separate material set.",
+        "score": null,
+        "status": "not_applicable"
+      },
+      "display_name": "ESLint Anti-Slop",
+      "disposition_source": "Owner product architecture decision; verified against Anti-Slop, Pre-CR, and Quality Runner contracts",
+      "missing_materials": [],
+      "next_step": "Carry the reviewed detector evidence into QS-0 through QS-5 in showcase-materials/ai-code-quality-stack/route-plan.md; do not create a standalone Anti-Slop card.",
+      "next_step_category": "product",
+      "product_readiness": {
+        "evidence": "Standalone Showcase scoring is not applicable; package value is retained as the specialized detector layer.",
+        "score": null,
+        "status": "not_applicable"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "eslint-plugin-anti-slop",
+      "work_disposition": "not_applicable",
+      "work_disposition_summary": "Retain the independent package as the JS/TS AST detector beneath Pre-CR and Quality Runner; fold its demo evidence into the AI Code Quality Stack rather than producing a standalone card."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The standalone IDE story demonstrates developer context continuity, in-editor quality visibility, and a practical pre-review workflow.",
+        "score": 4.5,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "The locally reviewed standalone package includes the IDE concept, installed PCR-1 through PCR-3 evidence, a crop-safe 1600 x 900 preview, a legible 800 x 450 downscale, command legend, claim ledger, and package receipt.",
+        "score": 4.5,
+        "status": "assessed"
+      },
+      "display_name": "Pre-CR Suite",
+      "disposition_source": "GitHub profile: Public Releases",
+      "missing_materials": [],
+      "next_step": "PCR-4 in showcase-materials/pre-cr-suite/route-plan.md is closed with a locally reviewed static package; owner copy review, marketplace proof, and video remain optional follow-ons.",
+      "next_step_category": "packaging",
+      "product_readiness": {
+        "evidence": "PCR-0 through PCR-3 closed on 2026-08-12: the installed VSIX proved exact context recovery, explicit missing-file degradation, direct Quick Actions access, one uncovered changed-line diagnostic, focused-test repair, and a passing 100% changed-line receipt.",
+        "score": 4.3,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "pre-cr-suite-lsp",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "Pre-CR has a source-verified standalone IDE subset, installed proof for durable context recovery, scoped Quick Actions, and a native changed-line repair, plus a locally reviewed standalone material package. Checklist, docs, review, and debug remain experimental."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Useful agent-workflow signal after the higher-priority demonstrations.",
+        "score": 3.9,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "The real TR-1 case, structured TR-2 through TR-5 receipts, integration receipt, and the TR-6 desktop/mobile workflow surface form a reviewed local package. The static preview remains explicitly pre-integration-labeled because browser file:// policy blocked a refresh; the synthetic appendix, hosted publication, and video remain separate optional tracks.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "display_name": "Terrace",
+      "disposition_source": "GitHub profile: Public Releases",
+      "missing_materials": [
+        "post-integration TR-6 static preview capture (browser file:// policy blocker)"
+      ],
+      "next_step": "Refresh the TR-6 local visual capture when a permitted browser surface can render file://; then keep hosted publication and video optional. See showcase-materials/terrace/route-plan.md.",
+      "next_step_category": "packaging",
+      "product_readiness": {
+        "evidence": "Public CLI release exists. TR-1 reproduces a real routing regression. Integrated commit 9ac360b0f246aa91c85a15183cf9de10c94330b0 on local dev passes full CI with 40 test files and 314 tests, plus direct CLI smoke; origin/dev remains at the pre-fold commit because no push was authorized.",
+        "score": 4.5,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "Terrace",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The public CLI and a real active-workflow routing case exist. TR-2 through TR-5 are committed and integrated into local dev; TR-6 is a locally reviewed responsive visual package captured before that fold. The source branch remains local-only because no remote push was authorized."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Good systems-contract signal, but less visually legible alone.",
+        "score": 3.8,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A real AIOS compile result is paired with two exact validator mutations, a corrected projection, static HTML/SVG comparison, deterministic validation receipt, and claim ledger. Browser capture and video remain optional.",
+        "score": 4.2,
+        "status": "assessed"
+      },
+      "display_name": "Context Compiler Contract",
+      "disposition_source": "GitHub profile: Public Systems",
+      "missing_materials": [
+        "browser-rendered thumbnail (optional)"
+      ],
+      "next_step": "Optional CC-6 from showcase-materials/context-compiler-contract/route-plan.md: render the static comparison in a permitted browser surface when one is available; keep hosted publication and video separate.",
+      "next_step_category": "packaging",
+      "product_readiness": {
+        "evidence": "Public ESM validator contracts are available; runtime behavior is intentionally owned elsewhere.",
+        "score": 3.9,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "context-compiler-contract",
+      "work_disposition": "largely_product_ready",
+      "work_disposition_summary": "The public validator is product-ready. A real AIOS result, two labelled validator mutations, a corrected result, a static comparison, deterministic receipt, and claim ledger now form the local package."
+    },
+    {
+      "blockers": [
+        "PW-4 host-runtime equivalence requires an executable generic host or permitted provider-backed/offline runtime; the repository contract forbids both."
+      ],
+      "career_signal": {
+        "evidence": "Strong provider-neutral workflow and safety-contract story.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A public safe-tool-guards case now includes a clean-source fixture, generic/Codex dry-run and apply receipts, overwrite refusal, parity hashes, receipt-scoped recovery with modified-file protection, static HTML/SVG comparison, a claim ledger, and a reason-coded runtime probe that records PW-4 as blocked.",
+        "score": 3.9,
+        "status": "assessed"
+      },
+      "display_name": "Portable Agentic Workbench",
+      "disposition_source": "GitHub profile: Public Systems",
+      "missing_materials": [
+        "permitted host-runtime equivalence proof",
+        "browser-rendered thumbnail (optional)"
+      ],
+      "next_step": "Resolve the PW-4 runtime/provider boundary from showcase-materials/portable-agentic-workbench/route-plan.md; keep browser capture and video optional.",
+      "next_step_category": "evidence",
+      "product_readiness": {
+        "evidence": "The registered public repository exposes a manifest-backed catalog, dry-run installation, validation commands, and explicit private/public boundaries.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "jakyeamos-agent-skills",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The public safe-tool-guards workflow now has a real manifest selection, clean generic/Codex dry-run and apply receipts, overwrite refusal, parity hashes, explicit manual review, and receipt-scoped recovery that preserves unrelated files and blocks modified targets; the permitted runtime probe is recorded as blocked by the no-provider/no-registration boundary."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Useful evaluation story once the bounded runtime slice is stronger.",
+        "score": 4.1,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "No public walkthrough package was found.",
+        "score": 1.0,
+        "status": "assessed"
+      },
+      "display_name": "Agent Eval Runtime",
+      "disposition_source": "GitHub profile: Staged Local Systems",
+      "missing_materials": [
+        "stable bounded runtime slice",
+        "demo brief",
+        "walkthrough",
+        "result artifact",
+        "showcase thumbnail"
+      ],
+      "next_step": "Verify a stable compare-two-runs slice before producing demo materials.",
+      "product_readiness": {
+        "evidence": "Verified first-slice local runtime; not presented as a shipped package product.",
+        "score": 3.1,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "agent-eval-runtime"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Good context-engineering signal after product proof is stronger.",
+        "score": 4.1,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "No recruiter-ready demo package was found.",
+        "score": 0.9,
+        "status": "assessed"
+      },
+      "display_name": "AI Context Runtime",
+      "disposition_source": "GitHub profile: Staged Local Systems",
+      "missing_materials": [
+        "stable bounded runtime slice",
+        "demo brief",
+        "walkthrough",
+        "context receipt",
+        "showcase thumbnail"
+      ],
+      "next_step": "Verify one source-selection-to-handoff path before producing demo materials.",
+      "product_readiness": {
+        "evidence": "Report-only first slice exists; public runtime evidence remains bounded.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "ai-context-runtime"
+    },
+    {
+      "blockers": [
+        "AL-2 is parked: paired event measurement belongs to agent-eval-runtime, while ai-workflow-leverage currently exposes only aggregate run and intervention fields."
+      ],
+      "career_signal": {
+        "evidence": "Potentially strong AI productivity story once measurement is credible.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "No public demo materials were found.",
+        "score": 0.8,
+        "status": "assessed"
+      },
+      "display_name": "AI Workflow Leverage",
+      "disposition_source": "GitHub profile: Staged Local Systems",
+      "missing_materials": [
+        "credible measured outcome",
+        "walkthrough",
+        "showcase thumbnail"
+      ],
+      "next_step": "Park AL-2 from showcase-materials/ai-workflow-leverage/route-plan.md until agent-eval-runtime owns an approved append-only event contract for active work, waits, retries, human touches, failures, and outcome evidence; then return for the paired receipts.",
+      "next_step_category": "product",
+      "product_readiness": {
+        "evidence": "Evidence-bounded measurement concept has a first slice; outcome proof remains limited.",
+        "score": 2.9,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "ai-workflow-leverage",
+      "work_disposition": "material_build_or_restoration",
+      "work_disposition_summary": "The evidence-bounded concept exists, but the measurement system and prospective paired run must be completed before the claim is demonstrable."
+    },
+    {
+      "blockers": [
+        "MA-2 is parked: the current runtime has profile-level market observations but no brief-aware source-to-claim receipt contract; do not add a parallel ledger."
+      ],
+      "career_signal": {
+        "evidence": "Strong safety-conscious vertical workflow if outcome quality is shown.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A real public portfolio decision brief, privacy review, and synthetic refusal appendix are locally packaged; the shadow run, report, publication-block proof, and public surface remain missing.",
+        "score": 1.4,
+        "status": "assessed"
+      },
+      "display_name": "Marketing Autoresearch",
+      "disposition_source": "GitHub profile: Staged Local Systems",
+      "missing_materials": [
+        "traceable shadow research run",
+        "report artifact",
+        "publication-block proof",
+        "walkthrough",
+        "showcase thumbnail"
+      ],
+      "next_step": "Park MA-2 from showcase-materials/marketing-autoresearch/route-plan.md until the runtime owns a brief-aware source-to-claim receipt contract; then rerun the public portfolio brief.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "Shadow/report-only loop with fail-closed publication boundaries.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "marketing-autoresearch",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The fail-closed report loop exists and now has a privacy-reviewed public portfolio brief; it needs a traceable shadow run, human handoff, and public packet."
+    },
+    {
+      "blockers": [
+        "Public-safe product scope and capture permission are not established."
+      ],
+      "career_signal": {
+        "evidence": "Strong native macOS, local-first workflow, safety-gate, and evidence-separation signal within a private-project boundary.",
+        "score": 4.5,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "The repository has a detailed README but no tracked visual assets or public-safe walkthrough, and its release gate explicitly reports capture evidence as unavailable.",
+        "score": 0.8,
+        "status": "assessed"
+      },
+      "display_name": "Relay",
+      "disposition_source": "GitHub profile: Staged Local Systems (private native workbench)",
+      "missing_materials": [
+        "public-safe scope",
+        "capture authorization",
+        "walkthrough",
+        "showcase thumbnail"
+      ],
+      "next_step": "Do not create public demo materials unless the private disposition changes and a safe scope is explicitly approved.",
+      "product_readiness": {
+        "evidence": "The Swift source provides Today, Playbook, and Usage surfaces, bounded local ingestion, guarded transactions, an app-bundle build, and a fail-closed release check; live capture remains unverified.",
+        "score": 3.6,
+        "status": "assessed"
+      },
+      "public_eligibility": "blocked",
+      "repository_name": "relay"
+    },
+    {
+      "blockers": [
+        "RV-1 is parked: the repository names a four-person team, but no personal-role or collaborator-approval record authorizes a public case study; do not infer roles from Git authorship.",
+        "RV-3 is parked: nine runtime variables are absent, the existing lint baseline has 41 errors, and direct local-surface binding is blocked by listen EPERM; do not claim the core flow is runnable."
+      ],
+      "career_signal": {
+        "evidence": "Visually compelling applied-AI story with collaboration attribution required.",
+        "score": 3.9,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Public project narrative and a synthetic rights-safe fixture exist; current walkthrough and contribution approval proof are incomplete.",
+        "score": 2.1,
+        "status": "assessed"
+      },
+      "display_name": "RemodelVision",
+      "disposition_source": "GitHub profile: Earlier / Collaborative",
+      "missing_materials": [
+        "contribution approval",
+        "current runnable proof",
+        "walkthrough",
+        "showcase thumbnail"
+      ],
+      "next_step": "Resolve RV-1 from showcase-materials/remodelvision/route-plan.md using the contribution ledger and an explicit owner/collaborator approval record; RV-2 is closed by the synthetic asset manifest.",
+      "next_step_category": "evidence",
+      "product_readiness": {
+        "evidence": "Public collaborative project with a legible photo-to-estimate flow; current maintenance status is uncertain.",
+        "score": 3.4,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "remodelvision",
+      "work_disposition": "material_build_or_restoration",
+      "work_disposition_summary": "RV-1 is blocked at the collaborator-approval boundary and RV-3 at runtime prerequisites; RV-2 now has a synthetic rights-safe fixture, while the current photo-to-handoff flow still needs direct verification."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The existing data-science work is useful proof; the stronger decision-support product story remains a target rather than demonstrated evidence.",
+        "score": 3.3,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A self-contained synthetic contract preview now makes the target story shareable; it is explicitly not current product output and the walkthrough still depends on implementation proof.",
+        "score": 2.1,
+        "status": "assessed"
+      },
+      "display_name": "Dsci-proj",
+      "disposition_source": "GitHub profile: Earlier / Collaborative",
+      "missing_materials": [
+        "second backlog adapter",
+        "scenario proof",
+        "current runnable proof",
+        "interactive product walkthrough",
+        "showcase thumbnail"
+      ],
+      "next_step": "Implement DS-1 from showcase-materials/dsci-proj/route-plan.md: map two backlog schemas into the decision contract without source-specific engine changes.",
+      "next_step_category": "product",
+      "product_readiness": {
+        "evidence": "A research pipeline and dashboard exist for the original backlog; configurable criteria and generalization across backlog types are not yet proven.",
+        "score": 2.8,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "Dsci-proj",
+      "work_disposition": "material_build_or_restoration",
+      "work_disposition_summary": "DS-0 now defines the reusable decision contract; the current repository still implements only its narrower research-issue profile and needs adapters and scenario proof."
+    },
+    {
+      "blockers": [
+        "BK-1 is blocked pending an approved chapter authorship/permission record, track-level soundtrack rights, font provenance, and an AI-versus-human contribution statement."
+      ],
+      "career_signal": {
+        "evidence": "Shows full-stack product work, creative interaction design, audio orchestration, content tooling, and operational thinking.",
+        "score": 3.8,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A product README and runnable local flow exist. The BK-1 contribution ledger and rights-safe synthetic appendix now have a shareable no-auth preview, but the real chapter, soundtrack, hosted behavior, and short walkthrough remain unproven.",
+        "score": 1.8,
+        "status": "assessed"
+      },
+      "display_name": "Book",
+      "disposition_source": "Repository audit: owned interactive reading product; not listed as client work",
+      "missing_materials": [
+        "approved chapter and asset rights/attribution ledger",
+        "rights-cleared 16:9 product preview",
+        "500-character Handshake description",
+        "public no-auth reader demo or case study",
+        "clear AI and human role statement"
+      ],
+      "next_step": "Clear BK-1 from showcase-materials/book/route-plan.md: select one representative chapter and complete its rights and attribution ledger.",
+      "next_step_category": "evidence",
+      "product_readiness": {
+        "evidence": "The repository documents a working reader and authenticated admin editor with manifest-driven chapters, motion, layered audio, Postgres persistence, Render configuration, and a full-stack smoke path; hosted behavior was not claimed.",
+        "score": 3.8,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "Book",
+      "work_disposition": "largely_product_ready",
+      "work_disposition_summary": "The reader and authoring model are substantially present; remaining work centers on one cleared chapter, direct-surface proof, and public packaging."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Strong basketball analytics, contextual modeling, auditability, and uncertainty-handling evidence, best presented as part of CourtIQ.",
+        "score": 4.2,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Structured report artifacts and documentation exist, but no public visual walkthrough or standalone product page was found.",
+        "score": 1.5,
+        "status": "assessed"
+      },
+      "display_name": "Contextual Lineup Fit Engine",
+      "disposition_source": "GitHub profile: Product Work under the BBDSE / CourtIQ umbrella",
+      "missing_materials": [],
+      "next_step": "Use CLFE as a CourtIQ evidence module rather than creating a competing standalone Showcase entry.",
+      "product_readiness": {
+        "evidence": "The audit-first Python package has 1,394 tracked files, 171 test files, source contracts, generated reports, and bounded diagnostic modules; its README explicitly blocks universal portability and downstream score export.",
+        "score": 3.4,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "CLFE"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Strong full-stack, data-product, sports-intelligence, decision-engine, and local-first architecture signal.",
+        "score": 4.6,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Two tracked visual assets and substantial product documentation exist, but no dedicated Showcase preview, public case study, or concise demo recording was found.",
+        "score": 1.6,
+        "status": "assessed"
+      },
+      "display_name": "Fantasy",
+      "disposition_source": "Repository audit: standalone owned product; not listed as client work",
+      "missing_materials": [
+        "crop-safe 16:9 preview",
+        "500-character Handshake description",
+        "synthetic public case study",
+        "45-90 second trade or draft walkthrough",
+        "verified AI contribution statement"
+      ],
+      "next_step": "Demonstrate one format-aware roster decision from league context through recommendation and human review using synthetic data.",
+      "product_readiness": {
+        "evidence": "The local-first product has a FastAPI and DuckDB backend, React 19 frontend, migrations, health and readiness probes, trade and draft decision flows, and 114 tracked test files.",
+        "score": 4.2,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "Fantasy"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Useful data-engineering, provenance, reproducible-research, and sports-analytics proof, now better represented inside the BBDSE story.",
+        "score": 3.7,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Multiple research READMEs and a citable artifact plan exist, but no visual public walkthrough or finished case-study package was found.",
+        "score": 1.8,
+        "status": "assessed"
+      },
+      "display_name": "Lacrosse Data Scaffold",
+      "disposition_source": "GitHub profile: absorbed into BBDSE / CourtIQ Product Work",
+      "missing_materials": [],
+      "next_step": "Reference its ingestion and provenance work inside CourtIQ instead of publishing a separate Showcase submission.",
+      "product_readiness": {
+        "evidence": "The repository provides reusable ingestion, normalized data layers, five research workspaces, tests, cached rebuilds, and a DOI-ready release boundary; complete source coverage and result validation remain open.",
+        "score": 3.4,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "LaxDS"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The role-translation concept is relevant to sports decision systems but is currently a supporting CourtIQ method, not a standalone product proof.",
+        "score": 3.4,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "No tracked visual assets, README, walkthrough, or representative board artifact were found.",
+        "score": 0.3,
+        "status": "assessed"
+      },
+      "display_name": "RTE Transferable Signals",
+      "disposition_source": "GitHub profile: Product Work under the BBDSE / CourtIQ umbrella",
+      "missing_materials": [],
+      "next_step": "Complete a source-backed board slice and surface it as a CourtIQ feature rather than a separate Showcase project.",
+      "product_readiness": {
+        "evidence": "The 14-file capstone contract defines draft-relative upside, floor, and risk labels, but has no README or tracked tests and Pronto records only 13% complete-product progress with current board evidence unavailable.",
+        "score": 1.4,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "RTE Transferable Signals"
+    },
+    {
+      "blockers": [
+        "AR-5 is blocked: native SynthesisDecision exposes conflict labels and model_synthesis mode but no final confidence or fallback field; owner contract required."
+      ],
+      "career_signal": {
+        "evidence": "Distinctive multi-agent routing, explainability, provider abstraction, evidence, and cost-quality decision signal.",
+        "score": 4.8,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Labeled AR-1 replay/spec, AR-2/AR-3 native candidate and rationale receipts, and an AR-4 bounded execution replay make the graph, alternatives, selection, attribution, and provider-state boundary inspectable; the native AR-5 conflict path is recorded as partial because confidence/fallback output is not modeled, while visuals and a public outcome walkthrough remain open.",
+        "score": 2.8,
+        "status": "assessed"
+      },
+      "display_name": "Agent Router",
+      "disposition_source": "Repository audit: owned public AI infrastructure product",
+      "missing_materials": [
+        "crop-safe routing-decision preview",
+        "500-character Handshake description",
+        "public route-and-receipt case study",
+        "verified comparison outcome"
+      ],
+      "next_step": "Park AR-5 from showcase-materials/agent-router/route-plan.md with its native conflict receipt; continue the queue and return after the owner adds or approves the confidence/fallback output contract.",
+      "next_step_category": "product",
+      "product_readiness": {
+        "evidence": "The TypeScript workspace implements typed task graphs, provider scoring, replay cases, CLI and MCP surfaces, receipts, synthesis, and learning; worktree execution and complete provider coverage remain explicitly incomplete.",
+        "score": 3.5,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "agent-router",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The routing system, native replay candidate-selection slice, and bounded execution replay exist; the native conflict path is observed but AR-5 is blocked because its output contract has no final confidence or fallback field, while reconciled evidence and a public inspection surface remain incomplete."
+    },
+    {
+      "blockers": [
+        "CB-2 is blocked: current built CLI is 0.2.0 while the connected Chrome extension reports 0.3.0 and doctor fails response validation; reviewed reload requires deployment approval."
+      ],
+      "career_signal": {
+        "evidence": "Exceptional agent-control, browser architecture, human authorization, stale-state defense, privacy, and verification signal.",
+        "score": 5.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "CB-1 has a labeled synthetic demo page, semantic state manifest, and source-backed fixture receipt; CB-2 is explicitly blocked by the installed version/protocol mismatch, so observe-to-plan, side-panel approval, and recruiter-facing case-study proof remain open.",
+        "score": 1.7,
+        "status": "assessed"
+      },
+      "display_name": "Codex Browser Control",
+      "disposition_source": "Repository audit: owned local Chrome control provider",
+      "missing_materials": [
+        "crop-safe side-panel preview",
+        "500-character Handshake description",
+        "public synthetic case study",
+        "redacted plan and verification receipt"
+      ],
+      "next_step": "Park CB-2/CB-3 from showcase-materials/codex-browser-control/route-plan.md with its installed-round-trip receipt; continue the queue and return after explicit deployment approval reloads the current extension/native-host pair.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "The Chrome MV3 provider implements typed observe, inspect, plan, approval, apply, verify, and rollback surfaces over an owner-only native bridge; the current checkout also carries the in-progress browser.await_approval notification path. Its dirty source checkout passes the documented source gate; installed Chrome and live round-trip proof remain open.",
+        "score": 3.8,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "browser-control",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The typed native control path and synthetic environment exist; the current source build passes, but CB-2 is blocked because the connected Chrome extension is an older revision and doctor cannot validate its round-trip response, while exact approval, mutation proof, and public packaging remain incomplete."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The team-specific surplus-role concept is promising sports-product work but currently contributes only product-thinking evidence.",
+        "score": 3.5,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A README and PRD exist, but no runtime, result artifact, visual state, or walkthrough was found.",
+        "score": 0.6,
+        "status": "assessed"
+      },
+      "display_name": "Cap-Fit Roster Builder",
+      "disposition_source": "GitHub profile: Product Work under the BBDSE / CourtIQ umbrella",
+      "missing_materials": [],
+      "next_step": "Build and validate the first executable roster-fit slice, then expose it through CourtIQ rather than as a separate submission.",
+      "product_readiness": {
+        "evidence": "The repository is explicitly planning-first: the PRD and roadmap define direction, while the README states that no build or test command and no executable slice exist yet.",
+        "score": 1.2,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "cap-fit-builder"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Strong applied-AI operations, evidence governance, product customization, browser workflow, structured data, and human-control signal.",
+        "score": 4.9,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A hero banner, demo GIF, examples, and extensive workflow documentation already exist, but they are not yet packaged as one Handshake-sized preview and end-to-end case study.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "display_name": "Career Ops",
+      "disposition_source": "Repository audit: customized public workflow with original-project attribution retained",
+      "missing_materials": [
+        "crop-safe 16:9 preview",
+        "500-character Handshake description",
+        "public synthetic application case study",
+        "45-90 second evaluation-to-draft walkthrough",
+        "clear upstream and personal contribution boundary"
+      ],
+      "next_step": "Package one official-posting-to-evaluation-to-reviewed-draft flow using synthetic identity data and explicit no-submit proof.",
+      "product_readiness": {
+        "evidence": "The actively used system implements evidence-bound job evaluation, tailored materials, tracking, draft-only outreach, a Go dashboard, 77 tracked test files, and human submission boundaries; provider-native completion remains deliberately external.",
+        "score": 4.3,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "career-ops"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Some configuration-migration and compatibility value exists, but the canonical public story belongs to Portable Agentic Workbench.",
+        "score": 2.5,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Compatibility documentation exists, but there are no public-safe visual materials and the private manifest is intentionally excluded from public distribution.",
+        "score": 0.7,
+        "status": "assessed"
+      },
+      "display_name": "Claude Config Companion",
+      "disposition_source": "Repository README: private compatibility companion to the public Portable Agentic Workbench",
+      "missing_materials": [],
+      "next_step": "Keep this private companion out of Showcase and use its safe compatibility lessons in the Portable Agentic Workbench story.",
+      "product_readiness": {
+        "evidence": "The repository retains private manifests, compatibility wrappers, live mappings, and an unresolved conflict ledger while delegating canonical behavior to the public workbench.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "claude-config"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Potentially strong systems contribution evidence only when a specific patch, ownership boundary, review result, and user outcome are isolated.",
+        "score": 3.2,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Upstream branding and documentation exist, but no contribution-specific public case study isolates the owner's changes and verified outcomes.",
+        "score": 1.0,
+        "status": "assessed"
+      },
+      "display_name": "Codex Fork and Contributions",
+      "disposition_source": "Repository provenance audit: OpenAI upstream product with local contribution work",
+      "missing_materials": [],
+      "next_step": "Create contribution-specific case studies outside the project ranking; do not submit the upstream Codex product as personal work.",
+      "product_readiness": {
+        "evidence": "The checkout contains the mature OpenAI Codex CLI codebase with 6,091 tracked files and 715 tracked test files; those product-level capabilities are upstream evidence, not ownership evidence for a personal submission.",
+        "score": 4.5,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "codex"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Solid full-stack publishing, authorization, versioning, platform, security, and developer-experience signal.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A large repository banner, documentation site, minimal-blog example, and package READMEs exist, but no focused product-state preview or short end-to-end walkthrough was found.",
+        "score": 2.0,
+        "status": "assessed"
+      },
+      "display_name": "Dispatches from Cyberspace",
+      "disposition_source": "Repository audit: owned publishing system; not listed as client work",
+      "missing_materials": [
+        "crop-safe product preview",
+        "500-character Handshake description",
+        "public no-auth reader or case-study page",
+        "45-90 second draft-to-publish walkthrough",
+        "clear AI and human role statement"
+      ],
+      "next_step": "Show an authored draft moving through revision control to a public result while separating human editorial judgment from AI assistance.",
+      "product_readiness": {
+        "evidence": "The workspace implements draft and published articles, revision history, comments, reactions, JSON Feed, sitemap, Clerk authorization, Postgres runtime, security controls, and a Docusaurus documentation site; hosted behavior is unverified.",
+        "score": 3.7,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "dispatches-from-cyberspace"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Useful developer-environment and safe-automation evidence, but weaker than the portfolio's product and agent-system stories.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A clear README exists, but no tracked visual walkthrough, outcome artifact, or standalone product experience was found.",
+        "score": 0.9,
+        "status": "assessed"
+      },
+      "display_name": "Agent-Friendly Dotfiles",
+      "disposition_source": "Repository audit: public supporting infrastructure rather than a standalone AI product",
+      "missing_materials": [],
+      "next_step": "Keep as supporting engineering evidence and reference it from broader local-first workflow case studies.",
+      "product_readiness": {
+        "evidence": "The backup-first symlink CLI documents dry-run, conflict refusal, scoped linking, backup, unlink, and safe clean behavior for a portable macOS development environment.",
+        "score": 3.2,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "dotfiles"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Strong MCP, OAuth, multi-account safety, local transport, privacy, untrusted-content handling, and narrow-authority product signal.",
+        "score": 4.7,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "The security and tool contract is thoroughly documented, but no tracked visual demo, synthetic case study, or recruiter-facing walkthrough was found.",
+        "score": 1.2,
+        "status": "assessed"
+      },
+      "display_name": "Gmail MCP Bridge",
+      "disposition_source": "Repository audit: owned local MCP provider; public demo must use synthetic accounts and messages",
+      "missing_materials": [
+        "crop-safe synthetic inbox preview",
+        "500-character Handshake description",
+        "public synthetic case study",
+        "45-90 second search-to-draft walkthrough",
+        "redacted authorization and no-send proof"
+      ],
+      "next_step": "Demonstrate search, evidence extraction, and an unsent draft against synthetic mail while making account scoping and the no-send boundary visible.",
+      "product_readiness": {
+        "evidence": "The local MCP server supports explicit multi-account search, read, narrowly scoped management, create-only drafts, hardened one-click unsubscribe, Keychain storage, exact account binding, seven tracked test files, and a full stdio smoke gate.",
+        "score": 4.2,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "gmail-mcp-bridge"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Important portfolio provenance and navigation support, but it should direct attention to substantive projects rather than compete with them.",
+        "score": 2.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "The README is itself public recruiter-facing material, but it has no independent product interaction, preview asset, or demonstration flow.",
+        "score": 1.5,
+        "status": "assessed"
+      },
+      "display_name": "Jakye Amos GitHub Profile",
+      "disposition_source": "Repository audit: public identity and provenance carrier, not a project submission",
+      "missing_materials": [],
+      "next_step": "Keep the profile as the source of public and client dispositions, not as an AI Showcase project.",
+      "product_readiness": {
+        "evidence": "The repository provides a concise public work taxonomy, ownership dispositions, current release claims, and an executable section/link test, but it is a profile document rather than a product.",
+        "score": 2.4,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "jakyeamos-profile"
+    },
+    {
+      "blockers": [
+        "PD-6 requires owner-authenticated Google Sheets/Apps Script and deployed-backend UAT; no safe credential path is available in this run."
+      ],
+      "career_signal": {
+        "evidence": "Strong human-in-the-loop matching, destructive-action safety, auditability, Apps Script, backend scaling, and operational product signal.",
+        "score": 4.6,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A source-aligned synthetic workbook, four-case reviewer contract, native score-component queue explanation, atomic-apply/stale-state/copy-recovery receipts, and a labeled local no-auth case now exist; authenticated live-sheet UAT and hosted publication remain.",
+        "score": 3.4,
+        "status": "assessed"
+      },
+      "display_name": "Participant Deduplication",
+      "disposition_source": "Repository audit: owned workflow; not listed as client work; public materials require synthetic participant data",
+      "missing_materials": [
+        "authenticated live-sheet UAT receipt",
+        "hosted no-auth case URL and responsive readback"
+      ],
+      "next_step": "Return to PD-6 in showcase-materials/participant-deduplication/route-plan.md when an authenticated live-sheet UAT path is available; PD-7 is closed locally and does not imply live-provider proof.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "The Google Sheets and Railway workflow implements fuzzy duplicate review, reviewer-controlled atomic deletion on a copy, stale-state refusal, audit history, build output, and 52 tracked test files; authenticated live-sheet UAT remains external.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "participant-dedup",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "Substantial safety behavior and tests exist; PD-1 through PD-5 are closed as synthetic, source-aligned, and deterministic local behavior material. PD-6 is parked at authenticated live-sheet UAT, while PD-7 is closed as a local no-auth case package."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Strong public evidence curation and frontend presentation signal, best used as the delivery surface for higher-value project stories.",
+        "score": 3.5,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A CourtIQ poster, captioned WebM demo, public routes, and project-detail components exist, but these materials support other projects rather than an independent portfolio-product submission.",
+        "score": 2.8,
+        "status": "assessed"
+      },
+      "display_name": "Front Office Amos Portfolio",
+      "disposition_source": "Repository audit: public portfolio carrier rather than a standalone Showcase project",
+      "missing_materials": [],
+      "next_step": "Use this repository to host Showcase case studies and demos rather than submitting the portfolio shell itself.",
+      "product_readiness": {
+        "evidence": "The Vite and React site has explicit public-evidence projection, content controls, responsive E2E coverage, Netlify release checks, and a dedicated demo-video surface; current deployed-commit parity was not claimed.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "portfolio"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Strong applied statistics, calibration, data pipeline, dashboard, and sports-modeling signal, best presented within CourtIQ.",
+        "score": 4.3,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Dashboard and report structures exist with multiple supporting READMEs, but no tracked preview image or finished public walkthrough was found.",
+        "score": 1.7,
+        "status": "assessed"
+      },
+      "display_name": "BBDS Signal Lab",
+      "disposition_source": "GitHub profile: Product Work under the BBDSE / CourtIQ umbrella",
+      "missing_materials": [],
+      "next_step": "Use a reliability-curve or role-translation result as a CourtIQ evidence module after source freshness is reconciled.",
+      "product_readiness": {
+        "evidence": "The repository implements basketball reliability analysis, shrinkage, role translation, report generation, a Streamlit dashboard, and ten tracked test files; current maturity freshness and complete source evidence remain unresolved.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "signal-lab"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Some provenance and migration evidence is useful, but the canonical workbench carries the public career story without duplication.",
+        "score": 2.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Only archival documentation was found; no independent public product experience or showcase materials are appropriate.",
+        "score": 0.8,
+        "status": "assessed"
+      },
+      "display_name": "AIOS Skills Library Archive",
+      "disposition_source": "Repository archival notice: noncanonical generated snapshot",
+      "missing_materials": [],
+      "next_step": "Preserve for provenance and keep it out of Showcase; route public visitors to Portable Agentic Workbench.",
+      "product_readiness": {
+        "evidence": "The generated archive preserves 1,403 tracked provenance artifacts, skill snapshots, audit records, and compatibility references, but explicitly redirects public consumers to the canonical Portable Agentic Workbench.",
+        "score": 2.8,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "skills-library"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Good women's sports analytics, reusable data-contract, uncertainty, and product-expansion signal, best folded into CourtIQ.",
+        "score": 4.1,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "README, data, notebook, and report documentation exist, but no tracked visual result, dashboard capture, or end-to-end walkthrough was found.",
+        "score": 1.2,
+        "status": "assessed"
+      },
+      "display_name": "BBDS Women's Stats",
+      "disposition_source": "GitHub profile: Product Work under the BBDSE / CourtIQ umbrella",
+      "missing_materials": [],
+      "next_step": "Validate one women's basketball analysis artifact and present it as CourtIQ coverage rather than a standalone submission.",
+      "product_readiness": {
+        "evidence": "The scaffold defines reusable contracts, source adapters, normalized women's college and WNBA inputs, four analysis modes, baseline-first modeling, and report pipelines; its dashboard remains future work and complete source validation is open.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "not_applicable",
+      "repository_name": "womens-stats"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Strong legal-tech and explainable-rules work, usable only within approved private references.",
+        "score": 4.8,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "No public-safe materials are counted; client work is excluded from the publishing goal.",
+        "score": 1.0,
+        "status": "assessed"
+      },
+      "display_name": "CrimClock",
+      "disposition_source": "GitHub profile: Private / Client Product Work",
+      "missing_materials": [
+        "private internal demo brief",
+        "authorized private walkthrough",
+        "redacted outcome proof"
+      ],
+      "next_step": "Keep private. Audit internal materials only if client authorization permits; never add it to the public showcase queue.",
+      "product_readiness": {
+        "evidence": "Substantial product and rules-engine work; readiness is audited privately and is not publication authority.",
+        "score": 4.5,
+        "status": "assessed"
+      },
+      "public_eligibility": "private_client",
+      "repository_name": "Crimclock"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Strong B2B, knowledge-system, and GovTech story within approved private boundaries.",
+        "score": 4.4,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "Public materials are intentionally absent and do not count toward the showcase goal.",
+        "score": 0.6,
+        "status": "assessed"
+      },
+      "display_name": "Tenure Systems",
+      "disposition_source": "GitHub profile: Private / Client Product Work",
+      "missing_materials": [
+        "private internal demo brief",
+        "authorized private walkthrough",
+        "redacted outcome proof"
+      ],
+      "next_step": "Keep private. Do not sanitize or publish unless the client-work disposition is explicitly changed by the owner.",
+      "product_readiness": {
+        "evidence": "Substantial private GovTech product work; readiness is not publication authority.",
+        "score": 3.8,
+        "status": "assessed"
+      },
+      "public_eligibility": "private_client",
+      "repository_name": "tenure"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Not scored without current private evidence.",
+        "status": "unknown"
+      },
+      "demo_materials": {
+        "evidence": "Client materials were not inspected and are excluded from public scoring.",
+        "status": "unknown"
+      },
+      "display_name": "EliHealth",
+      "disposition_source": "GitHub profile: Private / Client Product Work",
+      "missing_materials": [
+        "authorized private audit"
+      ],
+      "next_step": "Keep private and out of the public goal; audit only under explicit client-safe authority.",
+      "product_readiness": {
+        "evidence": "Repository is not registered in the current Pronto fleet; no current private audit was performed.",
+        "status": "unknown"
+      },
+      "public_eligibility": "private_client",
+      "repository_name": "EliHealth"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Not scored without current private evidence.",
+        "status": "unknown"
+      },
+      "demo_materials": {
+        "evidence": "Client materials were not inspected and are excluded from public scoring.",
+        "status": "unknown"
+      },
+      "display_name": "Hoopscout",
+      "disposition_source": "GitHub profile: Private / Client Product Work",
+      "missing_materials": [
+        "authorized private audit"
+      ],
+      "next_step": "Keep private and out of the public goal; audit only under explicit client-safe authority.",
+      "product_readiness": {
+        "evidence": "Repository is not registered in the current Pronto fleet; no current private audit was performed.",
+        "status": "unknown"
+      },
+      "public_eligibility": "private_client",
+      "repository_name": "Hoopscout"
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The PRD defines a concrete human-first IDE quality workflow with a clear evidence and inheritor-continuity boundary; outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "The candidate local package now includes a current-dev headless checkpoint, case study, claim ledger, normalized stale-finding evidence, crop-safe 1600×900 PNG/SVG preview, short description, and no-auth case-page source. Direct IDE proof, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Quality Lens",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "direct VS Code finding/disposition proof",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close QL-1 from showcase-materials/quality-lens/route-plan.md with the exact task-owned VS Code Problems-panel proof, then promote the packet to QL-3 hosting/readback.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README, five passing unit tests, lint, and package checks show a W1 normalizer/CLI/VS Code pilot; direct Problems-panel interaction and canonical-path acceptance remain unproven.",
+        "score": 3.2,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "quality-lens",
+      "work_disposition": "material_build_or_restoration",
+      "work_disposition_summary": "A W1 headless and VS Code pilot exists; the canonical path and direct IDE acceptance evidence remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The PRD defines a distinct human-first debugging-continuity workflow for authors and inheritors; outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "The candidate local package now includes a current-dev headless checkpoint, case study, claim ledger, target-bound redacted receipt, crop-safe 1600×900 PNG/SVG preview, short description, and no-auth case-page source. Direct IDE continuity, broader scenario coverage, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Debug Trail",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "direct VS Code trail/receipt continuity proof",
+        "stale/failed/cancelled scenario captures",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close DT-1 from showcase-materials/debug-trail/route-plan.md with the exact task-owned VS Code continuity proof, add the remaining scenario matrix, then promote the packet to DT-3.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README, four passing unit tests, lint, and package checks show a W1 target-bound trail/receipt engine and thin VS Code surface; direct IDE continuity and continuation-receipt acceptance remain unproven.",
+        "score": 3.2,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "debug-trail",
+      "work_disposition": "material_build_or_restoration",
+      "work_disposition_summary": "A W1 headless trail/receipt engine and thin VS Code surface exist; canonical IDE continuity and continuation-receipt acceptance remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The PRD demonstrates a clear local-first setup and safety story for developers without agents; measured user outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes a current-dev checkpoint, W1 scenario matrix, claim ledger, crop-safe 1600×900 PNG/SVG preview, short description, and no-auth case-page source. Real quality-command smoke, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Quality Setup",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "real quality-command smoke boundary",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close the real quality-command smoke boundary from showcase-materials/quality-setup/route-plan.md, then promote the locally packaged packet to QS-3 hosting/readback.",
+      "next_step_category": "packaging",
+      "product_readiness": {
+        "evidence": "The README exposes plan, explicit apply, verify, conflict refusal, and rollback receipts; this is a local prototype rather than a released product.",
+        "score": 3.3,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "quality-setup",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "A bounded local setup prototype and current dev evidence package exist; real quality-command smoke and hosted packaging remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The verified rule-edit and counterexample workflow has a strong human-first quality and safety story; cross-producer outcome proof is not yet captured.",
+        "score": 4.2,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes a current-dev checkpoint, W2 fixture-comparison receipt, fresh receipt check, claim ledger, crop-safe 1600×900 PNG/SVG preview, short description, and no-auth case-page source. Cross-producer/IDE proof, pyright, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Rule Lab",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "cross-producer receipt handoff",
+        "direct VS Code parity proof",
+        "pyright typecheck disposition",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close RL-0 and RL-1 from showcase-materials/rule-lab/route-plan.md, record the pyright disposition, then promote the candidate packet to RL-3.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README and PRD record a headless MVP, positive/negative fixture comparison, target-bound receipts, and a read-only VS Code projection; mutation and IDE acceptance are pending.",
+        "score": 3.6,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "rule-lab",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The headless MVP, read-only VS Code projection, and current fixture/receipt package exist; IDE acceptance, cross-producer proof, and typecheck disposition remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The product has a clear evidence-provenance and safe-replay story for authors and inheritors; cross-producer outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes the historical stale-target reader matrix, a current-dev checkpoint, claim ledger, crop-safe 1600x900 PNG/SVG preview, short description, and no-auth case-page source. Producer/state expansion, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Evidence Replay",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "complete producer/state receipt matrix",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close ER-0 and ER-1 from showcase-materials/evidence-replay/route-plan.md: consume current Rule Lab/Debug Trail receipts, expand stale/unknown/cancelled coverage, and prove inspect-only behavior before promoting the packet to ER-3.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README records receipt inspection, target comparison, and explicit rerun preview without execution; the first producer adapter is intentionally local and the W2 seam remains in progress.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "evidence-replay",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The fixture-first reader and stale-target rerun preview exist; cross-producer receipts and release packaging remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The PRD presents a concrete human-readable gate-state and evidence workflow; measured adopter outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes the historical declared-gate fixture, a current-dev checkpoint, claim ledger, crop-safe 1600x900 PNG/SVG preview, short description, and no-auth case-page source. State handoff, trace integration, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Workflow Gateboard",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "Automation Flight Recorder trace handoff",
+        "prerequisite-state persistence across CLI invocations",
+        "stale/failed/not-run state matrix",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close WG-0 and WG-1 from showcase-materials/workflow-gateboard/route-plan.md: connect one declared gate to Automation Flight Recorder and prove the repository/ref no-mutation boundary before promoting the packet to WG-3.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README records repository-declared non-mutating gates, explicit runs, and bounded receipts; no hosted CI or public release proof is claimed.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "workflow-gateboard",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The local declared-gate runner exists; integration with trace evidence and a standalone release package remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The product has a strong privacy-aware failure handoff and reproduction-boundary story; outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes historical and current-dev redacted failure receipts, claim ledger, short copy, no-auth case-page source, and a visually reviewed 1600x900 PNG/SVG preview. Replay integration, scenario breadth, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Failure Capsule",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "Evidence Replay capsule handoff",
+        "cancellation/recovery scenario receipts",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close FC-0 and FC-2 from showcase-materials/failure-capsule/route-plan.md: connect the redacted failure to Evidence Replay and expand cancellation/recovery proof before promoting the candidate packet to FC-3.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README records bounded redaction, target/tool/artifact identity, inspect-only opening, and explicit reproduction; no perfect-environment claim is made.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "failure-capsule",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The bounded redacted failure-capture prototype and current binary case materials exist; replay integration, scenario breadth, and release readbacks remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The PRD defines an explainable change-impact navigation story without a misleading risk score; outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes historical and current-dev target-bound TypeScript radius receipts, claim ledger, short copy, no-auth case-page source, and a visually reviewed 1600x900 PNG/SVG preview. Downstream parity, negative-matrix breadth, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Change Radius",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "Deletion Proof/Contract Watch parity receipt",
+        "generated/reflective/external negative fixture matrix",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close CR-1 and CR-2 from showcase-materials/change-radius/route-plan.md: prove Deletion Proof/Contract Watch parity and expand generated/reflective/external negative coverage before promoting the candidate packet to CR-3.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README records provider-named static edges and explicit unknown consumer classes; dynamic, generated, and external behavior remains outside the claim.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "change-radius",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The bounded static consumer/test graph, current binary case materials, and explicit unknown boundary exist; downstream parity and negative coverage remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The product offers a clear behavior-to-evidence story for authors and inheritors; outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes historical and current-dev fresh/stale behavior matrices, claim ledger, short copy, no-auth case-page source, and a visually reviewed 1600x900 PNG/SVG preview. Review handoff, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Behavior Coverage Atlas",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "Review Attention Map source/freshness handoff",
+        "parameterized/deleted-test negative fixture receipts",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close BC-1 and BC-2 from showcase-materials/behavior-coverage-atlas/route-plan.md: feed one behavior signal into Review Attention Map and expand negative fixture proof before promoting the candidate packet to BC-3.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README records explicit behavior manifests and strong, weak, stale, missing, and duplicate-link states without inferring correctness from line coverage.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "behavior-coverage-atlas",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The manifest-to-test evidence prototype, current binary case materials, and freshness matrix exist; review-surface integration and negative coverage remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The product has a clear deterministic automation-causality story; outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes historical/current-dev pass, failure, cancellation, and inspect traces, claim ledger, visually reviewed 1600x900 PNG/SVG preview, short copy, and no-auth case-page source. Gateboard handoff, recovery/rerun breadth, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Automation Flight Recorder",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "Workflow Gateboard parent-identity handoff",
+        "cancellation/missing-artifact/stale-rerun scenario receipts",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close AFR-0 through AFR-2 from showcase-materials/automation-flight-recorder/route-plan.md: connect one Gateboard action, expand failure/recovery coverage, and bound rerun authority before promoting the candidate packet to AFR-3.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README records local parent/child traces with timing, redaction, hashes, omissions, and rerun eligibility; no telemetry backend is required or claimed.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "automation-flight-recorder",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The bounded parent/child trace prototype exists; end-to-end gate causality and safe rerun proof remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The product has a clear human-controlled remediation continuity story; outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes historical/current-dev fresh and stale handoff receipts, preserved partial dispositions, claim ledger, visually reviewed 1600x900 PNG/SVG preview, short copy, and no-auth case-page source. Source-authority parity, downstream review handoff, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Remediation Canvas",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "Quality Lens source-authority parity receipt",
+        "Review Attention Map handoff",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close RC-0 through RC-2 from showcase-materials/remediation-canvas/route-plan.md: complete one verification/authority handoff, connect downstream review without copying findings, and prove stale partial-work preservation before promoting the candidate packet to RC-3.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README records stable Quality Lens finding references, human intent/dispositions, and stale refresh behavior without copying authoritative payloads.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "remediation-canvas",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The finding-reference and human-disposition prototype exists; a complete partial-remediation handoff remains open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The product offers a focused semantic contract-change story with explicit uncertainty; outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes historical/current-dev OpenAPI semantic-diff receipts with certainty/policy separation and a disposition, claim ledger, visually reviewed 1600x900 PNG/SVG preview, short copy, and no-auth case-page source. Downstream review handoff, unknown-consumer/stale coverage, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Contract Watch",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "Review Attention Map/Deletion Proof source-identity handoff",
+        "undocumented-consumer and stale-baseline fixture matrix",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close CW-0 through CW-2 from showcase-materials/contract-watch/route-plan.md: hand one semantic change to downstream review tools, preserve certainty/policy separation, and expand unknown-consumer/stale coverage before promoting the candidate packet to CW-3.",
+      "next_step_category": "evidence",
+      "product_readiness": {
+        "evidence": "README records OpenAPI comparison, certainty/policy separation, and human disposition; undocumented consumers remain explicit limitations.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "contract-watch",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The local OpenAPI diff and human-disposition prototype exists; cross-surface review integration remains open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The product provides a clear reviewer-attention and evidence-navigation story; outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes historical/current-dev two-source overlay, unmatched, and review-disposition receipts, a claim ledger, visually reviewed 1600x900 PNG/SVG preview, short copy, and no-auth case-page source. Producer handoff, broader negative coverage, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Review Attention Map",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "current producer/source-freshness readback",
+        "stale/unmatched/reviewed negative scenario matrix",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close RAM-0 through RAM-2 from showcase-materials/review-attention-map/route-plan.md: bind current producer receipts, preserve stale/unmatched/reviewed states, and complete direct evidence navigation before promoting the candidate packet to RAM-3.",
+      "next_step_category": "evidence",
+      "product_readiness": {
+        "evidence": "README records contract and behavior overlays with source evidence and stale/unmatched visibility; no opaque risk score or merge verdict is claimed.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "review-attention-map",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The explicit-signal diff overlay prototype exists; two-source evidence navigation and direct review proof remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The product has a clear reviewer-controlled disposable-state safety story; outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes historical/current-dev clean, failed-setup, dirty-recovery, and cancellation-shaped receipts, a claim ledger, visually reviewed 1600x900 PNG/SVG preview, short copy, and no-auth case-page source. Distinct cancellation/process proof, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Review Sandbox",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "distinct cancellation and process/port ownership receipts",
+        "primary-checkout unrelated-dirty before/after proof",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close RS-0 through RS-2 from showcase-materials/review-sandbox/route-plan.md: add distinct cancellation/process proof, verify primary-checkout safety, and preserve cleanup authority before promoting the candidate packet to RS-3.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README records repository-declared scenarios, detached worktree creation, cleanup proof, and dirty-state retention without hosted preview requirements.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "review-sandbox",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The disposable-workspace preview/create/cleanup prototype exists; failure, cancellation, and retained-dirty evidence remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The product offers a concrete pre-integration and branch-safety story; outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes historical/current-dev clean/conflict simulation, separate gate-probe, and ref-safety receipts, a claim ledger, visually reviewed 1600x900 PNG/SVG preview, short copy, and no-auth case-page source. Gate integration, negative scenario breadth, hosting, and destination readbacks remain unverified.",
+        "score": 2.7,
+        "status": "assessed"
+      },
+      "display_name": "Change Integration Simulator",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "Workflow Gateboard gate receipt bound to simulated state",
+        "stale/cancellation/retained-workspace negative matrix",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close CIS-0 through CIS-2 from showcase-materials/change-integration-simulator/route-plan.md: bind a real Gateboard receipt, preserve stale/cancellation/dirty boundaries, and prove clean/conflict safety before promoting the candidate packet to CIS-3.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README records immutable source/target resolution and read-only merge-tree receipts without ref or primary-checkout mutation.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "change-integration-simulator",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The immutable commit-resolution and merge-tree prototype exists; clean/conflict simulations and gate evidence remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The product has a strong evidence-bound deletion and recovery story; outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes bounded deletion/refusal and unknown-class receipts, claim ledger, preview source, short copy, and no-auth case-page source. Stale/recovery breadth, cross-tool parity, hosting, and destination readbacks remain unverified.",
+        "score": 2.1,
+        "status": "assessed"
+      },
+      "display_name": "Deletion Proof Workbench",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "crop-safe 16:9 Handshake preview image",
+        "stale-candidate/refusal/recovery fixture matrix",
+        "Change Radius/Contract Watch source-identity handoff",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close DPW-0 through DPW-2 from showcase-materials/deletion-proof-workbench/route-plan.md: expand stale/refusal/recovery fixtures, preserve unknown consumer classes, and bind downstream parity before promoting the candidate packet to DPW-3.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README records bounded references, unknown consumer classes, explicit apply, and recovery references without claiming universal non-use.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "deletion-proof-workbench",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The bounded symbol-inspection and reversible-apply prototype exists; a real deletion proof remains open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The product has a clear readiness-for-a-declared-goal story for maintainers and inheritors; outcome proof is not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "A candidate local package now includes individual passed/failed/blocked/unsupported check evidence, claim ledger, preview source, short copy, and no-auth case-page source. Upstream receipt projection, binary preview, hosting, and destination readbacks remain unverified.",
+        "score": 2.1,
+        "status": "assessed"
+      },
+      "display_name": "Readiness Inspector",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "crop-safe 16:9 Handshake preview image",
+        "Quality Setup/Evidence Replay owner-bound projection",
+        "stale/contradictory/not-applicable state matrix",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close RI-0 through RI-2 from showcase-materials/readiness-inspector/route-plan.md: project upstream receipts, preserve the full individual-state matrix, and prove native follow-up before promoting the candidate packet to RI-3.",
+      "next_step_category": "demo_integration",
+      "product_readiness": {
+        "evidence": "README records versioned goal-specific checks with owners, predicates, outcomes, evidence, and next actions without a default aggregate score.",
+        "score": 3.0,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "readiness-inspector",
+      "work_disposition": "targeted_gap_closure",
+      "work_disposition_summary": "The goal-specific check and evidence prototype exists; upstream receipt projection and C5 continuity proof remain open."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "The product has a strong local-first fleet continuity story with receipt-contract and failure-state proof; real producer and outcome readbacks are not yet captured.",
+        "score": 4.0,
+        "status": "assessed"
+      },
+      "demo_materials": {
+        "evidence": "The candidate local package now includes W5 refresh evidence, W6 contract/failure evidence, a visually inspected 1600×900 PNG, a validated owner-only Sites version, claim ledger, preview source, short copy, and no-auth case-page source. Real producer readback, direct native navigation, public access, credentialless hosting readback, and destination readbacks remain open.",
+        "score": 2.1,
+        "status": "assessed"
+      },
+      "display_name": "Fleet Radar",
+      "disposition_source": "Owner request 2026-08-13: classify the DevOps tooling sprint repositories as public Showcase targets; publication is not implied.",
+      "missing_materials": [
+        "real producer receipt matrix",
+        "native blocker deep-link readback",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "next_step": "Close FR-0 and FR-1 from showcase-materials/fleet-radar/route-plan.md: read two real producer receipts and prove direct native blocker navigation, then confirm public access, deploy the saved case, and capture credentialless/external readbacks for FR-3.",
+      "next_step_category": "evidence",
+      "product_readiness": {
+        "evidence": "README and tests record explicit registry inspection, receipt-contract classification, native follow-up metadata, broad failure states, freshness, blockers, and read-only snapshot writing; the product deliberately does not infer readiness from clean checkouts.",
+        "score": 2.8,
+        "status": "assessed"
+      },
+      "public_eligibility": "public_showcase",
+      "repository_name": "fleet-radar",
+      "work_disposition": "conditional_gate",
+      "work_disposition_summary": "The read-only registry and freshness snapshot now classify supported receipt contracts, native follow-up links, and broad local failure states; its public story still depends on real producer readbacks."
+    },
+    {
+      "blockers": [],
+      "career_signal": {
+        "evidence": "Repository was newly registered; career signal has not been reviewed.",
+        "status": "unknown"
+      },
+      "demo_materials": {
+        "evidence": "Repository was newly registered; demo materials have not been inventoried.",
+        "status": "unknown"
+      },
+      "display_name": "attentiond",
+      "disposition_source": "Automatically added when the repository entered the registered Showcase fleet; review required.",
+      "missing_materials": [
+        "public-eligibility disposition",
+        "product-readiness audit",
+        "demo-material inventory",
+        "career-signal review"
+      ],
+      "next_step": "Review this repository and replace the automatic placeholder with an explicit Showcase goal.",
+      "next_step_category": "evidence",
+      "product_readiness": {
+        "evidence": "Repository was newly registered; product readiness has not been reviewed.",
+        "status": "unknown"
+      },
+      "public_eligibility": "unknown",
+      "repository_name": "attentiond",
+      "work_disposition": "unknown",
+      "work_disposition_summary": "No reviewed Showcase work disposition exists yet."
+    }
+  ],
+  "public_release_target_policy": {
+    "matrix_path": "showcase-materials/public-release-targets.json",
+    "required_before_public_showcase": true,
+    "required_channels": [
+      "github",
+      "portfolio",
+      "handshake"
+    ],
+    "rule": "Every project labeled public_showcase must have an exact project_targets record that names where its demo materials will be posted, the status of each destination, its artifact, and the active gate."
+  },
+  "quality_bar_source": "Handshake AI Showcase submission fields verified 2026-08-12; Career Ops Quality Bar and Template Plan; fleet evidence audit audit-aa386e644cd4c232 reviewed 2026-08-12. Required package: crop-safe preview, description of 500 characters or fewer, public no-auth demo or case-study page, and linked proof. Video and human narration are optional enhancements.",
+  "reviewed_at": "2026-08-13T21:52:51Z",
+  "schema_version": "pronto-showcase-goal/v2",
+  "scoring": {
+    "materials_weight": 0.4,
+    "priority_career_weight": 0.5,
+    "priority_materials_gap_weight": 0.2,
+    "priority_product_weight": 0.3,
+    "product_weight": 0.6,
+    "publishable_materials_minimum": 4.0,
+    "publishable_product_minimum": 3.5
+  },
+  "target_publishable_demo_count": 34
+}

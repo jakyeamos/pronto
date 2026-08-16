@@ -1,0 +1,72 @@
+{
+  "schema_version": "pronto-showcase-source-ui-evidence/v1",
+  "project": "mac-control",
+  "gap_id": "MC-2",
+  "verified_at": "2026-08-12T19:21:20Z",
+  "proof_level": "source_build",
+  "fixture": "synthetic_focus_session_partial_failure",
+  "fixture_label": "synthetic",
+  "behavior": {
+    "progress_states": ["pending", "running", "verified", "stopped"],
+    "seeded_failure": "task_postcondition_failed",
+    "completed_actions_preserved": true,
+    "input_authority_released": true,
+    "stopped_outcome_retention_seconds": 60,
+    "projection_redacts": [
+      "targets",
+      "selectors",
+      "ephemeral_inputs",
+      "task_output",
+      "approval_tokens",
+      "lease_tokens"
+    ]
+  },
+  "validation": {
+    "focused_control_center_tests": {
+      "command": "swift test --filter ControlCenterTests",
+      "tests": 19,
+      "failures": 0
+    },
+    "full_swift_tests": {
+      "command": "swift test",
+      "tests": 252,
+      "failures": 0
+    },
+    "benchmark_tests": {
+      "command": "python3 -m unittest discover -s Tests/BenchmarkTests",
+      "tests": 34,
+      "failures": 0
+    },
+    "skill_tests": {
+      "command": "python3 -m unittest discover -s Tests/SkillTests",
+      "tests": 6,
+      "failures": 0
+    },
+    "environment_contract": {
+      "command": "python3 scripts/check_environment_contract.py",
+      "status": "pass",
+      "error_count": 0
+    },
+    "render_test": {
+      "command": "swift test --filter ControlCenterTests/testControlCenterRendersTaskProgressWithoutPlanTargetsOrInputs",
+      "tests": 1,
+      "failures": 0,
+      "inspected": true
+    }
+  },
+  "artifact": {
+    "path": "control-center-progress-source.png",
+    "sha256": "897fea45d5b10e27880d0e75092d16cdff04069d72e38e933ef916698a930359",
+    "bytes": 80463
+  },
+  "source_hashes": {
+    "ControlCenter.swift": "ea2d15819de46f838364d14f5017d72697ed1924c7f74455cb3f63652caf7308",
+    "ApprovalHUD.swift": "49adae51912c5b4b4028d9a52a167f9ca63b522db8a577b13d6000f0c7fa9d6c",
+    "MacCtlService.swift": "e425ab703386a1a9f542d1cdad00867c33066b5573efce8f5fac454016d21a82"
+  },
+  "open_proof": [
+    "installed-build screen recording",
+    "live daemon receipt from the focus-session execution path"
+  ],
+  "claim_boundary": "This proves source-built projection and rendering behavior in a synthetic fixture. It is not installed-product or live desktop-execution proof."
+}

@@ -1,0 +1,64 @@
+{
+  "schema_version": "pronto-showcase-terrace-integration/v1",
+  "project": "Terrace",
+  "generated_at": "2026-08-13T15:30:29Z",
+  "disposition": "local_dev_integrated_verified",
+  "target": {
+    "repository": "/Users/jakyeamos/projects/Terrace",
+    "branch": "dev",
+    "before_commit": "6d3450bebb99e16d3ed798b0531687e29163fec4",
+    "after_commit": "9ac360b0f246aa91c85a15183cf9de10c94330b0",
+    "integration_method": "fast_forward",
+    "local_target_relation_to_origin": "local_ahead",
+    "origin_dev_commit_verified": "6d3450bebb99e16d3ed798b0531687e29163fec4",
+    "remote_publication_performed": false
+  },
+  "source": {
+    "branch": "codex/terrace-durable-stage-state",
+    "commit": "9ac360b0f246aa91c85a15183cf9de10c94330b0",
+    "publication": "local-only",
+    "worktree": "/Users/jakyeamos/.codex/worktrees/terrace-tr2-stage-state",
+    "worktree_state": "clean"
+  },
+  "verification": {
+    "ci": {
+      "command": "pnpm run ci",
+      "exit_code": 0,
+      "test_files_passed": 40,
+      "test_files_skipped": 1,
+      "tests_passed": 314,
+      "tests_skipped": 1,
+      "gates": ["typecheck", "lint", "tests", "coverage", "package dry-run"]
+    },
+    "cli_smoke": {
+      "commands": [
+        "node src/terrace-tools.cjs --version",
+        "node src/terrace-tools.cjs --help",
+        "node src/terrace-tools.cjs doctor --json"
+      ],
+      "version": "0.2.0",
+      "help_exit_code": 0,
+      "doctor_exit_code": 0,
+      "doctor_healthy": true,
+      "doctor_warning": "PARTIAL_AGENT_ASSETS"
+    },
+    "focused_stage_and_workflow_tests": {
+      "command": "pnpm exec vitest run tests/core-state.test.ts tests/workflow-commands.test.ts --reporter=dot",
+      "exit_code": 0,
+      "tests_passed": 48
+    }
+  },
+  "acceptance": {
+    "tr_2_through_tr_5_integrated_into_dev": true,
+    "dev_worktree_fast_forwarded": true,
+    "dev_worktree_commit_matches_source": true,
+    "source_worktree_preserved_and_clean": true,
+    "remote_push": false,
+    "hosted_publication": false
+  },
+  "limitations": [
+    "The fetched origin/dev ref and live remote dev were verified at the pre-fold commit; local dev is intentionally one commit ahead because no push was authorized.",
+    "The static TR-6 preview was rendered before this integration and still visibly labels the implementation as a source candidate with integration pending; refreshing that local file preview requires a browser surface that can open file:// URLs, which was blocked by the available browser URL policy in this run.",
+    "The local doctor is healthy but reports a non-blocking PARTIAL_AGENT_ASSETS warning; this was not introduced by the fold and does not block the Terrace CLI proof."
+  ]
+}

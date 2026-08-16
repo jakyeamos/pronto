@@ -1,0 +1,128 @@
+{
+  "schema_version": "pronto-showcase-rehearsal/v1",
+  "project": "quality-runner",
+  "case_id": "tenure-semantic-reconciliation-2026-08-10",
+  "rehearsed_at": "2026-08-12T18:45:13Z",
+  "status": "superseded",
+  "superseded_by_case_id": "tenure-quality-values-burndown-2026-07",
+  "supersession_reason": "This dry run rehearsed the smaller August branch comparison as the headline instead of the canonical 4,022-finding Tenure reconciliation.",
+  "target_duration_seconds": { "minimum": 45, "maximum": 90 },
+  "timed_run": {
+    "mode": "synthesized_voice_dry_run",
+    "voice": "macOS system default",
+    "speech_rate_words_per_minute": 165,
+    "narration_word_count": 159,
+    "measured_duration_seconds": 65.585261,
+    "audio_format": "AIFF-C, 22050 Hz, mono, 16-bit",
+    "transient_audio_sha256": "20b951b3223259b3858ef5e1345806dd62b8164095df38448474649da98dfa33",
+    "audio_retained": false,
+    "narration_path": "rehearsal-narration.txt"
+  },
+  "writing_qa": {
+    "research_packet_status": "ready",
+    "research_coverage_ratio": 1.0,
+    "claim_traceability_status": "passed",
+    "domain_qa_status": "passed_with_human_review_required",
+    "humanizer_final_pass": "passed_no_rewrite",
+    "canonical_packet_promotion": "review_required_after_lineage_conflict",
+    "public_copy_approval": "pending_qr_8"
+  },
+  "shots": [
+    {
+      "id": "QR7-S1",
+      "start_seconds": 0.0,
+      "end_seconds": 7.0,
+      "visual": "Open on the Quality Runner case-study title and decision-trail spine.",
+      "claim_levels": ["candidate"]
+    },
+    {
+      "id": "QR7-S2",
+      "start_seconds": 7.0,
+      "end_seconds": 14.8,
+      "visual": "Reveal the 684-candidate scope with the candidate-not-verdict label visible.",
+      "claim_levels": ["candidate"]
+    },
+    {
+      "id": "QR7-S3",
+      "start_seconds": 14.8,
+      "end_seconds": 28.8,
+      "visual": "Move to the rejected shortcut: 127-file disposable snapshot and 15-error result.",
+      "claim_levels": ["finding"]
+    },
+    {
+      "id": "QR7-S4",
+      "start_seconds": 28.8,
+      "end_seconds": 35.8,
+      "visual": "Resolve the candidate field into the five bounded repair lanes.",
+      "claim_levels": ["finding"]
+    },
+    {
+      "id": "QR7-S5",
+      "start_seconds": 35.8,
+      "end_seconds": 47.0,
+      "visual": "Hold the exact candidate revision, seven historical gates, and separately labeled dev readback.",
+      "claim_levels": ["local_gate", "branch_promotion"]
+    },
+    {
+      "id": "QR7-S6",
+      "start_seconds": 47.0,
+      "end_seconds": 59.4,
+      "visual": "Show the desktop/mobile case-study renders, then stop on the deployment-not-verified boundary.",
+      "claim_levels": ["browser", "deployment"]
+    },
+    {
+      "id": "QR7-S7",
+      "start_seconds": 59.4,
+      "end_seconds": 65.585261,
+      "visual": "Return to the decision trail with the safer-decision outcome line.",
+      "claim_levels": [
+        "candidate",
+        "finding",
+        "local_gate",
+        "branch_promotion",
+        "browser",
+        "deployment"
+      ]
+    }
+  ],
+  "redaction_check": {
+    "status": "passed_for_script_and_reviewed_captures",
+    "checks": [
+      "No credentials, tokens, email addresses, usernames, or private filesystem paths appear in the narration.",
+      "Only reviewed short revision identifiers and aggregate case counts appear.",
+      "The planned visuals use the already reviewed case-study captures, not raw terminal or provider screens.",
+      "Candidate, gate, branch, browser, and deployment labels remain visible when their claims are narrated."
+    ],
+    "live_capture_rule": "Stop recording if any unreviewed terminal, provider, notification, account, or filesystem surface enters frame."
+  },
+  "recovery_paths": [
+    {
+      "trigger": "The live case-study surface does not load or layout shifts.",
+      "action": "Use the reviewed desktop and mobile captures and continue the same narration."
+    },
+    {
+      "trigger": "The provider branch readback cannot be refreshed.",
+      "action": "Use the recorded receipt and say its observation timestamp; do not imply current branch or deployment state."
+    },
+    {
+      "trigger": "The run exceeds 90 seconds.",
+      "action": "Replace the responsive-surface pan with one split-screen still; retain the browser and deployment boundary sentence."
+    },
+    {
+      "trigger": "A redaction concern appears during capture.",
+      "action": "Stop the take and restart from the last reviewed static frame; do not crop a sensitive live frame after the fact."
+    },
+    {
+      "trigger": "The narration stumbles after the rejected-shortcut reveal.",
+      "action": "Restart at QR7-S3 and splice only on the static transition into the repair lanes."
+    }
+  ],
+  "claim_ledger_path": "claim-ledger.json",
+  "limitations": [
+    "This timing pass used synthesized speech, not the final human delivery.",
+    "The seven gates are recorded in a canonical historical report and were not freshly rerun for this rehearsal.",
+    "The branch readback is time-bound and does not prove deployment.",
+    "The reviewed browser captures cover the local case-study surface, not the Tenure product or a public page.",
+    "Final public copy, recording, captions, preview, hosting, and owner approval remain QR-8 work."
+  ]
+}

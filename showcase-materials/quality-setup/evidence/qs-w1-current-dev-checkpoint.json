@@ -1,0 +1,47 @@
+{
+  "schema": "showcase-current-dev-checkpoint/v1",
+  "project": "quality-setup",
+  "observed_at": "2026-08-14T02:49:09Z",
+  "repository": {
+    "path": "/Users/jakyeamos/projects/quality-setup",
+    "branch": "dev",
+    "revision": "f153fff78575d17eb90fc37174ac4edbe02d73e1",
+    "working_tree": "clean"
+  },
+  "route": {
+    "status": "Ready",
+    "doctor": "Ready",
+    "snapshot": "2026-08-14T01:41:50Z",
+    "scope": "current repository"
+  },
+  "commands": [
+    { "command": "pnpm test", "status": "passed", "summary": "3 tests passed" },
+    { "command": "pnpm lint", "status": "passed", "summary": "node syntax checks passed" },
+    { "command": "pnpm package", "status": "passed", "summary": "package surface ok" }
+  ],
+  "scenario": {
+    "fixture": "ephemeral isolated Node/pnpm repository; temporary path intentionally omitted",
+    "target_revision": "6c15ea46744d7be21b12b1c152130c6d587e8df7",
+    "before": { "status": "supported", "ecosystem": "node", "package_manager": "pnpm", "dirty_state": "clean" },
+    "plan": { "status": "ready", "change": ".quality-setup/config.json", "reversible": true, "verification": "node --version" },
+    "apply": { "status": "applied", "changed": [".quality-setup/config.json"], "rollback_receipt": ".quality-setup/rollback.json" },
+    "verify": { "status": "passed", "config_schema": "quality-setup-config-v0.1", "quality_command": "pnpm test" },
+    "conflict_refusal": { "status": "conflict", "reason": ".quality-setup/config.json already exists; no overwrite is proposed." },
+    "rollback": { "status": "rolled_back", "removed": [".quality-setup/config.json"] },
+    "post_rollback": { "config_exists": false, "status": "supported", "unrelated_work_preserved": "not applicable in this clean fixture" }
+  },
+  "preview": {
+    "svg": "assets/preview-16x9.svg",
+    "png": "assets/preview-16x9.png",
+    "png_sha256": "e898f34b33266e05c4ed4223b9cf3565a4cc5b1eb9153970a03e579399f34bbb",
+    "png_dimensions": "1600x900",
+    "png_color": "8-bit RGBA",
+    "visual_inspection": "passed"
+  },
+  "open_gates": [
+    "The current product verifies node --version after apply; a real quality-command smoke is still an explicit product-proof gap.",
+    "A second supported ecosystem remains intentionally out of scope for W1.",
+    "Direct hosted no-auth and external destination readbacks remain unverified."
+  ],
+  "claim_boundary": "Current dev checks and one isolated Node/pnpm setup flow are verified locally; this is not broad ecosystem support, a hosted release, or proof of installation into a user's repository."
+}

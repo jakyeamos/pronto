@@ -1,0 +1,16 @@
+schema_version: rdw-qa-result/v1
+artifact: outputs/drafts/public-description.md
+status: pass_with_human_review
+checks:
+  grounded_behavior: pass
+  grounded_mechanism: pass
+  historical_provenance: pass
+  raw_vs_actionable_semantics: pass
+  current_checkout_boundary: pass
+  deployment_boundary: pass
+  audience_fit: pass
+  style_only_humanizer_pass: pass
+needs_human_review: true
+review_reason: >-
+  The research packet is a run-local candidate rather than a promoted canonical
+  packet, and the package still requires owner approval before public delivery.

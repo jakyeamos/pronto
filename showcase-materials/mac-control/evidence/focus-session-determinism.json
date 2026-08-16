@@ -1,0 +1,34 @@
+{
+  "schema_version": "pronto-showcase-determinism-check/v1",
+  "checked_at": "2026-08-12T18:56:18Z",
+  "gap_id": "MC-1",
+  "source_repository": "/Users/jakyeamos/projects/mac-control",
+  "source_commit": "e66c608dc88fc3ab72056fa7c6ce93c2a7473645",
+  "working_tree_state": "dirty_preserved",
+  "commands": [
+    ".build/debug/macctl task compose focus-session --request 'Prepare my research session' --json",
+    ".build/debug/macctl task compose focus-session --request '  prepare   MY research SESSION  ' --json"
+  ],
+  "comparison": {
+    "byte_identical": true,
+    "first_exit_code": 0,
+    "second_exit_code": 0,
+    "approval_digest": "22c4bbe245b375ee99a5d44aa2d7376956a5b3d4ed87ee346d46b82e4118723e"
+  },
+  "negative_check": {
+    "request": "Organize everything",
+    "exit_code": 1,
+    "status": "failed",
+    "error_code": "cli_error"
+  },
+  "focused_test": {
+    "command": "swift test --filter FocusSessionPlanTests",
+    "tests": 5,
+    "failures": 0
+  },
+  "limitations": [
+    "This proves source-build composition behavior, not the installed macctl build.",
+    "The preview is intentionally non-executable until MC-2 and MC-3 close installed progress and live independent verification routes.",
+    "Live Control Center progress, stale-state refusal, capture privacy, and installed-surface evidence remain open."
+  ]
+}

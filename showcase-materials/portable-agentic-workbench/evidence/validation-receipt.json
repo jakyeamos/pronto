@@ -1,0 +1,178 @@
+{
+  "schema_version": "pronto-showcase-portable-workbench-validation-receipt/v1",
+  "project": "portable-agentic-workbench",
+  "case_id": "PW-1-safe-tool-guards",
+  "captured_on": "2026-08-13",
+  "source": {
+    "repository": "jakyeamos/jakyeamos-agentic-setup",
+    "commit": "4d813b4235859588aa1ff3549f15cf53768258af",
+    "execution_baseline": "clean archive at recorded HEAD",
+    "recovery_execution": "clean archive plus the local scripts/workbench.py recovery patch",
+    "recovery_patch_sha256": "8441feb51f6f68eb5c2aa39f79b99cd240c98b20eb4d70994320c9f35a753340",
+    "selection_validation": "python3 scripts/workbench.py validate --json",
+    "selection_validation_result": {
+      "catalog": true,
+      "skills": true,
+      "safety": true,
+      "ok": true,
+      "errors": []
+    }
+  },
+  "commands": {
+    "dry_run": "python3 scripts/workbench.py install safe-tool-guards --target <target> --root <empty-target> --dry-run --json",
+    "apply": "python3 scripts/workbench.py install safe-tool-guards --target <target> --root <empty-target> --apply --json",
+    "overwrite_guard": "python3 scripts/workbench.py install safe-tool-guards --target <target> --root <populated-target> --apply --json",
+    "recovery_dry_run": "python3 scripts/workbench.py uninstall safe-tool-guards --target <target> --root <receipt-owned-target> --dry-run --json",
+    "recovery_apply": "python3 scripts/workbench.py uninstall safe-tool-guards --target <target> --root <receipt-owned-target> --apply --json",
+    "modified_recovery_guard": "edit one receipt-owned file, then run uninstall --apply --json"
+  },
+  "runtime_comparison": {
+    "status": "blocked",
+    "reason_code": "host_behavior_requires_unpermitted_runtime_execution",
+    "evidence_ref": "evidence/runtime-comparison.json",
+    "generic": "unavailable: adapter has no executable runtime",
+    "codex": "blocked: provider-backed execution is outside the repository policy",
+    "positive_negative_boundary_matrix": "blocked",
+    "raw_output_policy": "Only versions, fixed reason codes, and output hashes are retained; no provider output, prompt, transcript, or private path is recorded."
+  },
+  "runs": {
+    "generic": {
+      "baseline": { "target_file_count": 0, "target_status": "empty" },
+      "dry_run": {
+        "status": "ready",
+        "dry_run": true,
+        "actions": [
+          {
+            "source": "workflows/safe-tool-guards/CONTRACT.md",
+            "destination": "TARGET_ROOT/workbench/workflows/safe-tool-guards/CONTRACT.md",
+            "status": "would-copy"
+          },
+          {
+            "source": "workflows/safe-tool-guards/WORKFLOW.md",
+            "destination": "TARGET_ROOT/workbench/workflows/safe-tool-guards/WORKFLOW.md",
+            "status": "would-copy"
+          }
+        ],
+        "manual_review_present": true,
+        "target_file_count_after": 0
+      },
+      "apply": {
+        "status": "ready",
+        "dry_run": false,
+        "copied_count": 2,
+        "target_file_count_after": 2
+      },
+      "overwrite_guard": {
+        "status": "blocked-existing-files",
+        "existing_count": 2,
+        "mutation_performed": false
+      },
+      "recovery": {
+        "dry_run": {
+          "status": "ready",
+          "dry_run": true,
+          "action_status": "would-remove",
+          "action_count": 2,
+          "target_file_count_before": 2,
+          "target_file_count_after": 2,
+          "unrelated_file_preserved": true
+        },
+        "apply": {
+          "status": "uninstalled",
+          "dry_run": false,
+          "removed_count": 2,
+          "receipt_removed": true,
+          "target_file_count_after": 0,
+          "unrelated_file_preserved": true
+        },
+        "modified_guard": {
+          "status": "blocked-uninstall-safety",
+          "action_statuses": ["modified", "ready-to-remove"],
+          "mutation_performed": false,
+          "receipt_preserved": true
+        }
+      },
+      "installed_hashes": {
+        "CONTRACT.md": "2b77fd647e94944960858a49237d6bf52784f503d1f1c2fcf6088d591f996d12",
+        "WORKFLOW.md": "be8531f0bb50960a53c2c56fcaf695227f7b4f11fab311c3e05f8e7a6bd0a61e"
+      }
+    },
+    "codex": {
+      "baseline": { "target_file_count": 0, "target_status": "empty" },
+      "dry_run": {
+        "status": "ready",
+        "dry_run": true,
+        "actions": [
+          {
+            "source": "workflows/safe-tool-guards/CONTRACT.md",
+            "destination": "TARGET_ROOT/workbench/workflows/safe-tool-guards/CONTRACT.md",
+            "status": "would-copy"
+          },
+          {
+            "source": "workflows/safe-tool-guards/WORKFLOW.md",
+            "destination": "TARGET_ROOT/workbench/workflows/safe-tool-guards/WORKFLOW.md",
+            "status": "would-copy"
+          }
+        ],
+        "manual_review_present": true,
+        "target_file_count_after": 0
+      },
+      "apply": {
+        "status": "ready",
+        "dry_run": false,
+        "copied_count": 2,
+        "target_file_count_after": 2
+      },
+      "overwrite_guard": {
+        "status": "blocked-existing-files",
+        "existing_count": 2,
+        "mutation_performed": false
+      },
+      "recovery": {
+        "dry_run": {
+          "status": "ready",
+          "dry_run": true,
+          "action_status": "would-remove",
+          "action_count": 2,
+          "target_file_count_before": 2,
+          "target_file_count_after": 2,
+          "unrelated_file_preserved": true
+        },
+        "apply": {
+          "status": "uninstalled",
+          "dry_run": false,
+          "removed_count": 2,
+          "receipt_removed": true,
+          "target_file_count_after": 0,
+          "unrelated_file_preserved": true
+        },
+        "modified_guard": {
+          "status": "blocked-uninstall-safety",
+          "action_statuses": ["modified", "ready-to-remove"],
+          "mutation_performed": false,
+          "receipt_preserved": true
+        }
+      },
+      "installed_hashes": {
+        "CONTRACT.md": "2b77fd647e94944960858a49237d6bf52784f503d1f1c2fcf6088d591f996d12",
+        "WORKFLOW.md": "be8531f0bb50960a53c2c56fcaf695227f7b4f11fab311c3e05f8e7a6bd0a61e"
+      }
+    }
+  },
+  "parity": {
+    "equivalent_install_contract": true,
+    "same_action_count": true,
+    "same_relative_destinations": true,
+    "same_file_hashes": true,
+    "projection": "native_portable",
+    "provider_difference": "The target label changes; the portable files do not. Codex registration stays outside the installer."
+  },
+  "recovery": {
+    "status": "supported",
+    "scope": "receipt-owned manifest files only",
+    "proof": "Dry-run previews two removals; apply removes two unchanged receipt-owned files and the receipt; an unrelated sentinel survives; a modified file blocks without mutation.",
+    "limitations": "This is local file recovery proof, not host registration rollback or provider runtime recovery."
+  },
+  "equivalent_runs": true,
+  "raw_output_policy": "Raw command output and local target paths are intentionally omitted; statuses, relative destinations, hashes, and reason codes are retained."
+}

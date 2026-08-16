@@ -1,0 +1,284 @@
+id: mac-control-showcase
+schema_version: rdw-packet/v1
+evidence_schema_version: rdw-evidence/v1
+domain: technical
+entity_type: feature
+entity_name: Mac Control
+topic: AI Showcase feature explainer and capture packet
+time_period: current as of 2026-08-12
+context: Evidence-bounded materials for technical recruiters, hiring managers, and AI product builders.
+
+key_facts:
+  - id: fact-001
+    text: "Mac Control is a command-first macOS control plane whose per-user daemon owns the GUI session and exposes a local, owner-only Unix socket to its CLI."
+    source_ids: [source-repo-readme, source-installed-capabilities]
+    temporal_scope: { state: as_of, as_of: "2026-08-12" }
+    freshness: { state: fresh, accessed_at: "2026-08-12T15:10:45Z" }
+  - id: fact-002
+    text: "The installed capability surface reports typed app, workflow, keyboard, control, task, shortcut, authorization-notice, and adapter operations."
+    source_ids: [source-repo-readme, source-installed-capabilities]
+    temporal_scope: { state: as_of, as_of: "2026-08-12T15:10:45Z" }
+    freshness: { state: fresh, accessed_at: "2026-08-12T15:10:45Z" }
+  - id: fact-003
+    text: "Sensitive workflows use a prepare, approve, execute, and verify lifecycle with short-lived single-use authority and redacted receipts."
+    source_ids:
+      [source-repo-readme, source-tier1-policy, source-installed-capabilities]
+    temporal_scope: { state: as_of, as_of: "2026-08-12" }
+    freshness: { state: fresh, accessed_at: "2026-08-12T15:10:45Z" }
+  - id: fact-004
+    text: "The repository's Phase 2 benchmark reports a 134.924 ms median for a verified System Settings focus action in the Mac Control lane, with 3 of 3 measured samples passing; the direct System Events lane reports 479.491 ms and the generic GUI lane reports 11814.550 ms under the same named comparison."
+    source_ids: [source-benchmark-method, source-benchmark-results]
+    temporal_scope: { state: period, start: "2026-08-09", end: "2026-08-09" }
+    freshness: { state: fresh, accessed_at: "2026-08-12T15:09:30Z" }
+  - id: fact-005
+    text: "The same Phase 2 report marks the Finder scroll Mac Control and hybrid comparisons as insufficient evidence because measurement was blocked before a comparable passing result was recorded."
+    source_ids: [source-benchmark-method, source-benchmark-results]
+    temporal_scope: { state: period, start: "2026-08-09", end: "2026-08-09" }
+    freshness: { state: fresh, accessed_at: "2026-08-12T15:09:30Z" }
+  - id: fact-006
+    text: "The installed release check observed on 2026-08-12 did not pass: four checks passed, receipt storage failed, and eight checks were blocked, including the daemon socket, daemon identity, daemon permissions, and several daemon-authoritative capability gates."
+    source_ids: [source-tier1-policy, source-installed-release-check]
+    temporal_scope: { state: as_of, as_of: "2026-08-12T15:10:45Z" }
+    freshness: { state: fresh, accessed_at: "2026-08-12T15:10:45Z" }
+  - id: fact-007
+    text: "Pronto currently classifies Mac Control as a public-showcase project with high career signal but missing a 16:9 preview, a public case study, and redacted authorization and outcome proof. Video is an optional enhancement."
+    source_ids: [source-pronto-goal, source-showcase-contract]
+    temporal_scope: { state: as_of, as_of: "2026-08-12" }
+    freshness: { state: fresh, accessed_at: "2026-08-12T15:12:30Z" }
+  - id: fact-008
+    text: "The reviewed Showcase quality bar requires five-second comprehension, immediate product proof, clear AI and human roles, credible evidence, public low-friction access, and coordinated Handshake packaging."
+    source_ids: [source-career-ops-quality-bar, source-showcase-contract]
+    temporal_scope: { state: as_of, as_of: "2026-08-12" }
+    freshness: { state: fresh, accessed_at: "2026-08-12T15:12:30Z" }
+
+relevant_metrics:
+  - name: verified System Settings focus median
+    value: 134.924
+    unit: milliseconds
+    denominator: 3 measured samples
+    season: 2026-08-09 benchmark run
+    sample: phase2-focus-system-settings-agent-scope-v1, Mac Control lane
+    what_it_captures: end-to-end verified action under the benchmark's documented comparison identity
+    what_it_misses: broader app coverage, production reliability, and currently blocked release-gate evidence
+    fact_ids: [fact-004, fact-005, fact-006]
+
+domain_terms:
+  - owner-only Unix socket
+  - provider-neutral outcome
+  - approval lifecycle
+  - redacted receipt
+  - semantic control
+  - fail closed
+
+concepts_that_apply:
+  - failure-mode-first
+
+source_notes:
+  - source: "/Users/jakyeamos/projects/mac-control/README.md"
+    source_id: source-repo-readme
+    independence_group: mac-control-repository
+    source_role: evidence
+    accessed: "2026-08-12"
+    note: "Primary product contract and user-facing behavior documentation."
+    fact_ids: [fact-001, fact-002, fact-003]
+    authority: primary
+    evidence_state: verified
+    retrieval:
+      {
+        status: retrieved,
+        content_sha256: "sha256:e8bd354fc0d5636c6b7392f3b18a64787c71accb1ff2b728d1a42ade0d84e7f5",
+      }
+  - source: "/Users/jakyeamos/projects/mac-control/docs/TIER1_RELEASE.md"
+    source_id: source-tier1-policy
+    independence_group: mac-control-repository
+    source_role: evidence
+    accessed: "2026-08-12"
+    note: "Primary release-gate definitions and evidence boundaries."
+    fact_ids: [fact-003, fact-006]
+    authority: primary
+    evidence_state: verified
+    retrieval:
+      {
+        status: retrieved,
+        content_sha256: "sha256:149ccdd00f48af53977454765a319f7aa4a84833a0f8d4fc6ea3eac3b799e815",
+      }
+  - source: "/Users/jakyeamos/projects/mac-control/benchmarks/control-comparison/README.md"
+    source_id: source-benchmark-method
+    independence_group: mac-control-repository
+    source_role: evidence
+    accessed: "2026-08-12"
+    note: "Benchmark methodology, pairing, timing, oracle, safety, and provenance contract."
+    fact_ids: [fact-004, fact-005]
+    authority: primary
+    evidence_state: verified
+    retrieval:
+      {
+        status: retrieved,
+        content_sha256: "sha256:0edd37fb93ca1da7f1ae9c4f4f6e93284467354343f7e42cc5c3766025330a50",
+      }
+  - source: "/Users/jakyeamos/projects/mac-control/benchmarks/results/phase2-summary-final.md"
+    source_id: source-benchmark-results
+    independence_group: mac-control-repository
+    source_role: evidence
+    accessed: "2026-08-12"
+    note: "Generated summary for the named System Settings focus and Finder scroll comparisons."
+    fact_ids: [fact-004, fact-005]
+    authority: primary
+    evidence_state: observed
+    retrieval:
+      {
+        status: retrieved,
+        content_sha256: "sha256:f29aa0f7bc0e89ef74dfb0544e810ad31d8adcdf3821e58f85410769e49c70f3",
+      }
+  - source: "macctl capabilities --json"
+    source_id: source-installed-capabilities
+    independence_group: installed-mac-control-runtime
+    source_role: evidence
+    accessed: "2026-08-12"
+    note: "Read-only installed CLI capability report. The command returned a client-context capability surface; daemon permissions were missing or unknown."
+    fact_ids: [fact-001, fact-002, fact-003]
+    authority: primary
+    evidence_state: observed
+    retrieval:
+      {
+        status: retrieved,
+        content_sha256: "sha256:04227cea04a8800889fd4c6a498f112438857534df2032be1aa88794158cb33c",
+      }
+  - source: "macctl release check --json"
+    source_id: source-installed-release-check
+    independence_group: installed-mac-control-runtime
+    source_role: evidence
+    accessed: "2026-08-12"
+    note: "Read-only installed release report. It failed closed rather than converting missing daemon evidence into a pass."
+    fact_ids: [fact-006]
+    authority: primary
+    evidence_state: observed
+    retrieval:
+      {
+        status: retrieved,
+        content_sha256: "sha256:7593c418adf3e1e64ba64b80c56058feda889d8336d8b18dae094eddddbf138c",
+      }
+  - source: "/Users/jakyeamos/Documents/pronto/.pronto/showcase-goal.json"
+    source_id: source-pronto-goal
+    independence_group: pronto-portfolio-contract
+    source_role: evidence
+    accessed: "2026-08-12"
+    note: "Current reviewed project disposition, scores, missing materials, and next action."
+    fact_ids: [fact-007]
+    authority: primary
+    evidence_state: observed
+    retrieval:
+      {
+        status: retrieved,
+        content_sha256: "sha256:7fa7e7f8cb72e0541c0b56cc12e4ba21d49eed5049dc1afb9f7d0a31b3c71224",
+      }
+  - source: "/Users/jakyeamos/Documents/pronto/docs/showcase-contract.md"
+    source_id: source-showcase-contract
+    independence_group: pronto-portfolio-contract
+    source_role: evidence
+    accessed: "2026-08-12"
+    note: "Fleet-level Showcase artifact and publication-readiness contract."
+    fact_ids: [fact-007, fact-008]
+    authority: primary
+    evidence_state: verified
+    retrieval:
+      {
+        status: retrieved,
+        content_sha256: "sha256:3f6a6639d53346e1640188deb8a70c565d0f0d42ff33bddfa019e6a1c33842bd",
+      }
+  - source: "/Users/jakyeamos/projects/career-ops/research/handshake-ai-showcase-quality-bar-2026-08.md"
+    source_id: source-career-ops-quality-bar
+    independence_group: career-ops-showcase-research
+    source_role: evidence
+    accessed: "2026-08-12"
+    note: "Authenticated Handshake review and reusable packaging standard."
+    fact_ids: [fact-008]
+    authority: secondary
+    evidence_state: observed
+    retrieval:
+      {
+        status: retrieved,
+        content_sha256: "sha256:d95d48c776b8eb85f33fb105b85c8f3fe732c850ccc87cb0ceb31edfc2ba3944",
+      }
+
+interpretation_notes:
+  - "The strongest story is not generic GUI automation; it is an explainable, local control boundary for agent actions."
+  - "The internal benchmark is useful as a bounded example, not as a universal speed claim."
+  - "The failed current release gate strengthens the case study when presented as evidence of fail-closed design, but it blocks production-readiness wording."
+
+open_questions:
+  - "Which public no-auth host will carry the finished case-study page?"
+  - "Can a fresh, redacted GUI capture reproduce the approval and verified-outcome sequence outside the restricted agent runtime?"
+  - "Which repository URL is approved for public inclusion?"
+
+uncertainties:
+  - "The current installed daemon could not be reached from this restricted agent runtime, so daemon-authoritative permissions and several live gates remain blocked."
+  - "The benchmark is project-authored evidence and has not been independently reproduced by a third party."
+  - "No current public, no-auth case-study URL or finished capture asset was verified."
+
+confidence_level: medium
+last_updated: "2026-08-12T15:12:30Z"
+used_in_outputs:
+  - mac-control-showcase-materials
+
+research_coverage:
+  schema_version: rdw-research-coverage/v1
+  output_type: feature_explainer
+  research_depth: standard
+  answers:
+    - question_id: technical-behavior
+      status: answered
+      summary: "Mac Control exposes a typed, local control plane for AI agents operating native macOS apps."
+      fact_ids: [fact-001, fact-002]
+    - question_id: technical-use-case
+      status: answered
+      summary: "It addresses the gap between an agent's intent and a native GUI action by making authority, dispatch, verification, and evidence explicit."
+      fact_ids: [fact-001, fact-003]
+    - question_id: technical-mechanism
+      status: answered
+      summary: "A per-user daemon owns the GUI session; typed CLI requests pass through permission, approval, route, verification, and redacted receipt boundaries."
+      fact_ids: [fact-001, fact-002, fact-003]
+    - question_id: technical-failure-modes
+      status: answered
+      summary: "Missing daemon connectivity, permission evidence, ambiguous targets, or failed verification block completion; the current release report demonstrates that boundary."
+      fact_ids: [fact-005, fact-006]
+    - question_id: technical-example
+      status: answered
+      summary: "A repository benchmark records a verified System Settings focus action and preserves blocked Finder comparisons instead of ranking incomplete evidence."
+      fact_ids: [fact-004, fact-005]
+  synthesis:
+    thesis: "Mac Control is best presented as an explainable local safety and verification layer between AI intent and native macOS action."
+    limitations:
+      - "Current release evidence is incomplete and does not support production-readiness language."
+      - "The numeric performance result is bounded to one named project-authored benchmark."
+      - "Public no-auth access and real capture assets remain unverified."
+    examples:
+      - "System Settings focus-next-control comparison with a 134.924 ms project-reported median and 3/3 passing samples."
+      - "Current release check that keeps missing daemon-authoritative evidence blocked."
+    counterevidence:
+      - "Finder scroll comparisons were blocked before measurement and remain insufficient evidence."
+      - "The current installed release check did not pass."
+    alternatives:
+      - "Direct system scripting can be faster than generic GUI control for narrow known tasks, but it does not provide the same shared approval, route, receipt, and provider-handoff contract."
+
+extensions:
+  feature:
+    product: Mac Control
+    problem: "AI agents need to operate native macOS interfaces without obscuring who authorized an action, what route ran, whether the result was verified, or what evidence was retained."
+    users:
+      - AI agent developers
+      - operators supervising native macOS automation
+      - engineers evaluating safe computer-control systems
+    architecture: "A command-line client sends typed requests over an owner-only Unix socket to a per-user daemon that owns GUI interaction, policy checks, execution, verification, and redacted evidence."
+    constraints:
+      - Requires a logged-in macOS GUI session for native interaction.
+      - macOS privacy permissions remain user-controlled.
+      - Browser DOM work belongs to a browser provider rather than this native control plane.
+      - Missing or ambiguous evidence fails closed.
+    risks:
+      - GUI state can be ambiguous or stale.
+      - Permission or daemon identity drift can invalidate live evidence.
+      - A project-authored benchmark can be overgeneralized if its scope is omitted.
+    metrics:
+      - "134.924 ms median, 3/3 passed, System Settings focus action, project-authored Phase 2 benchmark."
+    roadmap_status: shipped

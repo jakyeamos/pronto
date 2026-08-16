@@ -1,0 +1,63 @@
+{
+  "schema_version": "pronto-showcase-participant-dedup-copy-recovery-receipt/v1",
+  "project": "participant-dedup",
+  "gap": "PD-5",
+  "observed_at": "2026-08-13T18:29:00Z",
+  "status": "passed_as_local_behavior_fixture",
+  "source": {
+    "repository": "participant-dedup",
+    "path": "/Users/jakyeamos/projects/participant-dedup",
+    "branch": "dev",
+    "commit": "81569f4bff60e4f2d52cb0a401289ca1c5d80ff8",
+    "checkout_status": "clean_at_inspection",
+    "fixture": "test/support/participantFixture.ts",
+    "gateway": "two independent FakeSheetsGateway instances; in-memory only"
+  },
+  "verification": {
+    "targeted_tests": {
+      "command": "node_modules/.bin/vitest run test/server/apply/applyDecisions.test.ts test/server/apply/preflight.test.ts test/server/review/mergePlan.test.ts test/server/review/decisions.test.ts",
+      "test_files": 4,
+      "tests_passed": 66,
+      "status": "passed"
+    },
+    "copy_probe": {
+      "status": "passed",
+      "original": {
+        "digest_before": "adfda415b98550176f7c47e8826ebe6b55dc40a3b12defe21b63a521904bef04",
+        "digest_after": "adfda415b98550176f7c47e8826ebe6b55dc40a3b12defe21b63a521904bef04",
+        "unchanged": true,
+        "rows": 9
+      },
+      "copy": {
+        "digest_before": "adfda415b98550176f7c47e8826ebe6b55dc40a3b12defe21b63a521904bef04",
+        "digest_after": "6ee2bb5c8710cd140a7c0c09b27c591182e70b90ff1fd92d322bd4048973c5e0",
+        "rows_before": 9,
+        "rows_after": 6
+      },
+      "apply_result": {
+        "deleted_rows": 3,
+        "filled_fields": 1,
+        "audit_written": 7
+      },
+      "recovery": {
+        "deleted_event_count": 3,
+        "snapshots_present": true,
+        "history_filtered_count": 3,
+        "history_total_count": 19,
+        "history_events_have_apply_batch": true
+      }
+    },
+    "installed_surface": {
+      "status": "not_proven",
+      "authenticated_google_sheet": "not exercised",
+      "apps_script_sidebar": "not captured",
+      "deployed_backend": "not exercised"
+    }
+  },
+  "claim_boundary": [
+    "PD-5 is closed for the local copy boundary: the original digest is unchanged while the copy changes and retains recovery snapshots.",
+    "The audit trail is append-only local evidence with three deleted-row snapshots tied to one apply batch.",
+    "This is not a claim that a live workbook copy or deployed audit export was exercised."
+  ],
+  "next_gap": "PD-6"
+}

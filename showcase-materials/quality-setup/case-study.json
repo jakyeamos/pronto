@@ -1,0 +1,36 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "quality-setup",
+  "status": "candidate_local",
+  "title": "Quality Setup: every setup has a way back",
+  "audience": "Developers who need repository-local quality setup without silent mutation or irreversible installation.",
+  "promise": "Inspect the ecosystem, preview the owned change, apply explicitly, verify the result, refuse conflicts, and recover through a rollback receipt.",
+  "story": [
+    "A clean Node repository is recognized as a supported pnpm target.",
+    "The plan names one repository-local config and a reversible change.",
+    "Explicit apply writes only the owned config and rollback receipt.",
+    "Verification passes, a second plan refuses overwrite, and rollback removes only the owned config."
+  ],
+  "evidence": [
+    "evidence/qs-w1-scenario-matrix.json",
+    "evidence/qs-w1-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
+    "assets/preview-16x9.svg",
+    "../../../projects/quality-setup/README.md",
+    "../../../projects/quality-setup/test/core.test.mjs"
+  ],
+  "verified_locally": [
+    "Current dev branch is clean at f153fff78575d17eb90fc37174ac4edbe02d73e1; repository tests, lint, and package checks pass.",
+    "Supported Node/pnpm inspection and clean-target detection.",
+    "Preview-first plan with an explicit reversible file change.",
+    "Apply, verify, conflict refusal, and rollback on an isolated fixture.",
+    "A crop-safe 1600x900 SVG/PNG preview is visually inspected."
+  ],
+  "open_gates": [
+    "The product currently verifies node --version after apply; a real quality-command smoke remains open.",
+    "Add a second supported ecosystem or document the narrow Node boundary.",
+    "Verify a hosted no-auth case.",
+    "Record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves current dev checks and one local W1 Node/pnpm setup workflow on an isolated fixture; it does not claim a real quality-command smoke, installation into a user's repository, broad ecosystem support, hosting, or publication."
+}

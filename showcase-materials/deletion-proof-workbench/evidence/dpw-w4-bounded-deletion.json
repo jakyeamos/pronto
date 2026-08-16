@@ -1,0 +1,50 @@
+{
+  "schema_version": "deletion-proof-workbench-showcase-evidence-v0.1",
+  "project": "deletion-proof-workbench",
+  "source_repository": "deletion-proof-workbench",
+  "source_revision": "aec44d9f3b633902e63d77148d80bec5a6083756",
+  "fixture_target_revision": "3634fe0381c372af4bd8e1c4f1411a9bd17de8ec",
+  "observed_at": "2026-08-13T23:54:55Z",
+  "candidate": {
+    "file": "src/model.ts",
+    "symbol": "unusedThing",
+    "declaration_sha256": "43e67839b47c82ec145b4edbc6b1f9a769346d9700966fc99116eeeccc7c97f8",
+    "static_references": [],
+    "package_exports": { ".": "./src/model.ts" },
+    "preview_removed_text": "export function unusedThing() { return 1; }\n",
+    "decision": "applied",
+    "recovery": {
+      "applied": true,
+      "restore_command": "insert declaration back into src/model.ts"
+    }
+  },
+  "refusal": {
+    "symbol": "usedThing",
+    "static_references": [
+      { "file": "src/consumer.ts", "provider": "bounded-regex" }
+    ],
+    "status": "blocked",
+    "reason": "Known static references remain; apply is disabled."
+  },
+  "unknowns": [
+    "dynamic imports",
+    "reflection",
+    "external consumers",
+    "generated entry points",
+    "package export map requires independent review"
+  ],
+  "stale_probe": {
+    "status": "open",
+    "reason": "Candidate content-change-before-apply was not claimed; the MVP acceptance matrix still lists this case as partial."
+  },
+  "safety": {
+    "target_revision_unchanged": true,
+    "primary_checkout_ref_mutation": false,
+    "external_write": false
+  },
+  "privacy": {
+    "credentials_collected": false,
+    "source_scope": "temporary local TypeScript fixture"
+  },
+  "claim_boundary": "This receipt proves one explicit authorized deletion, known-consumer refusal, recovery reference, and bounded unknown classes. It does not claim universal non-use, stale-candidate refusal, generated/reflection coverage, hosting, or publication."
+}

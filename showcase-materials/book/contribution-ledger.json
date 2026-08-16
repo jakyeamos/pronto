@@ -1,0 +1,102 @@
+{
+  "schema_version": "pronto-showcase-book-contribution-ledger/v1",
+  "project": "book",
+  "observed_at": "2026-08-13T17:37:05Z",
+  "status": "review_required",
+  "publication_ready": false,
+  "observed_surface": {
+    "repository": "Book",
+    "remote": "https://github.com/jakyeamos/Book.git",
+    "checkout": {
+      "path": "/Users/jakyeamos/projects/Book",
+      "branch": "dev",
+      "commit": "c18a00b9bac630444af5ec4fed0b12abfece1da0",
+      "status": "clean_at_inspection"
+    },
+    "source_refs": [
+      "README.md:3-13",
+      "chapters/index.json",
+      "chapters/ch01.html",
+      "chapters/config.js:1-175",
+      "styles.css:1"
+    ],
+    "git_author_identities": [
+      "jakyeamos <82969225+jakyeamos@users.noreply.github.com>",
+      "Jakye Amos <jakye.amos@gmail.com>",
+      "google-labs-jules[bot] <161369871+google-labs-jules@users.noreply.github.com>"
+    ],
+    "package_author_field": ""
+  },
+  "candidate": {
+    "chapter_id": "chapter1",
+    "title": "The Ritual",
+    "text_path": "chapters/ch01.html",
+    "selection_status": "candidate_only",
+    "selection_reason": "It is the first manifest chapter and exposes the documented reader-to-audiovisual transition seam.",
+    "sensitive_content_review": "required_before_capture"
+  },
+  "contributions": [
+    {
+      "id": "writing",
+      "surface": "chapters/ch01.html",
+      "role": "primary prose and narrative content",
+      "observed_status": "present",
+      "rights_status": "not_explicitly_documented",
+      "evidence_limit": "Git authorship and repository ownership do not establish publication permission or complete authorship.",
+      "required_record": "owner-authored or licensed chapter statement"
+    },
+    {
+      "id": "creative_direction_and_runtime",
+      "surface": "chapters/config.js, script.js, styles.css",
+      "role": "chapter themes, motion, particles, audio cue orchestration, and reader controls",
+      "observed_status": "present",
+      "rights_status": "source-authored-code_observed",
+      "evidence_limit": "Source authorship is not a substitute for a public contribution statement."
+    },
+    {
+      "id": "audio",
+      "surface": "assets/music/Eva_Angelina.mp3; assets/music/Mojo_Pin.mp3; assets/music/Rose_Parade.mp3",
+      "role": "chapter soundtrack and line-aware cue transitions",
+      "observed_status": "referenced_by_runtime",
+      "rights_status": "unknown_pending_license_or_permission",
+      "evidence_limit": "The repository contains filenames and hashes but no license, credit, or permission record for public showcase use.",
+      "required_record": "track-level license or permission and public credit"
+    },
+    {
+      "id": "fonts",
+      "surface": "styles.css:1",
+      "role": "Google Fonts stylesheet import",
+      "observed_status": "referenced_by_runtime",
+      "rights_status": "external_provenance_requires_review",
+      "evidence_limit": "The checkout does not bundle a font license/provenance note or pin the external stylesheet revision.",
+      "required_record": "font provenance and redistribution/display decision"
+    },
+    {
+      "id": "ai_assistance",
+      "surface": "git history and task records",
+      "role": "possible implementation assistance",
+      "observed_status": "not_determined",
+      "rights_status": "unknown_pending_owner_statement",
+      "evidence_limit": "A bot commit identity may indicate tooling involvement but does not establish which creative or technical work was AI-assisted."
+    }
+  ],
+  "required_decisions": [
+    "Confirm whether the selected chapter is owner-authored or licensed for public excerpt use.",
+    "Record public-use permission and credits for every soundtrack file, or replace the soundtrack with cleared/synthetic audio.",
+    "Record the font provenance and the intended public display/redistribution treatment.",
+    "Separate writing, creative direction, implementation, asset ownership, and AI assistance in the public case study.",
+    "Review the chapter for sensitive-content framing before any public capture."
+  ],
+  "synthetic_appendix": {
+    "path": "synthetic-fixture.json",
+    "role": "rights_safe_reproducibility_appendix_only",
+    "does_not_clear_bk_1": true
+  },
+  "claim_boundary": [
+    "The repository implements a manifest-driven interactive reader with chapter-specific motion, layered audio cues, and reader controls.",
+    "The local checkout is clean at the observed commit.",
+    "No public chapter, soundtrack, font, AI-role, or hosted behavior clearance is claimed.",
+    "The synthetic appendix is not the product chapter and must stay labeled when shown."
+  ],
+  "next_gap": "BK-1"
+}

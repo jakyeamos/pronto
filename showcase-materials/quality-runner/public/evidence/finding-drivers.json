@@ -1,0 +1,89 @@
+{
+  "schema_version": "pronto-showcase-public-finding-drivers/v1",
+  "project": "quality-runner",
+  "case_id": "tenure-quality-values-burndown-2026-07",
+  "promise": "Repository signals select the standards that matter, and every resulting finding retains its pack, rule, scope, and coverage context.",
+  "historical_run": {
+    "repository": "tenure",
+    "run_id": "qr060-tenure-20260717-capabilities-verify",
+    "quality_runner_version": "0.6.0",
+    "created_at": "2026-07-17T19:14:31.469125+00:00",
+    "branch": "dev",
+    "head_sha": "0702be6ce94d845dc281a19c881f9a742846a33d",
+    "dirty": true,
+    "mode": "verify-gates",
+    "implementation_allowed": false,
+    "corpus_version": "2026.07.16",
+    "selection_mode": "relevant"
+  },
+  "selection": {
+    "eligible_pack_count": 12,
+    "selected_pack_count": 8,
+    "selected_packs": [
+      "copy-specificity",
+      "data-integrity",
+      "developer-experience",
+      "pr-risk",
+      "release-readiness",
+      "test-strategy",
+      "ui-foundations",
+      "ui-specificity"
+    ]
+  },
+  "scan_result": {
+    "total_findings": 4022,
+    "warnings": 2794,
+    "observations": 1228,
+    "files": 886,
+    "lines": 142955,
+    "coverage_entries": 50,
+    "quality_skill_findings": {
+      "ui-foundations": 192,
+      "ui-specificity": 179,
+      "release-readiness": 1,
+      "developer-experience": 1
+    }
+  },
+  "mechanism": [
+    "read repository signals",
+    "select relevant standards packs",
+    "evaluate scoped deterministic rules and review obligations",
+    "retain pack, rule, evidence, and coverage provenance",
+    "review each row before changing code or recording a disposition"
+  ],
+  "customization_model": {
+    "automatic_default": "relevant packs are selected from repository signals",
+    "owner_control": "owners may change selection mode, active packs, local skills, path scope, rules, thresholds, and scan exclusions",
+    "why_it_matters": "two repositories can run the same engine while being judged against different definitions of quality"
+  },
+  "agent_reconciliation_model": {
+    "relationship": "Quality Runner supplies the evidence, stable fingerprints, remediation context, and resolution ledger; a reviewing agent investigates source and proposes or records the evidence-backed outcome.",
+    "outcomes": {
+      "fixed": "source changed and focused proof showed the finding cleared",
+      "accepted-intentional": "an intentional tradeoff remains visible with its reason and evidence",
+      "false-positive": "source evidence shows the detector row is not actionable, so the disposition is preserved instead of silently suppressing it",
+      "open": "the evidence still supports actionable or unresolved work"
+    },
+    "terminal_interpretation": "The 537 retained rows were still raw detector output, but the historical ledger had reconciled their meaning and recorded 0 open actionable findings."
+  },
+  "value_execution_loop": [
+    "name the team standard",
+    "make the prevented outcome explicit",
+    "compile a deterministic rule or bounded review rubric",
+    "emit concrete findings with provenance and coverage",
+    "turn reviewed debt into bounded remediation work"
+  ],
+  "boundaries": [
+    "historical_run_was_dirty",
+    "raw_findings_are_not_confirmed_defects",
+    "raw_instruction_sources_require_reviewed_ingest",
+    "quality_runner_does_not_execute_arbitrary_skill_code",
+    "gate_execution_was_blocked_without_consent",
+    "historical_evidence_is_not_current_checkout_or_deployment_proof"
+  ],
+  "provenance": {
+    "source_packet": "../../finding-drivers.json",
+    "source_packet_sha256": "34c4b99895aa757bd70e391c316a873cf2af573374db60cc9e0997866bddcc9b",
+    "redactions": ["private_absolute_evidence_paths"]
+  }
+}

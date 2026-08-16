@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Northstar Air · Synthetic itinerary</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #f4f7fb;
+        --muted: #9da9bb;
+        --panel: rgba(18, 27, 43, 0.82);
+        --panel-strong: #18243a;
+        --line: rgba(196, 214, 241, 0.16);
+        --accent: #78e6c1;
+        --accent-soft: rgba(120, 230, 193, 0.12);
+        --warning: #f5c46a;
+        --warning-soft: rgba(245, 196, 106, 0.13);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100vh;
+        background:
+          radial-gradient(
+            circle at 18% 12%,
+            rgba(88, 126, 227, 0.28),
+            transparent 32rem
+          ),
+          radial-gradient(
+            circle at 82% 88%,
+            rgba(78, 207, 179, 0.15),
+            transparent 28rem
+          ),
+          #0b1220;
+        color: var(--ink);
+        font:
+          15px/1.5 Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      main {
+        width: min(880px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 56px 0 72px;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 680px;
+        margin: 0;
+        font-size: clamp(2.2rem, 6vw, 4.5rem);
+        line-height: 0.98;
+        letter-spacing: -0.055em;
+      }
+      .lede {
+        max-width: 620px;
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: 1.08rem;
+      }
+
+      .fixture-label {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        margin: 28px 0 34px;
+        padding: 8px 12px;
+        border: 1px solid rgba(120, 230, 193, 0.34);
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .fixture-label::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        content: "";
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 1fr 0.72fr;
+        gap: 18px;
+        align-items: start;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--panel);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+        backdrop-filter: blur(16px);
+      }
+      .card-body {
+        padding: 24px;
+      }
+      .card h2 {
+        margin: 0;
+        font-size: 1.08rem;
+        letter-spacing: -0.01em;
+      }
+      .card .subtle {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .route {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin: 26px 0;
+      }
+      .airport {
+        display: grid;
+        gap: 2px;
+      }
+      .airport strong {
+        font-size: 2rem;
+        letter-spacing: -0.05em;
+      }
+      .airport span {
+        color: var(--muted);
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+      .route-line {
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          var(--accent),
+          rgba(120, 230, 193, 0.08)
+        );
+        position: relative;
+      }
+      .route-line::after {
+        position: absolute;
+        right: 0;
+        top: -4px;
+        border: 4px solid transparent;
+        border-left-color: var(--accent);
+        content: "";
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 24px;
+      }
+      .meta-item {
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.025);
+      }
+      .meta-item dt {
+        color: var(--muted);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .meta-item dd {
+        margin: 4px 0 0;
+        font-weight: 700;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+      label {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      select {
+        width: 100%;
+        padding: 13px 14px;
+        border: 1px solid rgba(120, 230, 193, 0.35);
+        border-radius: 12px;
+        background: var(--panel-strong);
+        color: var(--ink);
+        font: inherit;
+      }
+      button {
+        border: 0;
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: var(--accent);
+        color: #092219;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 800;
+      }
+      button.secondary {
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--ink);
+      }
+      button:focus-visible,
+      select:focus-visible {
+        outline: 3px solid rgba(120, 230, 193, 0.42);
+        outline-offset: 3px;
+      }
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .status {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        margin-top: 20px;
+        padding: 12px 14px;
+        border: 1px solid rgba(245, 196, 106, 0.3);
+        border-radius: 14px;
+        background: var(--warning-soft);
+        color: #f8dfaa;
+        font-size: 0.88rem;
+      }
+      .status strong {
+        color: var(--warning);
+      }
+      .status::before {
+        width: 8px;
+        height: 8px;
+        flex: 0 0 auto;
+        margin-top: 7px;
+        border-radius: 50%;
+        background: var(--warning);
+        content: "";
+      }
+
+      .panel {
+        position: sticky;
+        top: 20px;
+      }
+      .panel .card-body {
+        padding: 20px;
+      }
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      .badge {
+        padding: 5px 8px;
+        border-radius: 999px;
+        background: var(--warning-soft);
+        color: var(--warning);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .step {
+        display: grid;
+        grid-template-columns: 24px 1fr;
+        gap: 10px;
+        padding: 15px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .step:last-child {
+        border-bottom: 0;
+      }
+      .step-number {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .step strong {
+        display: block;
+        font-size: 0.88rem;
+      }
+      .step span {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+      .privacy {
+        margin: 18px 0 0;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.76rem;
+      }
+
+      footer {
+        margin-top: 22px;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+      footer code {
+        color: #cbd5e6;
+      }
+
+      @media (max-width: 720px) {
+        main {
+          width: min(100% - 28px, 560px);
+          padding-top: 32px;
+        }
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        .panel {
+          position: static;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main data-fixture="codex-browser-control-cb1" data-network="disabled">
+      <p class="eyebrow">Northstar Air · local demo surface</p>
+      <h1>Act on the page that is actually open.</h1>
+      <p class="lede">
+        A disposable itinerary makes the browser-control contract visible:
+        observe a draft, propose one harmless preference change, then refuse an
+        old plan when the page moves on.
+      </p>
+      <div class="fixture-label">
+        Synthetic showcase fixture · no booking or account
+      </div>
+
+      <div class="shell">
+        <section class="card" aria-labelledby="trip-heading">
+          <div class="card-body">
+            <h2 id="trip-heading">Trip draft</h2>
+            <p class="subtle">A local page state. Nothing is submitted.</p>
+
+            <div class="route" aria-label="Synthetic route">
+              <div class="airport">
+                <strong id="origin">CLE</strong><span>depart</span>
+              </div>
+              <div class="route-line" aria-hidden="true"></div>
+              <div class="airport">
+                <strong id="destination">PDX</strong><span>arrive</span>
+              </div>
+            </div>
+
+            <dl class="meta">
+              <div class="meta-item">
+                <dt>Travel date</dt>
+                <dd id="travel-date">Sep 18, 2026</dd>
+              </div>
+              <div class="meta-item">
+                <dt>Traveler</dt>
+                <dd>Sample traveler</dd>
+              </div>
+              <div class="meta-item">
+                <dt>Flight</dt>
+                <dd id="flight-number">NS 482</dd>
+              </div>
+              <div class="meta-item">
+                <dt>Draft state</dt>
+                <dd id="draft-version">v1 · observed</dd>
+              </div>
+            </dl>
+
+            <div class="field">
+              <label for="seat-preference">Seat preference</label>
+              <select id="seat-preference" aria-label="Seat preference">
+                <option value="window">Window</option>
+                <option value="aisle">Aisle</option>
+                <option value="middle">Middle</option>
+              </select>
+            </div>
+
+            <div class="button-row">
+              <button id="change-itinerary" type="button">
+                User changes itinerary
+              </button>
+              <button id="reset-fixture" class="secondary" type="button">
+                Reset fixture
+              </button>
+            </div>
+
+            <p
+              id="state-status"
+              class="status"
+              role="status"
+              aria-live="polite"
+            >
+              <span
+                ><strong>Ready.</strong> This page is safe to inspect and change
+                locally.</span
+              >
+            </p>
+          </div>
+        </section>
+
+        <aside class="card panel" aria-labelledby="sequence-heading">
+          <div class="card-body">
+            <div class="panel-header">
+              <h2 id="sequence-heading">Control sequence</h2>
+              <span class="badge">CB-1 target</span>
+            </div>
+            <div class="step">
+              <div class="step-number">1</div>
+              <div>
+                <strong>Observe</strong
+                ><span>Capture the tab and state fingerprint.</span>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">2</div>
+              <div>
+                <strong>Inspect</strong
+                ><span>Bind “Seat preference” to a document target.</span>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">3</div>
+              <div>
+                <strong>Plan</strong
+                ><span>Propose Window → Aisle as one typed action.</span>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">4</div>
+              <div>
+                <strong>Approve</strong
+                ><span>Review one digest-bound, single-use plan.</span>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">5</div>
+              <div>
+                <strong>Verify</strong
+                ><span>Read the changed value back independently.</span>
+              </div>
+            </div>
+            <p class="privacy">
+              The fixture has no network calls, credentials, payment controls,
+              account data, or third-party assets. The “User changes itinerary”
+              control changes only this in-memory page.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <footer>
+        For capture and review, serve this file from a disposable local HTTP(S)
+        origin. The real provider never receives a CSS selector; it binds the
+        semantic target shape and fingerprint.
+      </footer>
+    </main>
+
+    <script>
+      (() => {
+        const state = {
+          route: ["CLE", "PDX"],
+          date: "Sep 18, 2026",
+          flight: "NS 482",
+          seat: "window",
+          version: 1,
+          stale: false,
+        };
+        const seat = document.querySelector("#seat-preference");
+        const status = document.querySelector("#state-status");
+        const statusText = status.querySelector("span");
+
+        function render() {
+          document.querySelector("#origin").textContent = state.route[0];
+          document.querySelector("#destination").textContent = state.route[1];
+          document.querySelector("#travel-date").textContent = state.date;
+          document.querySelector("#flight-number").textContent = state.flight;
+          document.querySelector("#draft-version").textContent =
+            `v${state.version} · ${state.stale ? "stale target" : "observed"}`;
+          seat.value = state.seat;
+          seat.setAttribute(
+            "aria-label",
+            state.stale
+              ? "Seat preference — itinerary updated"
+              : "Seat preference",
+          );
+          statusText.innerHTML = state.stale
+            ? "<strong>Page moved on.</strong> Any plan bound to the previous semantic target must be refused before mutation."
+            : "<strong>Ready.</strong> This page is safe to inspect and change locally.";
+        }
+
+        seat.addEventListener("change", () => {
+          state.seat = seat.value;
+          if (!state.stale)
+            statusText.innerHTML =
+              "<strong>Draft changed locally.</strong> The selection is reversible and no request was sent.";
+        });
+
+        document
+          .querySelector("#change-itinerary")
+          .addEventListener("click", () => {
+            state.route = ["CLE", "SEA"];
+            state.date = "Sep 19, 2026";
+            state.flight = "NS 519";
+            state.seat = "middle";
+            state.version = 2;
+            state.stale = true;
+            render();
+          });
+
+        document
+          .querySelector("#reset-fixture")
+          .addEventListener("click", () => {
+            state.route = ["CLE", "PDX"];
+            state.date = "Sep 18, 2026";
+            state.flight = "NS 482";
+            state.seat = "window";
+            state.version = 1;
+            state.stale = false;
+            render();
+          });
+
+        render();
+      })();
+    </script>
+  </body>
+</html>

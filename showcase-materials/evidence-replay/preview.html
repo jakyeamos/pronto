@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Evidence Replay preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #10151f;
+        --panel: #1a2635;
+        --text: #f2f6fb;
+        --muted: #b1bfcc;
+        --cyan: #8ee8f1;
+        --orange: #ffb66d;
+        --line: rgba(212, 231, 247, 0.2);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(
+            circle at 80% 10%,
+            rgba(142, 232, 241, 0.15),
+            transparent 32%
+          ),
+          var(--bg);
+        color: var(--text);
+        font:
+          16px/1.5 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      .frame {
+        width: min(1600px, 100vw);
+        aspect-ratio: 16 / 9;
+        padding: 7vw;
+        display: grid;
+        grid-template-columns: 0.95fr 1.05fr;
+        gap: 6vw;
+        align-items: center;
+      }
+      .kicker {
+        color: var(--cyan);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 720px;
+        margin: 16px 0 22px;
+        font-size: clamp(2.7rem, 5.6vw, 6.1rem);
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+      }
+      .lede {
+        max-width: 54ch;
+        color: var(--muted);
+        font-size: clamp(1rem, 1.55vw, 1.25rem);
+      }
+      .card {
+        padding: clamp(22px, 3vw, 42px);
+        border: 1px solid var(--line);
+        border-radius: 18px 5px 18px 5px;
+        background: linear-gradient(
+          145deg,
+          rgba(28, 55, 77, 0.92),
+          rgba(26, 38, 53, 0.92)
+        );
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.28);
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .badge {
+        color: var(--orange);
+      }
+      .states {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1px;
+        margin: 26px 0;
+        background: var(--line);
+        border: 1px solid var(--line);
+      }
+      .state {
+        min-height: 120px;
+        padding: 18px;
+        background: rgba(16, 21, 31, 0.72);
+      }
+      .state strong {
+        display: block;
+        margin-bottom: 12px;
+        color: var(--cyan);
+        font-size: 0.84rem;
+      }
+      .state span {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .state .blocked {
+        display: block;
+        margin-top: 9px;
+        color: var(--orange);
+        font-weight: 700;
+      }
+      .footer {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      @media (max-width: 760px) {
+        .frame {
+          aspect-ratio: auto;
+          min-height: 100vh;
+          grid-template-columns: 1fr;
+          padding: 12vw 8vw;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="frame" data-material-status="candidate-local">
+      <section>
+        <div class="kicker">Evidence Replay · W2 reader</div>
+        <h1>Inspect before you act.</h1>
+        <p class="lede">
+          Open a receipt, classify its freshness, preview the exact rerun
+          contract, and keep historical evidence separate from what is true now.
+        </p>
+      </section>
+      <section class="card" aria-label="Evidence Replay preview">
+        <div class="row">
+          <span>Debug Trail receipt · passed historically</span
+          ><span class="badge">target stale</span>
+        </div>
+        <div class="states">
+          <div class="state">
+            <strong>OPEN</strong><span>Claim, target, timeline, omissions</span>
+          </div>
+          <div class="state">
+            <strong>COMPARE</strong><span>Current revision differs</span
+            ><span class="blocked">current = not-run</span>
+          </div>
+          <div class="state">
+            <strong>PREVIEW</strong><span>Command + read-only class</span>
+          </div>
+          <div class="state">
+            <strong>AUTHORIZE</strong><span>Human review required</span
+            ><span class="blocked">rerun blocked</span>
+          </div>
+        </div>
+        <div class="footer">
+          Candidate local material · producer matrix, viewer UI, and hosting
+          remain open.
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

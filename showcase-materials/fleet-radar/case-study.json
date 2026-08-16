@@ -1,0 +1,46 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "fleet-radar",
+  "status": "candidate_local",
+  "title": "Fleet Radar: keep the fleet honest",
+  "audience": "Maintainers who need a compact view of repository freshness and blockers without inventing readiness or mutating the repositories being observed.",
+  "promise": "Register explicit repositories, preserve each native receipt and freshness state, follow the blocker to its owner, and refresh a bounded snapshot read-only.",
+  "contract_distinctions": {
+    "upstream_projection": "Fleet Radar consumes producer receipts without inventing status; producer target, outcome, freshness, and contract state remain visible in the snapshot.",
+    "state_coverage": ["missing", "unreadable", "mixed", "stale", "dirty", "duplicate", "refresh_race"],
+    "native_follow_up": "Every blocker points back to its receipt or source location and carries a concrete next action; direct tool opening is a separate proof gate."
+  },
+  "story": [
+    "An explicit registry names repositories and preserves their identities.",
+    "A fresh passing receipt and a failed stale receipt remain separate cards with a visible attention item.",
+    "The shared evidence envelope and supported producer receipts are classified without flattening malformed, mixed, mismatched, or unsupported contracts.",
+    "Every unresolved check carries a native source-location link or local-receipt fallback plus a next action.",
+    "Missing receipts, unavailable paths, duplicate identities, dirty worktrees, refresh races, and aggregate readiness remain visible boundaries rather than inferred health.",
+    "A second refresh rewrites only the bounded Fleet Radar snapshot while observed repository refs remain unchanged."
+  ],
+  "evidence": [
+    "evidence/fr-w5-readonly-refresh.json",
+    "../../../projects/fleet-radar/README.md",
+    "../../../projects/fleet-radar/docs/acceptance-matrix.json",
+    "evidence/fr-w6-contract-and-failure-coverage.json",
+    "evidence/fr-w7-preview-and-hosting.json"
+  ],
+  "verified_locally": [
+    "Real CLI refresh over an explicit two-repository fixture registry.",
+    "Fresh ready and stale failed native receipts remain in the attention view.",
+    "Shared-envelope and producer-receipt contract states project into the snapshot.",
+    "Blockers expose native source-location or local-receipt follow-up links.",
+    "Unavailable, unreadable, duplicate, mixed-schema, dirty, and refresh-race cases remain actionable.",
+    "A repeated refresh leaves both repository refs unchanged.",
+    "Source tests, lint, package, JSON, and CLI checks pass.",
+    "The candidate preview is rendered as a visually inspected 1600×900 PNG.",
+    "The case page builds, passes rendered-HTML tests, passes lint and Pre-CR, and is saved as a Sites version; public access remains pending."
+  ],
+  "open_gates": [
+    "Read two real portfolio producer receipts through a configured registry.",
+    "Capture native deep-link navigation to the owning blocker.",
+    "Confirm public access, deploy the saved Sites version, and fetch the case URL without credentials.",
+    "Capture external destination readbacks."
+  ],
+  "claim_boundary": "This is a candidate packet for explicit-registry freshness projection, receipt-contract classification, native-link metadata, and a verified binary preview. A validated owner-only Sites version is saved, but the packet does not claim real producer parity, direct tool launching, a no-auth URL, or public publication."
+}

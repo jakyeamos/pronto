@@ -1,0 +1,1 @@
+Review Sandbox previews one repository-declared scenario, runs it in a detached Git worktree, and removes only a proven clean workspace. Its W4 pilot blocks occupied paths, preserves failed setup and dirty recovery states, and makes a cancellation limitation explicit instead of pretending exit 130 is a separate state.

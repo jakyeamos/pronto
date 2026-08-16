@@ -1,0 +1,33 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "workflow-gateboard",
+  "status": "candidate_local",
+  "title": "Workflow Gateboard: see what will run",
+  "audience": "Developers and inheritors who need repository-declared checks to stay visible, bounded, and continuation-ready.",
+  "promise": "Load the repository contract, preview prerequisites and mutation class, run one declared non-mutating gate, and leave a target-bound receipt.",
+  "story": [
+    "A repository-owned manifest declares three read-only gates and their dependency chain.",
+    "The board blocks a dependent test before its syntax prerequisite has passed.",
+    "After the prerequisite is explicitly satisfied, syntax, tests, and package run as read-only gates.",
+    "Each result writes a bounded receipt tied to the same Git target revision."
+  ],
+  "evidence": [
+    "evidence/wg-w2-declared-gate-receipts.json",
+    "evidence/wg-w2-current-dev-checkpoint.json",
+    "../../../projects/workflow-gateboard/README.md",
+    "../../../projects/workflow-gateboard/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Repository-declared gate list with dependency and mutation state.",
+    "Current dev syntax receipt and dependent-test/package blocking on separate CLI invocations.",
+    "Historical W2 fixture records the full pass chain; the current tracked ref remains unchanged while the syntax receipt is written."
+  ],
+  "open_gates": [
+    "Connect one declared gate to Automation Flight Recorder parent/child trace evidence.",
+    "Persist or explicitly reload passed prerequisite state across CLI invocations before claiming a continued gate sequence.",
+    "Expand stale, blocked, failed, and not-run state receipts on the current surface.",
+    "Capture a crop-safe image preview and verify a hosted no-auth case.",
+    "Record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet combines the historical W2 declared-gate fixture with a current dev checkpoint. It does not claim a persisted CLI pass sequence, hosted CI parity, trace integration, concurrent refresh recovery, or publication."
+}

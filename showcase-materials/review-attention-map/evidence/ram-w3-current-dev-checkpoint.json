@@ -1,0 +1,50 @@
+{
+  "schema_version": "review-attention-map-showcase-evidence-v0.1",
+  "project": "review-attention-map",
+  "source_repository": "review-attention-map",
+  "source_branch": "dev",
+  "source_revision": "2f387be0b30f32a37d28cb3fd4d09f7b68cbf787",
+  "observed_at": "2026-08-14T03:46:44Z",
+  "checks": {
+    "test": "passed: 3 tests",
+    "lint": "passed: node syntax checks",
+    "package": "passed: package surface ok"
+  },
+  "fixture": {
+    "scope": "temporary local diff and signal fixture",
+    "diff_identity": "5cb3d679b77c4622a847fddd943f9d66de17d0effa5ded006256a20cb654312d",
+    "changed_files": ["src/api.ts", "src/worker.ts"],
+    "build_status": "ready",
+    "region": {
+      "key": "src/api.ts:1",
+      "signal_ids": ["contract-1", "behavior-1"],
+      "evidence_refs": [
+        "contract-watch:remove:get:/users",
+        "behavior-coverage-atlas:missing"
+      ],
+      "disposition_before_review": "unreviewed"
+    },
+    "direct_review": {
+      "status": "updated",
+      "key": "src/api.ts:1",
+      "disposition": "reviewed",
+      "note": "reviewed contract and behavior evidence"
+    },
+    "unmatched": [
+      {
+        "signal_id": "unmatched-1",
+        "reason": "signal source is outside the selected diff"
+      }
+    ]
+  },
+  "negative_contracts": {
+    "missing_diff": "blocked: A local diff is required.",
+    "runtime_behavior": "not observed"
+  },
+  "privacy": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local fixture"
+  },
+  "claim_boundary": "This current-dev checkpoint proves a local two-source overlay, explicit unmatched evidence, and a recorded human review disposition. It does not prove producer freshness handoff, direct navigation into producer receipts, runtime coverage, hosting, or publication."
+}

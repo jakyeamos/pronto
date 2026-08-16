@@ -1,0 +1,54 @@
+{
+  "schema_version": "pronto-showcase-fleet-radar-w6/v1",
+  "project": "fleet-radar",
+  "status": "candidate_local",
+  "observed_at": "2026-08-14T01:23:13Z",
+  "source_revision": "9d02de1a035c2f96383e42f6507999cb33d12892",
+  "source_dirty_paths": [
+    ".project-compass/contract.json",
+    "README.md",
+    "docs/PRD.md",
+    "docs/acceptance-matrix.json",
+    "fleet-radar/registry.json",
+    "src/core.mjs",
+    "test/core.test.mjs"
+  ],
+  "receipt_contracts": {
+    "shared_envelope": "dev-ops-evidence-envelope-v0.1",
+    "producer_receipts": [
+      "readiness-check-receipt-v0.1",
+      "debug-trail-continuation-receipt-v0.1",
+      "rule-lab-verification-v0.1"
+    ],
+    "states_preserved": ["supported", "malformed", "mixed", "mismatch", "unsupported"]
+  },
+  "native_follow_up": {
+    "source_location_link": "verified in test/core.test.mjs",
+    "local_receipt_fallback": "verified in test/core.test.mjs",
+    "direct_tool_launch": "not_verified"
+  },
+  "failure_matrix": {
+    "missing_registry": "verified",
+    "missing_receipt": "verified",
+    "unreadable_receipt": "verified",
+    "unavailable_repository_path": "verified",
+    "duplicate_identity": "verified",
+    "mixed_receipt_schema": "verified",
+    "dirty_worktree": "verified",
+    "refresh_race": "verified_with_injected_revision_reader"
+  },
+  "verification": {
+    "source_tests": "passed: 7",
+    "source_lint": "passed",
+    "source_package": "passed",
+    "json_contracts": "passed",
+    "cli_surface": "passed: actual registry readback returned a ready snapshot with two missing-receipt attention items",
+    "fixture_generated_receipts_removed_after_capture": true
+  },
+  "open_gates": [
+    "Read two real portfolio producer receipts through a configured Fleet Radar registry.",
+    "Launch a native_link in its owning tool and capture the direct navigation readback.",
+    "Capture a crop-safe preview, hosted no-auth case, and external destination readbacks."
+  ],
+  "claim_boundary": "This packet proves local contract validation, native-link metadata, and broad registry failure handling. It does not claim real producer parity, direct native-tool launching, hosting, or publication."
+}

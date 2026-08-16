@@ -1,0 +1,63 @@
+{
+  "schema_version": "pronto-showcase-source-execution-evidence/v1",
+  "checked_at": "2026-08-12T19:33:07Z",
+  "gap_ids": ["MC-2", "MC-3"],
+  "proof_level": "source_build",
+  "source_repository": "/Users/jakyeamos/projects/mac-control",
+  "source_commit": "e66c608dc88fc3ab72056fa7c6ce93c2a7473645",
+  "working_tree_state": "dirty_preserved",
+  "candidate": {
+    "task_id": "showcase.focus-session",
+    "operations": [
+      "document.open-focus-brief",
+      "document.open-focus-scratchpad",
+      "workspace.arrange-focus-session"
+    ],
+    "caller_controlled_path": false,
+    "caller_controlled_content": false,
+    "caller_controlled_application": false,
+    "caller_controlled_script": false,
+    "caller_controlled_frame": false,
+    "strict_independent_postcondition_count": 3,
+    "fixture_label": "synthetic_public_safe"
+  },
+  "verification_contract": {
+    "brief": "expected fixture digest plus live AX document URL and visible Preview window",
+    "scratchpad": "expected fixture digest plus live AX document URL and visible TextEdit window",
+    "layout": "live AX frame readback for both windows within two points",
+    "raw_document_url_retained": false,
+    "dispatch_result_accepted_as_postcondition": false
+  },
+  "validation": {
+    "focused_command": "swift test --filter FocusSessionPlanTests",
+    "focused_tests": 7,
+    "focused_failures": 0,
+    "full_command": "swift test",
+    "full_tests": 252,
+    "full_failures": 0,
+    "benchmark_tests": 34,
+    "benchmark_failures": 0,
+    "skill_tests": 6,
+    "skill_failures": 0,
+    "environment_contract": "pass"
+  },
+  "source_hashes": {
+    "FocusSessionExecution.swift": "e5c0a7eeb1cfa39072f7564b91b03d627c5db23d1c35dd4d5f76e50047bdb11a",
+    "FocusSessionPlan.swift": "662f90fb24832c3fc08c61b71b5411a26af34b2dbb15e3b6a77d339e95bb896d",
+    "AccessibilityController.swift": "405a3d5e00c90dab677f00a5675fd3d1346c5375deea56c20a6553ea4e680dbf",
+    "AppAdapters.swift": "3565d99b6e762d534cda5ec4b1ecc219a692c12a0774f4023efbe9415dc97c25",
+    "TaskRunner.swift": "c8b3435ff57da70bd3995ef45c52b944f34a6e6b799c1aec89043866c479da0f",
+    "FocusSessionPlanTests.swift": "2b4ca2a0402e1823e0d6243ec6296ddd446cf7492422aa05f37da18fd230ae86"
+  },
+  "installed_prerequisite": {
+    "command": ".build/debug/macctl install",
+    "status": "approval_required",
+    "reason": "persistent installed CLI and daemon replacement requires explicit user authority"
+  },
+  "limitations": [
+    "No current source binary has replaced the installed CLI or packaged daemon.",
+    "No Preview or TextEdit window was opened by the candidate in this proof.",
+    "MC-2 and MC-3 remain open until an explicitly authorized installed update and live direct-surface run pass."
+  ],
+  "disposition": "source_candidate_passed_installed_update_and_live_run_required"
+}

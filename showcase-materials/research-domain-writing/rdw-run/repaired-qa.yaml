@@ -1,0 +1,54 @@
+output_id: rdw-tatum-claim-boundary-repaired
+pass: true
+confidence_score: 0.96
+needs_human_review: false
+issues: []
+revised_draft_path: null
+blocking_issue_count: 0
+draft_sha256: sha256:4f43b451cb1c8dd8c606e7925243f14aab4210b634523b15efd26f52df2eb860
+claim_ledger:
+  - claim_id: repaired-season-line
+    text: >-
+      Across 74 regular-season games in 2023–24, Jayson Tatum averaged 26.9
+      points, 8.1 rebounds, and 4.9 assists per game.
+    fact_ids: [fact-tatum-line]
+    source_ids: [celtics-game-notes-2024-05-11, basketball-reference-tatum]
+    draft_block_ids: [draft-block-001-a75d360690ec]
+    uncertainty: none
+    location: body paragraph 1
+    required: true
+  - claim_id: repaired-metric-boundary
+    text: >-
+      The figures describe recorded box-score volume and do not measure
+      efficiency, defensive impact, or total player value.
+    fact_ids: [fact-tatum-line]
+    source_ids: [celtics-game-notes-2024-05-11, basketball-reference-tatum]
+    draft_block_ids: [draft-block-002-efa22f47f978]
+    uncertainty: required
+    location: body paragraph 2
+    required: true
+  - claim_id: repaired-role-and-context-boundary
+    text: >-
+      The reviewed sources place Tatum with Boston in a forward role, while the
+      packet lacks the context needed to turn the box-score line into proof of
+      elite two-way impact.
+    fact_ids: [fact-tatum-line, fact-tatum-team-role]
+    source_ids: [celtics-game-notes-2024-05-11, basketball-reference-tatum]
+    draft_block_ids: [draft-block-003-76cd382be783]
+    uncertainty: required
+    location: body paragraph 3
+    required: true
+rules:
+  - rule_id: claims-trace-to-loaded-facts
+    status: pass
+    evidence: Every prose block maps to source-linked packet facts.
+  - rule_id: impact-language-matches-evidence
+    status: pass
+    evidence: The draft retains the explicit boundary on efficiency and impact.
+  - rule_id: sample-and-period-stated
+    status: pass
+    evidence: The draft states 74 regular-season games and 2023–24.
+notes: >-
+  This repair is eligible for a style-only pass at the claim-ledger level. The
+  repository's basketball pack maturity gate remains a separate blocker to a
+  full production-ready pipeline claim.

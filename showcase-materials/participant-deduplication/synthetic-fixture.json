@@ -1,0 +1,307 @@
+{
+  "schema_version": "pronto-showcase-participant-dedup-synthetic-workbook/v1",
+  "project": "participant-dedup",
+  "gap": "PD-1",
+  "observed_at": "2026-08-13T18:14:34Z",
+  "source_kind": "synthetic_original",
+  "role": "primary_demo_fixture_until_authenticated_live_sheet_uat",
+  "reason_for_synthetic_case": "The repository's live Apps Script and Google Sheets path requires an owner-authenticated workbook copy; this fixture makes the review story reproducible without participant data or external accounts.",
+  "fixture_policy": {
+    "visible_label": "Synthetic showcase fixture · no participant data",
+    "real_participant_data": false,
+    "real_contacts": false,
+    "real_workbook": false,
+    "external_mutation": false,
+    "original_workbook_touched": false,
+    "public_case_must_preserve_label": true
+  },
+  "workbook": {
+    "name": "PD-1 synthetic review copy",
+    "sheet_name": "Participants",
+    "disposition": "disposable_copy_only",
+    "headers": [
+      "_Dedup_ID",
+      "First Name",
+      "Middle",
+      "Last Name",
+      "DOB",
+      "Address",
+      "City",
+      "State",
+      "ZIP",
+      "Email",
+      "Source"
+    ],
+    "rows": [
+      [
+        "PD-001",
+        "Lume",
+        "",
+        "Vask",
+        "04/12/1986",
+        "18 Aldercroft St",
+        "Wexbury",
+        "MA",
+        "01001",
+        "lume.vask@example.test",
+        "intake-a"
+      ],
+      [
+        "PD-002",
+        "Lume",
+        "",
+        "Vask",
+        "04/12/1986",
+        "18 Aldercroft St",
+        "Wexbury",
+        "MA",
+        "01001",
+        "lume.vask@example.test",
+        "intake-a"
+      ],
+      [
+        "PD-003",
+        "Tavi",
+        "",
+        "Corv",
+        "09/08/1991",
+        "42 Brindlewood Ave",
+        "Karnhollow",
+        "NY",
+        "10002",
+        "tavi.corv@example.test",
+        "intake-a"
+      ],
+      [
+        "PD-004",
+        "Tavii",
+        "",
+        "Corv",
+        "09/08/1991",
+        "42 Brindlewood Ave",
+        "Karnhollow",
+        "NY",
+        "10002",
+        "tavi.corv@example.test",
+        "intake-a"
+      ],
+      [
+        "PD-005",
+        "Pell",
+        "",
+        "Mert",
+        "01/01/1900",
+        "77 Cindervale Rd",
+        "Orindale",
+        "OH",
+        "43003",
+        "shared.house@example.test",
+        "intake-b"
+      ],
+      [
+        "PD-006",
+        "Wyn",
+        "",
+        "Mert",
+        "01/01/1900",
+        "77 Cindervale Rd",
+        "Orindale",
+        "OH",
+        "43003",
+        "shared.house@example.test",
+        "intake-b"
+      ],
+      [
+        "PD-007",
+        "Kesh",
+        "",
+        "Pral",
+        "02/14/1988",
+        "9 Duskmere Ln",
+        "Pelmoor",
+        "CA",
+        "90004",
+        "kesh.pral@example.test",
+        "intake-c"
+      ],
+      [
+        "PD-008",
+        "Kesh",
+        "",
+        "Pral",
+        "10/31/1992",
+        "9 Juniper Hollow Way",
+        "Pelmoor",
+        "CA",
+        "90004",
+        "kesh.pral@example.test",
+        "intake-c"
+      ]
+    ]
+  },
+  "cases": [
+    {
+      "id": "exact-duplicate",
+      "row_ids": ["PD-001", "PD-002"],
+      "case_type": "exact",
+      "signals": ["exact name", "exact DOB", "same address", "same ZIP"],
+      "engine_expectation": {
+        "candidate": true,
+        "confidence": "HIGH",
+        "eligible": true,
+        "reason_codes": [
+          "EXACT_DOB",
+          "EXACT_NAME",
+          "EXTRA_FIELD_AGREEMENT",
+          "SAME_CITY_STATE",
+          "SAME_ZIP",
+          "SIMILAR_ADDRESS"
+        ],
+        "warnings": []
+      },
+      "reviewer_outcome": {
+        "mode": "SELECT_RECORDS",
+        "retain_id": "PD-001",
+        "delete_ids": ["PD-002"],
+        "why": "All identity and location signals agree; the reviewer still chooses the retained row."
+      }
+    },
+    {
+      "id": "fuzzy-name-typo",
+      "row_ids": ["PD-003", "PD-004"],
+      "case_type": "fuzzy",
+      "signals": [
+        "likely given-name typo",
+        "exact DOB",
+        "same address",
+        "same ZIP"
+      ],
+      "engine_expectation": {
+        "candidate": true,
+        "confidence": "HIGH",
+        "eligible": true,
+        "reason_codes": [
+          "EXACT_DOB",
+          "EXTRA_FIELD_AGREEMENT",
+          "LIKELY_NAME_TYPO",
+          "SAME_CITY_STATE",
+          "SAME_ZIP",
+          "SIMILAR_ADDRESS"
+        ],
+        "warnings": []
+      },
+      "reviewer_outcome": {
+        "mode": "SELECT_RECORDS",
+        "retain_id": "PD-003",
+        "delete_ids": ["PD-004"],
+        "why": "The typo is explainable and corroborated by exact DOB, address, ZIP, and city/state; approval remains human."
+      }
+    },
+    {
+      "id": "shared-contact-household",
+      "row_ids": ["PD-005", "PD-006"],
+      "case_type": "shared_contact_negative",
+      "signals": [
+        "shared email",
+        "shared address",
+        "shared ZIP",
+        "placeholder DOB",
+        "different given names"
+      ],
+      "engine_expectation": {
+        "candidate": true,
+        "confidence": "EXCLUDED",
+        "eligible": false,
+        "reason_codes": [
+          "EXTRA_FIELD_AGREEMENT",
+          "SAME_CITY_STATE",
+          "SAME_ZIP",
+          "SIMILAR_ADDRESS"
+        ],
+        "warnings": ["PLACEHOLDER_DOB", "SAME_HOUSEHOLD_ONLY"]
+      },
+      "reviewer_outcome": {
+        "mode": "KEEP_ALL",
+        "retain_id": null,
+        "delete_ids": [],
+        "why": "A shared contact and household are weak context, not identity authority; no row is deleted."
+      }
+    },
+    {
+      "id": "conflicting-dob-ambiguous",
+      "row_ids": ["PD-007", "PD-008"],
+      "case_type": "ambiguous_non_duplicate",
+      "signals": [
+        "exact name",
+        "shared email",
+        "shared ZIP",
+        "conflicting valid DOB",
+        "different address"
+      ],
+      "engine_expectation": {
+        "candidate": true,
+        "confidence": "LOW",
+        "eligible": true,
+        "reason_codes": [
+          "EXACT_NAME",
+          "EXTRA_FIELD_AGREEMENT",
+          "SAME_CITY_STATE",
+          "SAME_ZIP"
+        ],
+        "warnings": ["CONFLICTING_VALID_DOB", "DIFFERENT_ADDRESS"]
+      },
+      "reviewer_outcome": {
+        "mode": "UNRESOLVED",
+        "retain_id": null,
+        "delete_ids": [],
+        "why": "Conflicting DOB and address evidence keeps the pair unresolved; confidence never becomes deletion authority."
+      }
+    }
+  ],
+  "expected_review_summary": {
+    "row_count": 8,
+    "candidate_pair_count": 4,
+    "approved_pair_count": 2,
+    "keep_all_pair_count": 1,
+    "unresolved_pair_count": 1,
+    "delete_count_if_approved": 2,
+    "original_rows_changed": 0,
+    "default_queue_note": "The default sidebar filters High and Medium; the Low ambiguous case requires an explicit reviewer view, while the excluded household case stays out of the merge queue."
+  },
+  "negative_cases": [
+    {
+      "id": "shared-context-is-not-identity",
+      "mutation": "Treat shared email, address, or ZIP as automatic identity.",
+      "expected": "fail_closed_no_deletion",
+      "reason": "Household context must not authorize a merge."
+    },
+    {
+      "id": "conflicting-dob-is-not-overridden",
+      "mutation": "Approve the exact-name pair despite conflicting valid DOB and address.",
+      "expected": "fail_closed_unresolved",
+      "reason": "The reviewer must leave material identity conflict unresolved."
+    },
+    {
+      "id": "original-is-never-the-apply-target",
+      "mutation": "Run apply against the source workbook instead of its disposable copy.",
+      "expected": "fail_closed_copy_only",
+      "reason": "The original workbook remains untouched throughout the showcase."
+    }
+  ],
+  "privacy_review": {
+    "status": "passed",
+    "checks": [
+      "all names are invented and source-aligned with the repository's synthetic fixture vocabulary",
+      "all contacts use example.test and are non-routable",
+      "the workbook is explicitly a disposable copy",
+      "no live Google account, workbook ID, participant export, or provider response is included"
+    ]
+  },
+  "claim_boundary": [
+    "PD-1 is closed as a source-aligned synthetic workbook manifest and expected reviewer outcomes.",
+    "The fixture does not prove authenticated Apps Script, Railway, Google Sheets sidebar, or live copy-only apply behavior.",
+    "The expected outcomes are a reproducibility contract; live UAT remains PD-6.",
+    "The next evidence-bearing work is PD-2 candidate reasoning and queue presentation."
+  ],
+  "next_gap": "PD-2"
+}

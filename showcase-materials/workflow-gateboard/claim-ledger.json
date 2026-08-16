@@ -1,0 +1,70 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "workflow-gateboard",
+  "case_id": "workflow-gateboard-w2-receipt-001",
+  "reviewed_at": "2026-08-14T02:58:41Z",
+  "levels": [
+    {
+      "id": "declaration",
+      "label": "Repository-declared policy",
+      "status": "verified_local",
+      "status_display": "Three read-only gates loaded",
+      "allowed_claim": "The board reads a repository-owned manifest with gate commands, dependencies, and mutation classes.",
+      "forbidden_inference": "The board is the source of policy for every repository or hosted CI system.",
+      "public_claim_allowed": true,
+      "evidence_refs": [
+        "evidence/wg-w2-declared-gate-receipts.json#/declared_gates"
+      ]
+    },
+    {
+      "id": "execution",
+      "label": "Explicit non-mutating run",
+      "status": "verified_local",
+      "status_display": "Prerequisite then three read-only passes",
+      "allowed_claim": "The local board blocks a dependent gate until its prerequisite passes, then records bounded read-only results.",
+      "forbidden_inference": "Every declared command is safe or every run is equivalent to hosted CI.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/wg-w2-declared-gate-receipts.json#/scenarios"]
+    },
+    {
+      "id": "receipt",
+      "label": "Target-bound continuation",
+      "status": "verified_local",
+      "status_display": "Receipts share one target revision",
+      "allowed_claim": "Successful runs write local receipts tied to the observed Git target revision.",
+      "forbidden_inference": "The receipt proves a hosted check or external deployment.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/wg-w2-declared-gate-receipts.json#/receipts"]
+    },
+    {
+      "id": "current_dev",
+      "label": "Current dev checkpoint",
+      "status": "verified_local",
+      "status_display": "Syntax receipt and dependent blocking reproduce",
+      "allowed_claim": "The current dev CLI loads the declaration, writes a syntax receipt, and keeps dependent gates blocked until prerequisite state is handed off.",
+      "forbidden_inference": "Separate CLI invocations continue a passed gate sequence or provide Flight Recorder parity.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/wg-w2-current-dev-checkpoint.json"]
+    },
+    {
+      "id": "integration",
+      "label": "Trace and state coverage",
+      "status": "open",
+      "status_display": "Flight Recorder and stale matrix pending",
+      "allowed_claim": "The local receipt contract is a seam for future trace integration.",
+      "forbidden_inference": "Parent/child causality, concurrent refresh, and all stale/failed states have passed.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["../route-plan.md#3-build-gap-specification"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "not_verified",
+      "status_display": "No hosted or posted proof",
+      "allowed_claim": "Hosting and external publication remain unverified.",
+      "forbidden_inference": "The Gateboard case is live on GitHub, portfolio, or Handshake.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["case-study.json#open_gates"]
+    }
+  ]
+}

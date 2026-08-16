@@ -1,0 +1,63 @@
+{
+  "schema_version": "pre-cr-showcase-evidence/v1",
+  "verified_at": "2026-08-13T00:12:02Z",
+  "fixture": {
+    "workspace": "/private/tmp/pre-cr-pcr3.aiBtiX",
+    "baseline_commit": "4306889",
+    "branch": "feature/session-badge",
+    "purpose": "Disposable dependency-free changed-line fixture; not a product repository",
+    "test_command": "node scripts/test-with-coverage.js",
+    "coverage_format": "lcov",
+    "threshold_percent": 100
+  },
+  "installed_surface": {
+    "vscode_version": "1.133.0",
+    "extension": "jakye.pre-cr-suite@0.1.0",
+    "entry_path": "Pre-CR Quick Actions -> Pre-CR Check",
+    "before": {
+      "problems": 1,
+      "changed_line_percent": 0,
+      "overall_file_percent": 88,
+      "diagnostic": "src/session.js:10 not covered",
+      "capture": "pcr-3-uncovered-line.png"
+    },
+    "after": {
+      "problems": 0,
+      "changed_line_percent": 100,
+      "overall_file_percent": 100,
+      "notification": "Coverage 100.0% on changed lines",
+      "capture": "pcr-3-passing-check.png"
+    }
+  },
+  "headless_receipt": {
+    "command": "pre-cr run --json --workspace /private/tmp/pre-cr-pcr3.aiBtiX",
+    "before": {
+      "ok": false,
+      "gate_decision": "warn",
+      "process_exit_code": 0,
+      "test_stdout": "session assertions passed; badge hits=0",
+      "total_changed_lines": 1,
+      "covered_lines": 0,
+      "uncovered_lines": 1,
+      "coverage_percent": 0,
+      "uncovered_detail": "src/session.js:10"
+    },
+    "after": {
+      "ok": true,
+      "process_exit_code": 0,
+      "test_stdout": "focused session badge assertion passed; session assertions passed; badge hits=1",
+      "total_changed_lines": 1,
+      "covered_lines": 1,
+      "uncovered_lines": 0,
+      "coverage_percent": 100,
+      "quality_adapters_passed": true
+    }
+  },
+  "artifacts": {
+    "before_source": "pcr-3-before-session.js",
+    "focused_test": "pcr-3-focused-test.js",
+    "before_capture": "pcr-3-uncovered-line.png",
+    "after_capture": "pcr-3-passing-check.png"
+  },
+  "claim_boundary": "PCR-3 proves IDE detection, focused repair, and a passing changed-line receipt. The current headless CLI reports the failing coverage state as ok=false with gateDecision=warn and process exit code 0, so this evidence does not claim that the standalone CLI blocks the change."
+}

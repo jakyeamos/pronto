@@ -1,0 +1,363 @@
+{
+  "schema_version": "pronto-showcase-participant-dedup-candidate-reasoning/v1",
+  "project": "participant-dedup",
+  "gap": "PD-2",
+  "observed_at": "2026-08-13T18:24:00Z",
+  "source_kind": "source_aligned_static_queue_material",
+  "fixture_ref": "synthetic-fixture.json",
+  "purpose": "Show why each candidate was proposed without claiming the authenticated sidebar or enabling an apply action.",
+  "presentation_policy": {
+    "visible_label": "Synthetic showcase fixture · no participant data",
+    "mutating_actions": false,
+    "confidence_is_deletion_authority": false,
+    "original_workbook_target": false,
+    "default_filters": ["HIGH", "MEDIUM"],
+    "low_and_excluded_visibility": "Explicit reviewer view only; never silently promoted into the default approval queue."
+  },
+  "score_contract": {
+    "thresholds": { "high": 80, "medium": 60, "low": 45 },
+    "weights": {
+      "name": 60,
+      "dob": 25,
+      "address": 8,
+      "zip": 5,
+      "context_cap": 2
+    },
+    "penalties": {
+      "dob_conflict": 35,
+      "address_conflict": 2,
+      "house_number_conflict": 4,
+      "zip_conflict": 2
+    },
+    "context_note": "City, state, county, and exact extra fields are weak support capped at two points total.",
+    "reason_code_note": "Reason codes explain observed signals; they do not replace reviewer judgment."
+  },
+  "queue": {
+    "ordered_case_ids": [
+      "exact-duplicate",
+      "fuzzy-name-typo",
+      "conflicting-dob-ambiguous",
+      "shared-contact-household"
+    ],
+    "default_visible_case_ids": ["exact-duplicate", "fuzzy-name-typo"],
+    "items": [
+      {
+        "case_id": "exact-duplicate",
+        "row_ids": ["PD-001", "PD-002"],
+        "queue_state": "default_review_queue",
+        "presentation": {
+          "headline": "Exact identity and location agreement",
+          "confidence_limit": "HIGH ranks this pair for review; a person still chooses the retained row.",
+          "why_review_is_required": "The engine can explain the agreement but cannot infer which source row should survive.",
+          "reviewer_action": "SELECT_RECORDS",
+          "decision_label": "Approve one retained row; delete the other only on the disposable copy."
+        },
+        "field_contributions": [
+          {
+            "field": "name",
+            "comparison": "exact",
+            "similarity": 1,
+            "points": 60,
+            "role": "identity_support"
+          },
+          {
+            "field": "dob",
+            "comparison": "exact valid DOB",
+            "similarity": 1,
+            "points": 25,
+            "role": "identity_support"
+          },
+          {
+            "field": "address",
+            "comparison": "exact normalized address",
+            "similarity": 1,
+            "points": 8,
+            "role": "corroboration"
+          },
+          {
+            "field": "zip",
+            "comparison": "exact ZIP",
+            "similarity": 1,
+            "points": 5,
+            "role": "corroboration"
+          },
+          {
+            "field": "context",
+            "comparison": "same city/state and extra field",
+            "similarity": null,
+            "points": 2,
+            "role": "weak_corroboration_capped"
+          }
+        ],
+        "conflicts": [],
+        "native_score": {
+          "name_method": "DIRECT",
+          "total_score": 100,
+          "confidence": "HIGH",
+          "eligible": true,
+          "components": {
+            "name_similarity": 1,
+            "name_points": 60,
+            "dob_points": 25,
+            "address_similarity": 1,
+            "address_points": 8,
+            "zip_points": 5,
+            "context_points": 2,
+            "penalties": 0
+          },
+          "reasons": [
+            "EXACT_DOB",
+            "EXACT_NAME",
+            "EXTRA_FIELD_AGREEMENT",
+            "SAME_CITY_STATE",
+            "SAME_ZIP",
+            "SIMILAR_ADDRESS"
+          ],
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "fuzzy-name-typo",
+        "row_ids": ["PD-003", "PD-004"],
+        "queue_state": "default_review_queue",
+        "presentation": {
+          "headline": "Likely given-name typo with exact corroboration",
+          "confidence_limit": "HIGH reflects strong corroboration, not automatic deletion authority.",
+          "why_review_is_required": "A plausible typo is still an inference; the reviewer verifies the rows before approving.",
+          "reviewer_action": "SELECT_RECORDS",
+          "decision_label": "Approve only after inspecting the typo, exact DOB, address, ZIP, and context."
+        },
+        "field_contributions": [
+          {
+            "field": "name",
+            "comparison": "likely typo: Tavi → Tavii",
+            "similarity": 0.98,
+            "points": 59,
+            "role": "inferred_identity_support"
+          },
+          {
+            "field": "dob",
+            "comparison": "exact valid DOB",
+            "similarity": 1,
+            "points": 25,
+            "role": "identity_support"
+          },
+          {
+            "field": "address",
+            "comparison": "exact normalized address",
+            "similarity": 1,
+            "points": 8,
+            "role": "corroboration"
+          },
+          {
+            "field": "zip",
+            "comparison": "exact ZIP",
+            "similarity": 1,
+            "points": 5,
+            "role": "corroboration"
+          },
+          {
+            "field": "context",
+            "comparison": "same city/state and extra field",
+            "similarity": null,
+            "points": 2,
+            "role": "weak_corroboration_capped"
+          }
+        ],
+        "conflicts": [],
+        "native_score": {
+          "name_method": "DIRECT",
+          "total_score": 99,
+          "confidence": "HIGH",
+          "eligible": true,
+          "components": {
+            "name_similarity": 0.98,
+            "name_points": 59,
+            "dob_points": 25,
+            "address_similarity": 1,
+            "address_points": 8,
+            "zip_points": 5,
+            "context_points": 2,
+            "penalties": 0
+          },
+          "reasons": [
+            "EXACT_DOB",
+            "EXTRA_FIELD_AGREEMENT",
+            "LIKELY_NAME_TYPO",
+            "SAME_CITY_STATE",
+            "SAME_ZIP",
+            "SIMILAR_ADDRESS"
+          ],
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "conflicting-dob-ambiguous",
+        "row_ids": ["PD-007", "PD-008"],
+        "queue_state": "explicit_low_confidence_review",
+        "presentation": {
+          "headline": "Exact name, conflicting identity evidence",
+          "confidence_limit": "LOW is an evidence limit; it is never an approval suggestion.",
+          "why_review_is_required": "A valid DOB conflict and different address outweigh the exact name; the pair must remain unresolved.",
+          "reviewer_action": "UNRESOLVED",
+          "decision_label": "Leave both records intact and record the unresolved conflict."
+        },
+        "field_contributions": [
+          {
+            "field": "name",
+            "comparison": "exact",
+            "similarity": 1,
+            "points": 60,
+            "role": "identity_support_but_not_sufficient"
+          },
+          {
+            "field": "dob",
+            "comparison": "different valid DOBs",
+            "similarity": 0,
+            "points": 0,
+            "role": "identity_conflict",
+            "penalty": -35
+          },
+          {
+            "field": "address",
+            "comparison": "different address",
+            "similarity": 0.45,
+            "points": 4,
+            "role": "weak_corroboration",
+            "penalty": -2
+          },
+          {
+            "field": "zip",
+            "comparison": "exact ZIP",
+            "similarity": 1,
+            "points": 5,
+            "role": "weak_corroboration"
+          },
+          {
+            "field": "context",
+            "comparison": "same city/state and extra field",
+            "similarity": null,
+            "points": 2,
+            "role": "weak_corroboration_capped"
+          }
+        ],
+        "conflicts": ["CONFLICTING_VALID_DOB", "DIFFERENT_ADDRESS"],
+        "native_score": {
+          "name_method": "DIRECT",
+          "total_score": 34,
+          "confidence": "LOW",
+          "eligible": true,
+          "components": {
+            "name_similarity": 1,
+            "name_points": 60,
+            "dob_points": 0,
+            "address_similarity": 0.45,
+            "address_points": 4,
+            "zip_points": 5,
+            "context_points": 2,
+            "penalties": 37
+          },
+          "reasons": [
+            "EXACT_NAME",
+            "EXTRA_FIELD_AGREEMENT",
+            "SAME_CITY_STATE",
+            "SAME_ZIP"
+          ],
+          "warnings": ["CONFLICTING_VALID_DOB", "DIFFERENT_ADDRESS"]
+        }
+      },
+      {
+        "case_id": "shared-contact-household",
+        "row_ids": ["PD-005", "PD-006"],
+        "queue_state": "excluded_from_default_queue",
+        "presentation": {
+          "headline": "Shared household context is not identity",
+          "confidence_limit": "EXCLUDED prevents this pair from becoming a merge candidate.",
+          "why_review_is_required": "Different given names, a placeholder DOB, and shared household details do not establish one person.",
+          "reviewer_action": "KEEP_ALL",
+          "decision_label": "Keep both rows; do not treat shared contact or address as identity authority."
+        },
+        "field_contributions": [
+          {
+            "field": "name",
+            "comparison": "different given names: Pell vs Wyn",
+            "similarity": 0.5681,
+            "points": 34,
+            "role": "weak_and_non_identity"
+          },
+          {
+            "field": "dob",
+            "comparison": "both placeholder DOBs",
+            "similarity": 0,
+            "points": 0,
+            "role": "non_evidence"
+          },
+          {
+            "field": "address",
+            "comparison": "exact normalized address",
+            "similarity": 1,
+            "points": 8,
+            "role": "household_context_only"
+          },
+          {
+            "field": "zip",
+            "comparison": "exact ZIP",
+            "similarity": 1,
+            "points": 5,
+            "role": "household_context_only"
+          },
+          {
+            "field": "context",
+            "comparison": "same city/state and shared contact",
+            "similarity": null,
+            "points": 2,
+            "role": "weak_corroboration_capped"
+          }
+        ],
+        "conflicts": ["PLACEHOLDER_DOB", "SAME_HOUSEHOLD_ONLY"],
+        "native_score": {
+          "name_method": "TOKEN",
+          "total_score": 49,
+          "confidence": "EXCLUDED",
+          "eligible": false,
+          "components": {
+            "name_similarity": 0.5680555556,
+            "name_points": 34,
+            "dob_points": 0,
+            "address_similarity": 1,
+            "address_points": 8,
+            "zip_points": 5,
+            "context_points": 2,
+            "penalties": 0
+          },
+          "reasons": [
+            "EXTRA_FIELD_AGREEMENT",
+            "SAME_CITY_STATE",
+            "SAME_ZIP",
+            "SIMILAR_ADDRESS"
+          ],
+          "warnings": ["PLACEHOLDER_DOB", "SAME_HOUSEHOLD_ONLY"]
+        }
+      }
+    ]
+  },
+  "review_contract": {
+    "approved_delete_count": 2,
+    "keep_all_count": 1,
+    "unresolved_count": 1,
+    "original_rows_changed": 0,
+    "required_reviewer_prompts": [
+      "Which field contributions support the candidate?",
+      "Which conflicts limit confidence?",
+      "What exact reviewer action is allowed?",
+      "Is this still a disposable copy rather than the original workbook?"
+    ]
+  },
+  "claim_boundary": [
+    "PD-2 is closed as a source-aligned static queue and field-level explanation packet.",
+    "The packet mirrors native matcher output but does not claim the authenticated Apps Script sidebar, live Google Sheets, or a live apply action.",
+    "A HIGH score remains a review queue signal; a LOW or EXCLUDED result is never silently promoted into deletion authority.",
+    "PD-3 is the next evidence-bearing gap: prove reviewer-controlled atomic apply on a disposable copy."
+  ],
+  "next_gap": "PD-3"
+}

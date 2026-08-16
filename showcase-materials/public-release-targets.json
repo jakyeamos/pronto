@@ -1,0 +1,1458 @@
+{
+  "schema_version": "pronto-showcase-release-targets/v1",
+  "reviewed_at": "2026-08-13T21:52:51Z",
+  "purpose": "Distribution targets for eligible AI Showcase projects. This plan chooses the right public channel for each story; it does not prove that a project is released or authorize external posting.",
+  "eligibility_policy": {
+    "source_contract": ".pronto/showcase-goal.json",
+    "public_eligibility_value": "public_showcase",
+    "required_channels": ["github", "portfolio", "handshake"],
+    "rule": "A project may not be labeled public_showcase until this matrix has an exact project_targets record naming where its demo materials will be posted, the target status, the artifact, and the active gate. A planned or gated destination is still a known destination; it is not proof that publication has happened."
+  },
+  "release_order": [
+    "canonical_home",
+    "technical_or_product_discovery",
+    "community_launch_or_feedback",
+    "career_distribution"
+  ],
+  "channel_catalog": [
+    {
+      "id": "github",
+      "label": "GitHub",
+      "lane": "canonical_home",
+      "default_requirement": "required",
+      "purpose": "Source, release, install, and provenance home for the project.",
+      "gate": "The repository, README, release boundary, and linked evidence make the same bounded claim."
+    },
+    {
+      "id": "portfolio",
+      "label": "Portfolio case page",
+      "lane": "canonical_home",
+      "default_requirement": "required",
+      "purpose": "No-auth recruiter-facing demo or case-study page.",
+      "gate": "The page is reachable without authentication and keeps preview, copy, and proof within the verified claim boundary."
+    },
+    {
+      "id": "dev_to",
+      "label": "DEV.to / #showdev",
+      "lane": "technical_or_product_discovery",
+      "default_requirement": "recommended",
+      "purpose": "Human-written technical case study, build lesson, or project post.",
+      "gate": "The post teaches or explains something concrete; it is not a bare promotional link."
+    },
+    {
+      "id": "daily_dev",
+      "label": "daily.dev",
+      "lane": "technical_or_product_discovery",
+      "default_requirement": "recommended",
+      "purpose": "Direct post or Squad distribution for the substantive developer article.",
+      "gate": "Use original, human-authored developer content; do not submit generic AI-generated launch copy or primarily self-promotional material."
+    },
+    {
+      "id": "hacker_news",
+      "label": "Hacker News",
+      "lane": "technical_or_product_discovery",
+      "default_requirement": "conditional",
+      "purpose": "High-signal technical discussion or Show HN launch.",
+      "gate": "Use Show HN only when people can try the non-trivial project with minimal friction; otherwise make a regular submission. Never coordinate votes."
+    },
+    {
+      "id": "product_hunt",
+      "label": "Product Hunt",
+      "lane": "community_launch_or_feedback",
+      "default_requirement": "conditional",
+      "purpose": "Launch channel for a polished, user-facing product with a live demo.",
+      "gate": "The product is genuinely explorable, the maker story is ready, and the launch is not just a library, landing page, or internal tool."
+    },
+    {
+      "id": "indie_hackers",
+      "label": "Indie Hackers",
+      "lane": "community_launch_or_feedback",
+      "default_requirement": "optional",
+      "purpose": "Build-in-public updates, product lessons, and founder-oriented discussion.",
+      "gate": "Share the journey, tradeoffs, and feedback sought rather than duplicating a launch advertisement."
+    },
+    {
+      "id": "reddit",
+      "label": "Targeted Reddit community",
+      "lane": "community_launch_or_feedback",
+      "default_requirement": "conditional",
+      "purpose": "Domain-specific feedback from a community that has a real reason to care.",
+      "gate": "Read the subreddit rules, participate authentically, disclose authorship, and tailor one post to that community."
+    },
+    {
+      "id": "linkedin",
+      "label": "LinkedIn",
+      "lane": "career_distribution",
+      "default_requirement": "recommended",
+      "purpose": "Result-focused career signal tied to a role or technical capability.",
+      "gate": "Lead with the outcome, evidence, and lesson; link to the canonical case page rather than making the post the archive."
+    },
+    {
+      "id": "handshake",
+      "label": "Handshake",
+      "lane": "career_distribution",
+      "default_requirement": "required",
+      "purpose": "Career-facing project entry and AI Showcase submission.",
+      "gate": "The preview, short description, public proof link, and AI/human role boundary satisfy the reviewed Handshake material bar."
+    },
+    {
+      "id": "x_bluesky",
+      "label": "X / Bluesky",
+      "lane": "career_distribution",
+      "default_requirement": "optional",
+      "purpose": "Short discovery amplifier for a canonical case study or launch.",
+      "gate": "Use a concise thread or release note that points back to the durable canonical page."
+    }
+  ],
+  "project_targets": [
+    {
+      "repository_name": "mac-control",
+      "profile": "productized_workflow",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "linkedin", "handshake"],
+      "active_gate": "MC-2: prove the bounded document-open and layout routes through installed live progress, safe partial failure, and a structured result receipt.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "planned",
+          "artifact": "Public repository, install path, and bounded safety contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "planned",
+          "artifact": "No-auth control-plane case page with redacted authorization and outcome proof."
+        },
+        {
+          "channel": "product_hunt",
+          "requirement": "conditional",
+          "status": "gated",
+          "artifact": "Live user-facing Mac workflow only after the installed proof is complete."
+        },
+        {
+          "channel": "reddit",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Targeted macOS, automation, or agent-safety feedback post."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Safety-boundary and efficiency result post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "planned",
+          "artifact": "AI Showcase preview, short description, and proof link."
+        }
+      ]
+    },
+    {
+      "repository_name": "quality-runner",
+      "profile": "technical_case",
+      "release_state": "in_progress",
+      "primary_sequence": [
+        "github",
+        "portfolio",
+        "dev_to",
+        "daily_dev",
+        "linkedin",
+        "handshake"
+      ],
+      "active_gate": "QR-8: refresh the corrected Tenure public page, preview, short description, linked proof, and hosted verification.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "in_progress",
+          "artifact": "Released CLI/MCP repository with exact evidence contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "in_progress",
+          "artifact": "Quality Runner x Tenure case study using the real 4,022-to-537 burndown and its claim boundaries."
+        },
+        {
+          "channel": "dev_to",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Human-written explanation of values-driven quality triage and evidence reconciliation."
+        },
+        {
+          "channel": "daily_dev",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Direct post pointing to the substantive Tenure case study."
+        },
+        {
+          "channel": "hacker_news",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Regular technical submission; Show HN only if a stranger-tryable path exists."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Evidence-bound quality automation result post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "in_progress",
+          "artifact": "AI Showcase package with preview, short description, public proof, and linked evidence."
+        }
+      ]
+    },
+    {
+      "repository_name": "chirons-forge",
+      "profile": "productized_workflow",
+      "release_state": "blocked",
+      "primary_sequence": ["github", "portfolio", "linkedin", "handshake"],
+      "active_gate": "CF-0: supply an owner-visible backing repository and exact deployed revision before public proof is treated as release evidence.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "blocked",
+          "artifact": "Registered backing repository and deployed-revision provenance."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "blocked",
+          "artifact": "Real before/after case, judge scorecard, refinement trace, and safe output excerpt."
+        },
+        {
+          "channel": "product_hunt",
+          "requirement": "conditional",
+          "status": "blocked",
+          "artifact": "Launch only after provenance and authenticated behavior are independently verified."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Multi-model evaluation and refinement story, clearly labeled as public product evidence."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "blocked",
+          "artifact": "AI Showcase package after CF-0 and the real case study close."
+        }
+      ]
+    },
+    {
+      "repository_name": "research-domain-writing",
+      "profile": "research_case",
+      "release_state": "gated",
+      "primary_sequence": [
+        "github",
+        "portfolio",
+        "dev_to",
+        "daily_dev",
+        "linkedin",
+        "handshake"
+      ],
+      "active_gate": "RDW-0: bind the installed artifact to the intended source revision and complete editorial approval.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Released writing pipeline and source-to-claim contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Tatum source-to-claim case with unsafe-claim stop and human editorial boundary."
+        },
+        {
+          "channel": "dev_to",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Research-grounded writing case study focused on provenance and claim safety."
+        },
+        {
+          "channel": "daily_dev",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Direct post pointing to the original technical case study."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Applied research and evidence-safety result post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "AI Showcase package after release attestation, approval, thumbnail, and hosted verification."
+        }
+      ]
+    },
+    {
+      "repository_name": "pre-cr-suite-lsp",
+      "profile": "technical_case",
+      "release_state": "in_progress",
+      "primary_sequence": [
+        "github",
+        "portfolio",
+        "dev_to",
+        "daily_dev",
+        "linkedin",
+        "handshake"
+      ],
+      "active_gate": "PCR-4 is locally closed; owner copy review, marketplace proof, and optional video remain separate follow-ons.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "in_progress",
+          "artifact": "IDE extension repository, install instructions, and claim ledger."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "in_progress",
+          "artifact": "Standalone Return -> Recall -> Act -> Prove IDE case page."
+        },
+        {
+          "channel": "dev_to",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Human-written account of context recovery and changed-line pre-review behavior."
+        },
+        {
+          "channel": "daily_dev",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Direct post for the IDE workflow case study."
+        },
+        {
+          "channel": "hacker_news",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Technical submission only if the extension or a public runnable path is easy to try."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Developer-context continuity and quality workflow result post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "in_progress",
+          "artifact": "Standalone IDE Showcase package; marketplace distribution is not implied."
+        }
+      ]
+    },
+    {
+      "repository_name": "Terrace",
+      "profile": "technical_case",
+      "release_state": "in_progress",
+      "primary_sequence": [
+        "github",
+        "portfolio",
+        "dev_to",
+        "daily_dev",
+        "linkedin",
+        "handshake"
+      ],
+      "active_gate": "Refresh the post-integration TR-6 visual capture when a permitted browser surface can render the file; keep hosted publication separate.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "in_progress",
+          "artifact": "Public CLI repository, release, and integrated workflow receipts."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "in_progress",
+          "artifact": "Spec-driven workflow case showing stop, resume, and evidence packet."
+        },
+        {
+          "channel": "dev_to",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Technical case study about bounded workflow recovery and evidence."
+        },
+        {
+          "channel": "daily_dev",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Direct post pointing to the case study."
+        },
+        {
+          "channel": "hacker_news",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Regular technical submission; Show HN only with a frictionless runnable path."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Agent workflow reliability result post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "in_progress",
+          "artifact": "AI Showcase preview, case page, and linked receipts."
+        }
+      ]
+    },
+    {
+      "repository_name": "context-compiler-contract",
+      "profile": "technical_case",
+      "release_state": "in_progress",
+      "primary_sequence": [
+        "github",
+        "portfolio",
+        "dev_to",
+        "daily_dev",
+        "linkedin",
+        "handshake"
+      ],
+      "active_gate": "CC-6 is optional browser capture; hosted publication and video remain separate from the local proof package.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "in_progress",
+          "artifact": "Public validator package and contract documentation."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "in_progress",
+          "artifact": "AIOS result -> invalid projection -> exact validator failure -> corrected result case."
+        },
+        {
+          "channel": "dev_to",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Technical explanation of context projection contracts and failure localization."
+        },
+        {
+          "channel": "daily_dev",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Direct post for the validator case study."
+        },
+        {
+          "channel": "hacker_news",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Technical submission if the validator or comparison is easy for others to inspect."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Agent-context contract and evidence story."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "in_progress",
+          "artifact": "AI Showcase package with comparison preview and public proof link."
+        }
+      ]
+    },
+    {
+      "repository_name": "jakyeamos-agent-skills",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": [
+        "github",
+        "portfolio",
+        "dev_to",
+        "daily_dev",
+        "linkedin",
+        "handshake"
+      ],
+      "active_gate": "PW-4: resolve the host-runtime equivalence boundary without violating the repository's provider and privacy contract.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public workbench repository with provider-neutral safe-tool-guards contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Clean install/apply -> overwrite refusal -> receipt-scoped recovery case."
+        },
+        {
+          "channel": "dev_to",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Technical case study on portable agent setup and recovery safety."
+        },
+        {
+          "channel": "daily_dev",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Direct post for the safety-contract case study."
+        },
+        {
+          "channel": "hacker_news",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Technical submission after the runtime boundary is honestly resolved."
+        },
+        {
+          "channel": "reddit",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Targeted developer-tooling or agent-safety feedback post."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Provider-neutral automation and recovery result post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "AI Showcase package after PW-4 evidence closes."
+        }
+      ]
+    },
+    {
+      "repository_name": "ai-workflow-leverage",
+      "profile": "productized_workflow",
+      "release_state": "deferred",
+      "primary_sequence": ["github", "portfolio", "linkedin", "handshake"],
+      "active_gate": "AL-2: wait for agent-eval-runtime to own an approved append-only event contract before producing a public leverage case.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "planned",
+          "artifact": "Public repository and workflow contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "deferred",
+          "artifact": "Before/after leverage case with waits, retries, human touches, failures, and outcome evidence."
+        },
+        {
+          "channel": "dev_to",
+          "requirement": "conditional",
+          "status": "deferred",
+          "artifact": "Technical article only after AL-2 produces a source-aligned trace."
+        },
+        {
+          "channel": "daily_dev",
+          "requirement": "conditional",
+          "status": "deferred",
+          "artifact": "Direct post only after the evidence contract is real."
+        },
+        {
+          "channel": "product_hunt",
+          "requirement": "conditional",
+          "status": "deferred",
+          "artifact": "Product launch only after a stable, user-facing flow exists."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "deferred",
+          "artifact": "AI workflow leverage result post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "deferred",
+          "artifact": "AI Showcase package after AL-2."
+        }
+      ]
+    },
+    {
+      "repository_name": "marketing-autoresearch",
+      "profile": "research_case",
+      "release_state": "deferred",
+      "primary_sequence": [
+        "github",
+        "portfolio",
+        "dev_to",
+        "daily_dev",
+        "linkedin",
+        "handshake"
+      ],
+      "active_gate": "MA-2: wait for a brief-aware source-to-claim receipt contract before rerunning the public portfolio brief.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "planned",
+          "artifact": "Public repository and research/brief contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "deferred",
+          "artifact": "Source-aware brief case with explicit attribution and claim provenance."
+        },
+        {
+          "channel": "dev_to",
+          "requirement": "recommended",
+          "status": "deferred",
+          "artifact": "Technical article on brief-aware research automation after MA-2."
+        },
+        {
+          "channel": "daily_dev",
+          "requirement": "recommended",
+          "status": "deferred",
+          "artifact": "Direct post for the source-to-brief case."
+        },
+        {
+          "channel": "product_hunt",
+          "requirement": "conditional",
+          "status": "deferred",
+          "artifact": "Launch only if the public workflow becomes a stable user-facing product."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "deferred",
+          "artifact": "Research automation result post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "deferred",
+          "artifact": "AI Showcase package after MA-2."
+        }
+      ]
+    },
+    {
+      "repository_name": "remodelvision",
+      "profile": "productized_workflow",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "linkedin", "handshake"],
+      "active_gate": "RV-1: complete the contribution ledger and explicit owner/collaborator approval record.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public product repository and rights-safe asset provenance."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Rights-safe before/after visualization case with contribution boundaries."
+        },
+        {
+          "channel": "product_hunt",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Launch only once the contribution and rights boundary is explicit."
+        },
+        {
+          "channel": "reddit",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Targeted visualization, design, or home-improvement feedback post."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Applied visual-AI and contribution-safety result post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "AI Showcase package after RV-1."
+        }
+      ]
+    },
+    {
+      "repository_name": "Dsci-proj",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": [
+        "github",
+        "portfolio",
+        "dev_to",
+        "daily_dev",
+        "linkedin",
+        "handshake"
+      ],
+      "active_gate": "DS-1: map two backlog schemas into the decision contract without source-specific engine changes.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public decision-contract repository and schema mapping."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Two-source backlog -> normalized decision contract case."
+        },
+        {
+          "channel": "dev_to",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Technical case study on source-neutral decision contracts."
+        },
+        {
+          "channel": "daily_dev",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Direct post for the contract-normalization story."
+        },
+        {
+          "channel": "hacker_news",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Technical submission after DS-1 is proven."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Decision-system and schema-boundary result post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "AI Showcase package after DS-1."
+        }
+      ]
+    },
+    {
+      "repository_name": "Book",
+      "profile": "creative_case",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "linkedin", "handshake"],
+      "active_gate": "BK-1: select one representative chapter and complete its rights and attribution ledger.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public project repository and contribution/provenance record."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Interactive-media case page with approved chapter or safe excerpt."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Interactive storytelling and AI/human contribution post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "AI Showcase package only after rights and AI-role review."
+        }
+      ]
+    },
+    {
+      "repository_name": "agent-router",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": [
+        "github",
+        "portfolio",
+        "dev_to",
+        "daily_dev",
+        "linkedin",
+        "handshake"
+      ],
+      "active_gate": "AR-5: add or approve the confidence/fallback output contract and preserve the native conflict receipt.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public router repository and contract receipts."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Request -> routing decision -> conflict/fallback receipt case."
+        },
+        {
+          "channel": "dev_to",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Technical article on deterministic routing and fallback evidence."
+        },
+        {
+          "channel": "daily_dev",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Direct post for the routing case study."
+        },
+        {
+          "channel": "hacker_news",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Technical submission after AR-5."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Agent-routing reliability result post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "AI Showcase package after AR-5."
+        }
+      ]
+    },
+    {
+      "repository_name": "browser-control",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": [
+        "github",
+        "portfolio",
+        "dev_to",
+        "daily_dev",
+        "linkedin",
+        "handshake"
+      ],
+      "active_gate": "CB-2/CB-3: reload the current extension/native-host pair together and capture the installed round trip before claiming observe-to-plan behavior.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public browser-control repository and protocol contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Observe -> plan -> approval boundary case using the synthetic fixture."
+        },
+        {
+          "channel": "dev_to",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Technical article on semantic browser targeting and stale-mutation refusal."
+        },
+        {
+          "channel": "daily_dev",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Direct post for the browser-control case."
+        },
+        {
+          "channel": "hacker_news",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Technical submission after the installed protocol round trip is verified."
+        },
+        {
+          "channel": "reddit",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Targeted browser automation or agent-safety feedback post."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Browser-control safety and protocol result post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "AI Showcase package after CB-2/CB-3."
+        }
+      ]
+    },
+    {
+      "repository_name": "participant-dedup",
+      "profile": "productized_workflow",
+      "release_state": "gated",
+      "primary_sequence": [
+        "github",
+        "portfolio",
+        "dev_to",
+        "daily_dev",
+        "linkedin",
+        "handshake"
+      ],
+      "active_gate": "PD-6: complete authenticated live-sheet UAT and hosted no-auth case publication without exposing participant data.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public workflow repository with synthetic fixture and safety receipts."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Synthetic duplicate-review case with atomic apply, stale-state refusal, and copy recovery."
+        },
+        {
+          "channel": "dev_to",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Human-written case study on reviewer-controlled matching and destructive-action safety."
+        },
+        {
+          "channel": "daily_dev",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Direct post for the synthetic case study."
+        },
+        {
+          "channel": "product_hunt",
+          "requirement": "conditional",
+          "status": "gated",
+          "artifact": "Launch only after a stable, hosted, no-auth-safe workflow exists."
+        },
+        {
+          "channel": "reddit",
+          "requirement": "conditional",
+          "status": "planned",
+          "artifact": "Targeted spreadsheets, automation, or data-quality feedback post."
+        },
+        {
+          "channel": "linkedin",
+          "requirement": "recommended",
+          "status": "planned",
+          "artifact": "Human-in-the-loop data-quality and safety result post."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "AI Showcase package after PD-6 and hosted proof."
+        }
+      ]
+    },
+    {
+      "repository_name": "quality-lens",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Directly exercise the current dev checkout's smallest IDE finding inspection and action workflow in docs/PRD.md; the local 1600×900 preview is verified, then promote the packet to QL-3 hosting/readback.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public source repository, install path, and evidence-bound IDE contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/quality-lens/public/index.html; hosted no-auth URL and direct IDE proof remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked IDE proof and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "debug-trail",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Directly exercise the current dev checkout's target-bound hypothesis, experiment, evidence, and continuation-receipt workflow in docs/PRD.md; the local 1600×900 preview is verified, then promote the packet to DT-3 hosting/readback.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public source repository, local receipt format, and continuation contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/debug-trail/public/index.html; hosted no-auth URL and direct IDE proof remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked continuation proof and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "quality-setup",
+      "profile": "productized_workflow",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Current dev setup case and local preview are verified; close the real quality-command smoke boundary, then promote the candidate packet to QS-3 hosting/readback.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public setup inspector with preview-first CLI and rollback contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/quality-setup/public/index.html; current-dev checkpoint and hosted no-auth URL remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked setup proof and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "rule-lab",
+      "profile": "productized_workflow",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Current headless receipt and local preview are verified; prove the Rule Lab receipt handoff, direct IDE parity, and typecheck disposition before RL-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public rule workbench with fixture contract, receipt format, and local install path."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/rule-lab/public/index.html; hosted no-auth URL, direct IDE parity, and handoff remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked rule-verification proof and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "evidence-replay",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Consume current Rule Lab and Debug Trail receipts, close the stale/unknown/cancelled matrix, and promote the candidate local packet to ER-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public receipt viewer with safe inspect-only opening and rerun-preview contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/evidence-replay/public/index.html; hosted no-auth URL and complete producer/state matrix remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked replay proof and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "workflow-gateboard",
+      "profile": "productized_workflow",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Connect one declared gate to Automation Flight Recorder, persist prerequisite state across CLI invocations, prove the no-mutation boundary, and promote the candidate local packet to WG-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public repository-declared gate runner and bounded receipt contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/workflow-gateboard/public/index.html; hosted no-auth URL, trace handoff, and state matrix remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked gate proof and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "failure-capsule",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Connect the current redacted failure capsule to Evidence Replay, verify cancellation and recovery behavior, then promote the candidate local packet to FC-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public bounded failure-capture CLI and redaction contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/failure-capsule/public/index.html; hosted no-auth URL, Replay handoff, and scenario breadth remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked capsule proof and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "change-radius",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Preserve the current TypeScript fixture unknown boundary through Deletion Proof and Contract Watch, then promote the candidate local packet to CR-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public bounded consumer graph with provider-named edges and unknown classes."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/change-radius/public/index.html; hosted no-auth URL, downstream parity, and negative matrix remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked change-radius proof and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "behavior-coverage-atlas",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Feed the current behavior evidence and freshness signal into Review Attention Map, then promote the candidate local packet to BC-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public behavior manifest and evidence-state contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/behavior-coverage-atlas/public/index.html; hosted no-auth URL, review handoff, and negative matrix remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked behavior proof and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "automation-flight-recorder",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Trace a Gateboard action end-to-end, prove parent/child causality and safe rerun, then promote the candidate local packet to AFR-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public local workflow tracer with bounded parent/child envelope."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/automation-flight-recorder/public/index.html; hosted no-auth URL, Gateboard handoff, and scenario breadth remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked trace proof, hosted no-auth case, and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "remediation-canvas",
+      "profile": "productized_workflow",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Complete one disposition-and-refresh handoff with partial work preserved, then promote the candidate local packet to RC-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public finding-reference canvas and human disposition contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/remediation-canvas/public/index.html; hosted no-auth URL, authority parity, and Review Attention Map handoff remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked remediation proof, hosted no-auth case, and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "contract-watch",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Feed one contract change into Review Attention Map and Deletion Proof without copying authority, then promote the candidate local packet to CW-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public OpenAPI comparison CLI and certainty/policy contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/contract-watch/public/index.html; hosted no-auth URL, downstream handoff, and unknown-consumer matrix remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked contract proof, hosted no-auth case, and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "review-attention-map",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Prove two-source overlay and direct navigation to originating evidence, then promote the candidate local packet to RAM-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public diff overlay with explicit contract and behavior signal sources."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/review-attention-map/public/index.html; hosted no-auth URL, producer/source-freshness readback, and negative matrix remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked overlay proof, hosted no-auth access, and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "review-sandbox",
+      "profile": "productized_workflow",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Exercise clean, conflict, failed-gate, cancellation, and retained-dirty scenarios with cleanup proof, then promote the candidate local packet to RS-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public detached-worktree scenario runner and cleanup contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/review-sandbox/public/index.html; hosted no-auth URL, distinct cancellation/process proof, and primary-checkout safety remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked sandbox proof, hosted no-auth access, and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "change-integration-simulator",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Run clean and conflict simulations plus one Workflow Gateboard gate, then promote the candidate local packet to CIS-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public immutable commit-resolution and merge-tree simulator."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/change-integration-simulator/public/index.html; hosted no-auth URL, Gateboard receipt, and negative matrix remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked integration proof, hosted no-auth access, and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "deletion-proof-workbench",
+      "profile": "productized_workflow",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Preview and apply one real unreferenced export while preserving unknown consumers and recovery evidence, then promote the candidate local packet to DPW-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public bounded symbol-deletion workbench and recovery contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/deletion-proof-workbench/public/index.html; hosted no-auth URL, stale/recovery matrix, and downstream parity remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html and public-description.txt; binary preview, linked deletion proof, and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "readiness-inspector",
+      "profile": "technical_case",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Candidate local packet is complete; consume upstream Quality Setup and Evidence Replay receipts, close the individual-check projection, and promote RI-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public goal-specific readiness checker and inspectable check contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/readiness-inspector/public/index.html; upstream projection, stale-state matrix, and hosted no-auth URL remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html and public-description.txt; binary preview, linked readiness proof, and posting readback remain gated."
+        }
+      ]
+    },
+    {
+      "repository_name": "fleet-radar",
+      "profile": "productized_workflow",
+      "release_state": "gated",
+      "primary_sequence": ["github", "portfolio", "handshake"],
+      "active_gate": "Local contract, failure coverage, and the 16:9 binary preview are verified; read two real producer receipts and capture direct native blocker navigation, then confirm public access and credentialless case-page readback before FR-3 packaging.",
+      "targets": [
+        {
+          "channel": "github",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Public read-only fleet registry and freshness snapshot contract."
+        },
+        {
+          "channel": "portfolio",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate local case at showcase-materials/fleet-radar/public/index.html plus a validated owner-only Sites version; real producer readback, direct native navigation, public access, and hosted no-auth proof remain gated."
+        },
+        {
+          "channel": "handshake",
+          "requirement": "required",
+          "status": "gated",
+          "artifact": "Candidate preview.html, verified assets/fleet-radar-preview-1600x900.png, and public-description.txt; linked fleet proof and posting readback remain gated."
+        }
+      ]
+    }
+  ]
+}

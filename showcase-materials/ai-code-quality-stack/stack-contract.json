@@ -1,0 +1,38 @@
+{
+  "schema_version": "pronto-showcase-quality-stack-contract/v1",
+  "status": "target_contract_product_proof_open",
+  "story_kind": "combined_portfolio_story",
+  "does_not_replace": [
+    "pre_cr_standalone_ide_demo",
+    "quality_runner_standalone_audit_demo"
+  ],
+  "layers": [
+    {
+      "id": "detect",
+      "product": "ESLint Anti-Slop",
+      "responsibility": "Own precise offline JS/TS AST rule semantics and line-level ESLint diagnostics.",
+      "must_not_claim": "A reported candidate is a confirmed defect."
+    },
+    {
+      "id": "enforce",
+      "product": "Pre-CR",
+      "responsibility": "Run required quality adapters against the changed-file set and apply pre-review blocking policy.",
+      "excluded_from_stack_ownership": "Pre-CR's standalone context, editor-command, coverage-overlay, checklist, review, and debug product surfaces.",
+      "must_not_claim": "A passing receipt is merge approval."
+    },
+    {
+      "id": "contextualize",
+      "product": "Quality Runner",
+      "responsibility": "Normalize quality evidence, add repository context, and order remediation without competing with detector semantics.",
+      "excluded_from_stack_ownership": "Quality Runner's standalone fleet audit and remediation product story.",
+      "must_not_claim": "A fallback heuristic is equivalent to an AST diagnostic."
+    }
+  ],
+  "fallback_contract": {
+    "plugin_available": "Consume Anti-Slop as the canonical semantic source and suppress matching advisory heuristics.",
+    "plugin_unavailable": "Run overlapping Quality Runner text heuristics only as labeled advisory fallback.",
+    "plugin_analysis_failed": "Preserve an explicit analysis failure; never reinterpret it as a clean result.",
+    "dual_source": "Emit one canonical finding with both evidence sources attached, never two user-visible findings.",
+    "proof_state": "not_yet_proven_cross_repo"
+  }
+}

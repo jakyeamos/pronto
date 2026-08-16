@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Debug Trail preserves a target-bound hypothesis, bounded experiment, redacted evidence, and rerunnable next step."
+    />
+    <title>Debug Trail · leave the question behind</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #111218;
+        --panel: #1b202c;
+        --text: #f6f3ee;
+        --muted: #b7b8c3;
+        --faint: #858793;
+        --blue: #9dc8ff;
+        --gold: #f4c76d;
+        --line: rgba(229, 232, 245, 0.18);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        background: var(--bg);
+      }
+      body {
+        margin: 0;
+        color: var(--text);
+        background:
+          radial-gradient(
+            circle at 22% 3%,
+            rgba(157, 200, 255, 0.14),
+            transparent 30rem
+          ),
+          var(--bg);
+        font:
+          16px/1.6 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      a {
+        color: var(--blue);
+      }
+      .wrap {
+        width: min(1120px, calc(100% - 44px));
+        margin: 0 auto;
+      }
+      header {
+        border-bottom: 1px solid var(--line);
+      }
+      header .wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 58px;
+        gap: 24px;
+      }
+      header strong,
+      header span {
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      header span {
+        color: var(--faint);
+      }
+      .hero {
+        padding: clamp(74px, 10vw, 132px) 0 90px;
+      }
+      .kicker {
+        color: var(--blue);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1,
+      h2 {
+        text-wrap: balance;
+        letter-spacing: -0.055em;
+        line-height: 0.98;
+      }
+      h1 {
+        max-width: 880px;
+        margin: 18px 0 26px;
+        font-size: clamp(3.2rem, 7vw, 6.5rem);
+      }
+      .lede {
+        max-width: 62ch;
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(1.05rem, 1.7vw, 1.24rem);
+      }
+      .note {
+        max-width: 700px;
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        margin-top: 28px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(157, 200, 255, 0.34);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .note strong {
+        color: var(--gold);
+      }
+      section {
+        padding: 86px 0;
+        border-top: 1px solid var(--line);
+      }
+      h2 {
+        max-width: 650px;
+        margin: 0 0 42px;
+        font-size: clamp(2.4rem, 5vw, 4.4rem);
+      }
+      .case-grid {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 1px;
+        background: var(--line);
+        border: 1px solid var(--line);
+      }
+      .panel {
+        min-height: 300px;
+        padding: clamp(24px, 4vw, 42px);
+        background: rgba(27, 32, 44, 0.88);
+      }
+      .panel h3 {
+        margin: 0 0 15px;
+        font-size: 1.35rem;
+      }
+      .panel p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .hypothesis {
+        margin-top: 24px;
+        padding: 22px;
+        border-left: 3px solid var(--blue);
+        background: rgba(17, 18, 24, 0.58);
+      }
+      .hypothesis strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+      .hypothesis p {
+        margin-top: 12px;
+      }
+      .badge {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 5px 9px;
+        border: 1px solid rgba(244, 199, 109, 0.4);
+        border-radius: 999px;
+        color: var(--gold);
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      ol {
+        display: grid;
+        gap: 20px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: step;
+      }
+      li {
+        display: grid;
+        grid-template-columns: 36px 1fr;
+        gap: 16px;
+        align-items: start;
+        counter-increment: step;
+      }
+      li::before {
+        content: counter(step);
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border: 1px solid var(--blue);
+        border-radius: 50%;
+        color: var(--blue);
+        font-size: 0.76rem;
+      }
+      li strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+      li span {
+        color: var(--muted);
+      }
+      .boundary {
+        color: var(--muted);
+      }
+      footer {
+        padding: 30px 0 54px;
+        color: var(--faint);
+        font-size: 0.82rem;
+      }
+      @media (max-width: 760px) {
+        .case-grid {
+          grid-template-columns: 1fr;
+        }
+        header .wrap {
+          align-items: flex-start;
+          flex-direction: column;
+          justify-content: center;
+          padding: 12px 0;
+          gap: 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <strong>Debug Trail</strong
+        ><span>Candidate local case study · W1 pilot</span>
+      </div>
+    </header>
+    <main data-material-status="candidate-local">
+      <section class="hero">
+        <div class="wrap">
+          <div class="kicker">Human investigation → continuation receipt</div>
+          <h1>Leave the question behind.</h1>
+          <p class="lede">
+            Debug Trail binds a hypothesis to one bounded experiment, preserves
+            redacted evidence, and leaves a rerunnable next step for the person
+            who inherits the investigation.
+          </p>
+          <p class="note">
+            <strong>Case signal</strong
+            ><span
+              >A read-only fixture command passes only after its preview and
+              explicit human authorization.</span
+            >
+          </p>
+        </div>
+      </section>
+      <section>
+        <div class="wrap">
+          <h2>A green check is not the whole investigation.</h2>
+          <div class="case-grid">
+            <article class="panel">
+              <h3>The author leaves context</h3>
+              <p>
+                The trail records the question and expected result before
+                anything runs.
+              </p>
+              <div class="hypothesis">
+                <strong>The deterministic fixture check passes</strong>
+                <p>
+                  Target-bound, read-only, and waiting for an explicit
+                  authorization.
+                </p>
+                <span class="badge">preview → authorize</span>
+              </div>
+            </article>
+            <article class="panel">
+              <h3>The inheritor receives evidence</h3>
+              <ol>
+                <li>
+                  <div>
+                    <strong>Outcome</strong
+                    ><span
+                      >Passed with a bounded output excerpt and full-output
+                      hash.</span
+                    >
+                  </div>
+                </li>
+                <li>
+                  <div>
+                    <strong>Privacy</strong
+                    ><span
+                      >Token-like values are redacted; environment and raw
+                      captures stay out.</span
+                    >
+                  </div>
+                </li>
+                <li>
+                  <div>
+                    <strong>Continuation</strong
+                    ><span
+                      >Rerun the declared command if the target revision or
+                      manifest changes.</span
+                    >
+                  </div>
+                </li>
+              </ol>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section>
+        <div class="wrap">
+          <h2>Continuity, with the edges left on.</h2>
+          <p class="boundary">
+            This local packet proves the W1 trail, preview, authorization,
+            redaction, receipt, disposition, and inspect path on revision
+            <code>e4cab3c</code>. Direct VS Code continuity, broader
+            stale/failed/cancelled coverage, the canonical
+            <code>dev</code> path, hosting, and external publication are still
+            open.
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        Debug Trail · local candidate material · no deployment or posting claim
+      </div>
+    </footer>
+  </body>
+</html>

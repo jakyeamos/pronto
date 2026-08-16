@@ -1,0 +1,68 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "quality-lens",
+  "case_id": "quality-lens-w1-fixture-001",
+  "reviewed_at": "2026-08-14T02:37:08Z",
+  "levels": [
+    {
+      "id": "candidate",
+      "label": "Local pilot",
+      "status": "local_w1",
+      "status_display": "One finding normalized",
+      "allowed_claim": "The W1 pilot normalizes a supported Quality Runner report into a named, source-located finding.",
+      "forbidden_inference": "The pilot is a fully verified IDE extension or hosted product.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/ql-w1-normalized-model.json#finding", "evidence/ql-w1-current-dev-checkpoint.json#product_slice"]
+    },
+    {
+      "id": "freshness",
+      "label": "Freshness boundary",
+      "status": "verified_stale_state",
+      "status_display": "Stale is visible",
+      "allowed_claim": "The model surfaces that the fixture report target is stale relative to the inspected checkout.",
+      "forbidden_inference": "A stale report is a current passing quality result.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/ql-w1-normalized-model.json#freshness", "evidence/ql-w1-current-dev-checkpoint.json#product_slice"]
+    },
+    {
+      "id": "disposition",
+      "label": "Human ownership",
+      "status": "verified_local",
+      "status_display": "Accepted and reconciled",
+      "allowed_claim": "A human disposition is carried into a rerun model for the same finding.",
+      "forbidden_inference": "Acceptance means the underlying source was fixed or the finding was objectively false.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/ql-w1-normalized-model.json#disposition", "evidence/ql-w1-current-dev-checkpoint.json#product_slice"]
+    },
+    {
+      "id": "preview",
+      "label": "Binary preview",
+      "status": "verified_local",
+      "status_display": "1600 × 900 PNG reviewed",
+      "allowed_claim": "The candidate packet includes a crop-safe 1600 × 900 PNG preview whose finding, stale state, disposition, and rerun line remain legible.",
+      "forbidden_inference": "A polished preview proves direct IDE behavior or a hosted case page.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/ql-w1-current-dev-checkpoint.json#binary_preview"]
+    },
+    {
+      "id": "ide",
+      "label": "Direct IDE acceptance",
+      "status": "open",
+      "status_display": "Not directly verified",
+      "allowed_claim": "The repository contains a VS Code projection that still needs direct Problems-panel readback.",
+      "forbidden_inference": "The direct Problems-panel and command-palette flow has been accepted end to end.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["../route-plan.md#3-build-gap-specification"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "not_verified",
+      "status_display": "No hosted or posted proof",
+      "allowed_claim": "Deployment and external publication remain unverified.",
+      "forbidden_inference": "The case is live on GitHub, portfolio, or Handshake.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["case-study.json#open_gates"]
+    }
+  ]
+}

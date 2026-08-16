@@ -1,0 +1,53 @@
+{
+  "schema": "showcase-current-dev-checkpoint/v1",
+  "project": "rule-lab",
+  "observed_at": "2026-08-14T02:49:09Z",
+  "repository": {
+    "path": "/Users/jakyeamos/projects/rule-lab",
+    "branch": "dev",
+    "revision": "bcddbe0f7615d654c9d0866c603955e67db380e5",
+    "working_tree": "clean"
+  },
+  "route": {
+    "status": "Ready",
+    "doctor": "Ready",
+    "snapshot": "2026-08-14T01:42:11Z",
+    "scope": "current repository"
+  },
+  "commands": [
+    { "command": "pytest -q", "status": "passed", "summary": "7 tests passed" },
+    { "command": "ruff check rule_lab tests", "status": "passed", "summary": "All checks passed" },
+    { "command": "pyright", "status": "open", "summary": "8 existing type errors in verification.py and tests/test_rule_lab.py" },
+    { "command": "node --test vscode-extension/test/*.test.js", "status": "passed", "summary": "4 extension projection tests passed" }
+  ],
+  "headless_flow": {
+    "command": "python3 -m rule_lab verify --rule fixtures/qr-demo/demo.toml --draft fixtures/qr-demo/draft.toml --fixtures fixtures/qr-demo/suite.json --repo . --save --json",
+    "status": "passed",
+    "verification_id": "4da94293fa1880e8",
+    "target_revision": "bcddbe0f7615d654c9d0866c603955e67db380e5",
+    "engine": { "id": "quality-runner", "version": "0.6.0", "contract": "quality-runner-code-quality-scan-v0.1" },
+    "cases": [
+      { "id": "positive-clickable-div", "expected": "match", "baseline": "match", "draft": "match", "changed": false },
+      { "id": "negative-semantic-button", "expected": "no_match", "baseline": "no_match", "draft": "no_match", "changed": false }
+    ],
+    "gained_matches": [],
+    "lost_matches": [],
+    "counterexample_preserved": true,
+    "receipt": { "path": ".quality-runner/rule-lab/receipts/no-clickable-div.json", "status": "fresh", "reasons": [] }
+  },
+  "preview": {
+    "svg": "assets/preview-16x9.svg",
+    "png": "assets/preview-16x9.png",
+    "png_sha256": "490f1286ffb865e4f0837d32ac963de5e53d8aac16fc0fec95438d507a94713c",
+    "png_dimensions": "1600x900",
+    "png_color": "8-bit RGBA",
+    "visual_inspection": "passed"
+  },
+  "open_gates": [
+    "Direct VS Code acceptance and parity readback remain unverified.",
+    "Cross-producer Quality Lens and Evidence Replay handoff remains unverified.",
+    "Pyright remains open with 8 type errors; pytest, Ruff, and extension tests pass.",
+    "Direct hosted no-auth and external destination readbacks remain unverified."
+  ],
+  "claim_boundary": "The current dev headless fixture comparison and fresh local receipt are verified; this is not IDE parity, cross-producer acceptance, a hosted release, or universal rule safety."
+}

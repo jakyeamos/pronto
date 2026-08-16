@@ -1,0 +1,66 @@
+{
+  "schema_version": "rule-lab-verification/v0.1",
+  "project": "rule-lab",
+  "source_repository": "rule-lab",
+  "source_revision": "f13149294b34f4bdbc8173380b7e34529c7f8185",
+  "fixture_target_revision": "5bd6c301702741c1453018121abe6a2f11307ea2",
+  "verification_id": "99933be8e1659873",
+  "verified_at": "2026-08-13T22:47:00Z",
+  "status": "passed",
+  "draft_verifiable": true,
+  "engine": {
+    "id": "quality-runner",
+    "version": "0.6.0",
+    "contract": "quality-runner-code-quality-scan-v0.1"
+  },
+  "rule": {
+    "pack_id": "demo",
+    "rule_id": "no-clickable-div",
+    "severity": "warning",
+    "message": "Clickable divs should usually be semantic buttons or links.",
+    "risk": "Non-semantic interaction harms keyboard and assistive technology users."
+  },
+  "inputs": {
+    "canonical_rule": "fixtures/qr-demo/demo.toml",
+    "draft_rule": "fixtures/qr-demo/draft.toml",
+    "fixture_suite": "fixtures/qr-demo/suite.json",
+    "comparison_artifact_sha256": {
+      "baseline": "a085613a2f4994541006bf19eb6f679bc9a0fec0aff62b316f0043985f6ebf57",
+      "draft": "a085613a2f4994541006bf19eb6f679bc9a0fec0aff62b316f0043985f6ebf57"
+    },
+    "fixture_suite_sha256": "a652447471c528aa8a5dbb4f40da736b7349c0e00fb37103f1ab8ad7560fc3bb"
+  },
+  "comparison": {
+    "cases": [
+      {
+        "id": "positive-clickable-div",
+        "expected": "match",
+        "baseline": "match",
+        "draft": "match",
+        "changed": false
+      },
+      {
+        "id": "negative-semantic-button",
+        "expected": "no_match",
+        "baseline": "no_match",
+        "draft": "no_match",
+        "changed": false
+      }
+    ],
+    "gained_matches": [],
+    "lost_matches": [],
+    "counterexample_preserved": true
+  },
+  "receipt": {
+    "path": ".quality-runner/rule-lab/receipts/no-clickable-div.json",
+    "status": "fresh",
+    "reasons": []
+  },
+  "privacy": {
+    "target": "temporary local fixture",
+    "credentials_collected": false,
+    "unrestricted_source_captured": false,
+    "external_write": false
+  },
+  "claim_boundary": "This receipt proves a headless local positive/negative fixture comparison with a fresh target-bound result. It does not prove direct VS Code acceptance, cross-producer handoff, repository mutation, hosting, or publication."
+}

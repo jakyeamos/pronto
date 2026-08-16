@@ -1,0 +1,42 @@
+{
+  "schema_version": "pronto-showcase-remodelvision-asset-manifest/v1",
+  "project": "remodelvision",
+  "gap": "RV-2",
+  "observed_at": "2026-08-13T17:24:41Z",
+  "status": "passed",
+  "fixture_policy": {
+    "source_kind": "synthetic_original",
+    "created_for_showcase": true,
+    "real_property": false,
+    "private_location_data": false,
+    "people_or_faces": false,
+    "third_party_assets": false,
+    "provider_output": false,
+    "external_mutations": 0
+  },
+  "assets": [
+    {
+      "id": "rv-synthetic-living-room",
+      "path": "rights-safe-fixture.svg",
+      "media_type": "image/svg+xml",
+      "role": "input_fixture_and_preview_reference",
+      "rights": "original_synthetic_work_owned_for_this_showcase_material",
+      "metadata_review": {
+        "exif_or_gps": "not_present",
+        "embedded_personal_data": "not_present",
+        "review_status": "passed"
+      },
+      "sha256": "12377ddeb647f8349f32954fd2f3257325a615c0add5faa8e2760d417ca93975"
+    }
+  ],
+  "display_rules": [
+    "Keep the synthetic label visible in any preview or capture.",
+    "Do not describe the illustration as a real homeowner room or construction reference.",
+    "Do not mix this fixture with unreviewed repository screenshots or provider-generated images."
+  ],
+  "claim_boundary": [
+    "This fixture proves rights-safe material preparation only.",
+    "It does not prove RemodelVision's live upload, transformation, vision, estimate, or saved-project behavior."
+  ],
+  "next_gap": "RV-3"
+}

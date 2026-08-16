@@ -1,0 +1,52 @@
+{
+  "schema_version": "failure-capsule-showcase-evidence-v0.1",
+  "project": "failure-capsule",
+  "source_repository": "failure-capsule",
+  "source_branch": "dev",
+  "source_revision": "516f24f6a48117ce080282270245e98f4459367e",
+  "observed_at": "2026-08-14T03:12:21Z",
+  "checks": {
+    "test": { "status": "passed", "command": "pnpm test", "tests": 3 },
+    "lint": { "status": "passed", "command": "pnpm lint" },
+    "package": { "status": "passed", "command": "pnpm package" }
+  },
+  "headless_flow": {
+    "capture": {
+      "status": "captured",
+      "command": "node src/cli.mjs capture . .failure-capsule/command.json --json",
+      "schema": "failure-capsule-v0.1",
+      "outcome": "failed",
+      "exit_code": 7,
+      "target_revision": "516f24f6a48117ce080282270245e98f4459367e",
+      "output": "TOKEN=[REDACTED]\\nfailed fixture\\n",
+      "output_sha256": "e505b491b9171c4a17e0792a384187b59b2740b88cbbf67296dfbaddd70a6398",
+      "artifact": {
+        "path": "artifacts/report.txt",
+        "size": 40,
+        "sha256": "d93af21cec897e15cee601b40b32eb18356178b25b9d7670e4e735e9fa3748c8",
+        "privacy": "local-private"
+      },
+      "omissions": ["environment", "credentials", "unlisted-files"],
+      "reproduction_next_action": "Review this capsule, then explicitly rerun the declared command."
+    },
+    "inspect": {
+      "status": "ready",
+      "command": "node src/cli.mjs inspect . .failure-capsule/capsules/latest.json --json",
+      "outcome": "failed",
+      "executes_on_open": false
+    }
+  },
+  "negative_contracts": {
+    "undeclared_command": "verified_by_unit_test",
+    "timeout_to_cancelled": "verified_by_unit_test",
+    "secret_redaction": "verified_by_fixture_run",
+    "inspect_only_opening": "verified_by_fixture_run"
+  },
+  "privacy": {
+    "credentials_collected": false,
+    "environment_persisted": false,
+    "external_write": false,
+    "capture_boundary": "declared command, bounded output, and allowlisted artifact"
+  },
+  "claim_boundary": "Current dev checks and a fresh failed-command capture with redaction, omissions, artifact identity, and inspect-only opening are verified locally. This checkpoint does not claim replay success, complete recovery coverage, hosting, or publication."
+}

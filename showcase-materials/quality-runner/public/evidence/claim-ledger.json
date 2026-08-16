@@ -1,0 +1,76 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "quality-runner",
+  "case_id": "tenure-quality-values-burndown-2026-07",
+  "reviewed_at": "2026-08-12T23:30:00Z",
+  "levels": [
+    {
+      "id": "candidate",
+      "label": "Raw baseline",
+      "status": "historical_scoped_signal",
+      "status_display": "4,022 raw rows",
+      "evidence_summary": "The July 17 run recorded a large, pack-driven review surface.",
+      "allowed_claim": "The historical Tenure baseline recorded 4,022 raw code-quality findings.",
+      "forbidden_inference": "The scan found 4,022 confirmed defects.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["finding-drivers.json#scan_result"]
+    },
+    {
+      "id": "finding",
+      "label": "Disposition state",
+      "status": "historical_exact_comparison",
+      "status_display": "0 open",
+      "evidence_summary": "Refresh 35 retained 537 raw rows but resolved every open actionable item in the exact comparison.",
+      "allowed_claim": "The final historical comparison recorded zero open actionable findings.",
+      "forbidden_inference": "Detector output reached zero or every raw row required a source change.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["burndown.json#terminal_checkpoint"]
+    },
+    {
+      "id": "local_gate",
+      "label": "QR gate execution",
+      "status": "blocked",
+      "status_display": "Consent not supplied",
+      "evidence_summary": "Quality Runner gate execution remained blocked because execution consent was not supplied.",
+      "allowed_claim": "The scan and disposition evidence are historical inspect evidence; QR gates did not execute.",
+      "forbidden_inference": "The final checkpoint is a fresh passing gate run.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["burndown.json#terminal_checkpoint/gate_verification"]
+    },
+    {
+      "id": "branch_promotion",
+      "label": "Evidence revision",
+      "status": "historical_commit",
+      "status_display": "8b395b2d",
+      "evidence_summary": "The tracked state at the exact evidence commit records refresh 35.",
+      "allowed_claim": "Commit 8b395b2d is the canonical tracked historical record for the final checkpoint.",
+      "forbidden_inference": "That historical commit is the current branch or deployment revision.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["burndown.json#terminal_checkpoint/evidence_commit"]
+    },
+    {
+      "id": "browser",
+      "label": "Showcase surface",
+      "status": "local_browser_rendered",
+      "status_display": "Responsive render",
+      "evidence_summary": "The public package was rendered locally in Chrome at desktop, mobile, and 16:9 target sizes without horizontal overflow.",
+      "allowed_claim": "The revised static case-study surface was directly reviewed in a local external browser at desktop and mobile widths.",
+      "forbidden_inference": "A local responsive render proves public hosting or the Tenure product flow.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["../surface-review.md"]
+    },
+    {
+      "id": "deployment",
+      "label": "Deployment",
+      "status": "not_verified",
+      "status_display": "Not verified",
+      "evidence_summary": "No deployment revision, URL, provider, or deployment receipt is recorded.",
+      "allowed_claim": "Deployment remains unverified.",
+      "forbidden_inference": "The case study or Tenure workflow is live in production.",
+      "public_claim_allowed": false,
+      "evidence_refs": [
+        "../final-package.json#package_tracks/static_case_study/open_gates"
+      ]
+    }
+  ]
+}

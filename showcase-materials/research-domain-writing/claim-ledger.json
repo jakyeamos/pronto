@@ -1,0 +1,65 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "research-domain-writing",
+  "case_id": "tatum-2023-24-claim-boundary",
+  "reviewed_at": "2026-08-12T20:30:00Z",
+  "claims": [
+    {
+      "id": "season_line",
+      "status": "supported",
+      "allowed_claim": "Tatum played 74 regular-season games in 2023-24 and averaged 26.9 points, 8.1 rebounds, and 4.9 assists.",
+      "forbidden_inference": "The box-score line alone proves efficiency, defensive impact, elite status, or total value.",
+      "fact_ids": ["fact-tatum-line"],
+      "source_ids": [
+        "celtics-game-notes-2024-05-11",
+        "basketball-reference-tatum"
+      ]
+    },
+    {
+      "id": "unsafe_stop",
+      "status": "verified_agent_qa_and_exact_draft_receipt",
+      "allowed_claim": "Fresh Domain QA rejected the unsupported impact inference, and RDW validated the failing receipt's exact draft hash, prose-block coverage, fact linkage, and coherent rejection state.",
+      "forbidden_inference": "The deterministic CLI independently inferred the semantic overclaim.",
+      "evidence_refs": [
+        "unsafe-draft.md",
+        "source-packet.yaml",
+        "rdw-run/unsafe-qa.yaml",
+        "rdw-run/validation-record.json"
+      ]
+    },
+    {
+      "id": "repair",
+      "status": "verified_claim_ledger_and_style_preservation",
+      "allowed_claim": "The repaired draft maps every prose block to source-linked facts, passes exact-draft validation, and remains byte-identical through the style pass.",
+      "forbidden_inference": "The overall basketball pack maturity gate passed.",
+      "evidence_refs": [
+        "rdw-run/repaired-draft.md",
+        "rdw-run/repaired-qa.yaml",
+        "rdw-run/final.md",
+        "rdw-run/validation-record.json"
+      ]
+    },
+    {
+      "id": "pack_maturity",
+      "status": "installed_behavior_verified_release_provenance_blocked",
+      "allowed_claim": "The installed RDW 0.2.0 CLI validates its basketball pack as specialized/production, and the installed contract is byte-identical to repository revision aa46b36.",
+      "forbidden_inference": "The current source checkout and installed wheel represent one verified release revision.",
+      "evidence_refs": [
+        "rdw-run/validation-record.json",
+        "rdw-0-provenance.json"
+      ]
+    },
+    {
+      "id": "public_surface",
+      "status": "local_candidate_built_not_deployed",
+      "allowed_claim": "The source packet, interactive claim trace, repaired prose, and limitations are assembled as local showcase materials.",
+      "forbidden_inference": "The case is deployed or accessible without authentication.",
+      "evidence_refs": [
+        "case-study.md",
+        "case-study.json",
+        "public/index.html",
+        "final-package.json"
+      ]
+    }
+  ]
+}

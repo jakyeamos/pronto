@@ -1,0 +1,35 @@
+{
+  "schema_version": "pronto-showcase-book-material-receipt/v1",
+  "project": "book",
+  "gap": "BK-1",
+  "observed_at": "2026-08-13T19:06:27Z",
+  "status": "passed_as_rights_safe_synthetic_appendix",
+  "source_kind": "synthetic_original",
+  "artifact": {
+    "path": "showcase-materials/book/synthetic-preview.html",
+    "fixture": "showcase-materials/book/synthetic-fixture.json",
+    "label_required": true,
+    "network_calls": false,
+    "external_assets": false,
+    "external_mutations": 0
+  },
+  "surface_probe": {
+    "status": "passed_as_static_http_fetch",
+    "command": "python3 -m http.server 4175 --bind 127.0.0.1 + curl http://127.0.0.1:4175/showcase-materials/book/synthetic-preview.html",
+    "http_status": 200,
+    "checked_markers": [
+      "Synthetic showcase fixture · not product authorship",
+      "The Signal Room",
+      "Reader controls stay in the story",
+      "What this page proves",
+      "Real chapter, soundtrack, font, and AI/human attribution records remain BK-1 gates"
+    ]
+  },
+  "claim_boundary": [
+    "The page is a shareable no-auth material for the rights-safe synthetic appendix.",
+    "It makes the intended chapter-to-media transformation arc and reader-control contract legible.",
+    "It does not clear BK-1, prove the Book runtime, prove synchronization or accessibility behavior, or authorize publication of repository prose or assets."
+  ],
+  "next_action": "Return to BK-1 when the chapter and asset ledger is approved; replace the synthetic appendix only after rights and contribution evidence pass review.",
+  "next_gap": "BK-1"
+}

@@ -1,0 +1,62 @@
+{
+  "schema_version": "review-sandbox-showcase-evidence-v0.1",
+  "project": "review-sandbox",
+  "source_repository": "review-sandbox",
+  "source_branch": "dev",
+  "source_revision": "6d657e2fc1efdb06255bef00b7ffdd89c07f58e7",
+  "observed_at": "2026-08-14T03:46:44Z",
+  "checks": {
+    "test": "passed: 4 tests",
+    "lint": "passed: node syntax checks",
+    "package": "passed: package surface ok"
+  },
+  "current_fixtures": {
+    "clean_target_revision": "8040f3a388b9ec41413700c3090abda28250dd13",
+    "cancel_target_revision": "34f83e8df30a63fde3af211488a4078c47c6fea3",
+    "preview": {
+      "status": "ready",
+      "source_revision": "48c635ab72798900e90d52635ea23ccb547c646d",
+      "cleanup": "remove only after clean and inactive proof"
+    },
+    "clean": {
+      "create": "created",
+      "setup": "passed",
+      "scenario": "passed",
+      "cleanup": "removed",
+      "cleanup_proof": "git worktree status was clean"
+    },
+    "failed_setup": {
+      "create": "created",
+      "setup": "failed",
+      "scenario": "not_run",
+      "cleanup": "removed",
+      "cleanup_proof": "git worktree status was clean"
+    },
+    "retained_dirty": {
+      "create": "created",
+      "setup": "passed",
+      "scenario": "passed",
+      "first_cleanup": "retained",
+      "retention_reason": "Sandbox is dirty; it was not removed.",
+      "recovery_cleanup": "removed"
+    },
+    "cancellation_shaped": {
+      "declared_command": "exit 130",
+      "setup": "passed",
+      "receipt_outcome": "failed",
+      "cleanup": "removed",
+      "classification": "The prototype records a cancellation-shaped exit as failed; cancellation is not a distinct receipt state."
+    }
+  },
+  "negative_contracts": {
+    "occupied_path": "blocked: Sandbox path already exists; no overwrite is attempted.",
+    "primary_checkout": "The fixture checkout revision remained unchanged after worktree operations.",
+    "process_ownership": "not proven"
+  },
+  "privacy": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local Git fixtures"
+  },
+  "claim_boundary": "This current-dev checkpoint proves preview/create/cleanup behavior, failed setup preservation, dirty retention and recovery, and the current cancellation limitation. It does not prove process or port ownership, a distinct cancellation state, hosted behavior, or publication."
+}

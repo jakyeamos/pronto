@@ -1,0 +1,52 @@
+{
+  "schema_version": "pronto-showcase-agent-router-gap-receipt/v1",
+  "project": "agent-router",
+  "gap": "AR-5",
+  "observed_at": "2026-08-13T18:56:42Z",
+  "status": "partial_native_conflict_boundary",
+  "disposition": "parked_pending_synthesis_confidence_or_fallback_contract",
+  "source": {
+    "repository": "/Users/jakyeamos/projects/agent-router",
+    "branch": "dev",
+    "commit": "4f0c7db5405caaf1915a972c8c6eb9806a3209e6",
+    "checkout_status": "clean_at_inspection",
+    "fixture": "fixtures/worker-receipts.json",
+    "fixture_label": "synthetic_safe_disagreement_with_missing_usage"
+  },
+  "native_probe": {
+    "status": "passed_for_conflict_detection_and_mode_selection",
+    "invocations": 0,
+    "task_id": "ar-4-launch-readiness-execute",
+    "input_receipt_ids": ["fixture-codex-receipt", "fixture-cursor-receipt"],
+    "conflicts": [
+      "worker_statuses_disagree",
+      "worker_file_sets_disagree",
+      "worker_summaries_differ",
+      "quality_evidence_is_weak",
+      "task_is_high_risk"
+    ],
+    "mode": "model_synthesis",
+    "rationale": "A synthesis pass is warranted because the receipts conflict, the task is high risk, or evidence is weak.",
+    "result_summary": "Worker 1: Implemented the bounded parser change and its focused test.\nWorker 2: Produced a partial implementation requiring follow-up."
+  },
+  "missing_contract": {
+    "required": [
+      "confidence field or equivalent confidence decision in SynthesisDecisionSchema",
+      "fallback disposition field or equivalent explicit fallback decision",
+      "output assertion showing the seeded disagreement changes confidence or fallback"
+    ],
+    "why_current_evidence_is_insufficient": [
+      "The native SynthesisDecisionSchema exposes mode, input receipt IDs, conflict labels, rationale, and result summary, but no confidence or fallback field.",
+      "The native model_synthesis probe makes disagreement visible, but its output cannot prove which confidence level or fallback action the disagreement produced.",
+      "The fixture is synthetic and no provider was invoked, so it cannot supply an unmodeled final confidence or fallback decision outside the native contract."
+    ]
+  },
+  "blocked_action": "Do not claim AR-5 complete, present conflict synthesis as a final confidence or fallback decision, or imply live provider reconciliation until the owner adds or approves the missing output contract and the seeded probe is rerun.",
+  "next_action": "Circle back to AR-5 after the synthesis contract is extended; then rerun the disagreement and missing-result probes before attempting AR-6 receipt reconciliation.",
+  "claim_boundary": [
+    "The native engine detects receipt disagreement and selects model_synthesis mode for the seeded fixture.",
+    "Conflict labels, input IDs, rationale, and result summary are inspectable in the current source contract.",
+    "No final confidence, fallback decision, provider invocation, worktree mutation, or reconciled outcome is proven."
+  ],
+  "next_gap": "AR-5"
+}

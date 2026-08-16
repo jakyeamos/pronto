@@ -1,0 +1,54 @@
+{
+  "schema": "pronto-showcase-evidence/v1",
+  "project": "debug-trail",
+  "case_id": "debug-trail-w1-fixture-001",
+  "verified_at": "2026-08-14T02:37:08Z",
+  "source": {
+    "repository": "../../../projects/debug-trail",
+    "branch": "dev",
+    "revision": "3756eed8680defe7680e5b27ebb1e790eabc4d70",
+    "dirty_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "working_tree": "clean"
+  },
+  "product_slice": {
+    "status": "verified_headlessly",
+    "commands": [
+      "pnpm test (4 passing)",
+      "pnpm lint (passed)",
+      "pnpm package (contract passed)",
+      "node src/cli.mjs commands --json",
+      "node src/cli.mjs preview --trail <trail> --command fixture-check --json",
+      "node src/cli.mjs run --trail <trail> --command fixture-check --authorize --json",
+      "node src/cli.mjs export --trail <trail> --out <receipt> --json",
+      "node src/cli.mjs inspect --receipt <receipt> --json"
+    ],
+    "observations": [
+      "The declared fixture-check command previews as read-only against a fresh target.",
+      "An unauthorized run is rejected before execution with AUTHORIZATION_REQUIRED.",
+      "The authorized run passes and captures a bounded redacted excerpt, source location, and output hash.",
+      "Receipt inspection reports the target fresh and exposes a rerun command that still requires authorization."
+    ],
+    "receipt": {
+      "receipt_id": "receipt-ad90369074968a0f",
+      "outcome": "passed",
+      "output_hash": "sha256:fad27a87e69cc2518fdec36b1298ae8697d8eb2e831af4914c9e8874761747f6",
+      "source_locations": ["src/example.js:3"],
+      "redaction_observed": "TOKEN=[REDACTED]"
+    }
+  },
+  "binary_preview": {
+    "path": "assets/preview-16x9.png",
+    "source": "assets/preview-16x9.svg",
+    "width": 1600,
+    "height": 900,
+    "encoding": "PNG 8-bit RGB",
+    "sha256": "55ac2e76fdc283f7cc044abd120849c5d77b3be21074ae7e88c61cad965fa713",
+    "visual_review": "Verified at 1600x900; hypothesis, read-only preview, passed/redacted outcome, and continuation line remain legible without crop."
+  },
+  "remaining_gates": [
+    "Direct VS Code continuity and author-to-inheritor readback.",
+    "Stale, failed, cancelled, and rerunnable scenario captures beyond the passing fixture.",
+    "Hosted credentialless case URL and external destination readbacks."
+  ],
+  "claim_boundary": "This checkpoint proves the current clean dev checkout's headless W1 workflow and a local binary preview. It does not prove direct IDE acceptance, broad scenario coverage, hosting, or publication."
+}

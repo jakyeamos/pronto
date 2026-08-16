@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fleet Radar preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #16151a;
+        --panel: #27252d;
+        --text: #f6f3ec;
+        --muted: #b8b3ae;
+        --mint: #a8e2c4;
+        --amber: #ffd080;
+        --red: #ff9c94;
+        --line: rgba(246, 243, 236, 0.17);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(
+            circle at 12% 5%,
+            rgba(168, 226, 196, 0.15),
+            transparent 34%
+          ),
+          var(--bg);
+        color: var(--text);
+        font:
+          16px/1.5 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      .frame {
+        width: min(1600px, 100vw);
+        aspect-ratio: 16/9;
+        padding: 7vw;
+        display: grid;
+        grid-template-columns: 0.82fr 1.18fr;
+        gap: 6vw;
+        align-items: center;
+      }
+      .kicker {
+        color: var(--mint);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 650px;
+        margin: 16px 0 22px;
+        font-size: clamp(2.8rem, 5.8vw, 6rem);
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+      }
+      .lede {
+        max-width: 50ch;
+        color: var(--muted);
+        font-size: clamp(1rem, 1.5vw, 1.24rem);
+      }
+      .card {
+        padding: clamp(22px, 3vw, 42px);
+        border: 1px solid var(--line);
+        border-radius: 16px 4px 16px 4px;
+        background: linear-gradient(
+          145deg,
+          rgba(52, 50, 61, 0.94),
+          rgba(39, 37, 45, 0.94)
+        );
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.28);
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .repos {
+        display: grid;
+        gap: 10px;
+        margin: 26px 0;
+      }
+      .repo {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 18px;
+        padding: 15px;
+        background: rgba(22, 21, 26, 0.74);
+        border: 1px solid var(--line);
+      }
+      .repo strong {
+        display: block;
+        color: var(--mint);
+        font-size: 0.82rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .repo span {
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+      .repo .bad {
+        color: var(--amber);
+      }
+      .footer {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      @media (max-width: 760px) {
+        .frame {
+          aspect-ratio: auto;
+          min-height: 100vh;
+          grid-template-columns: 1fr;
+          padding: 12vw 8vw;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="frame" data-material-status="candidate-local">
+      <section>
+        <div class="kicker">Fleet Radar · W5–W6 evidence</div>
+        <h1>Keep the fleet honest.</h1>
+        <p class="lede">
+          Register the repositories. Preserve their native state. Refresh
+          without mutating what you observe.
+        </p>
+      </section>
+      <section class="card" aria-label="Fleet Radar preview">
+        <div class="row">
+          <span>explicit registry · v1</span><span>read-only refresh</span>
+        </div>
+        <div class="repos">
+          <div class="repo">
+            <div>
+              <strong>READY · alpha</strong
+              ><span>tests passed · fresh receipt</span>
+            </div>
+            <span>fresh</span>
+          </div>
+          <div class="repo">
+            <div>
+              <strong class="bad">ATTENTION · beta</strong
+              ><span>tests failed · native receipt is stale</span>
+            </div>
+            <span class="bad">stale</span>
+          </div>
+        </div>
+        <div class="footer">
+          Candidate local material · real producer parity, hosting, and
+          publication remain gated.
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

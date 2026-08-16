@@ -1,0 +1,53 @@
+{
+  "schema_version": "pronto-showcase-context-compiler-expected-results/v1",
+  "project": "context-compiler-contract",
+  "case_id": "CC-1-real-aios-result-boundary",
+  "validator": {
+    "repository": "/Users/jakyeamos/projects/context-compiler-contract",
+    "commit": "8af820a7c27a21795713d5e6f52b0fbc242872aa",
+    "schema": "context-compiler-result-v0.1"
+  },
+  "cases": [
+    {
+      "id": "valid-baseline",
+      "input": "case-fixture.json#valid_result",
+      "expected": {
+        "schema": "context-compiler-result-v0.1",
+        "passed": true,
+        "issues": []
+      }
+    },
+    {
+      "id": "missing-source-reason",
+      "input": "case-fixture.json#valid_result + mutations[0]",
+      "expected": {
+        "schema": "context-compiler-result-v0.1",
+        "passed": false,
+        "issues": [
+          "context_sources_loaded[0] must include id, path, and reason"
+        ]
+      },
+      "why_it_matters": "A selected source without a reason cannot carry the compiler's provenance story forward."
+    },
+    {
+      "id": "route-boundary-mismatch",
+      "input": "case-fixture.json#valid_result + mutations[1]",
+      "expected": {
+        "schema": "context-compiler-result-v0.1",
+        "passed": false,
+        "issues": ["packet_contract.route_compatible must be true"]
+      },
+      "why_it_matters": "A packet that is not compatible with its receiving route must stop at the contract boundary."
+    },
+    {
+      "id": "corrected-result",
+      "input": "case-fixture.json#valid_result after both corrections",
+      "expected": {
+        "schema": "context-compiler-result-v0.1",
+        "passed": true,
+        "issues": []
+      }
+    }
+  ],
+  "error_shape_note": "The validator owns field paths and rule text. Corrective action is supplied by this showcase packet so the viewer can see the repair without treating it as a new validator API."
+}

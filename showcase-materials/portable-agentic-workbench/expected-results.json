@@ -1,0 +1,153 @@
+{
+  "schema_version": "pronto-showcase-portable-workbench-expected-results/v1",
+  "project": "portable-agentic-workbench",
+  "case_id": "PW-1-safe-tool-guards",
+  "source_commit": "4d813b4235859588aa1ff3549f15cf53768258af",
+  "cases": [
+    {
+      "id": "generic-dry-run",
+      "input": "target=generic, empty explicit target root, --dry-run --json",
+      "expected": {
+        "status": "ready",
+        "dry_run": true,
+        "action_statuses": ["would-copy", "would-copy"],
+        "target_file_count_after": 0,
+        "manual_review_visible": true
+      }
+    },
+    {
+      "id": "codex-dry-run",
+      "input": "target=codex, empty explicit target root, --dry-run --json",
+      "expected": {
+        "status": "ready",
+        "dry_run": true,
+        "action_statuses": ["would-copy", "would-copy"],
+        "target_file_count_after": 0,
+        "manual_review_visible": true
+      }
+    },
+    {
+      "id": "generic-apply",
+      "input": "target=generic, empty explicit target root, --apply --json",
+      "expected": {
+        "status": "ready",
+        "dry_run": false,
+        "action_statuses": ["copied", "copied"],
+        "target_file_count_after": 2
+      }
+    },
+    {
+      "id": "codex-apply",
+      "input": "target=codex, empty explicit target root, --apply --json",
+      "expected": {
+        "status": "ready",
+        "dry_run": false,
+        "action_statuses": ["copied", "copied"],
+        "target_file_count_after": 2
+      }
+    },
+    {
+      "id": "generic-overwrite-guard",
+      "input": "target=generic, already populated target root, --apply --json",
+      "expected": {
+        "status": "blocked-existing-files",
+        "action_statuses": ["exists", "exists"],
+        "mutation_performed": false
+      }
+    },
+    {
+      "id": "codex-overwrite-guard",
+      "input": "target=codex, already populated target root, --apply --json",
+      "expected": {
+        "status": "blocked-existing-files",
+        "action_statuses": ["exists", "exists"],
+        "mutation_performed": false
+      }
+    },
+    {
+      "id": "cross-target-install-parity",
+      "input": "compare sanitized generic and Codex receipts plus installed hashes",
+      "expected": {
+        "same_contract_files": true,
+        "same_relative_destinations": true,
+        "same_source_hashes": true,
+        "provider_projection": "native_portable",
+        "adapter_registration": "manual_review_only"
+      }
+    },
+    {
+      "id": "generic-recovery-dry-run",
+      "input": "target=generic, receipt-owned applied target, --dry-run --json uninstall",
+      "expected": {
+        "status": "ready",
+        "dry_run": true,
+        "action_statuses": ["would-remove", "would-remove"],
+        "target_file_count_after": 2,
+        "unrelated_file_preserved": true
+      }
+    },
+    {
+      "id": "codex-recovery-dry-run",
+      "input": "target=codex, receipt-owned applied target, --dry-run --json uninstall",
+      "expected": {
+        "status": "ready",
+        "dry_run": true,
+        "action_statuses": ["would-remove", "would-remove"],
+        "target_file_count_after": 2,
+        "unrelated_file_preserved": true
+      }
+    },
+    {
+      "id": "generic-recovery-apply",
+      "input": "target=generic, receipt-owned applied target, --apply --json uninstall",
+      "expected": {
+        "status": "uninstalled",
+        "dry_run": false,
+        "action_statuses": ["removed", "removed"],
+        "receipt_removed": true,
+        "target_file_count_after": 0,
+        "unrelated_file_preserved": true
+      }
+    },
+    {
+      "id": "codex-recovery-apply",
+      "input": "target=codex, receipt-owned applied target, --apply --json uninstall",
+      "expected": {
+        "status": "uninstalled",
+        "dry_run": false,
+        "action_statuses": ["removed", "removed"],
+        "receipt_removed": true,
+        "target_file_count_after": 0,
+        "unrelated_file_preserved": true
+      }
+    },
+    {
+      "id": "generic-modified-recovery-guard",
+      "input": "target=generic, one receipt-owned file edited, --apply --json uninstall",
+      "expected": {
+        "status": "blocked-uninstall-safety",
+        "action_statuses": ["modified", "ready-to-remove"],
+        "mutation_performed": false,
+        "receipt_preserved": true
+      }
+    },
+    {
+      "id": "codex-modified-recovery-guard",
+      "input": "target=codex, one receipt-owned file edited, --apply --json uninstall",
+      "expected": {
+        "status": "blocked-uninstall-safety",
+        "action_statuses": ["modified", "ready-to-remove"],
+        "mutation_performed": false,
+        "receipt_preserved": true
+      }
+    }
+  ],
+  "open_gaps": [
+    {
+      "id": "PW-4-runtime-equivalence",
+      "status": "blocked",
+      "reason": "The attempted generic/Codex runtime probes found no executable generic host and no permitted offline Codex execution path; provider calls and host registration are forbidden by the selected workflow contract.",
+      "evidence": "evidence/runtime-comparison.json"
+    }
+  ]
+}

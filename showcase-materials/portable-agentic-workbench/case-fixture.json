@@ -1,0 +1,171 @@
+{
+  "schema_version": "pronto-showcase-portable-workbench-fixture/v1",
+  "project": "portable-agentic-workbench",
+  "case_id": "PW-1-safe-tool-guards",
+  "source_kind": "clean_head_archive",
+  "source_repository": "jakyeamos/jakyeamos-agentic-setup",
+  "source_commit": "4d813b4235859588aa1ff3549f15cf53768258af",
+  "captured_on": "2026-08-13",
+  "asset": {
+    "id": "safe-tool-guards",
+    "title": "Safe shell and tool guards",
+    "kind": "workflow",
+    "asset_class": "portable",
+    "maturity": "beta",
+    "supported_targets": [
+      "generic",
+      "codex",
+      "claude",
+      "cursor",
+      "copilot",
+      "gemini",
+      "antigravity"
+    ],
+    "capabilities": ["safety", "shell", "tool-guards", "dry-run", "audit"],
+    "files": [
+      "workflows/safe-tool-guards/CONTRACT.md",
+      "workflows/safe-tool-guards/WORKFLOW.md"
+    ],
+    "install": {
+      "mode": "copy",
+      "destination": "workbench/workflows/safe-tool-guards",
+      "manual_review": "Review the target, baseline, network, credential, and approval boundaries before enabling any host adapter."
+    },
+    "dependencies": []
+  },
+  "source_boundary": "The selected paths were clean in the primary checkout; install-contract execution used a clean archive at the recorded commit. Recovery execution used that same archive plus the local recovery patch to scripts/workbench.py (patch SHA-256 8441feb51f6f68eb5c2aa39f79b99cd240c98b20eb4d70994320c9f35a753340); unrelated work remained outside the evidence source.",
+  "fixture_strategy": "Use the real public manifest entry and tracked contract files. Run the documented installer in two empty target roots, compare sanitized statuses, inventories, and hashes, then run receipt-scoped uninstall in both targets with an unrelated sentinel and a modified-file guard. Do not treat copied text contracts as proof of host registration or runtime behavior.",
+  "environments": [
+    {
+      "id": "generic",
+      "target": "generic",
+      "projection": "native_portable",
+      "baseline": "empty explicit target root",
+      "provider_difference": "none at the portable file projection; host registration remains manual"
+    },
+    {
+      "id": "codex",
+      "target": "codex",
+      "projection": "native_portable",
+      "baseline": "empty explicit target root",
+      "provider_difference": "Codex is a supported target, but the Codex adapter is not registered by installation"
+    }
+  ],
+  "contract": {
+    "source_file": "workflows/safe-tool-guards/CONTRACT.md",
+    "required_behaviors": [
+      {
+        "id": "dry-run-no-mutation",
+        "statement": "dry_run: true produces a plan and performs no mutation."
+      },
+      {
+        "id": "scope-rejection",
+        "statement": "A target outside the declared scope is rejected before execution."
+      },
+      {
+        "id": "no-overwrite",
+        "statement": "Existing files are not overwritten unless a separately reviewed policy allows it."
+      },
+      {
+        "id": "manual-host-registration",
+        "statement": "Hook and configuration changes are staged for review, never registered as an installation side effect."
+      },
+      {
+        "id": "result-taxonomy",
+        "statement": "The result records status, actions, verification, and partial_failures."
+      },
+      {
+        "id": "receipt-scoped-recovery",
+        "statement": "Receipt-scoped uninstall removes only recorded files whose contents still match and refuses modified or unowned targets."
+      }
+    ]
+  },
+  "observed": {
+    "dry_run": {
+      "generic": {
+        "status": "ready",
+        "action_count": 2,
+        "action_status": "would-copy",
+        "target_file_count_after": 0
+      },
+      "codex": {
+        "status": "ready",
+        "action_count": 2,
+        "action_status": "would-copy",
+        "target_file_count_after": 0
+      }
+    },
+    "apply": {
+      "generic": {
+        "status": "ready",
+        "copied_count": 2,
+        "target_file_count_after": 2
+      },
+      "codex": {
+        "status": "ready",
+        "copied_count": 2,
+        "target_file_count_after": 2
+      }
+    },
+    "overwrite_guard": {
+      "generic": { "status": "blocked-existing-files", "existing_count": 2 },
+      "codex": { "status": "blocked-existing-files", "existing_count": 2 }
+    },
+    "recovery": {
+      "generic": {
+        "dry_run": {
+          "status": "ready",
+          "action_count": 2,
+          "action_status": "would-remove",
+          "target_file_count_before": 2,
+          "target_file_count_after": 2,
+          "unrelated_file_preserved": true
+        },
+        "apply": {
+          "status": "uninstalled",
+          "removed_count": 2,
+          "receipt_removed": true,
+          "target_file_count_after": 0,
+          "unrelated_file_preserved": true
+        },
+        "modified_guard": {
+          "status": "blocked-uninstall-safety",
+          "modified_count": 1,
+          "mutation_performed": false
+        }
+      },
+      "codex": {
+        "dry_run": {
+          "status": "ready",
+          "action_count": 2,
+          "action_status": "would-remove",
+          "target_file_count_before": 2,
+          "target_file_count_after": 2,
+          "unrelated_file_preserved": true
+        },
+        "apply": {
+          "status": "uninstalled",
+          "removed_count": 2,
+          "receipt_removed": true,
+          "target_file_count_after": 0,
+          "unrelated_file_preserved": true
+        },
+        "modified_guard": {
+          "status": "blocked-uninstall-safety",
+          "modified_count": 1,
+          "mutation_performed": false
+        }
+      }
+    },
+    "projection_hashes": {
+      "contract": "2b77fd647e94944960858a49237d6bf52784f503d1f1c2fcf6088d591f996d12",
+      "workflow": "be8531f0bb50960a53c2c56fcaf695227f7b4f11fab311c3e05f8e7a6bd0a61e"
+    }
+  },
+  "open_boundaries": [
+    "The two projections prove install-contract parity, not provider runtime behavior or host registration.",
+    "PW-4 runtime equivalence was attempted and is blocked: generic has no executable host, Codex provider execution is not permitted, and no local OSS provider is installed."
+  ],
+  "runtime_comparison": "evidence/runtime-comparison.json",
+  "claim_boundary": "This case proves public manifest selection, non-mutating previews, explicit copies, overwrite refusal, byte-identical generic/Codex portable projections, and receipt-scoped recovery that preserves unrelated files and blocks modified targets. It records an attempted but blocked runtime comparison; it does not prove model quality, host registration, provider runtime behavior, credentials, network access, or host-runtime equivalence."
+}

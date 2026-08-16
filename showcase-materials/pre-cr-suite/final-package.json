@@ -1,0 +1,46 @@
+{
+  "schema_version": "pronto-showcase-final-package/v1",
+  "project": "pre-cr-suite-lsp",
+  "case_id": "standalone-ide-return-recall-act-prove-2026-08",
+  "status": "static_local_review_ready",
+  "reviewed_at": "2026-08-13T00:21:08Z",
+  "public_claim": "Pre-CR helps a developer return to interrupted branch work, recover the relevant editor context, take the next useful action, and verify a focused changed-line repair before review.",
+  "current_materials": {
+    "concept_page": "concept/index.html",
+    "preview_page": "preview.html",
+    "preview_16x9": "preview-16x9.png",
+    "claim_ledger": "claim-ledger.json",
+    "surface_review": "surface-review.md",
+    "evidence_receipts": [
+      "evidence/pcr-1-behavior-receipt.json",
+      "evidence/pcr-2-command-state-receipt.json",
+      "evidence/pcr-3-readiness-receipt.json"
+    ]
+  },
+  "capture_receipts": {
+    "preview_page_sha256": "d338884539779edba5032b94b002277bfa633343264543f96ab27c2d46a5181f",
+    "preview_16x9": {
+      "viewport": "1600x900",
+      "document": "1600x900",
+      "sha256": "299ffb7a1cc7d1a190b6a7e0e851a7778f70496be29110f37a19abf115429caf",
+      "horizontal_overflow": false,
+      "vertical_overflow": false,
+      "console_error_count": 0
+    },
+    "small_size_review": {
+      "size": "800x450",
+      "legible_elements": [
+        "headline",
+        "four-stage flow",
+        "before and after labels",
+        "command legend"
+      ]
+    }
+  },
+  "required_material_gates": [],
+  "optional_next_steps": [
+    "owner review of public copy",
+    "optional video enhancement",
+    "marketplace distribution proof if publication enters scope"
+  ]
+}

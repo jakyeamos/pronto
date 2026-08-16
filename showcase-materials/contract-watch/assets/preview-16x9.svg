@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Contract Watch — facts are not decisions</title>
+  <desc id="desc">A current development OpenAPI comparison shows four semantic changes while certainty, consequence, and human disposition remain separate.</desc>
+  <defs>
+    <radialGradient id="glow" cx="84%" cy="8%" r="55%"><stop offset="0" stop-color="#bca1ff" stop-opacity=".2"/><stop offset="1" stop-color="#171522" stop-opacity="0"/></radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b315a"/><stop offset="1" stop-color="#29243e"/></linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="#171522"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <g font-family="Inter,Arial,sans-serif" fill="#f8f3ff">
+    <text x="112" y="148" font-size="22" font-weight="800" letter-spacing="3" fill="#bca1ff">CONTRACT WATCH · DEV</text>
+    <text x="112" y="286" font-size="76" font-weight="700">Facts are not</text>
+    <text x="112" y="378" font-size="76" font-weight="700">decisions.</text>
+    <text x="112" y="456" font-size="26" fill="#c8c0d9">Compare explicit contracts, separate certainty from policy,</text>
+    <text x="112" y="496" font-size="26" fill="#c8c0d9">and leave the consequence with a human owner.</text>
+  </g>
+  <g transform="translate(842 142)">
+    <rect width="644" height="616" rx="24" fill="url(#card)" stroke="#eee5ff" stroke-opacity=".25"/>
+    <g font-family="Inter,Arial,sans-serif">
+      <text x="42" y="58" font-size="16" fill="#c8c0d9" letter-spacing="2">OPENAPI DIFF · 4 CHANGES</text>
+      <text x="602" y="58" text-anchor="end" font-size="16" fill="#9fe6bd" font-weight="700">HUMAN REVIEW</text>
+      <rect x="42" y="96" width="560" height="274" fill="#171522" fill-opacity=".72" stroke="#eee5ff" stroke-opacity=".25"/>
+      <text x="70" y="134" font-size="15" fill="#bca1ff" font-weight="700">CHANGE</text><text x="280" y="134" font-size="15" fill="#bca1ff" font-weight="700">CERTAINTY</text><text x="424" y="134" font-size="15" fill="#bca1ff" font-weight="700">POLICY</text>
+      <text x="70" y="178" font-size="17" fill="#f8f3ff">remove /users</text><text x="280" y="178" font-size="16" fill="#ff9f9f">definite</text><text x="424" y="178" font-size="16" fill="#ffca80">breaking</text>
+      <text x="70" y="222" font-size="17" fill="#f8f3ff">response /orders</text><text x="280" y="222" font-size="16" fill="#ffca80">potential</text><text x="424" y="222" font-size="16" fill="#d6c9f0">review</text>
+      <text x="70" y="266" font-size="17" fill="#f8f3ff">add /reports</text><text x="280" y="266" font-size="16" fill="#d6c9f0">information</text><text x="424" y="266" font-size="16" fill="#d6c9f0">review</text>
+      <text x="70" y="310" font-size="17" fill="#f8f3ff">deprecate /orders</text><text x="280" y="310" font-size="16" fill="#d6c9f0">information</text><text x="424" y="310" font-size="16" fill="#d6c9f0">migration</text>
+      <text x="70" y="350" font-size="15" fill="#c8c0d9">certainty ≠ policy · no merge/release verdict</text>
+      <rect x="42" y="398" width="560" height="126" fill="#171522" fill-opacity=".72" stroke="#eee5ff" stroke-opacity=".25"/>
+      <text x="70" y="436" font-size="16" fill="#bca1ff" font-weight="700">DISPOSITION</text>
+      <text x="70" y="474" font-size="18" fill="#9fe6bd" font-family="Menlo,monospace">remove:get:/users → mitigated</text>
+      <text x="70" y="506" font-size="16" fill="#c8c0d9">undocumented consumers remain unknown</text>
+      <text x="42" y="574" font-size="17" fill="#c8c0d9">Current local proof · review/deletion handoff remains open</text>
+    </g>
+  </g>
+  <text x="112" y="790" font-family="Inter,Arial,sans-serif" font-size="18" fill="#9188a8" letter-spacing="1">CONTRACT WATCH / CANDIDATE LOCAL MATERIAL</text>
+</svg>

@@ -1,0 +1,46 @@
+{
+  "schema_version": "pronto-showcase-ai-workflow-leverage-protocol-receipt/v1",
+  "project": "ai-workflow-leverage",
+  "gap": "AL-1",
+  "case_id": "AL-1-tenure-review-task-state-observability",
+  "observed_at": "2026-08-13T17:03:22Z",
+  "status": "passed",
+  "source": {
+    "repository": "tenure",
+    "protected_baseline_revision": "a304ce866e1bced294a12f9915cae55ac2b65b13",
+    "reference_revision": "5dd52328a1a847466db8a7f12c7e6f71b468182e",
+    "source_checkout_status": "clean_at_inspection"
+  },
+  "protocol_checks": [
+    {
+      "id": "real-task-selected",
+      "status": "passed",
+      "evidence": "The task is attributable to the Tenure reference revision and names its concrete review and capture surfaces."
+    },
+    {
+      "id": "fixed-inputs",
+      "status": "passed",
+      "evidence": "Both lanes share the protected baseline, brief, allowlisted paths, and exclusions."
+    },
+    {
+      "id": "shared-oracle",
+      "status": "passed",
+      "evidence": "Behavioral, focused-test, scope, and provenance checks are identical across lanes."
+    },
+    {
+      "id": "synthetic-appendix",
+      "status": "passed",
+      "evidence": "The appendix provides one valid contract and two fail-closed mutations without copying private source data."
+    }
+  ],
+  "paired_runs": {
+    "manual": "not_run",
+    "assisted": "not_run",
+    "result_claim": "not_claimed"
+  },
+  "next_gap": "AL-2",
+  "claim_boundary": [
+    "Protocol selection is proven; prospective timing and quality remain unknown.",
+    "The reference implementation is not a manual lane, assisted lane, or outcome receipt."
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "schema_version": "pronto-showcase-context-compiler-validation/v1",
+  "project": "context-compiler-contract",
+  "case_id": "CC-1-real-aios-result-boundary",
+  "validator": {
+    "repository": "/Users/jakyeamos/projects/context-compiler-contract",
+    "commit": "8af820a7c27a21795713d5e6f52b0fbc242872aa",
+    "command": "node --input-type=module <validator harness>",
+    "schema": "context-compiler-result-v0.1"
+  },
+  "digest_method": "sha256(JSON.stringify(compact_fixture_result))",
+  "runs": [
+    {
+      "run": 1,
+      "cases": {
+        "valid-baseline": {
+          "passed": true,
+          "issues": [],
+          "digest": "f5a3497a0b8ff601e0542369e89007e13bc9c20a9a7bb05eaf92f45d7dd354c1"
+        },
+        "missing-source-reason": {
+          "passed": false,
+          "issues": [
+            "context_sources_loaded[0] must include id, path, and reason"
+          ],
+          "digest": "53193582aa73315f54229462b229bd433c0ded5f2e0c44a8deff56749b9ae743"
+        },
+        "route-boundary-mismatch": {
+          "passed": false,
+          "issues": ["packet_contract.route_compatible must be true"],
+          "digest": "4e6af671223e1ef962bc2ec4bbb999d4f94edcc6a5555b4d7850995653be4cdb"
+        },
+        "corrected-result": {
+          "passed": true,
+          "issues": [],
+          "digest": "f5a3497a0b8ff601e0542369e89007e13bc9c20a9a7bb05eaf92f45d7dd354c1"
+        }
+      }
+    },
+    {
+      "run": 2,
+      "cases": {
+        "valid-baseline": {
+          "passed": true,
+          "issues": [],
+          "digest": "f5a3497a0b8ff601e0542369e89007e13bc9c20a9a7bb05eaf92f45d7dd354c1"
+        },
+        "missing-source-reason": {
+          "passed": false,
+          "issues": [
+            "context_sources_loaded[0] must include id, path, and reason"
+          ],
+          "digest": "53193582aa73315f54229462b229bd433c0ded5f2e0c44a8deff56749b9ae743"
+        },
+        "route-boundary-mismatch": {
+          "passed": false,
+          "issues": ["packet_contract.route_compatible must be true"],
+          "digest": "4e6af671223e1ef962bc2ec4bbb999d4f94edcc6a5555b4d7850995653be4cdb"
+        },
+        "corrected-result": {
+          "passed": true,
+          "issues": [],
+          "digest": "f5a3497a0b8ff601e0542369e89007e13bc9c20a9a7bb05eaf92f45d7dd354c1"
+        }
+      }
+    }
+  ],
+  "equivalent_runs": true,
+  "interpretation": "The validator is deterministic for the real baseline projection and its two labelled mutations. This proves repeatable contract outcomes, not context-selection quality or downstream safety."
+}

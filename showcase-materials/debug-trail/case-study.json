@@ -1,0 +1,35 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "debug-trail",
+  "status": "candidate_local",
+  "title": "Debug Trail: leave the question behind",
+  "audience": "Developers and inheritors who need to continue an investigation without reconstructing a lost conversation.",
+  "promise": "Bind a hypothesis to one bounded experiment, preserve redacted evidence, and leave a rerunnable next step.",
+  "story": [
+    "An investigation records a concrete hypothesis and expected result.",
+    "The declared command is previewed with target identity and read-only scope.",
+    "A human authorizes the experiment; output is bounded, redacted, and hashed.",
+    "The conclusion and next step travel in a target-bound continuation receipt."
+  ],
+  "evidence": [
+    "evidence/debug-trail-w1-receipt.json",
+    "evidence/dt-w1-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
+    "../../../projects/debug-trail/README.md",
+    "../../../projects/debug-trail/test/core.test.mjs"
+  ],
+  "verified_locally": [
+    "The fixture command preview reports a fresh repository target and read-only mutation class.",
+    "The authorized command passes and emits bounded redacted evidence.",
+    "The receipt preserves the target, hypothesis, result, disposition, omission, and rerun interface.",
+    "The current clean dev checkout passes the repository test, lint, and package checks.",
+    "The 1600×900 PNG preview is visually reviewed and legible at the target crop."
+  ],
+  "open_gates": [
+    "Directly exercise VS Code trail creation, receipt opening, and continuation.",
+    "Add the remaining stale, failed, cancelled, and rerunnable scenario captures.",
+    "Verify a hosted no-auth case page.",
+    "Record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves the current clean dev checkout's W1 headless trail and receipt workflow plus a local binary preview; it does not prove direct IDE acceptance, hosting, or publication."
+}

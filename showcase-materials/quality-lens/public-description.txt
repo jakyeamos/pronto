@@ -1,0 +1,1 @@
+Quality Lens turns Quality Runner findings into an inspectable IDE workflow. A local W1 pilot keeps each finding tied to its source line, freshness state, and human disposition, then carries that decision into a rerun. It makes quality evidence actionable without hiding the reasoning behind an opaque score.

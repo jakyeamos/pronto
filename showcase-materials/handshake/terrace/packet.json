@@ -1,0 +1,63 @@
+{
+  "schema_version": "pronto-handshake-packet/v1",
+  "project": "Terrace",
+  "display_name": "Terrace",
+  "status": "posted_repo_link",
+  "prepared_at": "2026-08-13",
+  "publication": {
+    "posted": true,
+    "posted_at": "2026-08-13",
+    "handshake_project_url": "https://github.com/jakyeamos/Terrace",
+    "preview_source": "handshake_auto_preview",
+    "public_demo_url": null,
+    "host_status": "repo_link_only"
+  },
+  "handshake": {
+    "title": "Terrace: Resume from evidence, not memory",
+    "description": "description.txt",
+    "description_characters": 452,
+    "preview": {
+      "path": "preview-16x9.png",
+      "format": "png",
+      "dimensions": "1600x900",
+      "source_material": "../../terrace/preview-16x9.png",
+      "status": "pre_integration_capture"
+    },
+    "demo_page": {
+      "local_path": "../../terrace/workflow-preview.html",
+      "public_url": null,
+      "status": "local_only"
+    },
+    "skills": [
+      "agent workflows",
+      "workflow orchestration",
+      "CLI tools",
+      "recovery design"
+    ]
+  },
+  "roles": {
+    "creator": "The creator owns orchestration and gate semantics.",
+    "system_or_ai": "Terrace stores stage state, emits the stop packet, rejects unsupported bypasses, and resumes the owning stage after a bounded correction.",
+    "human": "The human owns corrections, exceptions, and release decisions."
+  },
+  "evidence": [
+    "../../terrace/case-spec.md",
+    "../../terrace/evidence/tr-1-regression-receipt.json",
+    "../../terrace/evidence/integration-receipt.json",
+    "../../terrace/evidence/tr-2-stage-state-receipt.json",
+    "../../terrace/evidence/tr-3-stop-packet-receipt.json",
+    "../../terrace/evidence/tr-4-bounded-resume-receipt.json",
+    "../../terrace/evidence/tr-5-bypass-resistance-receipt.json",
+    "../../terrace/evidence/tr-6-visual-review-receipt.json"
+  ],
+  "claim_boundary": [
+    "TR-1 is the representative historical routing regression; the bounded-resume fixture is synthetic reproducibility evidence.",
+    "The integrated commit is present on local dev. The source branch was not pushed.",
+    "The current preview was captured before integration and must not be presented as a fresh integrated capture until refreshed."
+  ],
+  "open_gates": [
+    "Refresh the TR-6 visual capture after integration when a permitted browser can render the local page.",
+    "Choose and verify a public no-auth host for the refreshed page if replacing the repository link.",
+    "Verify the replacement link at desktop and mobile widths before updating the profile."
+  ]
+}

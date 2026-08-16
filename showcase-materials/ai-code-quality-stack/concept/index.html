@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="The target integration seam across Anti-Slop, Pre-CR enforcement, and Quality Runner evidence."
+    />
+    <title>AI Code Quality Stack: one finding, three responsibilities</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0c1012;
+        --panel: #151b1e;
+        --text: #f4f6f4;
+        --muted: #aab4af;
+        --line: #34403b;
+        --green: #91e2b8;
+        --amber: #f0c77a;
+        --blue: #8fcde5;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      .wrap {
+        width: min(1160px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+      .hero,
+      .flow {
+        padding: clamp(72px, 10vw, 132px) 0;
+      }
+      .flow {
+        border-top: 1px solid var(--line);
+      }
+      .kicker {
+        margin: 0 0 16px;
+        color: var(--green);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 920px;
+        margin: 0;
+        font-size: clamp(3.2rem, 8vw, 7rem);
+        font-weight: 650;
+        letter-spacing: -0.055em;
+        line-height: 0.92;
+      }
+      .lede {
+        max-width: 65ch;
+        margin: 28px 0 0;
+        color: var(--muted);
+        font-size: 1.15rem;
+        line-height: 1.65;
+      }
+      .case {
+        margin-top: 64px;
+        padding: 26px;
+        border: 1px solid var(--line);
+        background: #101517;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      mark {
+        padding: 3px 5px;
+        background: rgba(240, 199, 122, 0.18);
+        color: #ffe1a8;
+      }
+      h2 {
+        max-width: 720px;
+        margin: 0 0 44px;
+        font-size: clamp(2.3rem, 5vw, 4.4rem);
+        letter-spacing: -0.04em;
+        line-height: 1;
+      }
+      .nodes {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1px;
+        border: 1px solid var(--line);
+        background: var(--line);
+      }
+      .node {
+        min-height: 320px;
+        padding: 30px;
+        background: var(--panel);
+      }
+      .number {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        margin-bottom: 46px;
+        border: 1px solid currentColor;
+        border-radius: 50%;
+        color: var(--green);
+        font-size: 0.72rem;
+      }
+      .node:nth-child(2) .number {
+        color: var(--amber);
+      }
+      .node:nth-child(3) .number {
+        color: var(--blue);
+      }
+      h3 {
+        margin: 0 0 8px;
+        font-size: 1.35rem;
+      }
+      .owner,
+      .state,
+      footer {
+        color: var(--muted);
+      }
+      .node p {
+        margin: 28px 0 0;
+        color: #ced5d1;
+        line-height: 1.6;
+      }
+      .state {
+        display: inline-block;
+        margin-top: 26px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .boundary {
+        padding: 80px 0;
+        background: #eef1ed;
+        color: #18201c;
+      }
+      .boundary p {
+        max-width: 70ch;
+        color: #59645e;
+        font-size: 1.12rem;
+        line-height: 1.7;
+      }
+      footer {
+        padding: 28px 0;
+        font-size: 0.78rem;
+      }
+      @media (max-width: 760px) {
+        .nodes {
+          grid-template-columns: 1fr;
+        }
+        .node {
+          min-height: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="wrap">
+          <p class="kicker">Combined portfolio story · Target flow</p>
+          <h1>One finding. Three responsibilities.</h1>
+          <p class="lede">
+            Anti-Slop detects the generated-code problem. Pre-CR contributes
+            changed-file enforcement. Quality Runner adds repository context—
+            without any layer absorbing the products around it.
+          </p>
+          <div class="case">
+            39&nbsp;&nbsp;&lt;h2&gt;<mark>Analytics</mark>&lt;/h2&gt;
+          </div>
+        </div>
+      </section>
+      <section class="flow">
+        <div class="wrap">
+          <p class="kicker">Detect → Enforce → Contextualize</p>
+          <h2>The evidence moves. Product ownership does not.</h2>
+          <div class="nodes">
+            <article class="node">
+              <span class="number">1</span>
+              <h3>Detect</h3>
+              <span class="owner">ESLint Anti-Slop</span>
+              <p>Own the AST rule and exact-line diagnostic.</p>
+              <span class="state">Source case selected</span>
+            </article>
+            <article class="node">
+              <span class="number">2</span>
+              <h3>Enforce</h3>
+              <span class="owner">Pre-CR · narrow stack role</span>
+              <p>Apply policy to the changed-file set and write the receipt.</p>
+              <span class="state">Integrated proof open</span>
+            </article>
+            <article class="node">
+              <span class="number">3</span>
+              <h3>Contextualize</h3>
+              <span class="owner">Quality Runner</span>
+              <p>Add repository evidence and remediation order once.</p>
+              <span class="state">Consumption proof open</span>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section class="boundary">
+        <div class="wrap">
+          <p class="kicker">Explicit boundary</p>
+          <h2>Integration story, not product consolidation.</h2>
+          <p>
+            Pre-CR's IDE workspace remains a standalone demo. Quality Runner's
+            fleet audit remains a standalone demo. This material proves only the
+            seam where detection becomes enforcement and shared evidence.
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        Concept surface · exact detector case selected · integrated execution
+        not yet proven
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,34 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "change-integration-simulator",
+  "status": "candidate_local",
+  "title": "Change Integration Simulator: mergeability is not verification",
+  "audience": "Reviewers who need exact source/target simulation without moving refs or confusing a clean merge with a passing behavior gate.",
+  "promise": "Pin commits, simulate clean and conflict outcomes, run a separately identified local gate, and leave the branches untouched.",
+  "story": [
+    "A clean source/target pair resolves to a merge tree with exact commit identities.",
+    "A conflicting pair reports the shared file and produces no merge tree.",
+    "A local whitespace gate is recorded against the target commit as a separate probe.",
+    "Stale movement, cancellation, retained workspaces, and remote CI remain explicit limits."
+  ],
+  "evidence": [
+    "evidence/cis-w4-clean-conflict.json",
+    "evidence/cis-w4-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
+    "../../../projects/change-integration-simulator/README.md",
+    "../../../projects/change-integration-simulator/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Current-dev clean merge-tree receipt records source, target, merge base, tree identity, and output hash.",
+    "Current-dev conflict receipt names the conflicting file without changing refs.",
+    "A separate local gate probe is bound to the target commit, and pre/post source/target ref readbacks remain unchanged.",
+    "Source tests, lint, and package checks pass; the 1600x900 PNG/SVG preview was visually reviewed."
+  ],
+  "open_gates": [
+    "Bind a real Workflow Gateboard receipt to the simulated state.",
+    "Exercise stale, cancellation, and retained-workspace boundaries with explicit negative readbacks.",
+    "Verify a hosted no-auth case and read back the external destinations.",
+    "Record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves a current-dev local clean/conflict simulation slice, a separate gate probe, ref safety, and a reviewed 1600x900 preview; it does not claim integrated Gateboard execution, remote CI, hosting, or publication."
+}

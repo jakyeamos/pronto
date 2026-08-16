@@ -1,0 +1,59 @@
+{
+  "schema_version": "change-radius-showcase-evidence-v0.1",
+  "project": "change-radius",
+  "source_repository": "change-radius",
+  "source_branch": "dev",
+  "source_revision": "a849c8ad701e141f7f4c4e640fb57bdc591404c9",
+  "observed_at": "2026-08-14T03:12:21Z",
+  "checks": {
+    "test": { "status": "passed", "command": "pnpm test", "tests": 3 },
+    "lint": { "status": "passed", "command": "pnpm lint" },
+    "package": { "status": "passed", "command": "pnpm package" }
+  },
+  "headless_flow": {
+    "status": "ready",
+    "command": "node src/cli.mjs /private/tmp/showcase-change-radius-fixture-20260814 model.ts parseThing --json",
+    "target": {
+      "kind": "git",
+      "revision": "9977af499079f3ce44981cbaad7992d67aff3994"
+    },
+    "seed": { "file": "model.ts", "symbol": "parseThing" },
+    "provider": "bounded-regex",
+    "traversal_depth": 1,
+    "edges": [
+      {
+        "from": "consumer.ts",
+        "kind": "static-import",
+        "provider": "bounded-regex",
+        "evidence": "import-or-require",
+        "test": false
+      },
+      {
+        "from": "model.test.ts",
+        "kind": "static-import",
+        "provider": "bounded-regex",
+        "evidence": "import-or-require",
+        "test": true
+      }
+    ],
+    "unknowns": [
+      {
+        "kind": "dynamic-import",
+        "message": "Dynamic module loading is outside the static provider."
+      }
+    ],
+    "limitations": ["generated files", "external packages", "reflection", "runtime calls"],
+    "next_action": "model.test.ts",
+    "diff_identity": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "negative_contracts": {
+    "missing_seed": "verified_by_unit_test",
+    "dynamic_import_unknown": "verified_by_unit_test_and_fixture_run"
+  },
+  "privacy": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local TypeScript fixture"
+  },
+  "claim_boundary": "Current dev checks and a fresh target-bound TypeScript fixture prove two bounded static edges, one test edge, and an explicit dynamic-import unknown. This checkpoint is not a universal blast-radius, runtime-use, generated-code, or external-consumer proof, and it does not claim hosting or publication."
+}

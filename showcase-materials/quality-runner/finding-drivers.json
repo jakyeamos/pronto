@@ -1,0 +1,203 @@
+{
+  "schema_version": "pronto-showcase-finding-drivers/v1",
+  "project": "quality-runner",
+  "case_id": "tenure-quality-values-burndown-2026-07",
+  "promise": "Repository signals select the standards that matter, and every resulting finding retains its pack, rule, scope, and coverage context.",
+  "historical_run": {
+    "repository": "tenure",
+    "run_id": "qr060-tenure-20260717-capabilities-verify",
+    "quality_runner_version": "0.6.0",
+    "created_at": "2026-07-17T19:14:31.469125+00:00",
+    "branch": "dev",
+    "head_sha": "0702be6ce94d845dc281a19c881f9a742846a33d",
+    "dirty": true,
+    "mode": "verify-gates",
+    "implementation_allowed": false,
+    "corpus_version": "2026.07.16",
+    "selection_mode": "relevant"
+  },
+  "selection": {
+    "eligible_pack_count": 12,
+    "selected_pack_count": 8,
+    "selected_packs": [
+      { "id": "copy-specificity", "matched_terms": ["claims", "content"] },
+      {
+        "id": "data-integrity",
+        "matched_terms": ["backfill", "data", "database", "fixtures"]
+      },
+      {
+        "id": "developer-experience",
+        "matched_terms": ["documentation", "handoff"]
+      },
+      {
+        "id": "pr-risk",
+        "matched_terms": ["handoff", "request", "scope", "surface"]
+      },
+      {
+        "id": "release-readiness",
+        "matched_terms": ["artifact", "gates", "handoff"]
+      },
+      {
+        "id": "test-strategy",
+        "matched_terms": ["coverage", "gates", "isolation", "tests"]
+      },
+      {
+        "id": "ui-foundations",
+        "matched_terms": ["components", "loading", "ui"]
+      },
+      { "id": "ui-specificity", "matched_terms": ["design", "surfaces", "ui"] }
+    ],
+    "not_selected_examples": [
+      { "id": "motion-quality", "reason": "score below relevance threshold" },
+      {
+        "id": "performance-readiness",
+        "reason": "score below relevance threshold"
+      },
+      { "id": "security-privacy", "reason": "score below relevance threshold" }
+    ]
+  },
+  "scan_result": {
+    "total_findings": 4022,
+    "warnings": 2794,
+    "observations": 1228,
+    "files": 886,
+    "lines": 142955,
+    "coverage_entries": 50,
+    "quality_skill_findings": {
+      "ui-foundations": 192,
+      "ui-specificity": 179,
+      "release-readiness": 1,
+      "developer-experience": 1
+    },
+    "selected_categories": {
+      "harden": 1394,
+      "ui_structural": 931,
+      "simplify": 768,
+      "integrate": 339,
+      "deduplicate": 66
+    }
+  },
+  "mechanism": [
+    {
+      "id": "infer",
+      "label": "Read repository signals",
+      "detail": "Quality Runner derives relevance signals from the codebase instead of applying every available standard indiscriminately."
+    },
+    {
+      "id": "select",
+      "label": "Select the relevant packs",
+      "detail": "Eight of twelve eligible packs were selected for the July 17 Tenure baseline."
+    },
+    {
+      "id": "evaluate",
+      "label": "Evaluate scoped rules",
+      "detail": "Deterministic rules and review obligations evaluate only the files and patterns owned by each standard."
+    },
+    {
+      "id": "explain",
+      "label": "Keep provenance attached",
+      "detail": "The scan records pack, rule, evidence, scoped-file coverage, matched files, and finding count."
+    },
+    {
+      "id": "reconcile",
+      "label": "Review before changing code",
+      "detail": "Findings become source fixes, source-evidenced dispositions, or unresolved work; a raw row is never automatically a defect."
+    }
+  ],
+  "customization_model": {
+    "automatic_default": "relevant packs are selected from repository signals",
+    "owner_control": "owners may change selection mode, active packs, local skills, path scope, rules, thresholds, and scan exclusions",
+    "why_it_matters": "two repositories can run the same engine while being judged against different definitions of quality"
+  },
+  "agent_reconciliation_model": {
+    "relationship": "Quality Runner supplies the evidence, stable fingerprints, remediation context, and resolution ledger; a reviewing agent investigates source and proposes or records the evidence-backed outcome.",
+    "outcomes": [
+      {
+        "id": "fixed",
+        "meaning": "source changed and focused proof showed the finding cleared"
+      },
+      {
+        "id": "accepted-intentional",
+        "meaning": "the detected pattern is an intentional tradeoff whose owner, reason, evidence, and optional expiry remain visible"
+      },
+      {
+        "id": "false-positive",
+        "meaning": "source evidence shows the detector row does not represent actionable debt, so the disposition is preserved instead of silently suppressing the row"
+      },
+      {
+        "id": "open",
+        "meaning": "the evidence still supports actionable or unresolved work"
+      }
+    ],
+    "terminal_interpretation": "The 537 retained rows were still raw detector output, but the historical ledger had reconciled their meaning and recorded 0 open actionable findings."
+  },
+  "value_execution_loop": {
+    "customer_promise": "The same standards that guide agent output and execution can become the quality contract used to inspect what those agents produce.",
+    "stages": [
+      {
+        "id": "standard",
+        "label": "Your standard",
+        "title": "Name what good looks like",
+        "detail": "Skills, guides, and agent rules express the output quality and execution behavior your team values."
+      },
+      {
+        "id": "negative",
+        "label": "Prevented outcome",
+        "title": "Make the failure explicit",
+        "detail": "Reviewed ingest identifies the concrete negatives behind the instruction: generic copy, missing states, unsafe boundaries, or other unwanted patterns."
+      },
+      {
+        "id": "contract",
+        "label": "Checkable contract",
+        "title": "Choose how to inspect it",
+        "detail": "Low-noise standards become deterministic rules; judgment-heavy standards become bounded agent-review rubrics."
+      },
+      {
+        "id": "finding",
+        "label": "Concrete findings",
+        "title": "Measure the gap in the repo",
+        "detail": "Each result retains its skill, rule, file, line, evidence, severity, scope, and coverage instead of becoming an anonymous warning."
+      },
+      {
+        "id": "plan",
+        "label": "Remediation plan",
+        "title": "Turn debt into bounded work",
+        "detail": "Group findings by standard, risk, and surface; remediate in small slices and verify against the same value that created the finding."
+      }
+    ],
+    "tenure_example": [
+      {
+        "label": "Value",
+        "value": "Interfaces should feel intentional, legible, and complete"
+      },
+      {
+        "label": "Prevent",
+        "value": "Generic UI, unclear states, and structural design shortcuts"
+      },
+      {
+        "label": "Measure",
+        "value": "192 UI-foundations + 179 UI-specificity findings"
+      },
+      {
+        "label": "Plan",
+        "value": "Scoped findings grouped into reviewable remediation slices"
+      }
+    ],
+    "boundary": "A supervising ingest agent may propose a conservative pack from a Skill, guide, or preference document; a human reviews it; Quality Runner validates the non-executable pack and records its exact version and content hash. Quality Runner does not execute arbitrary Skill code or silently invent rules during a scan."
+  },
+  "boundaries": [
+    "historical_run_was_dirty",
+    "selected_packs_are_not_all_eligible_packs",
+    "raw_findings_are_not_confirmed_defects",
+    "review_required_items_are_not_deterministic_failures",
+    "raw_instruction_sources_require_reviewed_ingest",
+    "quality_runner_does_not_execute_arbitrary_skill_code",
+    "gate_execution_was_blocked_without_consent",
+    "historical_evidence_is_not_current_checkout_proof"
+  ],
+  "evidence_refs": [
+    "/Users/jakyeamos/projects/tenure/.quality-runner/runs/qr060-tenure-20260717-capabilities-verify/run-manifest.json",
+    "/Users/jakyeamos/projects/tenure/.quality-runner/runs/qr060-tenure-20260717-capabilities-verify/code-quality-scan.json",
+    "/Users/jakyeamos/projects/tenure/.quality-runner/exports/qr060-tenure-20260717-capabilities-handoff.md"
+  ]
+}

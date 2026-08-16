@@ -1,0 +1,94 @@
+{
+  "schema_version": "automation-flight-recorder-showcase-evidence-v0.1",
+  "project": "automation-flight-recorder",
+  "source_repository": "automation-flight-recorder",
+  "source_revision": "51b29f55276422313c54dd99b0d07cb3e388e389",
+  "fixture_target_revision": "355c6bcbddeef84e9f87905c5a8f6040da4db8cb",
+  "observed_at": "2026-08-13T23:30:00Z",
+  "pass_trace": {
+    "status": "passed",
+    "workflow_id": "gateboard-quality-check-pass",
+    "steps": [
+      {
+        "id": "prepare",
+        "parent_id": "gateboard-quality-check-pass",
+        "status": "passed",
+        "mutation": "read",
+        "output": "prepared\\n",
+        "output_sha256": "cb064c1339ffa3d7777bcb0459de3dceddb9146156dde58065a4ac826b029aa7",
+        "exit_code": 0
+      },
+      {
+        "id": "tests",
+        "parent_id": "gateboard-quality-check-pass",
+        "status": "passed",
+        "mutation": "read",
+        "output": "TOKEN=[REDACTED]\\npassed gate\\n",
+        "output_sha256": "577b82bd13c635cdd569eed623a92f3b319c4577b60347fd4827e876e31a8214",
+        "exit_code": 0
+      },
+      {
+        "id": "package",
+        "parent_id": "gateboard-quality-check-pass",
+        "status": "passed",
+        "mutation": "write",
+        "output": "package ready\\n",
+        "output_sha256": "79cfa7c6a54463b53fd7b7596f59bfcb0c4c5b44c8b4dd98288c2d6e7383e7cf",
+        "exit_code": 0
+      }
+    ],
+    "omissions": ["unlisted processes", "environment", "network bodies"],
+    "privacy": "local-private",
+    "rerun": {
+      "eligible": true,
+      "mutation": "review each step declaration before rerun"
+    }
+  },
+  "failure_trace": {
+    "status": "failed",
+    "workflow_id": "gateboard-quality-check",
+    "steps": [
+      {
+        "id": "prepare",
+        "parent_id": "gateboard-quality-check",
+        "status": "passed",
+        "mutation": "read",
+        "output": "prepared\\n",
+        "exit_code": 0
+      },
+      {
+        "id": "tests",
+        "parent_id": "gateboard-quality-check",
+        "status": "failed",
+        "mutation": "read",
+        "output": "TOKEN=[REDACTED]\\nfailed gate\\n",
+        "output_sha256": "74acd00e7cd6a1a1270a9d3ae9c85731c914557788e235f999edf0e6a015e38c",
+        "exit_code": 3
+      },
+      {
+        "id": "package",
+        "parent_id": "gateboard-quality-check",
+        "status": "not_run",
+        "blocker": "previous step failed"
+      }
+    ],
+    "omissions": ["unlisted processes", "environment", "network bodies"],
+    "privacy": "local-private",
+    "rerun": {
+      "eligible": true,
+      "mutation": "review each step declaration before rerun"
+    }
+  },
+  "negative_contracts": {
+    "timeout_to_cancelled": "verified_by_unit_test",
+    "failed_child_stops_later_steps": "verified_by_fixture",
+    "redaction": "verified_by_fixture",
+    "omissions_are_named": "verified_by_fixture"
+  },
+  "privacy_boundary": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local workflow fixture"
+  },
+  "claim_boundary": "This packet proves bounded local parent/child traces, redaction, omissions, failure preservation, and declared rerun guidance. It does not prove Gateboard integration, complete cancellation coverage, an authorization decision, hosting, or publication."
+}

@@ -1,0 +1,35 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "contract-watch",
+  "status": "candidate_local",
+  "title": "Contract Watch: facts are not decisions",
+  "audience": "API owners who need semantic contract changes, policy consequence, and unknown consumer scope kept separate.",
+  "promise": "Compare two explicit OpenAPI contracts, classify changes with bounded certainty, and record a human disposition without inventing a release verdict.",
+  "story": [
+    "A baseline and candidate contract produce explicit additions, removals, response changes, and deprecations.",
+    "Certainty and policy consequence remain separate fields for each change.",
+    "A human acknowledges or mitigates selected changes while others remain unreviewed.",
+    "Undocumented consumers and runtime traffic remain explicit limitations."
+  ],
+  "evidence": [
+    "evidence/cw-w3-openapi-handoff.json",
+    "evidence/cw-w3-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
+    "../../../projects/contract-watch/README.md",
+    "../../../projects/contract-watch/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Real OpenAPI fixture with four semantic change kinds.",
+    "Separate certainty/consequence fields and human dispositions preserved.",
+    "Source tests, lint, and package checks pass.",
+    "Current dev comparison and disposition flows were rerun headlessly.",
+    "1600×900 PNG/SVG preview was regenerated and visually reviewed."
+  ],
+  "open_gates": [
+    "Hand the source identity to Review Attention Map and Deletion Proof without copying authority.",
+    "Expand undocumented-consumer and stale-baseline fixture coverage.",
+    "Connect the local case to a hosted no-auth URL and verify it.",
+    "Record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves a local W3 OpenAPI semantic-diff slice; it does not claim complete consumer impact, merge/release policy, cross-tool integration, hosting, or publication."
+}

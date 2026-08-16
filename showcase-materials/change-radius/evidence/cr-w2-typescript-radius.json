@@ -1,0 +1,50 @@
+{
+  "schema_version": "change-radius-showcase-evidence-v0.1",
+  "project": "change-radius",
+  "source_repository": "change-radius",
+  "source_revision": "a849c8ad701e141f7f4c4e640fb57bdc591404c9",
+  "fixture_target_revision": "bb18f63537e81aef19d09e56e4eb2e7e29645fe0",
+  "observed_at": "2026-08-13T23:17:00Z",
+  "status": "ready",
+  "seed": { "file": "model.ts", "symbol": "parseThing" },
+  "provider": "bounded-regex",
+  "edges": [
+    {
+      "from": "consumer.ts",
+      "kind": "static-import",
+      "provider": "bounded-regex",
+      "evidence": "import-or-require",
+      "test": false
+    },
+    {
+      "from": "model.test.ts",
+      "kind": "static-import",
+      "provider": "bounded-regex",
+      "evidence": "import-or-require",
+      "test": true
+    }
+  ],
+  "unknowns": [
+    {
+      "kind": "dynamic-import",
+      "message": "Dynamic module loading is outside the static provider."
+    }
+  ],
+  "limitations": [
+    "generated files",
+    "external packages",
+    "reflection",
+    "runtime calls"
+  ],
+  "next_action": "model.test.ts",
+  "target": {
+    "kind": "git",
+    "revision": "bb18f63537e81aef19d09e56e4eb2e7e29645fe0"
+  },
+  "privacy": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local TypeScript fixture"
+  },
+  "claim_boundary": "This receipt proves bounded static references and an explicit dynamic-import unknown for one TypeScript fixture. It is not a universal blast-radius, runtime-use, generated-code, or external-consumer proof."
+}

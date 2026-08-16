@@ -1,0 +1,44 @@
+{
+  "schema_version": "pronto-showcase-source-authorization-evidence/v1",
+  "checked_at": "2026-08-12T19:33:07Z",
+  "gap_id": "MC-4",
+  "proof_level": "source_build",
+  "source_repository": "/Users/jakyeamos/projects/mac-control",
+  "source_commit": "e66c608dc88fc3ab72056fa7c6ce93c2a7473645",
+  "working_tree_state": "dirty_preserved",
+  "fixture": "synthetic_changed_target_then_restored",
+  "fixture_label": "synthetic",
+  "observations": {
+    "changed_target_attempt": {
+      "result": "precondition_failed:target_changed",
+      "executor_mutation_count": 0,
+      "checkpoint_state": "prepared",
+      "approval_remained_available": true
+    },
+    "restored_target_attempt": {
+      "result": "completed",
+      "executor_mutation_count": 1
+    },
+    "completed_approval_replay": {
+      "result": "invalid_state:completed",
+      "executor_mutation_count": 1
+    }
+  },
+  "validation": {
+    "command": "swift test --filter FocusSessionPlanTests",
+    "resolved_swift": "/usr/bin/swift",
+    "swift_version": "Apple Swift version 6.3.3",
+    "tests": 7,
+    "failures": 0
+  },
+  "source_hashes": {
+    "TaskRunner.swift": "c8b3435ff57da70bd3995ef45c52b944f34a6e6b799c1aec89043866c479da0f",
+    "FocusSessionPlanTests.swift": "2b4ca2a0402e1823e0d6243ec6296ddd446cf7492422aa05f37da18fd230ae86"
+  },
+  "limitations": [
+    "The target change is injected by a deterministic revalidator fixture, not caused in a live Preview or TextEdit window.",
+    "This does not prove the installed app refuses a changed focus-session target.",
+    "A live changed-state observation and refusal receipt are still required to close MC-4."
+  ],
+  "disposition": "source_authorization_behavior_passed_live_refusal_required"
+}

@@ -1,0 +1,51 @@
+{
+  "schema_version": "pronto-showcase-marketing-autoresearch-gap-receipt/v1",
+  "project": "marketing-autoresearch",
+  "gap": "MA-2",
+  "observed_at": "2026-08-13T17:18:30Z",
+  "status": "blocked",
+  "disposition": "parked_pending_brief_source_claim_contract",
+  "observed_surface": {
+    "repository": "marketing-autoresearch",
+    "run_command": "pnpm start run --profile-set marketed-v1 --no-live --no-checks",
+    "probe_run_id": "20260813T171745Z-4a4dc7b0b8",
+    "probe_status": "complete",
+    "probe_shadow_mode": true,
+    "probe_market_observation_status": "missing",
+    "probe_market_observation_reason": "market research disabled; set MARKETING_AUTORESEARCH_RUN_RESEARCH=1 for weekly retrieval",
+    "probe_external_mutations": 0
+  },
+  "owner_boundary": {
+    "current_owner": "marketing-autoresearch",
+    "current_responsibilities": [
+      "profile-set repository snapshots",
+      "optional market-observation retrieval",
+      "hypotheses and publication policy",
+      "redacted run and report artifacts"
+    ],
+    "missing_contract": [
+      "brief input bound to a run",
+      "source identifier and retrieval date per material claim",
+      "claim ledger separating observed language, inference, and unknown",
+      "allowed-source registry enforcement for report claims"
+    ],
+    "evidence": [
+      "src/runner.ts:125-184 iterates configured profiles and passes only each profile to collectMarketObservations; it has no Showcase brief input",
+      "src/types.ts:166-175 defines MarketObservation as topic/status/source/summary/rawArtifact/reason without claim IDs, retrieval dates, or uncertainty labels",
+      "src/research.ts:98-143 writes a Last30days plan and compact output, but does not emit a source-to-claim receipt",
+      "README.md:19-32 describes --research as an optional adapter and preserves missing evidence; it does not define a brief-aware report contract"
+    ]
+  },
+  "why_existing_run_is_insufficient": [
+    "The no-live probe is a valid fail-closed shadow run, but its market observations are missing and cannot answer MA-1.",
+    "Enabling the external research adapter would still produce profile-level compact summaries rather than the brief's required source-to-claim ledger.",
+    "A Pronto-only wrapper or hand-authored report would create a second marketing measurement contract and could misrepresent missing observations as evidence."
+  ],
+  "blocked_action": "Do not claim MA-2 complete and do not create a parallel claim ledger outside the owning runtime.",
+  "next_action": "Return when the marketing-autoresearch owner approves either a brief-aware run input plus source-to-claim receipt, or a separately owned adapter with the same redaction and allowed-source contract; then rerun MA-2 with the real public portfolio brief.",
+  "claim_boundary": [
+    "The probe proves report-only execution and zero external mutations, not research quality.",
+    "No audience demand, campaign recommendation, source-backed claim, or publication readiness is established.",
+    "The blocker is a product/report contract boundary, not a reason to fabricate a synthetic market result."
+  ]
+}

@@ -1,0 +1,1 @@
+Rule Lab is a local-first workbench for editing and verifying deterministic quality rules. Its W2 pilot compares a canonical rule and an isolated draft against positive and negative fixtures, preserves gained/lost matches, and saves a target-bound receipt only when every required case passes. The workflow keeps counterexamples and human approval visible.

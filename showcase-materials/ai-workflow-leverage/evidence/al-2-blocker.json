@@ -1,0 +1,77 @@
+{
+  "schema_version": "pronto-showcase-ai-workflow-leverage-gap-receipt/v1",
+  "gap": "AL-2",
+  "observed_at": "2026-08-13T17:08:32Z",
+  "status": "blocked",
+  "disposition": "parked_pending_owner_contract",
+  "task_case_id": "AL-1-tenure-review-task-state-observability",
+  "owner_boundary": {
+    "current_repository": "ai-workflow-leverage",
+    "current_repository_responsibility": [
+      "task_run_ledger",
+      "shipping_metrics",
+      "scorecards",
+      "portfolio_projections"
+    ],
+    "paired_measurement_owner": "agent-eval-runtime",
+    "paired_measurement_responsibility": [
+      "eval_runs",
+      "paired_comparisons",
+      "model_selection",
+      "harnesses",
+      "benchmarks_and_corpus"
+    ],
+    "boundary_evidence": [
+      "ai-workflow-leverage:README.md#decomposed-product-boundaries",
+      "ai-workflow-leverage:config/capability-lifecycle.json#/product_topology/agent-eval-runtime",
+      "agent-eval-runtime:README.md#boundary"
+    ]
+  },
+  "observed_current_surface": {
+    "run_record_fields": [
+      "manual_minutes",
+      "intervention_minutes",
+      "lead_time_minutes",
+      "rework",
+      "escaped_defect",
+      "tool_calls",
+      "acceptance_verified",
+      "quality_gates_passed"
+    ],
+    "append_only_tables": [
+      "runs",
+      "check_results",
+      "interventions",
+      "merge_decisions"
+    ],
+    "evidence_refs": [
+      "ai-workflow-leverage:leverage/models.py#RunRecord",
+      "ai-workflow-leverage:leverage/store.py#runs",
+      "ai-workflow-leverage:leverage/store.py#interventions"
+    ]
+  },
+  "missing_contract": {
+    "required_fields": [
+      "active_work_seconds",
+      "wait_seconds",
+      "human_touches",
+      "retries",
+      "failure_events",
+      "outcome_evidence"
+    ],
+    "why_existing_fields_are_insufficient": [
+      "lead_time_minutes does not separate active work from waits",
+      "intervention_minutes is one aggregate total rather than typed events",
+      "rework and escaped_defect are post-run flags, not failure or retry events",
+      "quality_gates_passed is a boolean and does not carry shared outcome evidence"
+    ]
+  },
+  "blocked_action": "Do not add a second paired-measurement engine to ai-workflow-leverage. The owner must first approve an event contract and integration path in agent-eval-runtime, then both lanes can be instrumented against that contract.",
+  "next_action": "Circle back with the agent-eval-runtime owner contract, implement the smallest shared event schema, and record raw manual and assisted receipts before running AL-3 or AL-4.",
+  "claim_boundary": [
+    "AL-1 protocol selection remains passed.",
+    "AL-2 is not closed; no paired measurement or AI-versus-manual claim is made.",
+    "No timing, retry, human-touch, failure, or outcome values were fabricated.",
+    "The Tenure reference implementation remains a contract anchor, not a measured lane."
+  ]
+}

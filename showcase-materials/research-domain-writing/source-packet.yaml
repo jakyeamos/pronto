@@ -1,0 +1,187 @@
+schema_version: rdw-packet/v1
+evidence_schema_version: rdw-evidence/v1
+id: basketball-player-jayson-tatum-2023-24-showcase
+domain: basketball
+entity_type: player
+entity_name: Jayson Tatum
+topic: Evidence-bounded interpretation of a real 2023-24 regular-season box-score line
+time_period: 2023-24 NBA regular season
+context: >-
+  Public showcase input for demonstrating that a fluent basketball claim can
+  exceed the evidence loaded into a writing workflow.
+role_or_usage_context: >-
+  The sources identify Tatum in a Boston forward role, but this packet does not
+  load usage, possession, lineup, matchup, or tracking context.
+
+key_facts:
+  - id: fact-tatum-line
+    text: >-
+      Jayson Tatum played 74 games in the 2023-24 NBA regular season and
+      averaged 26.9 points, 8.1 rebounds, and 4.9 assists per game.
+    source_ids: [celtics-game-notes-2024-05-11, basketball-reference-tatum]
+    temporal_scope:
+      state: period
+      period: 2023-24 NBA regular season
+      start: "2023-10-24"
+      end: "2024-04-14"
+    freshness: { state: fresh, accessed_at: "2026-08-12T20:30:00Z" }
+  - id: fact-tatum-team-role
+    text: >-
+      The reviewed 2023-24 records identify Tatum with Boston and list him as
+      a forward or power forward.
+    source_ids: [celtics-game-notes-2024-05-11, basketball-reference-tatum]
+    temporal_scope:
+      state: period
+      period: 2023-24 NBA regular season
+      start: "2023-10-24"
+      end: "2024-04-14"
+    freshness: { state: fresh, accessed_at: "2026-08-12T20:30:00Z" }
+
+relevant_metrics:
+  - name: games played
+    value: 74
+    unit: games
+    denominator: 2023-24 regular season
+    season: 2023-24
+    sample: 74 regular-season games
+    what_it_captures: Size of the cited regular-season sample.
+    what_it_misses: Availability context and postseason play.
+    fact_ids: [fact-tatum-line]
+  - name: points per game
+    value: 26.9
+    unit: points per game
+    denominator: games played
+    season: 2023-24
+    sample: 74 regular-season games
+    what_it_captures: Recorded scoring volume per game.
+    what_it_misses: Efficiency, shot difficulty, usage, lineup context, and total impact.
+    fact_ids: [fact-tatum-line]
+  - name: rebounds per game
+    value: 8.1
+    unit: rebounds per game
+    denominator: games played
+    season: 2023-24
+    sample: 74 regular-season games
+    what_it_captures: Recorded rebounding volume per game.
+    what_it_misses: Rebound chances, box-outs, and scheme.
+    fact_ids: [fact-tatum-line]
+  - name: assists per game
+    value: 4.9
+    unit: assists per game
+    denominator: games played
+    season: 2023-24
+    sample: 74 regular-season games
+    what_it_captures: Recorded assists per game.
+    what_it_misses: Potential assists, turnovers, creation difficulty, and lineup effects.
+    fact_ids: [fact-tatum-line]
+
+domain_terms: [box-score volume, efficiency, defensive impact, total impact]
+concepts_that_apply: [sample-size, role-context, metric-boundaries]
+
+source_notes:
+  - source: Boston Celtics game notes, May 11 2024
+    source_id: celtics-game-notes-2024-05-11
+    independence_group: boston-celtics
+    source_role: evidence
+    accessed: "2026-08-12"
+    note: >-
+      Team-issued game notes report 74 starts and the 26.9-point,
+      8.1-rebound, 4.9-assist regular-season averages.
+    fact_ids: [fact-tatum-line, fact-tatum-team-role]
+    authority: primary
+    evidence_state: verified
+    retrieval:
+      status: retrieved
+      content_sha256: sha256:65fd209e4fba49150d7b0814ee9792a1015b8c197ee0109dd5d0668ea561097d
+      retrieved_at: "2026-08-12T20:30:00Z"
+      url: https://cdn.nba.com/teams/uploads/sites/1610612739/2024/05/240511-boscle-notes.pdf
+  - source: Basketball-Reference Jayson Tatum player page
+    source_id: basketball-reference-tatum
+    independence_group: sports-reference
+    source_role: evidence
+    accessed: "2026-08-12"
+    note: >-
+      The historical season row independently matches the 74-game,
+      26.9-point, 8.1-rebound, 4.9-assist line and lists Boston and PF.
+    fact_ids: [fact-tatum-line, fact-tatum-team-role]
+    authority: secondary
+    evidence_state: verified
+    retrieval:
+      status: retrieved
+      content_sha256: sha256:373270a3368fb26418152897723109ac800c616de61893597b7a15d2627c44e7
+      retrieved_at: "2026-08-12T20:30:00Z"
+      url: https://www.basketball-reference.com/players/t/tatumja01.html
+
+interpretation_notes:
+  - >-
+    The sample supports a bounded description of scoring, rebounding, and
+    recorded assist volume in the listed season.
+  - >-
+    The packet does not support an efficiency judgment, a defensive-impact
+    judgment, a complete player-value conclusion, or a future projection.
+
+open_questions:
+  - What efficiency and usage evidence would be needed for an efficiency claim?
+  - What matchup, tracking, or impact evidence would be needed for a defensive claim?
+uncertainties:
+  - The two sources use slightly different position labels; the showcase does not depend on choosing one.
+confidence_level: high
+last_updated: "2026-08-12T20:30:00Z"
+used_in_outputs: [rdw-tatum-claim-boundary-showcase]
+
+research_coverage:
+  schema_version: rdw-research-coverage/v1
+  output_type: stat_interpretation
+  research_depth: standard
+  answers:
+    - question_id: basketball-role-context
+      status: answered
+      summary: >-
+        The reviewed records identify Tatum with Boston in a forward role;
+        usage, possession, lineup, matchup, and tracking context remain unknown
+        and therefore cannot support the proposed impact claim.
+      fact_ids: [fact-tatum-team-role]
+    - question_id: basketball-sample
+      status: answered
+      summary: The cited line covers 74 games in the 2023-24 regular season.
+      fact_ids: [fact-tatum-line]
+    - question_id: basketball-metric-mechanism
+      status: answered
+      summary: The packet supports points, rebounds, and assists per game only within the stated sample.
+      fact_ids: [fact-tatum-line]
+    - question_id: basketball-strengths-limits
+      status: answered
+      summary: Efficiency, defensive impact, total impact, and projection remain outside the packet.
+      fact_ids: [fact-tatum-line]
+    - question_id: basketball-counterread
+      status: answered
+      summary: >-
+        The same box-score volume can support a high-volume description without
+        establishing efficiency, defensive impact, or complete player value.
+      fact_ids: [fact-tatum-line]
+  synthesis:
+    thesis: >-
+      A useful volume description is supported; an elite two-way impact claim
+      is not supported by the evidence loaded here.
+    limitations:
+      - No efficiency, tracking, matchup, on-off, or all-in-one impact evidence is loaded.
+      - The case supports a historical season read, not a current-status or future projection.
+    examples:
+      - The same 26.9/8.1/4.9 line appears in two independently owned sources.
+    counterevidence:
+      - A large scoring average can sound evaluative while remaining only a volume measure.
+    alternatives:
+      - Narrow the sentence to the recorded box-score line and retain the missing-context caveat.
+
+extensions:
+  player:
+    team: Boston Celtics
+    season: 2023-24
+    role: forward
+    archetype: unknown
+    usage:
+      usg_pct: unknown
+      on_ball_pct: unknown
+    age: unknown
+    physical_profile: unknown
+    minutes_stability: unknown

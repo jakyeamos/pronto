@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Contract Watch compares OpenAPI changes, separates certainty from policy consequence, and records human dispositions."
+    />
+    <title>Contract Watch · facts are not decisions</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #151a21;
+        --panel: #232d38;
+        --text: #f4f7fa;
+        --muted: #b7c4d0;
+        --faint: #8293a3;
+        --blue: #94d7ff;
+        --amber: #ffc779;
+        --line: rgba(220, 238, 250, 0.2);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--text);
+        background:
+          radial-gradient(
+            circle at 84% 2%,
+            rgba(148, 215, 255, 0.13),
+            transparent 30rem
+          ),
+          var(--bg);
+        font:
+          16px/1.6 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      .wrap {
+        width: min(1120px, calc(100% - 44px));
+        margin: 0 auto;
+      }
+      header {
+        border-bottom: 1px solid var(--line);
+      }
+      header .wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 58px;
+        gap: 24px;
+      }
+      header strong,
+      header span {
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      header span {
+        color: var(--faint);
+      }
+      .hero {
+        padding: clamp(74px, 10vw, 132px) 0 90px;
+      }
+      .kicker {
+        color: var(--blue);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1,
+      h2 {
+        text-wrap: balance;
+        letter-spacing: -0.055em;
+        line-height: 0.98;
+      }
+      h1 {
+        max-width: 880px;
+        margin: 18px 0 26px;
+        font-size: clamp(3.2rem, 7vw, 6.5rem);
+      }
+      .lede {
+        max-width: 62ch;
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(1.05rem, 1.7vw, 1.24rem);
+      }
+      .note {
+        max-width: 700px;
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        margin-top: 28px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(148, 215, 255, 0.34);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .note strong {
+        color: var(--amber);
+      }
+      section {
+        padding: 86px 0;
+        border-top: 1px solid var(--line);
+      }
+      h2 {
+        max-width: 680px;
+        margin: 0 0 42px;
+        font-size: clamp(2.4rem, 5vw, 4.4rem);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        background: var(--line);
+        border: 1px solid var(--line);
+      }
+      .panel {
+        min-height: 300px;
+        padding: clamp(24px, 4vw, 42px);
+        background: rgba(35, 45, 56, 0.88);
+      }
+      .panel h3 {
+        margin: 0 0 15px;
+        font-size: 1.35rem;
+      }
+      .panel p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .flow {
+        display: grid;
+        gap: 14px;
+        margin-top: 24px;
+      }
+      .flow div {
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      .flow b {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border: 1px solid var(--blue);
+        border-radius: 50%;
+        color: var(--blue);
+        font-size: 0.76rem;
+      }
+      .flow strong {
+        display: block;
+      }
+      .flow span {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .badge {
+        display: inline-block;
+        margin-top: 22px;
+        padding: 5px 9px;
+        border: 1px solid rgba(255, 199, 121, 0.4);
+        border-radius: 999px;
+        color: var(--amber);
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      footer {
+        padding: 30px 0 54px;
+        color: var(--faint);
+        font-size: 0.82rem;
+      }
+      @media (max-width: 760px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        header .wrap {
+          align-items: flex-start;
+          flex-direction: column;
+          justify-content: center;
+          padding: 12px 0;
+          gap: 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <strong>Contract Watch</strong
+        ><span>Candidate local case study · current dev</span>
+      </div>
+    </header>
+    <main data-material-status="candidate-local">
+      <section class="hero">
+        <div class="wrap">
+          <div class="kicker">Semantic contract comparison</div>
+          <h1>Facts are not decisions.</h1>
+          <p class="lede">
+            Contract Watch compares two OpenAPI contracts, keeps certainty
+            separate from policy consequence, and leaves the disposition to a
+            human. This current local case does not claim complete consumer
+            impact or a merge/release verdict.
+          </p>
+          <p class="note">
+            <strong>Case signal</strong
+            ><span
+              >Four changes are explicit: an operation removal, an addition, a
+              response change, and a deprecation. Only selected changes receive
+              dispositions.</span
+            >
+          </p>
+        </div>
+      </section>
+      <section>
+        <div class="wrap">
+          <h2>Certainty and consequence stay separate.</h2>
+          <div class="grid">
+            <article class="panel">
+              <h3>What the diff preserves</h3>
+              <p>
+                The receipt names baseline/current documents, digests, change
+                kinds, certainty, consequence, and human disposition.
+              </p>
+              <div class="flow">
+                <div>
+                  <b>1</b>
+                  <div>
+                    <strong>Compare</strong
+                    ><span>Align explicit OpenAPI operations.</span>
+                  </div>
+                </div>
+                <div>
+                  <b>2</b>
+                  <div>
+                    <strong>Classify</strong
+                    ><span
+                      >Separate semantic fact from policy consequence.</span
+                    >
+                  </div>
+                </div>
+                <div>
+                  <b>3</b>
+                  <div>
+                    <strong>Disposition</strong
+                    ><span>Record acknowledge, mitigate, or verify.</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+            <article class="panel">
+              <h3>What stays unknown</h3>
+              <p>
+                Undocumented consumers, runtime traffic, and external references
+                remain limitations. A “breaking” label is not a release verdict.
+              </p>
+              <span class="badge"
+                >human disposition · no automatic release decision</span
+              >
+            </article>
+          </div>
+        </div>
+      </section>
+      <section>
+        <div class="wrap">
+          <h2>Semantic proof first, integration later.</h2>
+          <p class="lede">
+            This candidate packet proves current <code>dev</code> source
+            revision <code>44dba2b</code> against a temporary local OpenAPI
+            fixture and a visually reviewed 1600×900 preview. Review Attention
+            Map/Deletion Proof handoff, hosting, and publication remain
+            separate gates.
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        Contract Watch · local candidate material · no deployment or posting
+        claim
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "task_id": "rdw-tatum-claim-boundary",
+  "status": "planned",
+  "created_at": "2026-08-12T20:30:36Z",
+  "next_step": "Give prompt-bundle.md to an agent and run the RDW pipeline."
+}

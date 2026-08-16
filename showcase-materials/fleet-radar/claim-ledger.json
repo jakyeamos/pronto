@@ -1,0 +1,108 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "fleet-radar",
+  "case_id": "fleet-radar-w7-preview-hosting-001",
+  "reviewed_at": "2026-08-14T02:00:27Z",
+  "levels": [
+    {
+      "id": "registry",
+      "label": "Explicit registry",
+      "status": "verified_local",
+      "status_display": "Two repositories are named with explicit paths",
+      "allowed_claim": "Fleet Radar reads an explicit local registry and preserves repository identity.",
+      "forbidden_inference": "Every repository in an organization is represented by this registry.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/fr-w5-readonly-refresh.json#/registry"]
+    },
+    {
+      "id": "freshness",
+      "label": "Per-repository freshness",
+      "status": "verified_local",
+      "status_display": "Fresh ready and stale failed states remain visible",
+      "allowed_claim": "The snapshot keeps native receipt state and target freshness separate per repository.",
+      "forbidden_inference": "A stale receipt is current or a clean checkout proves readiness.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/fr-w5-readonly-refresh.json#/snapshot"]
+    },
+    {
+      "id": "read-only-refresh",
+      "label": "Read-only refresh",
+      "status": "verified_local",
+      "status_display": "Repeated refresh leaves repository refs unchanged",
+      "allowed_claim": "Fleet Radar writes a bounded snapshot without mutating observed repository refs.",
+      "forbidden_inference": "Every provider or external destination is immutable under refresh.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/fr-w5-readonly-refresh.json#/refresh_safety"]
+    },
+    {
+      "id": "receipt-contract",
+      "label": "Receipt contract classification",
+      "status": "verified_local",
+      "status_display": "Shared envelope and supported producer receipts classify into explicit contract states",
+      "allowed_claim": "Fleet Radar recognizes the shared evidence envelope and supported producer receipt schemas while preserving malformed, mixed, mismatched, and unsupported states.",
+      "forbidden_inference": "Every upstream producer has already emitted a live receipt through the configured fleet registry.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/fr-w6-contract-and-failure-coverage.json#/receipt_contracts"]
+    },
+    {
+      "id": "native-follow-up",
+      "label": "Native blocker follow-up",
+      "status": "verified_local",
+      "status_display": "Unresolved checks carry source-location or local-receipt link metadata",
+      "allowed_claim": "A Fleet Radar blocker points back to its owning source location or receipt path and includes a next action.",
+      "forbidden_inference": "The owning IDE or native tool was launched successfully from the link.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/fr-w6-contract-and-failure-coverage.json#/native_follow_up"]
+    },
+    {
+      "id": "failure-coverage",
+      "label": "Registry failure coverage",
+      "status": "verified_local",
+      "status_display": "Missing, unreadable, unavailable, duplicate, mixed, dirty, and race cases remain explicit",
+      "allowed_claim": "Fleet Radar preserves broad local registry and evidence failure states instead of collapsing them into a red or green score.",
+      "forbidden_inference": "A live concurrent filesystem race or every provider-specific failure mode has been exhaustively proven.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/fr-w6-contract-and-failure-coverage.json#/failure_matrix"]
+    },
+    {
+      "id": "upstream-contract",
+      "label": "Upstream receipt contract",
+      "status": "not_verified",
+      "status_display": "Real producer parity and direct native navigation remain open",
+      "allowed_claim": "The local contract and native-link model are ready for two real producer readbacks and direct navigation proof.",
+      "forbidden_inference": "Fleet Radar already has complete producer parity or live deep links.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/fr-w6-contract-and-failure-coverage.json#/open_gates"]
+    },
+    {
+      "id": "binary-preview",
+      "label": "Binary preview",
+      "status": "verified_local",
+      "status_display": "Visually inspected 1600×900 PNG rendered from the candidate preview HTML",
+      "allowed_claim": "The Fleet Radar candidate has a crop-safe 16:9 PNG preview tied to the current preview HTML.",
+      "forbidden_inference": "The image is an externally hosted or destination-verified social card.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/fr-w7-preview-and-hosting.json#/binary_preview"]
+    },
+    {
+      "id": "hosted-case",
+      "label": "Hosted case page",
+      "status": "blocked",
+      "status_display": "Validated Sites version saved owner-only; public access and no-auth readback are pending explicit confirmation",
+      "allowed_claim": "A validated owner-only Sites version exists for the Fleet Radar case page.",
+      "forbidden_inference": "The case page is publicly reachable or can be opened without signing in.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["evidence/fr-w7-preview-and-hosting.json#/hosted_case"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "blocked",
+      "status_display": "Public access confirmation is pending before deployment and no-auth readback",
+      "allowed_claim": "Public deployment and external publication remain blocked pending access confirmation.",
+      "forbidden_inference": "The fleet case is live on GitHub, portfolio, or Handshake.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["evidence/fr-w7-preview-and-hosting.json#/verification"]
+    }
+  ]
+}

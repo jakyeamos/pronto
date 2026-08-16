@@ -1,0 +1,63 @@
+{
+  "schema_version": "change-integration-simulator-showcase-evidence-v0.1",
+  "project": "change-integration-simulator",
+  "source_repository": "change-integration-simulator",
+  "source_branch": "dev",
+  "source_revision": "5b07ed441e1e662dc7c08c948a444f6f04fac0cc",
+  "observed_at": "2026-08-14T03:46:44Z",
+  "checks": {
+    "test": "passed: 3 tests",
+    "lint": "passed: node syntax checks",
+    "package": "passed: package surface ok"
+  },
+  "simulations": {
+    "clean": {
+      "status": "mergeable",
+      "source": {
+        "ref": "feature",
+        "commit": "106b6682537c3afd10829321ed5c18bf465e362a"
+      },
+      "target": {
+        "ref": "target",
+        "commit": "8216268670115b12f335f05646b5bc6e7d596940"
+      },
+      "merge_base": "a33e7a5e33f0e470b492dfb732556cc5282ae13d",
+      "tree": "3481c00d5af89015be03ebca7ee8f37cb4f8a868",
+      "output_sha256": "b451ee18695053a069312d34ecae96238442560a93004245ebeff17e831c220b"
+    },
+    "conflict": {
+      "status": "conflict",
+      "source": {
+        "ref": "feature",
+        "commit": "981107111bc8ccfb9319401743720b0855340f98"
+      },
+      "target": {
+        "ref": "target",
+        "commit": "37f10e260a68414402ee3f48cb16b91d62d6e3d4"
+      },
+      "merge_base": "94a46830e84c05472cbca62cd999852471e59761",
+      "conflict_file": "file.txt",
+      "output_sha256": "82d947f1a701e3c6d236d9c1bc99a0d3b01792d60b6e21a53069f76e05af9b58"
+    }
+  },
+  "gate_probe": {
+    "status": "passed_local_unintegrated",
+    "command": "git diff-tree --check -r target",
+    "target_commit": "8216268670115b12f335f05646b5bc6e7d596940",
+    "exit_code": 0,
+    "integration_status": "Workflow Gateboard handoff is not implemented by this product."
+  },
+  "negative_contracts": {
+    "missing_ref": "unsupported: Both source and target refs must resolve locally.",
+    "source_refs_after_clean_simulation": "unchanged",
+    "target_refs_after_clean_simulation": "unchanged",
+    "source_refs_after_conflict_simulation": "unchanged",
+    "target_refs_after_conflict_simulation": "unchanged"
+  },
+  "privacy": {
+    "external_write": false,
+    "credentials_collected": false,
+    "source_scope": "temporary local Git fixtures"
+  },
+  "claim_boundary": "This current-dev checkpoint proves immutable local clean/conflict merge-tree outcomes, an explicit separate gate probe, and source/target ref readback. It does not prove Workflow Gateboard integration, stale/cancellation recovery, remote CI, hosting, or publication."
+}

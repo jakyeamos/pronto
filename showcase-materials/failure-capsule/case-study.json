@@ -1,0 +1,34 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "failure-capsule",
+  "status": "candidate_local",
+  "title": "Failure Capsule: make the failure portable",
+  "audience": "Developers handing a bounded failure to an inheritor without handing over machine state or secrets.",
+  "promise": "Capture one declared failure, redact sensitive output, preserve omissions and artifact identity, and leave reproduction as an explicit next action.",
+  "story": [
+    "A repository-declared command fails with a target and exit code that can be identified.",
+    "Secret-like output is redacted before persistence while omitted capture classes remain labeled.",
+    "An allowlisted artifact is represented by size and hash rather than copied indiscriminately.",
+    "Inspection opens the capsule without executing the failed command."
+  ],
+  "evidence": [
+    "evidence/fc-w2-redacted-failure.json",
+    "evidence/fc-w3-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
+    "../../../projects/failure-capsule/README.md",
+    "../../../projects/failure-capsule/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Failed declared command captured as a bounded local capsule.",
+    "TOKEN-like output redacted and secret value absent from the persisted excerpt.",
+    "Allowlisted artifact identity, omissions, and inspect-only opening preserved.",
+    "Current dev tests, lint, and package checks pass at revision 516f24f.",
+    "The 1600×900 PNG preview is visually reviewed and legible at the target crop."
+  ],
+  "open_gates": [
+    "Connect one capsule to Evidence Replay and preserve the producer envelope.",
+    "Expand cancellation, malformed-input, and explicit-recovery scenario receipts.",
+    "Verify a hosted no-auth case and record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves the current dev bounded-capture slice and local binary preview; it does not claim Replay handoff, complete recovery coverage, hosting, or publication."
+}

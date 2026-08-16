@@ -1,0 +1,50 @@
+{
+  "schema": "quality-setup-showcase-evidence-v0.1",
+  "source_repository": "quality-setup",
+  "source_revision": "f93f43033b479f85b227e5759ace46bbf5f95957",
+  "fixture_target_revision": "4171f1e1af76c21e0806c9f199a01e7401891393",
+  "ecosystem": "node",
+  "package_manager": "pnpm",
+  "target_state_before": "clean",
+  "scenarios": [
+    {
+      "id": "inspect",
+      "status": "supported",
+      "evidence": "package.json and pnpm-lock.yaml detected"
+    },
+    {
+      "id": "plan",
+      "status": "ready",
+      "change": ".quality-setup/config.json",
+      "reversible": true,
+      "quality_command": "pnpm test"
+    },
+    {
+      "id": "apply",
+      "status": "applied",
+      "changed": [".quality-setup/config.json"],
+      "rollback_receipt": ".quality-setup/rollback.json"
+    },
+    {
+      "id": "verify",
+      "status": "passed",
+      "command": "node --version",
+      "config_schema": "quality-setup-config-v0.1"
+    },
+    {
+      "id": "conflict_refusal",
+      "status": "conflict",
+      "reason": ".quality-setup/config.json already exists; no overwrite is proposed."
+    },
+    {
+      "id": "rollback",
+      "status": "rolled_back",
+      "removed": [".quality-setup/config.json"]
+    }
+  ],
+  "post_rollback": {
+    "existing_config": false,
+    "status": "supported"
+  },
+  "claim_boundary": "The scenario ran on an isolated temporary Node fixture; it proves the local preview/apply/verify/refusal/rollback contract, not installation into a user's repository or a hosted release."
+}

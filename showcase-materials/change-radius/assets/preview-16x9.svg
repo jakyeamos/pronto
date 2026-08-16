@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Change Radius — blind spots stay visible</title>
+  <desc id="desc">A current development fixture shows a changed parseThing symbol, two provider-named static edges, and a dynamic-import unknown.</desc>
+  <defs>
+    <radialGradient id="glow" cx="84%" cy="8%" r="55%"><stop offset="0" stop-color="#81e6d9" stop-opacity=".18"/><stop offset="1" stop-color="#0f171b" stop-opacity="0"/></radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1d3d42"/><stop offset="1" stop-color="#1b2931"/></linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="#0f171b"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <g font-family="Inter,Arial,sans-serif" fill="#effcfb">
+    <text x="112" y="148" font-size="22" font-weight="800" letter-spacing="3" fill="#81e6d9">CHANGE RADIUS · DEV</text>
+    <text x="112" y="286" font-size="76" font-weight="700">Blind spots stay</text>
+    <text x="112" y="378" font-size="76" font-weight="700">visible.</text>
+    <text x="112" y="456" font-size="26" fill="#b4c8ca">Follow one changed symbol to what the static provider</text>
+    <text x="112" y="496" font-size="26" fill="#b4c8ca">can name—and label everything it cannot see.</text>
+  </g>
+  <g transform="translate(842 142)">
+    <rect width="644" height="616" rx="24" fill="url(#card)" stroke="#d9fffa" stroke-opacity=".25"/>
+    <g font-family="Inter,Arial,sans-serif">
+      <text x="42" y="58" font-size="16" fill="#b4c8ca" letter-spacing="2">SYMBOL · STATIC RADIUS</text>
+      <text x="602" y="58" text-anchor="end" font-size="16" fill="#9fe6bd" font-weight="700">TARGET-BOUND</text>
+      <rect x="42" y="96" width="560" height="110" fill="#0f171b" fill-opacity=".7" stroke="#d9fffa" stroke-opacity=".25"/>
+      <text x="70" y="134" font-size="16" fill="#81e6d9" font-weight="700">CHANGED SYMBOL</text>
+      <text x="70" y="178" font-size="26" fill="#effcfb" font-family="Menlo,monospace">model.ts · parseThing</text>
+      <rect x="42" y="236" width="560" height="214" fill="#0f171b" fill-opacity=".7" stroke="#d9fffa" stroke-opacity=".25"/>
+      <text x="70" y="278" font-size="16" fill="#81e6d9" font-weight="700">KNOWN EDGES · bounded-regex</text>
+      <text x="70" y="324" font-size="19" fill="#effcfb" font-family="Menlo,monospace">→ consumer.ts</text><text x="470" y="324" font-size="16" fill="#9fe6bd" text-anchor="end">static-import</text>
+      <text x="70" y="366" font-size="19" fill="#effcfb" font-family="Menlo,monospace">→ model.test.ts</text><text x="470" y="366" font-size="16" fill="#9fe6bd" text-anchor="end">test edge</text>
+      <text x="70" y="412" font-size="16" fill="#b4c8ca">next action · review model.test.ts</text>
+      <rect x="42" y="480" width="560" height="70" fill="#0f171b" fill-opacity=".7" stroke="#d9fffa" stroke-opacity=".25"/>
+      <text x="70" y="514" font-size="16" fill="#ffca80" font-weight="700">UNKNOWN</text>
+      <text x="180" y="514" font-size="16" fill="#b4c8ca">dynamic import · runtime/generated/reflection out of scope</text>
+      <text x="42" y="590" font-size="17" fill="#b4c8ca">Current local proof · downstream deletion/contract handoff remains open</text>
+    </g>
+  </g>
+  <text x="112" y="790" font-family="Inter,Arial,sans-serif" font-size="18" fill="#789095" letter-spacing="1">CHANGE RADIUS / CANDIDATE LOCAL MATERIAL</text>
+</svg>

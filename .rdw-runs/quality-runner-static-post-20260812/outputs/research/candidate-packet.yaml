@@ -1,0 +1,57 @@
+schema_version: rdw-packet/v1
+packet_id: quality-runner-tenure-public-description
+domain: technical
+output_type: feature_explainer
+status: run_local_candidate
+thesis: >-
+  Quality Runner turns reviewed team standards into repository-scoped checks and
+  rubrics, then preserves provenance as findings become bounded remediation work.
+facts:
+  - id: mechanism
+    statement: >-
+      Quality Skills attach a team's standards to findings through validated,
+      non-executable packs; deterministic rules and bounded review rubrics keep
+      the source standard, scope, and coverage visible.
+    evidence_group: quality-runner-product-contract
+    sources:
+      - path: /Users/jakyeamos/projects/quality-runner/docs/quality-skills.md
+        sha256: 829cda43f7608fe8a1cd97128a0cfc0f1f3428752fe46c0ddf10b9638c8c304c
+      - path: /Users/jakyeamos/projects/quality-runner/docs/skill-ingest-agent.md
+        sha256: 4093ea4878c7faecfdcfee39e58d34193bc31c8cdc9485c4e0607a8d64c6ab73
+  - id: baseline
+    statement: >-
+      The historical Tenure baseline selected eight relevant packs and recorded
+      4,022 raw code-quality findings across 886 files with 50 coverage entries.
+    evidence_group: tenure-historical-receipt
+    sources:
+      - path: showcase-materials/quality-runner/finding-drivers.json
+        sha256: 34c4b99895aa757bd70e391c316a873cf2af573374db60cc9e0997866bddcc9b
+      - path: showcase-materials/quality-runner/case-study.json
+        sha256: 90b956fcd112b55e8029047ba0a164368f757dcfa4c218401e6b606c876265a5
+  - id: terminal
+    statement: >-
+      The final historical comparison retained 537 raw code-quality rows and
+      recorded 0 open actionable findings.
+    evidence_group: tenure-historical-receipt
+    sources:
+      - path: showcase-materials/quality-runner/burndown.json
+        sha256: ac253348ea6d091c8af7707b08bd01e0a249044689f12d7441a92a93b6f65040
+limitations:
+  - Raw findings are review candidates, not confirmed defects.
+  - The historical baseline was dirty and is not proof of the current checkout.
+  - Gate execution remained blocked because execution consent was not supplied.
+  - No deployment revision, provider, URL, or receipt has been verified.
+counterevidence:
+  - >-
+    The final detector output did not reach zero; 537 raw rows remained after all
+    open actionable items in the historical comparison were reconciled.
+examples:
+  - >-
+    Tenure's UI standards produced 192 UI-foundations and 179 UI-specificity
+    findings, making a broad design value measurable at repository scale.
+research_coverage:
+  technical-behavior: covered
+  technical-use-case: covered
+  technical-mechanism: covered
+  technical-failure-modes: covered
+  technical-example: covered

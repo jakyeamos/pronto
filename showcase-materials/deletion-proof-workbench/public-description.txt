@@ -1,0 +1,1 @@
+Deletion Proof Workbench previews one exported symbol, separates known references from dynamic, reflective, generated, and external unknowns, and requires explicit apply with a recovery reference. Its W4 pilot proves a bounded deletion and refuses a known consumer without claiming universal non-use.

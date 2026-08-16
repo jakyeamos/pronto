@@ -1,0 +1,48 @@
+{
+  "receipt_id": "pre-cr-pcr-1-2026-08-12",
+  "observed_at": "2026-08-12T19:31:03-04:00",
+  "status": "passed",
+  "environment": {
+    "editor": "Visual Studio Code 1.133.0",
+    "extension": "jakye.pre-cr-suite@0.1.0",
+    "profile": "isolated disposable profile",
+    "fixture_branch": "feature/continuity-demo"
+  },
+  "positive_path": {
+    "snapshot_description": "Three-tab continuity proof after diff support",
+    "captured_files": 3,
+    "extension_host_restart_observed": true,
+    "restored_files": 3,
+    "active_file": "src/session.ts",
+    "restored_cursor": {
+      "line_one_based": 11,
+      "column_one_based": 10
+    },
+    "visible_result": "Restored 3 file(s) from \"feature/continuity-demo\"",
+    "capture": "pcr-1-three-file-restore.jpeg"
+  },
+  "degraded_path": {
+    "removed_fixture_file": "src/continuity.ts",
+    "restored_files": 2,
+    "skipped_files": 1,
+    "remaining_state_usable": true,
+    "visible_result": "Restored 2 file(s) from \"feature/continuity-demo\"; skipped 1 missing or stale file(s)",
+    "capture": "pcr-1-missing-file-degradation.jpeg"
+  },
+  "live_findings_closed": [
+    "Open text-diff tabs now contribute their modified workspace file to a snapshot.",
+    "Full restore checks workspace.fs before trusting VS Code's cached text documents."
+  ],
+  "verification": {
+    "vscode_client_tests": "145 passed",
+    "typecheck": "passed",
+    "lint": "passed",
+    "production_build": "passed",
+    "vsix_package": "passed",
+    "installed_surface": "passed"
+  },
+  "limitations": [
+    "The fixture is disposable and intentionally not committed because the globally installed Pre-CR hook blocked its changed-line readiness state.",
+    "macOS spctl returned an internal Code Signing subsystem error, so standalone signature acceptance remains unknown even though the official Homebrew-installed VS Code app ran successfully."
+  ]
+}

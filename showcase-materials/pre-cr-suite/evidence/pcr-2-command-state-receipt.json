@@ -1,0 +1,45 @@
+{
+  "schema_version": "pre-cr-installed-command-state/v1",
+  "captured_at": "2026-08-12T23:47:24Z",
+  "repository_revision": "8886bb64af1eced9486512948cd07b81859902dd",
+  "vscode_version": "1.133.0",
+  "extension": "jakye.pre-cr-suite@0.1.0",
+  "fixture": "/private/tmp/pre-cr-pcr1.2UZm09",
+  "entry_points": ["editor_title_quick_actions", "status_bar_pre_cr"],
+  "command_palette_used": false,
+  "workspace_actions_observed": [
+    "Run Pre-CR Check",
+    "Refresh Coverage",
+    "Fix Setup"
+  ],
+  "states": {
+    "quick_actions": {
+      "result": "passed",
+      "evidence": "pcr-2-quick-actions.jpeg",
+      "detail": "The installed workspace scope visibly offered the three promoted actions."
+    },
+    "fix_setup": {
+      "result": "passed",
+      "evidence": "pcr-2-setup-health.jpeg",
+      "detail": "Setup Health resolved .pre-cr.json and the configured test command, then explicitly reported that no configured coverage report existed."
+    },
+    "refresh_coverage": {
+      "result": "passed_with_expected_missing_fixture_data",
+      "evidence": "pcr-2-coverage-refresh.jpeg",
+      "detail": "Refresh Coverage completed its command path and returned a visible no-configured-report warning with a Fix Setup recovery action."
+    },
+    "run_pre_cr_check": {
+      "result": "command_path_passed_fixture_runtime_failed",
+      "evidence": "pcr-2-main-check.jpeg",
+      "detail": "The installed main check ran and exposed Node ERR_UNKNOWN_FILE_EXTENSION for the fixture's raw .ts test command. PCR-3 owns replacement of this intentionally incomplete fixture path and the passing receipt."
+    }
+  },
+  "acceptance": {
+    "quick_actions_to_coverage": true,
+    "quick_actions_to_setup_health": true,
+    "quick_actions_to_main_check": true,
+    "without_command_palette": true,
+    "pcr_2_closed": true,
+    "pcr_3_passing_receipt_proven": false
+  }
+}

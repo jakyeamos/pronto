@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="The target Pre-CR flow for recovering interrupted work, acting through the editor, and proving a change before review."
+    />
+    <title>Pre-CR Suite: return, recall, act, prove</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0c1012;
+        --panel: #151b1e;
+        --text: #f4f6f4;
+        --muted: #aab4af;
+        --line: #34403b;
+        --green: #91e2b8;
+        --amber: #f0c77a;
+        --blue: #8fcde5;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      .wrap {
+        width: min(1160px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+      .hero {
+        padding: clamp(76px, 11vw, 142px) 0 72px;
+      }
+      .kicker {
+        margin: 0 0 16px;
+        color: var(--green);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 920px;
+        margin: 0;
+        font-size: clamp(3.2rem, 8vw, 7rem);
+        font-weight: 650;
+        letter-spacing: -0.055em;
+        line-height: 0.92;
+        text-wrap: balance;
+      }
+      .lede {
+        max-width: 65ch;
+        margin: 28px 0 0;
+        color: var(--muted);
+        font-size: clamp(1rem, 1.6vw, 1.2rem);
+        line-height: 1.65;
+      }
+      .case {
+        padding: 36px 0 84px;
+      }
+      .code {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 20px;
+        padding: 28px;
+        border: 1px solid var(--line);
+        background: #101517;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        line-height: 1.65;
+      }
+      .line {
+        color: #69756f;
+      }
+      mark {
+        padding: 3px 5px;
+        background: rgba(240, 199, 122, 0.18);
+        color: #ffe1a8;
+      }
+      .review {
+        margin: 18px 0 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      .review strong {
+        color: var(--amber);
+      }
+      .flow {
+        padding: 90px 0;
+        border-top: 1px solid var(--line);
+      }
+      h2 {
+        max-width: 720px;
+        margin: 0 0 46px;
+        font-size: clamp(2.3rem, 5vw, 4.4rem);
+        letter-spacing: -0.04em;
+        line-height: 1;
+        text-wrap: balance;
+      }
+      .nodes {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1px;
+        background: var(--line);
+        border: 1px solid var(--line);
+      }
+      .node {
+        min-height: 330px;
+        padding: 30px;
+        background: var(--panel);
+      }
+      .number {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        margin-bottom: 46px;
+        border: 1px solid currentColor;
+        border-radius: 50%;
+        font-size: 0.72rem;
+      }
+      .node:nth-child(1) .number {
+        color: var(--green);
+      }
+      .node:nth-child(2) .number {
+        color: var(--amber);
+      }
+      .node:nth-child(3) .number {
+        color: var(--blue);
+      }
+      .node h3 {
+        margin: 0 0 8px;
+        font-size: 1.35rem;
+      }
+      .node .owner {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .node p {
+        margin: 28px 0 0;
+        color: #ced5d1;
+        line-height: 1.6;
+      }
+      .state {
+        display: inline-block;
+        margin-top: 26px;
+        color: var(--muted);
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .state.proven {
+        color: var(--green);
+      }
+      .contract {
+        padding: 90px 0;
+        background: #eef1ed;
+        color: #18201c;
+      }
+      .contract-grid {
+        display: grid;
+        grid-template-columns: minmax(240px, 0.45fr) minmax(0, 1fr);
+        gap: clamp(44px, 9vw, 120px);
+      }
+      .contract p {
+        color: #5f6964;
+        line-height: 1.65;
+      }
+      dl {
+        margin: 0;
+      }
+      dl div {
+        display: grid;
+        grid-template-columns: 150px minmax(0, 1fr);
+        gap: 20px;
+        padding: 22px 0;
+        border-top: 1px solid rgba(24, 32, 28, 0.16);
+      }
+      dt {
+        font-weight: 800;
+      }
+      dd {
+        margin: 0;
+        color: #4f5a54;
+        line-height: 1.55;
+      }
+      footer {
+        padding: 28px 0;
+        color: #7f8b85;
+        font-size: 0.78rem;
+      }
+      @media (max-width: 760px) {
+        .nodes,
+        .contract-grid {
+          grid-template-columns: 1fr;
+        }
+        .node {
+          min-height: 0;
+        }
+        dl div {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="wrap">
+          <p class="kicker">Pre-CR Suite · Target flow</p>
+          <h1>Pick up the work without rebuilding the context.</h1>
+          <p class="lede">
+            Return to an interrupted branch. Ask where you left off. Restore the
+            exact working state, take the next useful editor action, and prove
+            the change before review.
+          </p>
+        </div>
+      </section>
+      <section class="case">
+        <div class="wrap">
+          <div class="code">
+            <span class="line">⌘⇧W</span
+            ><span
+              ><mark>Where Was I?</mark> · Repository analytics · 3 changed
+              files · resume at line 39</span
+            >
+          </div>
+          <p class="review">
+            <strong>Target continuity moment.</strong> The branch summary leads
+            back to the unfinished change. Installed behavior evidence is still
+            required before this frame becomes a product claim.
+          </p>
+        </div>
+      </section>
+      <section class="flow">
+        <div class="wrap">
+          <p class="kicker">Return → Recall → Act → Prove</p>
+          <h2>The editor remembers enough to make the next action obvious.</h2>
+          <div class="nodes">
+            <article class="node">
+              <span class="number">1</span>
+              <h3>Return</h3>
+              <span class="owner">Real branch</span>
+              <p>
+                Open interrupted work without manually reconstructing which
+                files, cursor, and change mattered.
+              </p>
+              <span class="state proven">Installed proof</span>
+            </article>
+            <article class="node">
+              <span class="number">2</span>
+              <h3>Recall</h3>
+              <span class="owner">Where Was I?</span>
+              <p>
+                Show the saved branch summary, relevant files, and useful next
+                actions; restore the exact editor state.
+              </p>
+              <span class="state proven">Installed proof</span>
+            </article>
+            <article class="node">
+              <span class="number">3</span>
+              <h3>Act</h3>
+              <span class="owner">Quick Actions</span>
+              <p>
+                Move directly from restored context to changed-line coverage,
+                setup health, and the shared project check.
+              </p>
+              <span class="state proven">Installed proof</span>
+            </article>
+            <article class="node">
+              <span class="number">4</span>
+              <h3>Prove</h3>
+              <span class="owner">Pre-CR Check</span>
+              <p>
+                Expose one uncovered changed line, add the focused test, and
+                finish with a passing pre-review receipt.
+              </p>
+              <span class="state proven">Installed proof</span>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section class="contract">
+        <div class="wrap contract-grid">
+          <div>
+            <p class="kicker">Standalone product</p>
+            <h2>The useful pre-review workspace lives inside the editor.</h2>
+            <p>
+              Context recovery, focused commands, coverage evidence, and review
+              readiness form one complete Pre-CR story. No other product is
+              required to make it valuable.
+            </p>
+          </div>
+          <dl>
+            <div>
+              <dt>Continuity</dt>
+              <dd>
+                Save, summarize, and restore branch-specific working context.
+              </dd>
+            </div>
+            <div>
+              <dt>Visibility</dt>
+              <dd>
+                Put coverage overlays, checklist state, and the next issue next
+                to the code.
+              </dd>
+            </div>
+            <div>
+              <dt>Readiness</dt>
+              <dd>
+                Run the shared project check and finish with an attributable
+                pre-review result.
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        Standalone IDE story · installed VS Code evidence · PCR-1 through PCR-3
+        verified locally on August 12, 2026
+      </div>
+    </footer>
+  </body>
+</html>

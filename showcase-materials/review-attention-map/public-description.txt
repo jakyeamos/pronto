@@ -1,0 +1,1 @@
+Review Attention Map puts explicit contract and behavior signals on a changed line, keeps each source and freshness boundary visible, and lets a reviewer record a human disposition without turning attention into a hidden risk score or merge verdict. This W3 pilot preserves unmatched evidence instead of hiding it.

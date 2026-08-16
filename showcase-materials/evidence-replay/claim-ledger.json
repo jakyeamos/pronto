@@ -1,0 +1,70 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "evidence-replay",
+  "case_id": "evidence-replay-w2-reader-001",
+  "reviewed_at": "2026-08-14T02:58:41Z",
+  "levels": [
+    {
+      "id": "inspection",
+      "label": "Inspect-only opening",
+      "status": "verified_local",
+      "status_display": "Opening never executes",
+      "allowed_claim": "A supported receipt can be opened and modeled without executing its rerun contract.",
+      "forbidden_inference": "The reader has executed or reproduced the historical command.",
+      "public_claim_allowed": true,
+      "evidence_refs": [
+        "evidence/er-w2-reader-matrix.json#/inspect/opening_executes"
+      ]
+    },
+    {
+      "id": "freshness",
+      "label": "Freshness boundary",
+      "status": "verified_local",
+      "status_display": "Stale target remains stale",
+      "allowed_claim": "A revision mismatch classifies the receipt as stale and keeps the current outcome not-run.",
+      "forbidden_inference": "Historical success is current proof.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/er-w2-reader-matrix.json#/inspect"]
+    },
+    {
+      "id": "rerun",
+      "label": "Explicit rerun preview",
+      "status": "verified_local",
+      "status_display": "Blocked until review and authorization",
+      "allowed_claim": "The preview names the command, mutation, interface, and human authorization boundary without running it.",
+      "forbidden_inference": "A rerun has been approved or executed.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/er-w2-reader-matrix.json#/rerun_preview"]
+    },
+    {
+      "id": "current_dev",
+      "label": "Current dev checkpoint",
+      "status": "verified_local",
+      "status_display": "Checks and stale reader flow reproduce on dev",
+      "allowed_claim": "The current dev head passes its local checks and reproduces stale classification with a blocked rerun preview.",
+      "forbidden_inference": "The current dev head has complete producer coverage or a hosted reader.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/er-w2-current-dev-checkpoint.json"]
+    },
+    {
+      "id": "coverage",
+      "label": "Producer/state coverage",
+      "status": "open",
+      "status_display": "Matrix expansion pending",
+      "allowed_claim": "The local tests cover several fail-closed negative contracts.",
+      "forbidden_inference": "All producer, cancellation, mutation, and recovery states are covered.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["../route-plan.md#3-build-gap-specification"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "not_verified",
+      "status_display": "No hosted or posted proof",
+      "allowed_claim": "Hosting and external publication remain unverified.",
+      "forbidden_inference": "The reader is live on GitHub, portfolio, or Handshake.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["case-study.json#open_gates"]
+    }
+  ]
+}

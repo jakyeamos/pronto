@@ -1,0 +1,34 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "review-sandbox",
+  "status": "candidate_local",
+  "title": "Review Sandbox: cleanup follows proof",
+  "audience": "Reviewers who need to exercise one repository-declared behavior without touching the primary checkout.",
+  "promise": "Preview a bounded scenario, create disposable Git state, retain failed or dirty work, and remove only a proven clean workspace.",
+  "story": [
+    "A repository-declared scenario previews its source revision, setup command, run command, and cleanup boundary.",
+    "A clean scenario runs and is removed after a clean-worktree proof.",
+    "Conflict and failed-setup paths refuse overwrite or skip the scenario instead of hiding the state.",
+    "A dirty sandbox is retained for recovery; a cancellation-shaped exit is recorded as a current product limitation."
+  ],
+  "evidence": [
+    "evidence/rs-w4-scenario-matrix.json",
+    "evidence/rs-w4-current-dev-checkpoint.json",
+    "assets/preview-16x9.png",
+    "../../../projects/review-sandbox/README.md",
+    "../../../projects/review-sandbox/docs/acceptance-matrix.json"
+  ],
+  "verified_locally": [
+    "Preview binds the declared scenario to a target Git revision.",
+    "Current-dev clean and failed-setup worktrees are removed only after clean status; failed setup is not run.",
+    "Occupied paths are blocked, dirty worktrees are retained and then recovered, and a cancellation-shaped exit is exposed as a limitation.",
+    "Source tests, lint, and package checks pass; the 1600x900 PNG/SVG preview was visually reviewed."
+  ],
+  "open_gates": [
+    "Add distinct cancellation and process/port ownership receipts, with native cancellation authority.",
+    "Prove the complete scenario matrix and primary-checkout readback against a current direct surface without mutating unrelated state.",
+    "Verify a hosted no-auth case and read back the external destinations.",
+    "Record external GitHub, portfolio, and Handshake readbacks."
+  ],
+  "claim_boundary": "This packet proves a current-dev local sandbox matrix with clean removal, failed setup, dirty recovery, and an explicit cancellation limitation plus a reviewed 1600x900 preview; it does not claim process ownership, port safety, a distinct cancellation state, hosting, or publication."
+}

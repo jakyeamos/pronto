@@ -1,0 +1,1 @@
+Change Integration Simulator pins exact source and target commits, reports clean or conflicting local merge trees, and leaves both refs untouched. Its W4 pilot keeps textual mergeability separate from a separately identified gate probe, so a clean simulation never masquerades as behavioral verification.

@@ -1,0 +1,6 @@
+{
+  "task_id": "technical-the-quality-runner-tenure-case-study-explain-how-customer-standards-become-findings-how-the-historical-scan-produced-4-022-raw-findings-and-how-review-reconciled-the-case-to-537-raw-rows-with-0-open-actionable-findings-without-claiming-a-current-checkout-or-deployment-feature-explainer",
+  "status": "planned",
+  "created_at": "2026-08-12T22:22:45Z",
+  "next_step": "Give prompt-bundle.md to an agent and run the RDW pipeline."
+}

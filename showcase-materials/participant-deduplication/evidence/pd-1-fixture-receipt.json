@@ -1,0 +1,147 @@
+{
+  "schema_version": "pronto-showcase-participant-dedup-gap-receipt/v1",
+  "project": "participant-dedup",
+  "gap": "PD-1",
+  "observed_at": "2026-08-13T18:16:43Z",
+  "status": "passed_as_synthetic_fixture",
+  "source": {
+    "repository": "participant-dedup",
+    "path": "/Users/jakyeamos/projects/participant-dedup",
+    "branch": "dev",
+    "commit": "81569f4bff60e4f2d52cb0a401289ca1c5d80ff8",
+    "checkout_status": "clean_at_inspection",
+    "runtime": {
+      "node": "v22.14.0",
+      "package_manager": "pnpm lockfile; repository-local binaries"
+    },
+    "source_refs": [
+      "README.md#Live Google Sheet dogfood",
+      "README.md#Privacy",
+      "tools/generateFixture.ts#synthetic vocabulary",
+      "src/server/schemaResolver.ts#extra columns",
+      "src/server/match/candidateGenerator.ts#generateCandidates",
+      "src/server/match/scorePair.ts#scorePair",
+      "src/server/apply/preflight.ts#copy-only confirmation"
+    ]
+  },
+  "verification": {
+    "repository_quality": {
+      "typecheck": {
+        "command": "node_modules/.bin/tsc --noEmit",
+        "status": "passed"
+      },
+      "build": {
+        "command": "node build/esbuild.mjs",
+        "status": "passed",
+        "artifacts": [
+          "dist/Code.js",
+          "dist/Sidebar.html",
+          "dist/appsscript.json"
+        ]
+      },
+      "tests": {
+        "command": "node_modules/.bin/vitest run",
+        "status": "passed",
+        "test_files": 48,
+        "tests_passed": 418,
+        "tests_skipped": 3
+      }
+    },
+    "native_matcher_probe": {
+      "status": "passed",
+      "command": "repository-local tsx probe using synthetic-fixture.json",
+      "candidate_pair_count": 4,
+      "truncated": false,
+      "pairs": [
+        {
+          "case_id": "exact-duplicate",
+          "row_ids": ["PD-001", "PD-002"],
+          "confidence": "HIGH",
+          "eligible": true,
+          "total_score": 100,
+          "reasons": [
+            "EXACT_DOB",
+            "EXACT_NAME",
+            "EXTRA_FIELD_AGREEMENT",
+            "SAME_CITY_STATE",
+            "SAME_ZIP",
+            "SIMILAR_ADDRESS"
+          ],
+          "warnings": []
+        },
+        {
+          "case_id": "fuzzy-name-typo",
+          "row_ids": ["PD-003", "PD-004"],
+          "confidence": "HIGH",
+          "eligible": true,
+          "total_score": 99,
+          "reasons": [
+            "EXACT_DOB",
+            "EXTRA_FIELD_AGREEMENT",
+            "LIKELY_NAME_TYPO",
+            "SAME_CITY_STATE",
+            "SAME_ZIP",
+            "SIMILAR_ADDRESS"
+          ],
+          "warnings": []
+        },
+        {
+          "case_id": "shared-contact-household",
+          "row_ids": ["PD-005", "PD-006"],
+          "confidence": "EXCLUDED",
+          "eligible": false,
+          "total_score": 49,
+          "reasons": [
+            "EXTRA_FIELD_AGREEMENT",
+            "SAME_CITY_STATE",
+            "SAME_ZIP",
+            "SIMILAR_ADDRESS"
+          ],
+          "warnings": ["PLACEHOLDER_DOB", "SAME_HOUSEHOLD_ONLY"]
+        },
+        {
+          "case_id": "conflicting-dob-ambiguous",
+          "row_ids": ["PD-007", "PD-008"],
+          "confidence": "LOW",
+          "eligible": true,
+          "total_score": 34,
+          "reasons": [
+            "EXACT_NAME",
+            "EXTRA_FIELD_AGREEMENT",
+            "SAME_CITY_STATE",
+            "SAME_ZIP"
+          ],
+          "warnings": ["CONFLICTING_VALID_DOB", "DIFFERENT_ADDRESS"]
+        }
+      ]
+    },
+    "fixture_contract": {
+      "status": "passed",
+      "fixture": "synthetic-fixture.json",
+      "checks": [
+        "eight invented rows form four explicit case types",
+        "all four case pairs are generated as candidates by the current matcher",
+        "exact and fuzzy cases are HIGH and eligible",
+        "shared-contact household is EXCLUDED with SAME_HOUSEHOLD_ONLY",
+        "conflicting-DOB pair is LOW and retains both conflict warnings",
+        "review outcomes approve two pairs, keep one pair, and leave one unresolved",
+        "original workbook is never an apply target"
+      ]
+    },
+    "installed_surface": {
+      "status": "not_proven",
+      "authenticated_google_sheet": "not exercised",
+      "apps_script_sidebar": "not captured",
+      "railway_backend": "not exercised",
+      "copy_only_apply": "not exercised live",
+      "public_case": "not hosted"
+    }
+  },
+  "claim_boundary": [
+    "PD-1 is closed as a source-aligned synthetic workbook and matcher receipt.",
+    "The source checkout was clean at inspection; this is not authenticated Google Sheets or deployed-backend proof.",
+    "The synthetic rows and expected outcomes are safe reproducibility material, not participant records.",
+    "PD-2 must make the field-level candidate reasoning legible before the case is presented as a complete demo."
+  ],
+  "next_gap": "PD-2"
+}
