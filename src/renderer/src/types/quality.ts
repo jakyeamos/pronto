@@ -12,10 +12,24 @@ export type QualityGateStatus =
   "Passed" | "Failed" | "Blocked" | "Not configured";
 export type QualitySource = "CI" | "Local" | "QR";
 export type QualityFreshness = "Fresh" | "Stale" | "Unknown" | "Conflicted";
+export type QualityVerificationLevel =
+  | "unknown"
+  | "source_inferred"
+  | "artifact_inspected"
+  | "browser_rendered"
+  | "deployment_verified";
+export type QualityRequirementPolicy = "block" | "warn";
+
+export type {
+  QualityPortfolioSnapshot,
+  QualitySnapshot,
+} from "./qualityEvidence";
 
 export interface QualityGateRequirement {
   gate_id: string;
   source: QualitySource;
+  minimum_verification_level?: QualityVerificationLevel;
+  policy?: QualityRequirementPolicy;
 }
 
 export interface QualityEvidence {
@@ -32,6 +46,50 @@ export interface QualityEvidence {
   report_url?: string;
   report_kind?: string;
   detail: string;
+  verification_level?: QualityVerificationLevel;
+  target_kind?: string;
+  target_url?: string;
+  target_provider?: string;
+  deployment_id?: string;
+}
+
+interface WebReadinessCheck {
+  id: string;
+  label: string;
+  category: string;
+  policy: QualityRequirementPolicy | string;
+  status: string;
+  verification_level: QualityVerificationLevel;
+  detail: string;
+  routes: string[];
+}
+
+interface WebReadinessTarget {
+  kind: string;
+  commit?: string;
+  url?: string;
+  provider?: string;
+  deployment_id?: string;
+  artifact_digest?: string;
+}
+
+export interface WebReadinessSnapshot {
+  status:
+    "Ready" | "Warnings" | "Blocked" | "Unknown" | "Not applicable" | string;
+  applicability: string;
+  applicability_reason?: string;
+  freshness: QualityFreshness;
+  observed_at?: string;
+  scanned_commit?: string;
+  scanned_branch?: string;
+  report_path?: string;
+  target: WebReadinessTarget;
+  checks: WebReadinessCheck[];
+  passed_count: number;
+  failed_count: number;
+  blocked_count: number;
+  unknown_count: number;
+  warning_count: number;
 }
 
 export interface QualityGate {
@@ -75,7 +133,9 @@ export interface QualityMaturity {
     score?: number;
     message: string;
   }>;
+  quality_outcome?: QualityRepositoryOutcome;
   agent_usability?: AgentUsabilityMaturity;
+  repository_maturity?: RepositoryMaturityModel;
   audit_id?: string;
   observed_at?: string;
   scanned_commit?: string;
@@ -84,7 +144,49 @@ export interface QualityMaturity {
   report_path?: string;
 }
 
-export interface AgentUsabilityLane {
+interface RepositoryMaturityPillar {
+  id: string;
+  label: string;
+  weight: number;
+  applicability: "applicable" | "unknown" | "not_applicable" | string;
+  status: string;
+  score?: number;
+  dimension_scores: Record<string, number>;
+  missing_capabilities: string[];
+  critical_dimensions: string[];
+}
+
+interface RepositoryMaturityModel {
+  schema: string;
+  score?: number;
+  uncapped_score?: number;
+  status: string;
+  pillars: RepositoryMaturityPillar[];
+  evidence: {
+    applicable_pillar_count: number;
+    assessed_pillar_count: number;
+    applicable_weight: number;
+    assessed_weight: number;
+    evidence_coverage: number;
+    fresh_evidence_coverage: number;
+    unknown_applicability: string[];
+    unmapped_dimensions: string[];
+  };
+  critical_cap: {
+    applied: boolean;
+    maximum_score?: number;
+    reasons: string[];
+  };
+}
+
+export interface QualityRepositoryOutcome {
+  state: string;
+  label: string;
+  disposition?: string;
+  next_step?: string;
+}
+
+interface AgentUsabilityLane {
   id: string;
   label: string;
   applicable: boolean;
@@ -93,8 +195,9 @@ export interface AgentUsabilityLane {
   message: string;
 }
 
-export interface AgentUsabilityGrowthHealth {
+interface AgentUsabilityGrowthHealth {
   status: string;
+  score?: number;
   message: string;
   document_count: number;
   agent_document_count: number;
@@ -114,9 +217,10 @@ export interface AgentUsabilityGrowthHealth {
   inventory_truncated: boolean;
 }
 
-export interface AgentUsabilityMaturity {
+interface AgentUsabilityMaturity {
   schema: string;
   status: string;
+  applicability?: "applicable" | "not_applicable";
   manifest_status: string;
   manifest_path: string;
   applicable_lane_count: number;
@@ -128,6 +232,8 @@ export interface AgentUsabilityMaturity {
 export interface QualityReadiness {
   score?: number;
   score_display?: string;
+  evidence_coverage_score?: number;
+  evidence_coverage_score_display?: string;
   configuration_score?: number;
   configuration_score_display?: string;
   applicable_gate_ids: string[];
@@ -139,104 +245,6 @@ export interface QualityReadiness {
   stale_gate_ids: string[];
   failed_gate_ids: string[];
   blocked_gate_ids: string[];
-}
-
-export interface MacControlRepositoryState {
-  repository_id: string;
-  repository_name: string;
-  applicability: string;
-  status: string;
-  freshness: string;
-  ideal_state: boolean;
-  supported_task_count: number;
-  measured_route_count: number;
-  implementation_status?: string;
-  implementation_criteria_passed_count?: number;
-  implementation_criteria_total?: number;
-  live_status?: string;
-  live_task_count?: number;
-  live_attempt_count?: number;
-  live_success_count?: number;
-  criteria?: Record<string, boolean>;
-  failure_reasons?: string[];
-  observed_at?: string;
-  observed_commit?: string;
-  report_path?: string;
-}
-
-export interface MacControlPortfolioSnapshot {
-  status: string;
-  freshness: string;
-  ideal_state: boolean;
-  applicable_repository_count: number;
-  not_applicable_repository_count: number;
-  evaluated_repository_count: number;
-  implementation_status?: string;
-  implementation_criteria_passed_count?: number;
-  implementation_criteria_total?: number;
-  live_status?: string;
-  live_task_count?: number;
-  measured_task_count?: number;
-  live_attempt_count?: number;
-  live_success_count?: number;
-  repository_states?: MacControlRepositoryState[];
-  failure_reasons?: string[];
-  observed_at?: string;
-  report_path?: string;
-  run_id?: string;
-}
-
-export interface QualitySnapshot {
-  gates: QualityGate[];
-  findings: QualityFindings;
-  maturity: QualityMaturity;
-  target_fleet_audit_root?: string;
-  ci_readiness: QualityReadiness;
-  mac_control_ideal_state?: MacControlRepositoryState;
-  last_ingested_at?: string;
-  ingestion_status: string;
-  ingestion_message?: string;
-}
-
-export interface QualityPortfolioSnapshot {
-  audit_root?: string;
-  latest_audit_id?: string;
-  latest_audit_at?: string;
-  latest_audit_path?: string;
-  matched_repository_count: number;
-  maturity_score?: number;
-  maturity_score_display?: string;
-  scored_dimension_count?: number;
-  measurement_confidence?: QualityMeasurementConfidence;
-  audit_status: string;
-  ci_readiness_score?: number;
-  ci_readiness_score_display?: string;
-  ci_readiness_full_repository_count?: number;
-  ci_readiness_repository_count?: number;
-  ci_readiness_unscored_repository_count?: number;
-  ci_readiness_open_gate_counts?: Record<string, number>;
-  ci_evidence_fresh_passing_gate_count?: number;
-  ci_evidence_ideal_gate_count?: number;
-  ci_configuration_configured_gate_count?: number;
-  ci_configuration_ideal_gate_count?: number;
-  ci_configuration_full_repository_count?: number;
-  ci_configuration_repository_count?: number;
-  ci_configuration_unscored_repository_count?: number;
-  feed_schema?: string;
-  provenance_hash?: string;
-  mac_control_ideal_state?: MacControlPortfolioSnapshot;
-}
-
-export interface QualityMeasurementConfidence {
-  level: "low" | "medium" | "high";
-  basis: string[];
-  limitations: string[];
-  population_status: string;
-  expected_repository_count: number;
-  observed_repository_count: number;
-  excluded_repository_count: number;
-  unresolved_measurement_gap_count: number;
-  deterministic_replay: boolean;
 }
 
 export interface ReleaseRecipeConfig {

@@ -138,7 +138,7 @@ export interface Papercut {
   resolved_at?: string | null;
 }
 
-export interface PapercutCounts {
+interface PapercutCounts {
   total: number;
   open: number;
   in_progress: number;

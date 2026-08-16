@@ -4,6 +4,7 @@ import { ChevronRight, GitBranch, Search } from "lucide-react";
 import { qualityAttentionItems } from "./QualityComponents";
 import { navItems, type NavItem } from "../navigation";
 import type { RemediationRun, RepositorySnapshot } from "../types";
+import { MAC_CONTROL_NAVIGATION_TARGET_IDS } from "../macControlTargets";
 
 type RemediationPlan = RemediationRun["plans"][number];
 
@@ -130,7 +131,7 @@ export function AppSidebar({
             className={`nav-item ${activeNav === id ? "nav-item-active" : ""}`}
             type="button"
             key={id}
-            id={`nav-${id}`}
+            id={MAC_CONTROL_NAVIGATION_TARGET_IDS[id] ?? `nav-${id}`}
             title={label}
             aria-current={activeNav === id ? "page" : undefined}
             onClick={() => onNavigate(id)}

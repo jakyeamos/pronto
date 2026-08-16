@@ -261,6 +261,12 @@ export function PreparationDrawer({
               <span>Candidate version</span>
               <strong>{release.candidate_version ?? "Unavailable"}</strong>
             </div>
+            {release.release_boundary_status && (
+              <div>
+                <span>Public boundary</span>
+                <strong>{release.release_boundary_status}</strong>
+              </div>
+            )}
           </div>
           <PreparationReasons reasons={release.reasons} />
           {release.rule_trace.length > 0 && (

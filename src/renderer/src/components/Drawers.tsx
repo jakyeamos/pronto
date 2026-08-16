@@ -1,11 +1,9 @@
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import {
   ArrowLeft,
-  ChevronRight,
   GitBranch,
   LoaderCircle,
-  MonitorDot,
   RefreshCw,
   ShieldCheck,
   TerminalSquare,
@@ -17,12 +15,13 @@ import type {
   QualityGate,
   RepositorySnapshot,
 } from "../types";
-import { ConditionPill, formatTime, StatusPill } from "./ConsolePrimitives";
+import { formatTime, StatusPill } from "./ConsolePrimitives";
 import {
   QualityFindingsSummary,
   QualityGateCell,
   QualityGateStatusPill,
   QualityMaturitySummary,
+  WebReadinessSummary,
   projectQualityGateForTarget,
   projectQualityReadinessForTarget,
   qualityGateDisplayLabel,
@@ -30,10 +29,11 @@ import {
 import { targetScopeForRepository } from "../branchEvidence";
 import { ProjectCompassDetail } from "./ProjectCompassDetail";
 import { RepositoryAnalyticsPanel } from "./RepositoryAnalyticsPanel";
-import { WorkspaceSyncDetailView } from "./WorkspaceSyncDetailView";
+import { RepositoryInventoryPanels } from "./RepositoryInventoryPanels";
 
 export function RepositoryDetailSurface({
   repository,
+  backLabel = "Back to Portfolio",
   analytics,
   isRefreshing,
   onBack,
@@ -45,6 +45,7 @@ export function RepositoryDetailSurface({
   onOpenReport,
 }: {
   repository: RepositorySnapshot;
+  backLabel?: string;
   analytics: AnalyticsSnapshot;
   isRefreshing: boolean;
   onBack: () => void;
@@ -55,9 +56,6 @@ export function RepositoryDetailSurface({
   onCondition: (condition: Condition) => void;
   onOpenReport?: (reportPath: string) => void;
 }): ReactElement {
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
-    null,
-  );
   const target = targetScopeForRepository(repository);
   const selectedTargetBranch = target.branch ?? "";
   const selectedTargetCommit = target.commit;
@@ -114,7 +112,7 @@ export function RepositoryDetailSurface({
           onClick={onBack}
         >
           <ArrowLeft size={15} />
-          Back to Portfolio
+          {backLabel}
         </button>
         <StatusPill tone="slate" icon={<GitBranch size={11} />}>
           {repository.provider_state}
@@ -288,6 +286,10 @@ export function RepositoryDetailSurface({
                 targetCommit={selectedTargetCommit}
                 onOpenReport={onOpenReport}
               />
+              <WebReadinessSummary
+                webReadiness={repository.quality.web_readiness}
+                onOpenReport={onOpenReport}
+              />
             </div>
             <div className="quality-detail-gates">
               {detailQualityGates.map((gate) => (
@@ -379,7 +381,13 @@ export function RepositoryDetailSurface({
                       >
                         <span>
                           <strong>{gate?.label ?? requirement.gate_id}</strong>
-                          <small>{requirement.source} evidence</small>
+                          <small>
+                            {requirement.source} evidence ·{" "}
+                            {requirement.policy ?? "block"}
+                            {requirement.minimum_verification_level
+                              ? ` · ${requirement.minimum_verification_level.replaceAll("_", " ")}`
+                              : " · any level"}
+                          </small>
                         </span>
                         {gateProjection &&
                         gateProjection.state === "unavailable" &&
@@ -425,209 +433,12 @@ export function RepositoryDetailSurface({
           </p>
         )}
       </div>
-      <div className="drawer-section">
-        <div className="drawer-section-title">
-          <h3>Workspaces</h3>
-          <span>{repository.workspaces.length}</span>
-        </div>
-        <div className="workspace-list">
-          {repository.workspaces.map((workspace) => {
-            const showingSyncDetail = selectedWorkspaceId === workspace.id;
-            const gitStatusUnavailable = workspace.status_available === false;
-            return (
-              <Fragment key={workspace.id}>
-                <div className="workspace-card">
-                  <div className="workspace-card-top">
-                    <span className="workspace-name">
-                      <MonitorDot size={13} />
-                      {workspace.is_primary
-                        ? "Primary checkout"
-                        : "Linked worktree"}
-                    </span>
-                    <StatusPill
-                      tone={
-                        gitStatusUnavailable
-                          ? "amber"
-                          : workspace.dirty
-                            ? "coral"
-                            : "mint"
-                      }
-                    >
-                      {gitStatusUnavailable
-                        ? "Git status unavailable"
-                        : workspace.dirty
-                          ? "Dirty"
-                          : "Clean"}
-                    </StatusPill>
-                  </div>
-                  <strong>
-                    {gitStatusUnavailable
-                      ? "Git status unavailable"
-                      : workspace.branch}
-                  </strong>
-                  <span>{workspace.path}</span>
-                  <small>
-                    {gitStatusUnavailable
-                      ? workspace.status_error || "Git status unavailable"
-                      : `${workspace.sync_state} · ${workspace.remote_freshness}`}
-                  </small>
-                  <div className="workspace-activity">
-                    <StatusPill
-                      tone={
-                        workspace.activity.state === "Active"
-                          ? "blue"
-                          : workspace.activity.state.startsWith("Interrupted")
-                            ? "coral"
-                            : "slate"
-                      }
-                    >
-                      {workspace.activity.state}
-                    </StatusPill>
-                    <span>{workspace.activity.confidence} confidence</span>
-                  </div>
-                  <small>
-                    {workspace.activity.signals
-                      .map((signal) => signal.summary)
-                      .join(" · ")}
-                  </small>
-                  {workspace.activity.manifest && (
-                    <small>
-                      {workspace.activity.manifest.title ||
-                        workspace.activity.manifest.task_id ||
-                        "Structured agent task metadata"}
-                    </small>
-                  )}
-                  <div className="workspace-actions">
-                    {(
-                      [
-                        ["file_browser", "Finder"],
-                        ["terminal", "Terminal"],
-                        ["editor", "Editor"],
-                        ["git_client", "Git client"],
-                      ] as Array<[ExternalTool, string]>
-                    ).map(([tool, label]) => (
-                      <button
-                        className="button button-quiet"
-                        type="button"
-                        key={tool}
-                        onClick={() => void onOpenWorkspace(workspace.id, tool)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                    <button
-                      className="button button-quiet"
-                      type="button"
-                      onClick={() => void onPrepareRepository(workspace.id)}
-                    >
-                      Review preparation
-                    </button>
-                    {workspace.sync_state !== "Synced" && (
-                      <button
-                        className="button button-secondary"
-                        type="button"
-                        aria-expanded={showingSyncDetail}
-                        onClick={() =>
-                          setSelectedWorkspaceId(
-                            showingSyncDetail ? null : workspace.id,
-                          )
-                        }
-                      >
-                        {showingSyncDetail
-                          ? "Hide sync detail"
-                          : "View sync detail"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {showingSyncDetail && (
-                  <WorkspaceSyncDetailView
-                    workspace={workspace}
-                    onClose={() => setSelectedWorkspaceId(null)}
-                  />
-                )}
-              </Fragment>
-            );
-          })}
-        </div>
-      </div>
-      {repository.submodules.length > 0 && (
-        <div className="drawer-section">
-          <div className="drawer-section-title">
-            <h3>Submodules</h3>
-            <span>{repository.submodules.length}</span>
-          </div>
-          <div className="branch-table">
-            {repository.submodules.map((submodule) => (
-              <div className="branch-row" key={submodule.path}>
-                <div>
-                  <strong>{submodule.path}</strong>
-                  <span>{submodule.commit ?? "Commit unavailable"}</span>
-                </div>
-                <StatusPill
-                  tone={submodule.status === "Checked out" ? "mint" : "amber"}
-                >
-                  {submodule.status}
-                </StatusPill>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      <div className="drawer-section">
-        <div className="drawer-section-title">
-          <h3>Conditions</h3>
-          <span>{repository.conditions.length}</span>
-        </div>
-        {repository.conditions.length === 0 ? (
-          <div className="drawer-empty">
-            <ShieldCheck size={17} />
-            No current conditions.
-          </div>
-        ) : (
-          <div className="drawer-conditions">
-            {repository.conditions.map((condition) => (
-              <button
-                className="drawer-condition"
-                type="button"
-                key={condition.id}
-                onClick={() => onCondition(condition)}
-              >
-                <ConditionPill condition={condition} />
-                <span>{condition.summary}</span>
-                <ChevronRight size={15} />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="drawer-section">
-        <div className="drawer-section-title">
-          <h3>Branches</h3>
-          <span>{repository.branches.length}</span>
-        </div>
-        <div className="branch-table">
-          {repository.branches.map((branch) => (
-            <div className="branch-row" key={branch.name}>
-              <div>
-                <strong>{branch.name}</strong>
-                <span>
-                  {branch.role} · {branch.role_confidence} confidence
-                </span>
-              </div>
-              <StatusPill
-                tone={
-                  branch.integration_state === "Integration eligible"
-                    ? "mint"
-                    : "slate"
-                }
-              >
-                {branch.integration_state}
-              </StatusPill>
-            </div>
-          ))}
-        </div>
-      </div>
+      <RepositoryInventoryPanels
+        repository={repository}
+        onOpenWorkspace={onOpenWorkspace}
+        onPrepareRepository={onPrepareRepository}
+        onCondition={onCondition}
+      />
       <div className="drawer-footer">
         <StatusPill tone="slate" icon={<GitBranch size={11} />}>
           {repository.provider_state}

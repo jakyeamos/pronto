@@ -29,7 +29,7 @@ export interface PromotionCandidate {
   jas_admission?: PromotionJasAdmission | null;
 }
 
-export interface PromotionJasAdmission {
+interface PromotionJasAdmission {
   schema_version?: string;
   status: string;
   candidate_id?: string | null;
@@ -43,7 +43,7 @@ export interface PromotionJasAdmission {
   receipt_message?: string | null;
 }
 
-export interface PromotionCounts {
+interface PromotionCounts {
   total: number;
   pending: number;
   deferred: number;
@@ -53,7 +53,7 @@ export interface PromotionCounts {
   drafts: number;
 }
 
-export interface PromotionCoverageSource {
+interface PromotionCoverageSource {
   source_id: string;
   category: string;
   path?: string | null;

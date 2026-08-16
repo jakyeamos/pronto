@@ -1,14 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
-import {
-  AlertTriangle,
-  FolderPlus,
-  GitBranch,
-  ShieldCheck,
-  X,
-} from "lucide-react";
+import { FolderPlus, ShieldCheck } from "lucide-react";
 import * as api from "./api";
-import { AnalyticsSurface } from "./components/AnalyticsComponents";
 import { SkillsSurface } from "./components/SkillsComponents";
 import {
   CommandCenterSurface,
@@ -17,14 +10,18 @@ import {
 import { AppOverlays } from "./components/AppOverlays";
 import { AppSidebar } from "./components/AppSidebar";
 import { AppTopbar } from "./components/AppTopbar";
-import { formatTime, StatusPill } from "./components/ConsolePrimitives";
+import { AnalyticsRoute } from "./components/AnalyticsRoute";
+import { LiveRelativeTime, StatusPill } from "./components/ConsolePrimitives";
+import { FeedbackBanners } from "./components/FeedbackBanners";
 import { RepositoryDetailSurface } from "./components/Drawers";
 import { PortfolioCollectionsSurface } from "./components/PortfolioCollectionsSurface";
 import { PromotionSurface } from "./components/PromotionSurface";
 import { QualityGatesSurface } from "./components/QualityGatesSurface";
+import { ShowcaseSurface } from "./components/ShowcaseSurface";
 import { RemediationSurface } from "./components/RemediationSurface";
 import { RemoteCatalogSurface } from "./components/RemoteCatalogSurface";
 import { RefreshConfirmationDialog } from "./components/RefreshConfirmationDialog";
+import { RemoteDeferredSurface } from "./components/RemoteDeferredSurface";
 import { useEvidenceActions } from "./hooks/useEvidenceActions";
 import { useAppKeyboardShortcuts } from "./hooks/useAppKeyboardShortcuts";
 import { usePortfolioController } from "./hooks/usePortfolioController";
@@ -37,7 +34,6 @@ import {
 } from "./portfolioSelectors";
 import {
   ActivitySurface,
-  DeferredSurface,
   SettingsSurface,
 } from "./components/WorkspaceSurfaces";
 import { navItems, pageCopy, type NavItem } from "./navigation";
@@ -83,6 +79,7 @@ export function App(): ReactElement {
     handleExportRemediation,
     handleRemediationStatus,
     handleConfirmRefresh,
+    handleRefreshQuality,
     handleOpenQualityReport,
   } = usePortfolioController();
   const [activeNav, setActiveNav] = useState<NavItem>("portfolio");
@@ -102,15 +99,10 @@ export function App(): ReactElement {
   const [isRefreshConfirmationOpen, setIsRefreshConfirmationOpen] =
     useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const selectedRepository = useMemo(
-    () =>
-      selectedRepositoryId
-        ? (snapshot.repositories.find(
-            (repository) => repository.id === selectedRepositoryId,
-          ) ?? null)
-        : null,
-    [selectedRepositoryId, snapshot.repositories],
-  );
+  const selectedRepository =
+    snapshot.repositories.find(
+      (repository) => repository.id === selectedRepositoryId,
+    ) ?? null;
 
   useEffect(() => {
     if (
@@ -317,7 +309,7 @@ export function App(): ReactElement {
               <div className="intro-actions">
                 {isPortfolio && (
                   <span className="snapshot-freshness">
-                    Snapshot {formatTime(snapshot.generated_at)}
+                    Snapshot <LiveRelativeTime value={snapshot.generated_at} />
                   </span>
                 )}
                 <StatusPill tone="mint" icon={<ShieldCheck size={12} />}>
@@ -336,35 +328,20 @@ export function App(): ReactElement {
               </div>
             </section>
           )}
-          {error && (
-            <div className="error-banner" role="alert">
-              <AlertTriangle size={16} />
-              <span>{error}</span>
-              <button
-                type="button"
-                onClick={() => setError(null)}
-                aria-label="Dismiss error"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          )}
-          {notice && (
-            <div className="success-banner" role="status">
-              <ShieldCheck size={16} />
-              <span>{notice}</span>
-              <button
-                type="button"
-                onClick={() => setNotice(null)}
-                aria-label="Dismiss notice"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          )}
+          <FeedbackBanners
+            error={error}
+            notice={notice}
+            onDismissError={() => setError(null)}
+            onDismissNotice={() => setNotice(null)}
+          />
           {showingRepositoryDetail && selectedRepository ? (
             <RepositoryDetailSurface
               repository={selectedRepository}
+              backLabel={
+                activeNav === "showcase"
+                  ? "Back to AI showcase"
+                  : "Back to Portfolio"
+              }
               analytics={analytics}
               isRefreshing={isRefreshing}
               onBack={() => setSelectedRepositoryId(null)}
@@ -388,7 +365,8 @@ export function App(): ReactElement {
                 repositoryCount={snapshot.repositories.length}
                 rootCount={snapshot.roots.length}
                 quality={snapshot.quality}
-                analytics={analytics}
+                snapshotGeneratedAt={snapshot.generated_at}
+                isRefreshing={isRefreshing}
                 repositories={repositories}
                 allRepositories={snapshot.repositories}
                 events={snapshot.events}
@@ -401,9 +379,11 @@ export function App(): ReactElement {
                 onAddRoot={handleAddRoot}
                 onOpenRepository={handleOpenRepository}
                 onCondition={handleCondition}
+                onRefreshQuality={handleRefreshQuality}
                 onOpenQualityReport={(reportPath) =>
                   void handleOpenQualityReport(reportPath)
                 }
+                onOpenAnalytics={() => setActiveNav("analytics")}
               />
               <QualityGatesSurface
                 snapshot={snapshot}
@@ -415,6 +395,12 @@ export function App(): ReactElement {
                 }
               />
             </>
+          ) : activeNav === "showcase" ? (
+            <ShowcaseSurface
+              showcase={snapshot.showcase}
+              repositories={snapshot.repositories}
+              onOpenRepository={handleOpenRepository}
+            />
           ) : activeNav === "remediation" ? (
             <RemediationSurface
               run={snapshot.remediation}
@@ -433,9 +419,11 @@ export function App(): ReactElement {
               onDecide={handlePromotionDecision}
             />
           ) : activeNav === "analytics" ? (
-            <AnalyticsSurface
+            <AnalyticsRoute
               analytics={analytics}
               repositories={snapshot.repositories}
+              groups={snapshot.groups}
+              products={snapshot.products}
             />
           ) : activeNav === "skills" ? (
             <SkillsSurface
@@ -484,16 +472,7 @@ export function App(): ReactElement {
               onRefresh={handleRefreshGithub}
             />
           ) : (
-            <DeferredSurface
-              eyebrow="Accepted provider decision"
-              title="Read-only GitHub comes later."
-              body="Remote context will be additive and read-only at first. No credentials, network refresh, pull request mutation, or release publishing is active in this local slice."
-              icon={<GitBranch size={19} />}
-              details={[
-                { label: "Permission", value: "Read-only" },
-                { label: "Prerequisite", value: "Read-only provider contract" },
-              ]}
-            />
+            <RemoteDeferredSurface />
           )}
         </div>
       </main>

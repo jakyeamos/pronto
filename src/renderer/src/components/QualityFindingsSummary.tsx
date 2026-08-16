@@ -10,6 +10,10 @@ import {
 } from "../branchEvidence";
 import { formatTime } from "./ConsolePrimitives";
 
+function readableQualityEvidenceText(value: string): string {
+  return value.replace(/\bunknown\b/gi, "not confirmed");
+}
+
 export function QualityFindingsSummary({
   findings,
   onOpenReport,
@@ -25,6 +29,26 @@ export function QualityFindingsSummary({
   const dispositions = Object.entries(findings.disposition_counts).sort(
     ([left], [right]) => left.localeCompare(right),
   );
+  const categoryKeys = new Set([
+    ...Object.keys(findings.category_counts ?? {}),
+    ...Object.keys(findings.actionable_category_counts ?? {}),
+  ]);
+  const categories = Array.from(categoryKeys)
+    .map((category) => ({
+      category,
+      detected: findings.category_counts?.[category] ?? 0,
+      actionable:
+        findings.actionable_category_counts?.[category] ??
+        findings.category_counts?.[category] ??
+        0,
+    }))
+    .filter(({ detected, actionable }) => detected > 0 || actionable > 0)
+    .sort(
+      (left, right) =>
+        right.actionable - left.actionable ||
+        right.detected - left.detected ||
+        left.category.localeCompare(right.category),
+    );
   const normalizedTargetBranch = targetBranch?.trim() || undefined;
   const normalizedTargetCommit = targetCommit?.trim() || undefined;
   const scannedBranch = findings.scanned_branch?.trim() || undefined;
@@ -108,6 +132,26 @@ export function QualityFindingsSummary({
           ))}
         </div>
       )}
+      {categories.length > 0 && (
+        <details className="quality-finding-categories">
+          <summary>
+            {categories.length.toLocaleString()} finding{" "}
+            {categories.length === 1 ? "category" : "categories"}
+          </summary>
+          <div
+            aria-label="QR finding categories"
+            className="quality-finding-category-list"
+          >
+            {categories.map(({ category, detected, actionable }) => (
+              <span key={category} title={category}>
+                <b>{actionable.toLocaleString()}</b> actionable ·{" "}
+                {detected.toLocaleString()} detected ·{" "}
+                {category.replace(/[:_-]+/g, " ")}
+              </span>
+            ))}
+          </div>
+        </details>
+      )}
     </div>
   );
   return (
@@ -150,7 +194,7 @@ export function QualityFindingsSummary({
         role="status"
       >
         <span>
-          <b>Target:</b> {normalizedTargetBranch ?? "Unknown"}
+          <b>Target:</b> {normalizedTargetBranch ?? "Target not specified"}
           {shortTargetCommit ? ` @ ${shortTargetCommit}` : ""}
         </span>
         <span>
@@ -159,8 +203,14 @@ export function QualityFindingsSummary({
         <span>{provenanceMessage}</span>
       </div>
       <div className="quality-findings-meta">
-        <span>{findings.freshness}</span>
-        <span title={findings.disposition_message}>
+        <span>{readableQualityEvidenceText(findings.freshness)}</span>
+        <span
+          title={
+            findings.disposition_message
+              ? readableQualityEvidenceText(findings.disposition_message)
+              : undefined
+          }
+        >
           Review ledger: {findings.disposition_status}
         </span>
         {findings.stale_disposition_total > 0 && (

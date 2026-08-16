@@ -1,9 +1,27 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { normalizeSkillsSnapshot } from "./skillsSnapshot";
+import {
+  emptyPapercutBacklog,
+  emptyPromotionInbox,
+  emptySkills,
+  emptySnapshot,
+} from "./apiDefaults";
+export {
+  emptyAnalytics,
+  emptyPapercutBacklog,
+  emptyPromotionInbox,
+  emptySkills,
+  emptySnapshot,
+} from "./apiDefaults";
+export {
+  deleteAnalyticsView,
+  getAnalytics,
+  saveAnalyticsView,
+  setDefaultAnalyticsView,
+} from "./analyticsApi";
 import type {
   AiPayloadPreview,
-  AnalyticsSnapshot,
   SkillsSnapshot,
   ExternalTool,
   PortfolioSnapshot,
@@ -15,135 +33,18 @@ import type {
   PromotionDecision,
   PromotionInbox,
   CreatePapercutInput,
-  PapercutBacklog,
-  PapercutStatus,
   MultiplierProposal,
   MultiplierProposalStatus,
+  PapercutBacklog,
+  PapercutStatus,
 } from "./types";
-
-export const emptySnapshot: PortfolioSnapshot = {
-  roots: [],
-  repositories: [],
-  products: [],
-  groups: [],
-  events: [],
-  action_audits: [],
-  provider_identities: [],
-  remote_repositories: [],
-  provider_status: {
-    provider: "GitHub",
-    state: "Not connected",
-    message:
-      "Connect GitHub through the existing credential manager to load remote context.",
-    identity_count: 0,
-    repository_count: 0,
-  },
-  quality: {
-    audit_status: "Not configured",
-    matched_repository_count: 0,
-  },
-  remediation: {
-    schema_version: "pronto-remediation/v3",
-    id: "",
-    generated_at: new Date().toISOString(),
-    source_refresh_id: null,
-    status: "not_run",
-    message: null,
-    eligible_repository_ids: [],
-    eligible_repository_paths: [],
-    refresh_steps: [],
-    excluded_repositories: [],
-    closures: [],
-    github_only_candidates: [],
-    plans: [],
-  },
-  retention_days: 90,
-  generated_at: new Date().toISOString(),
-  storage_path: "",
-};
-
-export const emptyAnalytics: AnalyticsSnapshot = {
-  schema_version: "pronto-analytics/v1",
-  generated_at: new Date().toISOString(),
-  source: "Local refresh snapshots",
-  freshness: "Unavailable until the first local refresh",
-  range_days: 30,
-  retention_days: 90,
-  portfolio_samples: [],
-  repositories: [],
-};
-
-export const emptySkills: SkillsSnapshot = {
-  schema_version: "pronto-skills/v3",
-  generated_at: new Date().toISOString(),
-  freshness: "Unavailable until the first skills refresh",
-  source: "Local skill roots and local session records",
-  recent_days: 30,
-  roots: [],
-  skills: [],
-  telemetry_gap: "No skills refresh has been recorded.",
-};
-
-export const emptyPromotionInbox: PromotionInbox = {
-  schema_version: "leverage-promotion-inbox/v1",
-  visibility: "private",
-  generated_at: new Date().toISOString(),
-  source_root: "",
-  candidates: [],
-  counts: {
-    total: 0,
-    pending: 0,
-    deferred: 0,
-    rejected: 0,
-    accepted: 0,
-    complete: 0,
-    drafts: 0,
-  },
-  coverage: null,
-  discovery: null,
-  errors: [],
-  manual_review_required: true,
-  jas_mutation: false,
-  status: "unavailable",
-  provenance_hash: "",
-  message: "Promotion review is available in the Pronto desktop app.",
-  jas_admission: null,
-};
-
-export const emptyPapercutBacklog: PapercutBacklog = {
-  schema_version: "pronto-papercuts/v2",
-  family: "design-audit",
-  generated_at: new Date().toISOString(),
-  papercuts: [],
-  counts: {
-    total: 0,
-    open: 0,
-    in_progress: 0,
-    deferred: 0,
-    resolved: 0,
-    observations: 0,
-    local_patterns: 0,
-    cross_scope_patterns: 0,
-    draft_proposals: 0,
-  },
-  observations: [],
-  patterns: [],
-  proposals: [],
-  digests: [],
-  health: {
-    status: "healthy",
-    database_writable: true,
-    consecutive_failures: 0,
-    spooled_events: 0,
-    oldest_spool_at: null,
-    last_success_at: null,
-    warning: null,
-    excerpt_retention_days: 90,
-  },
-};
 
 function isDesktopBridgeAvailable(): boolean {
   return "__TAURI_INTERNALS__" in window;
+}
+
+interface RefreshBatchReport {
+  snapshot: PortfolioSnapshot;
 }
 
 export async function getSnapshot(): Promise<PortfolioSnapshot> {
@@ -151,13 +52,6 @@ export async function getSnapshot(): Promise<PortfolioSnapshot> {
     return emptySnapshot;
   }
   return invoke<PortfolioSnapshot>("get_snapshot");
-}
-
-export async function getAnalytics(): Promise<AnalyticsSnapshot> {
-  if (!isDesktopBridgeAvailable()) {
-    return emptyAnalytics;
-  }
-  return invoke<AnalyticsSnapshot>("get_analytics");
 }
 
 export async function getSkills(): Promise<SkillsSnapshot> {
@@ -276,7 +170,18 @@ export async function refresh(): Promise<PortfolioSnapshot> {
   if (!isDesktopBridgeAvailable()) {
     throw new Error("Open Pronto as a desktop app to scan local repositories.");
   }
-  return invoke<PortfolioSnapshot>("refresh");
+  const report = await invoke<RefreshBatchReport>("refresh_batch", {
+    target: null,
+    parallelism: null,
+  });
+  return report.snapshot;
+}
+
+export async function refreshQuality(): Promise<PortfolioSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Quality refresh is available in the Pronto desktop app.");
+  }
+  return invoke<PortfolioSnapshot>("refresh_quality");
 }
 
 export async function refreshGithub(): Promise<PortfolioSnapshot> {

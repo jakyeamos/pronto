@@ -73,6 +73,34 @@ function chartPath(
   return path;
 }
 
+const svgLineColors: Record<string, string> = {
+  "#68d6b1": "#68d6b1",
+  "#77a8ff": "#77a8ff",
+  "#b9a5ff": "#b9a5ff",
+  "#f08e8e": "#f08e8e",
+  "#f2bc71": "#f2bc71",
+  "var(--amber)": "#f2bc71",
+  "var(--blue)": "#77a8ff",
+  "var(--coral)": "#f08e8e",
+  "var(--mint)": "#68d6b1",
+  "var(--violet)": "#b9a5ff",
+};
+const svgLineClasses: Record<string, string> = {
+  "#68d6b1": "chart-line-mint",
+  "#77a8ff": "chart-line-blue",
+  "#b9a5ff": "chart-line-violet",
+  "#f08e8e": "chart-line-coral",
+  "#f2bc71": "chart-line-amber",
+};
+
+function svgLineColor(value: string): string {
+  return svgLineColors[value] ?? value;
+}
+
+function svgLineClass(value: string): string {
+  return svgLineClasses[svgLineColor(value)] ?? "chart-line-custom";
+}
+
 export function AnalyticsChartCard({
   eyebrow,
   title,
@@ -137,8 +165,8 @@ export function TrendChart({
     );
   }
   const width = 640;
-  const height = compact ? 176 : 220;
-  const padding = { top: 15, right: 16, bottom: 32, left: 42 };
+  const height = compact ? 208 : 260;
+  const padding = { top: 22, right: 24, bottom: 40, left: 52 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const values = series.flatMap((item) =>
@@ -214,10 +242,14 @@ export function TrendChart({
             <g key={item.label}>
               {path && (
                 <path
-                  className="chart-line"
+                  className={`chart-line ${svgLineClass(item.color)}`}
                   d={path}
-                  stroke={item.color}
-                  vectorEffect="non-scaling-stroke"
+                  fill="none"
+                  stroke={svgLineColor(item.color)}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={12}
+                  style={{ opacity: 1, strokeWidth: 12 }}
                 />
               )}
               {points.map((point, index) =>
@@ -227,7 +259,7 @@ export function TrendChart({
                     cx={point.x}
                     cy={point.y}
                     fill={item.color}
-                    r={samples.length === 1 ? 4 : 3}
+                    r={samples.length === 1 ? 5 : 4}
                     key={`${item.label}-${index}`}
                   />
                 ) : null,
@@ -246,13 +278,16 @@ export function TrendChart({
           {formatDate(samples[samples.length - 1].observed_at)}
         </text>
       </svg>
-      <div className="chart-legend" aria-label="Chart legend">
+      <div className="chart-legend" aria-label="Latest chart values">
         {series.map((item) => {
           const latest = item.getValue(samples[samples.length - 1]);
           return (
-            <div className="chart-legend-item" key={item.label}>
+            <div
+              className="chart-legend-item chart-legend-item-trend"
+              key={item.label}
+            >
               <span
-                className="chart-legend-mark"
+                className="chart-legend-mark chart-legend-line"
                 style={{ background: item.color }}
               />
               <span>{item.label}</span>
@@ -300,11 +335,11 @@ export function StackedBarChart({
     );
   }
   const width = 640;
-  const height = compact ? 132 : 150;
+  const height = compact ? 142 : 160;
   const barX = 18;
   const barWidth = width - 36;
-  const barY = 35;
-  const barHeight = 34;
+  const barY = 42;
+  const barHeight = 38;
   let offset = barX;
   return (
     <div className="chart-visual">
@@ -326,22 +361,33 @@ export function StackedBarChart({
         />
         {visibleSegments.map((segment) => {
           const segmentWidth = (segment.value / total) * barWidth;
+          const segmentX = offset;
           const element = (
-            <rect
-              key={segment.label}
-              x={offset}
-              y={barY}
-              width={segmentWidth}
-              height={barHeight}
-              fill={segment.color}
-              rx={segmentWidth === barWidth ? 7 : 0}
-            />
+            <g key={segment.label}>
+              <rect
+                x={segmentX}
+                y={barY}
+                width={segmentWidth}
+                height={barHeight}
+                fill={segment.color}
+                rx={segmentWidth === barWidth ? 7 : 0}
+              />
+              {segmentWidth >= 46 && (
+                <text
+                  className="chart-segment-label"
+                  x={segmentX + segmentWidth / 2}
+                  y={barY + 24}
+                >
+                  {formatCount(segment.value)}
+                </text>
+              )}
+            </g>
           );
           offset += segmentWidth;
           return element;
         })}
         <text className="chart-total-label" x={barX} y={barY - 12}>
-          {formatCount(total)} total observations
+          {formatCount(total)} total
         </text>
       </svg>
       <div
@@ -366,7 +412,7 @@ export function StackedBarChart({
 }
 
 function shortLabel(value: string): string {
-  return value.length > 25 ? `${value.slice(0, 22)}…` : value;
+  return value.length > 31 ? `${value.slice(0, 28)}…` : value;
 }
 
 export function HorizontalBarChart({
@@ -390,10 +436,10 @@ export function HorizontalBarChart({
     );
   }
   const width = 640;
-  const rowHeight = 42;
-  const height = Math.max(104, visibleItems.length * rowHeight + 22);
-  const labelWidth = 190;
-  const barWidth = width - labelWidth - 64;
+  const rowHeight = 52;
+  const height = Math.max(116, visibleItems.length * rowHeight + 24);
+  const labelWidth = 220;
+  const barWidth = width - labelWidth - 72;
   const maximum = Math.max(...visibleItems.map((item) => item.value ?? 0), 1);
   return (
     <div className="chart-visual chart-visual-comparison">
@@ -407,7 +453,7 @@ export function HorizontalBarChart({
         <desc>{summary}</desc>
         {visibleItems.map((item, index) => {
           const value = item.value ?? 0;
-          const y = 19 + index * rowHeight;
+          const y = 20 + index * rowHeight;
           return (
             <g key={item.label}>
               <title>{`${item.label}: ${formatDefaultValue(value)}`}</title>
@@ -417,27 +463,27 @@ export function HorizontalBarChart({
               <rect
                 className="chart-track"
                 x={labelWidth}
-                y={y + 3}
+                y={y + 2}
                 width={barWidth}
-                height={17}
+                height={22}
                 rx={5}
               />
               <rect
                 x={labelWidth}
-                y={y + 3}
+                y={y + 2}
                 width={(value / maximum) * barWidth}
-                height={17}
+                height={22}
                 rx={5}
                 fill={item.color}
               />
-              <text className="chart-comparison-value" x={width - 2} y={y + 16}>
+              <text className="chart-comparison-value" x={width - 2} y={y + 18}>
                 {formatDefaultValue(value)}
               </text>
               {item.detail && (
                 <text
                   className="chart-comparison-detail"
                   x={labelWidth}
-                  y={y + 35}
+                  y={y + 42}
                 >
                   {item.detail}
                 </text>

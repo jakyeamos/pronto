@@ -7,21 +7,27 @@ import {
   Copy,
   FolderGit2,
   GitBranch,
+  LoaderCircle,
   MoreHorizontal,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import type {
-  AnalyticsSnapshot,
   Condition,
   EventRecord,
   QualityPortfolioSnapshot,
   RepositorySnapshot,
 } from "../types";
-import { AnalyticsDashboardBand } from "./AnalyticsComponents";
-import { EmptyState, NoMatchesState } from "./ConsolePrimitives";
+import {
+  EmptyState,
+  formatExactTime,
+  NoMatchesState,
+} from "./ConsolePrimitives";
 import { AttentionQueue, RepositoryRow, Timeline } from "./PortfolioComponents";
 import {
+  QualityOutcomeSummary,
+  macControlFreshnessLabel,
   qualityConfigurationSummary,
   qualityEvidenceSummary,
   qualityGateDisplayLabel,
@@ -36,7 +42,8 @@ export function CommandCenterSurface({
   repositoryCount,
   rootCount,
   quality,
-  analytics,
+  snapshotGeneratedAt,
+  isRefreshing,
   repositories,
   allRepositories,
   events,
@@ -46,7 +53,9 @@ export function CommandCenterSurface({
   onAddRoot,
   onOpenRepository,
   onCondition,
+  onRefreshQuality,
   onOpenQualityReport,
+  onOpenAnalytics = () => undefined,
 }: {
   activeConditionCount: number;
   dirtyCount: number;
@@ -54,7 +63,8 @@ export function CommandCenterSurface({
   repositoryCount: number;
   rootCount: number;
   quality: QualityPortfolioSnapshot;
-  analytics: AnalyticsSnapshot;
+  snapshotGeneratedAt: string;
+  isRefreshing: boolean;
   repositories: RepositorySnapshot[];
   allRepositories: RepositorySnapshot[];
   events: EventRecord[];
@@ -64,10 +74,14 @@ export function CommandCenterSurface({
   onAddRoot: () => void;
   onOpenRepository: (repository: RepositorySnapshot) => void;
   onCondition: (repository: RepositorySnapshot, condition: Condition) => void;
+  onRefreshQuality: () => void;
   onOpenQualityReport?: (reportPath: string) => void;
+  onOpenAnalytics?: () => void;
+  analytics?: unknown;
 }): ReactElement {
   const configuration = qualityConfigurationSummary(quality);
   const evidence = qualityEvidenceSummary(quality);
+  const macControl = quality.mac_control_ideal_state;
   const openGateSummary = Object.entries(
     quality.ci_readiness_open_gate_counts ?? {},
   )
@@ -121,7 +135,40 @@ export function CommandCenterSurface({
               execution evidence remains separate.
             </p>
           </div>
-          <ShieldCheck size={19} />
+          <div className="command-quality-summary-heading-actions">
+            <button
+              className="button button-quiet"
+              type="button"
+              onClick={onRefreshQuality}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? (
+                <LoaderCircle className="spin" size={15} />
+              ) : (
+                <RefreshCw size={15} />
+              )}
+              Refresh quality
+            </button>
+            <ShieldCheck size={19} />
+          </div>
+        </div>
+        <QualityOutcomeSummary quality={quality} />
+        <div
+          className="command-quality-provenance"
+          aria-label="Quality evidence provenance"
+        >
+          <div>
+            <span>Quality audit</span>
+            <strong>{quality.latest_audit_id ?? "No audit imported"}</strong>
+          </div>
+          <div>
+            <span>Audit observed</span>
+            <strong>{formatExactTime(quality.latest_audit_at)}</strong>
+          </div>
+          <div>
+            <span>Pronto snapshot</span>
+            <strong>{formatExactTime(snapshotGeneratedAt)}</strong>
+          </div>
         </div>
         <div className="command-quality-score-grid">
           <div>
@@ -162,9 +209,43 @@ export function CommandCenterSurface({
                 : "No open gate updates"}
             </small>
           </div>
+          {macControl ? (
+            <div>
+              <span>Mac Control semantic evidence</span>
+              <strong>
+                {macControl.implementation_criteria_passed_count ?? 0}/
+                {macControl.implementation_criteria_total ?? 0}
+                <small> dimensions</small>
+              </strong>
+              <small>
+                {macControl.implementation_score_display ?? "Not scored"}/4 ·{" "}
+                {macControl.implementation_status ?? macControl.status} ·{" "}
+                {macControlFreshnessLabel(macControl.freshness)}
+              </small>
+              {(macControl.implementation_declaration_criteria_count ?? 0) >
+              0 ? (
+                <small>
+                  Legacy declarations:{" "}
+                  {macControl.implementation_declaration_criteria_count}{" "}
+                  recorded · non-scoring until v4 source evidence is established
+                </small>
+              ) : null}
+              <small>
+                Live tasks: {macControl.measured_task_count ?? 0}/
+                {macControl.live_task_count ?? 0} measured ·{" "}
+                {macControl.live_status ?? "Not assessed"}
+              </small>
+            </div>
+          ) : null}
         </div>
       </section>
-      <AnalyticsDashboardBand analytics={analytics} />
+      <div className="portfolio-analytics-link">
+        <span>Need historical trends, comparisons, or custom views?</span>
+        <button type="button" className="text-link" onClick={onOpenAnalytics}>
+          Open Analytics
+          <ChevronRight size={14} />
+        </button>
+      </div>
       <div className="content-grid">
         <section className="portfolio-panel">
           <div className="panel-heading">

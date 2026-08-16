@@ -9,12 +9,11 @@ import {
 } from "lucide-react";
 import type {
   PromotionCandidate,
-  PromotionCoverage,
-  PromotionDiscoverySummary,
   PromotionDecision,
   PromotionInbox,
 } from "../types";
 import { formatExactTime, formatTime, StatusPill } from "./ConsolePrimitives";
+import { PromotionCoveragePanel } from "./PromotionCoveragePanel";
 
 type PromotionSurfaceProps = {
   inbox: PromotionInbox;
@@ -38,6 +37,10 @@ const decisionActions: Array<{
   { decision: "defer", label: "Defer", tone: "amber" },
   { decision: "reject", label: "Reject", tone: "coral" },
 ];
+
+function isPromotionDecision(decision: PromotionDecision): boolean {
+  return decision === "public" || decision === "private" || decision === "both";
+}
 
 function decisionLabel(decision?: string | null): string {
   if (decision === "public") return "Public projection";
@@ -81,125 +84,6 @@ function CandidateReferenceList({
   );
 }
 
-function coverageTone(status?: string): string {
-  if (status === "assessed") return "mint";
-  if (status === "blocked") return "coral";
-  if (status === "partial") return "amber";
-  return "blue";
-}
-
-function coverageLabel(status?: string): string {
-  if (status === "assessed") return "Coverage assessed";
-  if (status === "partial") return "Partial coverage";
-  if (status === "blocked") return "Coverage blocked";
-  return "Coverage not assessed";
-}
-
-function sourceLabel(value: string): string {
-  return value.replaceAll("_", " ");
-}
-
-function formatBytes(value: number): string {
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function CoveragePanel({
-  coverage,
-  discovery,
-}: {
-  coverage?: PromotionCoverage | null;
-  discovery?: PromotionDiscoverySummary | null;
-}): ReactElement {
-  const sourceManifest = coverage?.source_manifest ?? [];
-  const unknownSources = coverage?.unknown_sources ?? [];
-  const coverageStatus = coverage?.coverage_status ?? "unassessed";
-
-  return (
-    <section className="surface-panel promotion-coverage-panel">
-      <div className="surface-heading">
-        <div>
-          <p className="eyebrow">Discovery coverage</p>
-          <h2>Candidate counts are bounded by AWL's source inventory</h2>
-          <p>
-            This run inventories explicit roots and file metadata; candidate
-            extraction is a separate review step. Unassessed sources are shown
-            explicitly so zero candidates never means “nothing exists.”
-          </p>
-        </div>
-        <StatusPill tone={coverageTone(coverageStatus)}>
-          {coverageLabel(coverageStatus)}
-        </StatusPill>
-      </div>
-      <div className="promotion-coverage-grid">
-        <div>
-          <span>Assessed sources</span>
-          <strong>{coverage?.assessed_sources ?? 0}</strong>
-        </div>
-        <div>
-          <span>Unassessed sources</span>
-          <strong>{coverage?.unassessed_sources ?? 0}</strong>
-        </div>
-        <div>
-          <span>Files inventoried</span>
-          <strong>{coverage?.files_seen ?? 0}</strong>
-        </div>
-        <div>
-          <span>Bytes inventoried</span>
-          <strong>{formatBytes(coverage?.bytes_seen ?? 0)}</strong>
-        </div>
-      </div>
-      {discovery && (
-        <div className="promotion-discovery-summary">
-          <div>
-            <span>AWL observations</span>
-            <strong>{discovery.observations_seen}</strong>
-          </div>
-          <div>
-            <span>Asset observations</span>
-            <strong>{discovery.asset_observation_documents}</strong>
-          </div>
-          <div>
-            <span>Candidate drafts</span>
-            <strong>{discovery.candidate_drafts}</strong>
-          </div>
-          <p>
-            Asset observations are review inputs, not candidates. They become
-            candidates only after testing, quantification, and packet review.
-          </p>
-        </div>
-      )}
-      {unknownSources.length > 0 && (
-        <div className="promotion-coverage-unknowns">
-          <span>Not assessed in this run</span>
-          <div>
-            {unknownSources.map((source) => (
-              <span key={source}>{sourceLabel(source)}</span>
-            ))}
-          </div>
-        </div>
-      )}
-      {sourceManifest.length > 0 && (
-        <div className="promotion-coverage-source-list">
-          {sourceManifest.map((source) => (
-            <div key={source.source_id}>
-              <span>{sourceLabel(source.category)}</span>
-              <small>
-                {source.files_seen} file{source.files_seen === 1 ? "" : "s"}
-                {source.notes ? ` · ${source.notes}` : ""}
-              </small>
-              <StatusPill tone={coverageTone(source.status)}>
-                {source.status}
-              </StatusPill>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 export function PromotionSurface({
   inbox,
   isRefreshing,
@@ -215,6 +99,9 @@ export function PromotionSurface({
     ) ??
     inbox.candidates[0] ??
     null;
+  const jasProjectionReady =
+    selected?.candidate_kind === "complete" &&
+    selected.jas_projection_status === "ready";
 
   useEffect(() => {
     if (!selected || selected.candidate_id !== selectedId) {
@@ -225,6 +112,7 @@ export function PromotionSurface({
 
   async function handleDecision(decision: PromotionDecision): Promise<void> {
     if (!selected || submitting) return;
+    if (isPromotionDecision(decision) && !jasProjectionReady) return;
     const trimmedReason = reason.trim();
     if ((decision === "defer" || decision === "reject") && !trimmedReason) {
       return;
@@ -330,7 +218,10 @@ export function PromotionSurface({
         </div>
       </section>
 
-      <CoveragePanel coverage={inbox.coverage} discovery={inbox.discovery} />
+      <PromotionCoveragePanel
+        coverage={inbox.coverage}
+        discovery={inbox.discovery}
+      />
 
       {inbox.status !== "pass" && (
         <div className="promotion-status-banner" role="alert">
@@ -518,7 +409,24 @@ export function PromotionSurface({
                     className={`button button-${action.tone}`}
                     type="button"
                     key={action.decision}
-                    disabled={actionsDisabled}
+                    data-decision={action.decision}
+                    disabled={
+                      actionsDisabled ||
+                      (isPromotionDecision(action.decision) &&
+                        !jasProjectionReady)
+                    }
+                    aria-describedby={
+                      isPromotionDecision(action.decision) &&
+                      !jasProjectionReady
+                        ? "promotion-readiness-note"
+                        : undefined
+                    }
+                    title={
+                      isPromotionDecision(action.decision) &&
+                      !jasProjectionReady
+                        ? "A complete candidate with a sanitized JAS projection is required."
+                        : undefined
+                    }
                     onClick={() => void handleDecision(action.decision)}
                   >
                     {action.decision === "reject" ? (
@@ -532,10 +440,16 @@ export function PromotionSurface({
                   </button>
                 ))}
               </div>
-              <p className="promotion-action-note">
-                An accepted choice records the AWL decision and invokes JAS
-                admission/install when the packet is complete and
-                projection-ready. Defer and reject only record the decision.
+              <p
+                className="promotion-action-note"
+                id="promotion-readiness-note"
+                role={jasProjectionReady ? undefined : "status"}
+              >
+                {jasProjectionReady
+                  ? "An accepted choice records the AWL decision and invokes JAS admission/install when the packet is complete and projection-ready. Defer and reject only record the decision."
+                  : selected.candidate_kind === "complete"
+                    ? "Promotion choices are disabled until this complete candidate includes a sanitized JAS projection. You can still defer or reject it."
+                    : "Promotion choices are disabled until AWL produces a complete candidate packet with a sanitized JAS projection. You can still defer or reject it."}
               </p>
             </>
           ) : (

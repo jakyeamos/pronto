@@ -12,94 +12,28 @@ import {
   QualityFindingsSummary,
   QualityGateCell,
   QualityMaturitySummary,
+  QualityOutcomeSummary,
   projectQualityReadinessForTarget,
   qualityConfigurationSummary,
   qualityEvidenceSummary,
-  qualityGateDisplayLabel,
+  macControlFreshnessLabel,
 } from "./QualityComponents";
 import { targetScopeForRepository } from "../branchEvidence";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
 
-const CANONICAL_GATE_IDS = [
-  "build",
-  "runtime_smoke",
-  "tests",
-  "lint",
-  "formatter",
-  "typecheck",
-  "dead_code",
-  "secrets_scan",
-] as const;
-
-const CONDITIONAL_GATE_IDS = ["dependency_audit"] as const;
-
-function customGateColumns(repositories: RepositorySnapshot[]): string[] {
-  const knownGateIds = new Set<string>([
-    ...CANONICAL_GATE_IDS,
-    ...CONDITIONAL_GATE_IDS,
-  ]);
-  const ids = new Set<string>();
-  for (const repository of repositories) {
-    for (const gate of repository.quality.gates) {
-      if (!knownGateIds.has(gate.id)) ids.add(gate.id);
-    }
-  }
-  return Array.from(ids).sort((left, right) => left.localeCompare(right));
-}
-
-function matrixGateColumns(
-  repositories: RepositorySnapshot[],
-  includeCustomGates: boolean,
-): string[] {
-  const conditional = CONDITIONAL_GATE_IDS.filter((id) =>
-    repositories.some(
-      (repository) =>
-        repository.quality.gates.some((gate) => gate.id === id) ||
-        repository.quality.ci_readiness.applicable_gate_ids.includes(id),
-    ),
-  );
-  return [
-    ...CANONICAL_GATE_IDS,
-    ...conditional,
-    ...(includeCustomGates ? customGateColumns(repositories) : []),
-  ];
-}
-
-function totalHighFindings(repositories: RepositorySnapshot[]): number {
-  return repositories.reduce(
-    (total, repository) =>
-      total + repository.quality.findings.high_severity_total,
-    0,
-  );
-}
-
-function readinessGapSummary(quality: PortfolioSnapshot["quality"]): string {
-  const configuration = qualityConfigurationSummary(quality);
-  if (configuration.ideal === 0) {
-    return "CI configuration profile not available";
-  }
-  const entries = Object.entries(quality.ci_readiness_open_gate_counts ?? {})
-    .sort(
-      ([leftId, leftCount], [rightId, rightCount]) =>
-        rightCount - leftCount || leftId.localeCompare(rightId),
-    )
-    .slice(0, 3);
-  return entries.length > 0
-    ? `Evidence updates: ${entries
-        .map(
-          ([gateId, count]) => `${qualityGateDisplayLabel(gateId)} (${count})`,
-        )
-        .join(" · ")}`
-    : "No open gate updates";
-}
-
-export function measurementConfidenceSummary(
-  confidence: PortfolioSnapshot["quality"]["measurement_confidence"],
-): string {
-  if (!confidence) return "Measurement confidence unavailable";
-  const level = `${confidence.level[0].toUpperCase()}${confidence.level.slice(1)}`;
-  return `${level} measurement confidence · ${confidence.observed_repository_count}/${confidence.expected_repository_count} repositories measured`;
-}
+import {
+  BehaviorAssuranceSummary,
+  EvidenceContractAlerts,
+  CANONICAL_GATE_IDS,
+  CONDITIONAL_GATE_IDS,
+  EdgeDurabilityPanel,
+  MeasurementConfidenceSummary,
+  customGateColumns,
+  matrixGateColumns,
+  readinessGapSummary,
+  totalHighFindings,
+} from "./QualityGateHelpers";
+export { measurementConfidenceSummary } from "./QualityGateHelpers";
 
 export function QualityGatesSurface({
   snapshot,
@@ -136,8 +70,15 @@ export function QualityGatesSurface({
   const configuration = qualityConfigurationSummary(portfolioQuality);
   const evidence = qualityEvidenceSummary(portfolioQuality);
   const macControl = portfolioQuality.mac_control_ideal_state;
+  const staleEvidenceContracts = (
+    portfolioQuality.evidence_contracts ?? []
+  ).filter((contract) => contract.status !== "current");
   return (
     <>
+      {showOverview && (
+        <EvidenceContractAlerts contracts={staleEvidenceContracts} />
+      )}
+      \n{" "}
       {showOverview && (
         <section className="quality-overview-grid">
           <div className="quality-overview-card quality-overview-card-accent">
@@ -148,22 +89,56 @@ export function QualityGatesSurface({
             </strong>
             <small>
               {portfolioQuality.scored_dimension_count
-                ? `${portfolioQuality.scored_dimension_count} dimensions · `
+                ? `${portfolioQuality.scored_dimension_count} pillar assessments · `
                 : ""}
               {portfolioQuality.audit_status}
             </small>
-            <small>
-              {measurementConfidenceSummary(
-                portfolioQuality.measurement_confidence,
-              )}
-            </small>
-            {portfolioQuality.measurement_confidence?.limitations.map(
-              (limitation) => (
-                <small key={limitation}>
-                  {limitation.replaceAll("_", " ")}
-                </small>
-              ),
+            <MeasurementConfidenceSummary
+              confidence={portfolioQuality.measurement_confidence}
+            />
+            {portfolioQuality.source_maturity_score_display && (
+              <small>
+                {portfolioQuality.feed_schema ===
+                "quality-runner-maturity-feed/v2"
+                  ? "QR source holistic"
+                  : "Legacy QR dimension mean"}{" "}
+                {portfolioQuality.source_maturity_score_display}/4
+              </small>
             )}
+            {(portfolioQuality.maturity_pillars ?? []).length > 0 && (
+              <div
+                className="portfolio-maturity-pillars"
+                aria-label="Fleet maturity pillars"
+              >
+                {(portfolioQuality.maturity_pillars ?? []).map((pillar) => (
+                  <span key={pillar.id} title={pillar.label}>
+                    <b>{pillar.label}</b>
+                    {pillar.score === undefined
+                      ? "Unknown"
+                      : `${pillar.score}/4`}
+                  </span>
+                ))}
+              </div>
+            )}
+            {portfolioQuality.maturity_evidence_coverage !== undefined && (
+              <small>
+                {Math.round(portfolioQuality.maturity_evidence_coverage * 100)}%
+                evidence ·{" "}
+                {Math.round(
+                  (portfolioQuality.maturity_fresh_evidence_coverage ?? 0) *
+                    100,
+                )}
+                % fresh ·{" "}
+                {portfolioQuality.maturity_provisional_repository_count ?? 0}
+                {" provisional · "}
+                {portfolioQuality.maturity_capped_repository_count ?? 0} capped
+              </small>
+            )}
+            <small>
+              Product readiness and Project Compass progress are reported
+              separately from repository maturity.
+            </small>
+            <QualityOutcomeSummary quality={portfolioQuality} />
             <div className="quality-overview-secondary">
               <span>CI configuration</span>
               <strong>
@@ -191,7 +166,7 @@ export function QualityGatesSurface({
             </strong>
             <small>
               {macControl
-                ? `${macControl.applicable_repository_count} applicable repositories · ${macControl.freshness}`
+                ? `${macControl.applicable_repository_count} applicable repositories · ${macControlFreshnessLabel(macControl.freshness)}`
                 : "Not configured"}
             </small>
             <small>
@@ -199,14 +174,24 @@ export function QualityGatesSurface({
               typeof macControl.implementation_criteria_passed_count ===
                 "number" &&
               typeof macControl.implementation_criteria_total === "number"
-                ? "Implementation: " +
+                ? "Semantic source evidence: " +
                   macControl.implementation_criteria_passed_count +
                   "/" +
                   macControl.implementation_criteria_total +
-                  " criteria · " +
+                  " dimensions · " +
+                  (macControl.implementation_score_display ?? "—") +
+                  "/4 · " +
                   (macControl.implementation_status ?? "—")
-                : "Implementation lane not reported"}
+                : "Semantic source-evidence lane not reported"}
             </small>
+            {macControl &&
+            (macControl.implementation_declaration_criteria_count ?? 0) > 0 ? (
+              <small>
+                Legacy declarations:{" "}
+                {macControl.implementation_declaration_criteria_count} recorded
+                · non-scoring until v4 source evidence is established
+              </small>
+            ) : null}
             <small>
               {macControl &&
               typeof macControl.measured_task_count === "number" &&
@@ -216,11 +201,14 @@ export function QualityGatesSurface({
                   "/" +
                   macControl.live_task_count +
                   " measured · " +
+                  (macControl.live_score_display ?? "—") +
+                  "/4 · " +
                   (macControl.live_status ?? "—")
                 : "Live task lane not reported"}
             </small>
             <small>
-              Both lanes are required before claiming the 4.0/4.0 maturity ideal
+              Source-grounded semantics and live task evidence are both required
+              for the 4.0/4.0 maturity ideal
             </small>
             <ShieldCheck size={18} />
           </div>
@@ -256,7 +244,11 @@ export function QualityGatesSurface({
           </div>
         </section>
       )}
-
+      <EdgeDurabilityPanel
+        repositories={repositories}
+        onOpenRepository={onOpenRepository}
+      />
+      \n\n{" "}
       <section className="surface-panel quality-matrix-panel">
         <div className="surface-heading quality-matrix-heading">
           <div>
@@ -318,6 +310,7 @@ export function QualityGatesSurface({
                 <col className="quality-matrix-repository-column" />
                 <col className="quality-matrix-maturity-column" />
                 <col className="quality-matrix-findings-column" />
+                <col className="quality-matrix-gate-column" />
                 {columns.map((column) => (
                   <col className="quality-matrix-gate-column" key={column} />
                 ))}
@@ -341,6 +334,11 @@ export function QualityGatesSurface({
                     className="quality-matrix-sticky quality-matrix-findings-column"
                   >
                     QR findings
+                  </th>
+                  <th scope="col" className="quality-matrix-gate-column">
+                    <span className="quality-matrix-gate-heading">
+                      Behavior assurance
+                    </span>
                   </th>
                   {columns.map((column) => (
                     <th
@@ -422,6 +420,9 @@ export function QualityGatesSurface({
                           targetCommit={target.commit}
                           onOpenReport={onOpenReport}
                         />
+                      </td>
+                      <td className="quality-matrix-gate-column">
+                        <BehaviorAssuranceSummary repository={repository} />
                       </td>
                       {columns.map((column) => {
                         const gate = repository.quality.gates.find(

@@ -415,6 +415,10 @@ export function usePortfolioController() {
     await loadSnapshot(api.refresh);
   }, [loadSnapshot]);
 
+  const handleRefreshQuality = useCallback(async (): Promise<void> => {
+    await loadSnapshot(api.refreshQuality);
+  }, [loadSnapshot]);
+
   const handleOpenQualityReport = useCallback(
     async (reportPath: string): Promise<void> => {
       await loadSnapshot(() => api.openQualityReport(reportPath));
@@ -455,6 +459,7 @@ export function usePortfolioController() {
     handleExportRemediation,
     handleRemediationStatus,
     handleConfirmRefresh,
+    handleRefreshQuality,
     handleOpenQualityReport,
   };
 }

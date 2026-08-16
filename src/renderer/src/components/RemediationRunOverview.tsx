@@ -1,6 +1,5 @@
 import type { ReactElement } from "react";
 import {
-  CheckCircle2,
   CircleAlert,
   Download,
   FileCheck2,
@@ -10,6 +9,7 @@ import {
 } from "lucide-react";
 import type { RemediationRun } from "../types";
 import { formatRemediationTime } from "./RemediationActionRow";
+import { MAC_CONTROL_TARGET_IDS } from "../macControlTargets";
 
 export function RemediationRunOverview({
   run,
@@ -22,7 +22,7 @@ export function RemediationRunOverview({
   onRefresh: () => Promise<void>;
   onExport: () => Promise<void>;
 }): ReactElement {
-  const closures = run.closures ?? [];
+  const hasResolvedHistory = (run.closures ?? []).length > 0;
   const githubOnlyCandidates = run.github_only_candidates ?? [];
   const openActionCount = run.plans.reduce(
     (total, plan) =>
@@ -73,12 +73,6 @@ export function RemediationRunOverview({
           <CircleAlert size={18} />
         </div>
         <div className="remediation-overview-card">
-          <span>Retained closures</span>
-          <strong>{closures.length}</strong>
-          <small>Verified or explicitly deferred queue exits</small>
-          <CheckCircle2 size={18} />
-        </div>
-        <div className="remediation-overview-card">
           <span>GitHub-only candidates</span>
           <strong>{githubOnlyCandidates.length}</strong>
           <small>Retained provider evidence · last task: GitHub only</small>
@@ -111,6 +105,7 @@ export function RemediationRunOverview({
             <button
               className="button button-primary"
               type="button"
+              id={MAC_CONTROL_TARGET_IDS.refresh}
               disabled={isRefreshing}
               onClick={() => void onRefresh()}
             >
@@ -124,8 +119,7 @@ export function RemediationRunOverview({
               className="button button-secondary"
               type="button"
               disabled={
-                isRefreshing ||
-                (run.plans.length === 0 && closures.length === 0)
+                isRefreshing || (run.plans.length === 0 && !hasResolvedHistory)
               }
               onClick={() => void onExport()}
             >

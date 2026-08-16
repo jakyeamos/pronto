@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import {
   createPapercut,
   emptySnapshot,
+  refresh,
   refreshRepositoryTargetEvidence,
   setRepositoryTargetBranch,
   setPapercutStatus,
@@ -22,6 +23,23 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 afterEach(() => {
   Reflect.deleteProperty(window, "__TAURI_INTERNALS__");
   vi.clearAllMocks();
+});
+
+describe("refresh", () => {
+  it("uses the bounded parallel refresh and returns its merged snapshot", async () => {
+    Object.defineProperty(window, "__TAURI_INTERNALS__", {
+      configurable: true,
+      value: {},
+    });
+    vi.mocked(invoke).mockResolvedValue({ snapshot: emptySnapshot });
+
+    await expect(refresh()).resolves.toBe(emptySnapshot);
+
+    expect(invoke).toHaveBeenCalledExactlyOnceWith("refresh_batch", {
+      target: null,
+      parallelism: null,
+    });
+  });
 });
 
 describe("refreshRepositoryTargetEvidence", () => {

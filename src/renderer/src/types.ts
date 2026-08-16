@@ -5,12 +5,14 @@ import type {
   ReleaseRuleConfig,
 } from "./types/quality";
 import type { RemediationRun } from "./types/remediation";
+import type { ShowcasePortfolioSnapshot } from "./types/showcase";
 
 export * from "./types/quality";
 export * from "./types/remediation";
 export * from "./types/insights";
 export * from "./types/promotion";
 export * from "./types/papercuts";
+export * from "./types/showcase";
 
 export interface RootConfig {
   id: string;
@@ -349,6 +351,7 @@ interface ReleasePreparation {
   candidate_bump?: string;
   candidate_version?: string;
   version_status: string;
+  release_boundary_status?: string;
   notes: ReleaseNoteSection[];
   status: string;
   reasons: string[];
@@ -420,6 +423,7 @@ export interface PortfolioSnapshot {
   provider_status: ProviderStatus;
   quality: QualityPortfolioSnapshot;
   remediation: RemediationRun;
+  showcase: ShowcasePortfolioSnapshot;
   retention_days: number;
   generated_at: string;
   storage_path: string;
