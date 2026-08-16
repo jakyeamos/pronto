@@ -41,6 +41,7 @@
         "cargo test --manifest-path src-tauri/Cargo.toml",
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::migrates_schema_v1_for_action_audits",
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::fresh_route_timeout_names_the_cached_fallback",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::release_recommendation_is_advisory_and_fail_closed",
         "pnpm cli route --fresh --json against the imported full fleet detector corpus",
         "pnpm typecheck",
         "For maturity changes, verify pillar weighting, applicability, assessed versus applicable dimensions, evidence coverage, and critical caps in src-tauri/src/quality.rs tests.",
@@ -58,6 +59,7 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm vitest run",
+        "pnpm vitest run src/renderer/src/components/QualityReadinessSurfaces.test.tsx",
         "pnpm typecheck",
         "pnpm build:web",
         "Verify the Dock Refresh action invokes refresh_batch and renders the returned merged snapshot.",
@@ -114,7 +116,8 @@
         "pnpm cli help",
         "pnpm cli refresh-batch --parallelism 2 --json",
         "pnpm cli route \"$(git rev-parse --show-toplevel)\" --json",
-        "pnpm cli remediation gate \"$(git rev-parse --show-toplevel)\" --json"
+        "pnpm cli remediation gate \"$(git rev-parse --show-toplevel)\" --json",
+        "pnpm cli release preview \"$(git rev-parse --show-toplevel)\" --json and inspect pronto-agent-release/v2 recommendation"
       ],
       "status": "applicable"
     },
@@ -128,6 +131,7 @@
       "validation": [
         "Validate every documented command against pnpm cli help.",
         "Verify refresh-batch documents its parallel scan, serialized merge, and conflict-retry boundary.",
+        "Verify release preview documents the v2 advisory recommendation dispositions and no-publication boundary.",
         "Verify relative context links resolve inside the repository.",
         "Run a scoped Quality Runner fleet audit and inspect agent_usability."
       ],
@@ -142,6 +146,7 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "Verify the skill documents refresh-batch parallel scan, serialized merge, and conflict retry semantics.",
+        "Verify the skill documents pronto-agent-release/v2 recommendation and fail-closed release semantics.",
         "Run pnpm cli help and confirm the documented command is exposed."
       ],
       "status": "applicable"

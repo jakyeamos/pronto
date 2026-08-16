@@ -430,4 +430,39 @@ describe("quality readiness and release surfaces", () => {
     expect(markup).toContain("Reproducible failures");
     expect(markup).toContain("state and ordering");
   });
+
+  it("shows the advisory release recommendation without implying publication", () => {
+    const preview = preparation();
+    preview.release.recommendation = {
+      disposition: "release_minor",
+      label: "Release v1.1.0 (minor)",
+      suggested_bump: "minor",
+      suggested_version: "v1.1.0",
+      basis: "12 commits since last published tag v1.0.0",
+      reasons: ["A feature commit requires a minor version increment."],
+      advisory: true,
+    };
+    const markup = renderToStaticMarkup(
+      <PreparationDrawer
+        repository={makeRepository()}
+        preparation={preview}
+        onClose={() => undefined}
+        onSaveReleaseRule={noop}
+        onSaveReleaseRecipe={noop}
+        onConfirmReleaseVersion={noop}
+        onSaveAiPermission={noop}
+        onPreviewAiSummary={async () => aiPreview()}
+      />,
+    );
+
+    expect(markup).toContain("Pronto suggestion");
+    expect(markup).toContain("Release v1.1.0 (minor)");
+    expect(markup).toContain("12 commits since last published tag v1.0.0");
+    expect(markup).toContain(
+      "Advisory only; no tag or release action was performed",
+    );
+    expect(markup).toContain(
+      "A feature commit requires a minor version increment.",
+    );
+  });
 });

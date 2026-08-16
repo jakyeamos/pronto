@@ -339,6 +339,21 @@ interface ReleaseRuleTrace {
   source: string;
 }
 
+interface ReleaseRecommendation {
+  disposition:
+    | "do_not_release_yet"
+    | "review_required"
+    | "release_patch"
+    | "release_minor"
+    | "release_major";
+  label: string;
+  suggested_bump?: string;
+  suggested_version?: string;
+  basis: string;
+  reasons: string[];
+  advisory: boolean;
+}
+
 interface ReleasePreparation {
   repository_id: string;
   target_branch?: string;
@@ -351,6 +366,7 @@ interface ReleasePreparation {
   candidate_bump?: string;
   candidate_version?: string;
   version_status: string;
+  recommendation?: ReleaseRecommendation;
   release_boundary_status?: string;
   notes: ReleaseNoteSection[];
   status: string;

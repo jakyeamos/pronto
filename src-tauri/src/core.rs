@@ -595,6 +595,17 @@ pub struct ReleaseRuleTrace {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseRecommendation {
+    pub disposition: String,
+    pub label: String,
+    pub suggested_bump: Option<String>,
+    pub suggested_version: Option<String>,
+    pub basis: String,
+    pub reasons: Vec<String>,
+    pub advisory: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReleasePreparation {
     pub repository_id: String,
     pub target_branch: Option<String>,
@@ -607,6 +618,7 @@ pub struct ReleasePreparation {
     pub candidate_bump: Option<String>,
     pub candidate_version: Option<String>,
     pub version_status: String,
+    pub recommendation: ReleaseRecommendation,
     #[serde(default)]
     pub release_boundary_status: Option<String>,
     pub notes: Vec<ReleaseNoteSection>,
@@ -1009,7 +1021,7 @@ const AGENT_QUALITY_SCHEMA: &str = "pronto-agent-quality/v1";
 const AGENT_ATTENTION_SCHEMA: &str = "pronto-agent-attention/v1";
 const AGENT_ACTIVITY_SCHEMA: &str = "pronto-agent-activity/v1";
 const AGENT_PREPARATION_SCHEMA: &str = "pronto-agent-preparation/v1";
-const AGENT_RELEASE_SCHEMA: &str = "pronto-agent-release/v1";
+const AGENT_RELEASE_SCHEMA: &str = "pronto-agent-release/v2";
 const AGENT_NEXT_SCHEMA: &str = "pronto-agent-next/v1";
 const DEFAULT_AGENT_NEXT_LIMIT: usize = 12;
 const MAX_AGENT_NEXT_LIMIT: usize = 50;
@@ -7865,6 +7877,81 @@ fn candidate_version(release: &ReleaseSnapshot, bump: Option<&str>) -> Option<St
     Some(format!("v{major}.{minor}.{patch}"))
 }
 
+fn release_recommendation(
+    baseline: Option<&ReleaseSnapshot>,
+    commits: &[ReleaseCommitSummary],
+    candidate_bump: Option<&str>,
+    candidate_version: Option<&str>,
+    rule_result: Option<ReleaseRuleResult>,
+    blocked: bool,
+) -> ReleaseRecommendation {
+    let basis = baseline
+        .map(|release| {
+            format!(
+                "{} commits since last published tag {}",
+                commits.len(),
+                release.tag
+            )
+        })
+        .unwrap_or_else(|| "No published SemVer tag baseline is available".to_string());
+    let mut recommendation = ReleaseRecommendation {
+        disposition: "do_not_release_yet".to_string(),
+        label: "Do not release yet".to_string(),
+        suggested_bump: candidate_bump.map(str::to_string),
+        suggested_version: candidate_version.map(str::to_string),
+        basis,
+        reasons: Vec::new(),
+        advisory: true,
+    };
+
+    if blocked {
+        recommendation
+            .reasons
+            .push("Required release evidence or readiness gates are not ready.".to_string());
+        return recommendation;
+    }
+    if baseline.is_none() {
+        recommendation.disposition = "review_required".to_string();
+        recommendation.label = "Review first-release version".to_string();
+        recommendation.reasons.push(
+            "A published SemVer baseline is required for an automatic version increment."
+                .to_string(),
+        );
+        return recommendation;
+    }
+    if commits.is_empty() {
+        recommendation
+            .reasons
+            .push("No commits were found after the last published tag.".to_string());
+        return recommendation;
+    }
+    let (Some(bump), Some(version)) = (candidate_bump, candidate_version) else {
+        recommendation.disposition = "review_required".to_string();
+        recommendation.label = "Review release impact".to_string();
+        recommendation.reasons.push(
+            "Commits exist, but none imply a deterministic conventional-commit SemVer bump."
+                .to_string(),
+        );
+        return recommendation;
+    };
+    if rule_result != Some(ReleaseRuleResult::Passed) {
+        recommendation.disposition = "review_required".to_string();
+        recommendation.label = format!("Review {version} ({bump})");
+        recommendation.reasons.push(
+            "The change-based version candidate is available, but no configured release threshold has passed."
+                .to_string(),
+        );
+        return recommendation;
+    }
+
+    recommendation.disposition = format!("release_{bump}");
+    recommendation.label = format!("Release {version} ({bump})");
+    recommendation.reasons.push(format!(
+        "The configured release threshold passed; {bump} is the highest bump implied by commits since the last published tag."
+    ));
+    recommendation
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ReleaseRuleResult {
     Passed,
@@ -8616,6 +8703,23 @@ fn prepare_release(
         || rule_result == Some(ReleaseRuleResult::Failed)
         || rule_result == Some(ReleaseRuleResult::Blocked)
         || rule_result == Some(ReleaseRuleResult::Unknown);
+    let recommendation = release_recommendation(
+        baseline.as_ref(),
+        &commits_since_baseline,
+        candidate_bump.as_deref(),
+        candidate_version.as_deref(),
+        rule_result,
+        blocked,
+    );
+    evidence_items.push(evidence(
+        "Release recommendation",
+        recommendation.label.clone(),
+        &format!(
+            "Advisory only · {} · readiness gates override commit classification",
+            recommendation.basis
+        ),
+        &observed_at,
+    ));
     ReleasePreparation {
         repository_id: repository.id.clone(),
         target_branch,
@@ -8628,6 +8732,7 @@ fn prepare_release(
         candidate_bump,
         candidate_version,
         version_status,
+        recommendation,
         release_boundary_status: public_release_boundary_required.then(|| {
             format!(
                 "{} · {}",
@@ -8803,7 +8908,7 @@ fn prepare_release_recipe(
         order: 9,
         label: "Prepare draft GitHub Release".to_string(),
         status: "Deferred".to_string(),
-        detail: "Release publication is not enabled in V1.".to_string(),
+        detail: "Release publication is not enabled by this preview.".to_string(),
     });
 
     let status = if blocked {
@@ -14630,14 +14735,8 @@ fn print_human_release(report: &AgentReleaseReport) {
         report.repository_id, report.release.status
     );
     println!(
-        "Baseline: {} · candidate: {} · recipe: {}",
-        report.release.baseline_status,
-        report
-            .release
-            .candidate_version
-            .as_deref()
-            .unwrap_or("unknown"),
-        report.recipe.status
+        "Baseline: {} · recommendation: {} · recipe: {}",
+        report.release.baseline_status, report.release.recommendation.label, report.recipe.status
     );
     for reason in &report.release.reasons {
         println!("  reason: {reason}");
@@ -20757,6 +20856,100 @@ mod tests {
         assert!(error.contains("Another Pronto write is already in progress"));
 
         fs::remove_dir_all(root).expect("target branch lock fixture should be removable");
+    }
+
+    #[test]
+    fn release_recommendation_is_advisory_and_fail_closed() {
+        let baseline = ReleaseSnapshot {
+            id: "github:release-1".to_string(),
+            provider: "github".to_string(),
+            repository_id: "github:repo-1".to_string(),
+            tag: "v1.2.3".to_string(),
+            name: "v1.2.3".to_string(),
+            target_commit: Some("baseline".to_string()),
+            published_at: Some("2026-08-01T12:00:00Z".to_string()),
+            draft: false,
+            prerelease: false,
+            last_refreshed_at: "2026-08-14T12:00:00Z".to_string(),
+        };
+        let feature_commit = ReleaseCommitSummary {
+            sha: "abcdef1234567890".to_string(),
+            subject: "feat: show release advice".to_string(),
+            category: "Features".to_string(),
+            bump: Some("minor".to_string()),
+            committed_at: "2026-08-14T11:00:00Z".to_string(),
+        };
+
+        for (bump, version, disposition) in [
+            ("patch", "v1.2.4", "release_patch"),
+            ("minor", "v1.3.0", "release_minor"),
+            ("major", "v2.0.0", "release_major"),
+        ] {
+            let ready = release_recommendation(
+                Some(&baseline),
+                std::slice::from_ref(&feature_commit),
+                Some(bump),
+                Some(version),
+                Some(ReleaseRuleResult::Passed),
+                false,
+            );
+            assert_eq!(ready.disposition, disposition);
+            assert_eq!(ready.label, format!("Release {version} ({bump})"));
+            assert_eq!(ready.suggested_version.as_deref(), Some(version));
+            assert!(ready.advisory);
+        }
+
+        let unconfigured = release_recommendation(
+            Some(&baseline),
+            std::slice::from_ref(&feature_commit),
+            Some("minor"),
+            Some("v1.3.0"),
+            None,
+            false,
+        );
+        assert_eq!(unconfigured.disposition, "review_required");
+        assert_eq!(unconfigured.label, "Review v1.3.0 (minor)");
+
+        let blocked = release_recommendation(
+            Some(&baseline),
+            std::slice::from_ref(&feature_commit),
+            Some("minor"),
+            Some("v1.3.0"),
+            Some(ReleaseRuleResult::Passed),
+            true,
+        );
+        assert_eq!(blocked.disposition, "do_not_release_yet");
+        assert_eq!(blocked.label, "Do not release yet");
+
+        let no_changes = release_recommendation(
+            Some(&baseline),
+            &[],
+            None,
+            None,
+            Some(ReleaseRuleResult::Passed),
+            false,
+        );
+        assert_eq!(no_changes.disposition, "do_not_release_yet");
+        assert!(no_changes
+            .basis
+            .contains("0 commits since last published tag v1.2.3"));
+
+        let unclassified_commit = ReleaseCommitSummary {
+            bump: None,
+            category: "Other".to_string(),
+            subject: "update release wording".to_string(),
+            ..feature_commit
+        };
+        let ambiguous = release_recommendation(
+            Some(&baseline),
+            &[unclassified_commit],
+            None,
+            None,
+            Some(ReleaseRuleResult::Passed),
+            false,
+        );
+        assert_eq!(ambiguous.disposition, "review_required");
+        assert_eq!(ambiguous.label, "Review release impact");
     }
 
     #[test]

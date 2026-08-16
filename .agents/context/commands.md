@@ -90,11 +90,21 @@ stale/unknown until it is refreshed from the exact target commit.
 | Work requiring attention   | `attention --json`                                                                                                                                                | `pronto-agent-attention/v1`                           |
 | Recent transitions/audits  | `activity [<repository>] --limit <n> --json`                                                                                                                      | `pronto-agent-activity/v1`                            |
 | Preparation preflight      | `prepare <repository> [--workspace <id>] [--fresh] --json`                                                                                                        | `pronto-agent-preparation/v1`                         |
-| Release preflight          | `release preview <repository> [--workspace <id>] [--fresh] --json`                                                                                                | `pronto-agent-release/v1`                             |
+| Release preflight          | `release preview <repository> [--workspace <id>] [--fresh] --json`                                                                                                | `pronto-agent-release/v2`                             |
 
 Resolve a repository with `git rev-parse --show-toplevel` and pass the
 absolute path, repository name, ID, or an exact workspace path. Do not pass `.`
 and assume it will resolve.
+
+`release preview` v2 exposes every commit since the last published, non-draft,
+non-prerelease tag and an explicit advisory `recommendation`. Its disposition
+is one of `do_not_release_yet`, `review_required`, `release_patch`,
+`release_minor`, or `release_major`; release dispositions include the exact
+next SemVer version. Conventional commits provide the bump, but readiness
+blockers always force `do_not_release_yet`, unclassified commits force review,
+and a change-derived candidate without a passed configured rule remains
+`review_required`. The preview never tags, publishes, or otherwise authorizes a
+release.
 
 For a full inventory check of one repository standard, Quality Runner owns the
 static fleet scope. Run

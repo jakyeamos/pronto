@@ -287,6 +287,14 @@ canonical commit, a confirmed baseline, fresh required gates, a deterministic
 repository currently has no verified published-release baseline for the latest
 revision; publication remains blocked until that evidence is established.
 
+The `pronto-agent-release/v2` preview turns commits after the last published,
+non-draft, non-prerelease tag into one advisory disposition: do not release yet,
+review required, or release a patch, minor, or major version. It shows the exact
+commits and computed next SemVer version. Readiness gates override commit
+classification, unclassified commits require review, and a candidate derived
+without a passed configured release rule is review-only. The recommendation
+has no publication authority and performs no tag or release action.
+
 For every remediation goal resolved as `public_release`, Pronto imports
 `.quality-runner/release-boundary.json` using
 `quality-runner-release-boundary/v2`. The receipt is read-only evidence: Pronto

@@ -268,6 +268,19 @@ export function PreparationDrawer({
               </div>
             )}
           </div>
+          {release.recommendation && (
+            <div className="preparation-existing">
+              <span>Pronto suggestion</span>
+              <strong>{release.recommendation.label}</strong>
+              <small>
+                {release.recommendation.basis} · Advisory only; no tag or
+                release action was performed.
+              </small>
+              {release.recommendation.reasons.map((reason) => (
+                <small key={reason}>{reason}</small>
+              ))}
+            </div>
+          )}
           <PreparationReasons reasons={release.reasons} />
           {release.rule_trace.length > 0 && (
             <div className="preparation-trace">
