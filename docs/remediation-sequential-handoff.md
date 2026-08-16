@@ -6,7 +6,7 @@ thread. Sol plans the next bounded slice, dispatches one Luna Max executor,
 verifies the returned evidence, and only then advances the queue.
 
 The persisted `pronto-remediation/v3` projection remains the source of truth
-for the queue, actions, evidence, and closure state. This document records
+for the queue, actions, evidence, and point-in-time resolution history. This document records
 coordination state and decisions; it must not become a second copy of the
 queue.
 
@@ -48,8 +48,21 @@ local commit on the isolated working branch that contains the intended scoped
 changes. It is not a fleet-wide auto-commit, a nightly blind sweep, or a stash
 that hides ownership.
 
-Pronto bounds this rule at the remediation boundary. Before Sol advances a
-repository, run:
+Pronto bounds this rule at the remediation boundary. Before Sol starts or
+resumes repository work, run the repository-level execution gate:
+
+```sh
+pronto remediation gate <repository> --json
+```
+
+This is the canonical answer to whether current repository state permits
+remediation. It checks all registered workspaces unless one exact workspace is
+selected, returns structured blockers and affected operations, and keeps its
+live execution result separate from the cached plan's closure status. Caller
+authorization remains an explicit external boundary; a `ready` receipt does
+not grant mutation authority.
+
+Before Sol advances a completed workspace handoff, run:
 
 ```sh
 pronto remediation handoff-check <repository> --json
@@ -79,7 +92,7 @@ identity plus the storage-preserving disposition.
 - **Live repository truth:** the selected repository's current branch,
   worktrees, dirty state, commit, provider evidence, and quality commands.
 - **Coordination truth:** the active dispatch and result ledger in this
-  document. Coordination entries never override evidence or closure state.
+  document. Coordination entries never override evidence or resolution history.
 
 ## GitHub-only disposition
 

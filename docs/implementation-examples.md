@@ -23,6 +23,20 @@ When adding a field, update the Rust-owned type and derivation first, then every
 serialized consumer and focused test. Do not compute a second interpretation
 in React.
 
+Showcase onboarding is the reference for a bounded cross-surface state change:
+
+- `src-tauri/src/core.rs` identifies repository IDs newly admitted by the
+  registration or refresh merge before persisting the registry.
+- `src-tauri/src/showcase.rs` atomically appends one idempotent pending goal
+  row to the existing fleet contract, keeping eligibility, dimensions, scores,
+  and publication authority unknown until review.
+- `docs/showcase-contract.md`, `.agents/context/commands.md`, and
+  `.agents/change-surface-matrix.json` document the same write boundary, while
+  the native tests cover preservation and retry behavior.
+
+Do not create a contract or infer public readiness as part of repository
+discovery; a missing or invalid contract remains an explicit review state.
+
 ## Add or change a quality or remediation rule
 
 Quality finding dispositions show the intended evidence overlay pattern:
@@ -50,6 +64,20 @@ Agent usability is the reference for a supplemental maturity projection:
   `QualityMaturitySummary` renders it without recomputing coverage.
 - Missing behavior receipts remain visible even when documentation and static
   mappings are healthy.
+
+The fleet quality outcome is the reference for descriptive portfolio status:
+
+- Quality Runner owns the category taxonomy and the repository-level
+  `quality_outcome.disposition`/`next_step` explanation.
+- `src-tauri/src/quality.rs` imports those optional fields by stable repository
+  identity and keeps evidence-review, review, blocked, and failing states
+  distinct at the machine boundary; presentation never renders the raw
+  evidence-review state or the old `unknown` label.
+- `QualityOutcomeSummary` renders category meaning and next action, while
+  `QualityMaturitySummary` renders each repository's bounded disposition.
+- Older feeds without the additive fields remain readable. When they contain a
+  raw evidence-review count, Pronto uses only the bounded evidence-review
+  fallback; it does not invent per-repository dimensions or evidence details.
 
 ## Add or change a repository surface
 

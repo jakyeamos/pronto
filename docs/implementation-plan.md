@@ -88,7 +88,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
   - `pronto quality disposition set <repository> <fingerprint> <status> ...`
     for an auditable repository-owned review decision that overlays, but never
     mutates, Quality Runner detector evidence;
-  - `pronto remediation [<repository>] --json` for the ranked active remediation queue and retained terminal closure ledger;
+  - `pronto remediation [<repository>] --json` for the ranked active remediation queue and point-in-time resolved-action history;
   - `pronto attention --json` for conditions, dirty workspaces, synchronization gaps, and quality gaps;
   - `pronto activity [<repository>] --limit <n> --json` for bounded events and action audits;
   - `pronto prepare <repository> --json` for pull-request, release, and recipe evidence;
@@ -111,7 +111,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
   integration-ready branches, submodules, and active conditions therefore
   cannot appear in the UI without a remediation disposition. Only actionable plans remain in the
   ranked queue, evidence-backed terminal outcomes move to a retained
-  goal-stamped closure ledger, and the remediation export produces the current
+  goal-stamped resolved-action history, and the remediation export produces the current
   queue as Markdown alongside JSON. Its deterministic ordering preserves
   status, earliest unresolved domain, and action priority, then applies
   explicit control-plane and evidence-provider leverage before using repository
@@ -120,8 +120,8 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 - `route` is also read-only and preserves a clean machine-readable stdout contract when invoked through the documented silent pnpm wrapper; the JSON payload is the only stdout content.
 - The agent operating route is provider-neutral: the global home contract routes portfolio, workspace, branch, quality, and release triage to the `$pronto` skill; this repository's `.agents/context/` packet supplies the live CLI contract.
 - `$pronto` is an evidence and preflight surface, not an autonomous Git operator. `fold preview` supplies persisted branch/worktree candidates, while the reviewed `fold-feature-branches` workflow owns live ref classification, integration, and pruning authorization.
-- The behavior inventory in `docs/pronto-behavior-spec.xlsx` tracks each implemented feature, source function, test method, evidence, and remaining open question.
-- Tauri interaction verification is performed when the local desktop runtime can launch; provider and release rows remain explicitly blocked rather than being marked verified from static code.
+- The repository-owned `.pronto/behavior-assurance.json` contract inventories critical behavior; immutable receipts preserve target, producer, oracle result, verification level, and evidence. `docs/pronto-behavior-spec.xlsx` is historical inventory only and cannot establish release readiness.
+- Tauri interaction verification is performed when the local desktop runtime can launch; provider and release scenarios remain explicitly blocked rather than receiving a passing receipt from static code.
 
 ## Complexity and safety gate
 

@@ -8,6 +8,19 @@
   "last_reviewed": "2026-08-15",
   "surfaces": [
     {
+      "id": "matrix-maintenance",
+      "scope": "local",
+      "path": ".agents/change-surface-matrix.json",
+      "owner": "Pronto repository maintainers",
+      "condition": "A material feature, functionality, behavior, CLI/API, workflow, data, integration, security/privacy, or quality/release change is added or changed.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "Update this matrix in the same change with affected surfaces, contracts, documentation, tests, evidence, owners, and projections.",
+        "For a purely internal refactor or isolated fix with no matrix impact, record a reviewed no-impact reason in the same change record; omission is not an implicit no-impact decision."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "native-core",
       "scope": "local",
       "path": "src-tauri/src/",
@@ -19,7 +32,9 @@
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::migrates_schema_v1_for_action_audits",
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::fresh_route_timeout_names_the_cached_fallback",
         "pnpm cli route --fresh --json against the imported full fleet detector corpus",
-        "pnpm typecheck"
+        "pnpm typecheck",
+        "For maturity changes, verify pillar weighting, applicability, evidence coverage, and critical caps in src-tauri/src/quality.rs tests.",
+        "Run the parallel refresh coordinator tests and verify the locked merge preserves every scanned repository."
       ],
       "status": "applicable"
     },
@@ -30,7 +45,28 @@
       "owner": "Pronto repository maintainers",
       "condition": "A projected field, state label, navigation surface, or user-visible remediation behavior changes.",
       "operations": ["add", "change", "remove"],
-      "validation": ["pnpm vitest run", "pnpm typecheck", "pnpm build:web"],
+      "validation": [
+        "pnpm vitest run",
+        "pnpm typecheck",
+        "pnpm build:web",
+        "Verify the Dock Refresh action invokes refresh_batch and renders the returned merged snapshot."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "analytics-contract",
+      "scope": "local",
+      "path": "src-tauri/src/core.rs, src/renderer/src/components/Analytics*, and docs/analytics-workspace.md",
+      "owner": "Pronto repository maintainers",
+      "condition": "Analytics metrics, sampling, compatibility, findings, ranges, saved views, or chart behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::analytics",
+        "pnpm vitest run src/renderer/src/components/AnalyticsComponents.test.tsx",
+        "pnpm typecheck",
+        "pnpm build:web",
+        "Verify Portfolio contains no chart and Analytics is reachable from primary navigation and the Portfolio text link."
+      ],
       "status": "applicable"
     },
     {
@@ -42,7 +78,9 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm cli help",
-        "pnpm cli route \"$(git rev-parse --show-toplevel)\" --json"
+        "pnpm cli refresh-batch --parallelism 2 --json",
+        "pnpm cli route \"$(git rev-parse --show-toplevel)\" --json",
+        "pnpm cli remediation gate \"$(git rev-parse --show-toplevel)\" --json"
       ],
       "status": "applicable"
     },
@@ -55,8 +93,22 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "Validate every documented command against pnpm cli help.",
+        "Verify refresh-batch documents its parallel scan, serialized merge, and conflict-retry boundary.",
         "Verify relative context links resolve inside the repository.",
         "Run a scoped Quality Runner fleet audit and inspect agent_usability."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "pronto-skill-contract",
+      "scope": "external",
+      "path": "~/.agents/skills/pronto/ and ~/.agents/skills/pronto/references/cli-contract.md",
+      "owner": "Pronto repository maintainers and Codex skill routing",
+      "condition": "The Pronto CLI command surface or its agent operating boundary changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "Verify the skill documents refresh-batch parallel scan, serialized merge, and conflict retry semantics.",
+        "Run pnpm cli help and confirm the documented command is exposed."
       ],
       "status": "applicable"
     },
@@ -82,24 +134,87 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm cli remediation \"$(git rev-parse --show-toplevel)\" --json",
+        "pnpm cli remediation gate \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm cli repo \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm cli quality \"$(git rev-parse --show-toplevel)\" --json"
       ],
       "status": "applicable"
     },
     {
+      "id": "showcase-contract",
+      "scope": "local",
+      "path": ".pronto/showcase-goal.json and src-tauri/src/showcase.rs",
+      "owner": "Pronto repository maintainers",
+      "condition": "A repository is newly registered while a fleet AI Showcase contract exists, or the Showcase goal, eligibility, readiness, or publication projection changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "Newly discovered repositories receive one explicit pending-review goal row with unknown eligibility and dimensions before the registry merge is saved.",
+        "cargo test --manifest-path src-tauri/Cargo.toml showcase::tests",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::registering_new_repository_adds_pending_showcase_goal",
+        "node --test scripts/showcase-materials.test.mjs",
+        "pnpm cli summary --json and verify the new repository has a durable Showcase goal row without a fabricated score or public eligibility."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "failure-visibility-gate",
+      "scope": "local",
+      "path": ".quality-runner.toml and package.json:scripts.failure-visibility",
+      "owner": "Pronto repository maintainers",
+      "condition": "Fallback, degradation, evidence normalization, or negative-path behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "pnpm failure-visibility",
+        "Run Quality Runner verify-gates with --only-gate failure_visibility in disposable mode and inspect evidence_state."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "codex-skill-invocation-feed",
+      "scope": "external",
+      "path": "~/.codex/state_5.sqlite::skill_invocations",
+      "owner": "Codex runtime fork and Pronto provider adapter",
+      "condition": "Codex skill event identity, persistence, status semantics, retention, or Pronto aggregation changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "Run scoped codex-state skill_invocations tests.",
+        "Run the Codex explicit and implicit skill integration tests.",
+        "pnpm cli skills --json",
+        "Perform installed-app Skills interaction verification."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "codex-skill-otlp-compatibility-feed",
+      "scope": "external",
+      "path": "127.0.0.1:43180/v1/metrics -> ~/Library/Application Support/Pronto/codex-skill-metrics.db",
+      "owner": "Codex OTLP metrics exporter and Pronto localhost collector",
+      "condition": "Codex skill metric name, dimensions, temporality, OTLP JSON shape, collector lifecycle, coverage semantics, or source precedence changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "Run scoped skill_usage_collector and Skills fallback tests.",
+        "node --test scripts/skill-usage-collector.test.mjs",
+        "pnpm skills:collector:check",
+        "Start a fresh Codex process and verify an observed metric through pnpm cli skills --json.",
+        "Perform installed-app Skills interaction verification."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "quality-runner-feed",
       "scope": "external",
-      "path": "~/.quality-runner/fleet-audit/current/maturity.json",
+      "path": "~/.quality-runner/fleet-audit/current/maturity.json and quality-runner-maturity-feed/v2",
       "owner": "Quality Runner",
-      "condition": "Quality Runner changes its maturity feed, repository identity, gate, finding, agent-usability, growth-health, freshness, or provenance contract.",
+      "condition": "Quality Runner changes its maturity feed, holistic pillar model, repository identity, gate, finding, maturity dimension, applicability, evidence coverage, critical cap, agent-usability, growth-health, freshness, or provenance contract.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "quality-runner doctor --json",
         "quality-runner fleet audit run --repo-path \"$(git rev-parse --show-toplevel)\" --json",
         "cargo test --manifest-path src-tauri/Cargo.toml quality::tests::imports_",
         "pnpm test -- --run src/renderer/src/components/QualityComponents.test.tsx",
-        "pnpm cli quality \"$(git rev-parse --show-toplevel)\" --json"
+        "pnpm cli quality \"$(git rev-parse --show-toplevel)\" --json",
+        "pnpm vitest run src/renderer/src/components/QualityComponents.test.tsx",
+        "Confirm Project Compass and product-readiness values remain separate from repository maturity."
       ],
       "status": "applicable"
     },
@@ -117,6 +232,35 @@
         "fleet detector sibling-artifact regression selects inspect findings while retaining latest verify gate evidence and rejects unmarked similarly named runs",
         "pnpm cli help",
         "Run a source QR detector refresh against a disposable fixture and verify Pronto refreshes target refs, imports exact-target findings, and rejects any published result that is not selected."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "quality-runner-web-readiness",
+      "scope": "external",
+      "path": "<repository>/.quality-runner/web-readiness.json",
+      "owner": "Quality Runner and the target repository",
+      "condition": "Web applicability, evidence levels, target identity, categorical readiness, route evidence, or release consumption changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "qr web-readiness <repository> --json",
+        "pnpm cli quality <repository> --json",
+        "pnpm cli release preview <repository> --json"
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "mac-control-ideal-state-feed",
+      "scope": "external",
+      "path": "~/.quality-runner/fleet-audit/current/mac-control-ideal-state.json, src-tauri/src/mac_control_maturity.rs, and the Quality Gates renderer",
+      "owner": "Quality Runner, Mac Control, and Pronto integration owners",
+      "condition": "Mac Control manifest schema, semantic evidence, source-grounding, provider-boundary, score, freshness, or user-facing disposition changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml mac_control_maturity",
+        "pnpm vitest run src/renderer/src/components/QualityComponents.test.tsx",
+        "pnpm typecheck",
+        "Read back a Quality Runner v4 companion feed in Pronto."
       ],
       "status": "applicable"
     },
@@ -139,11 +283,14 @@
       "scope": "external",
       "path": "/Applications/Pronto.app",
       "owner": "Pronto repository maintainers",
-      "condition": "Tauri configuration, bundled assets, native entry points, or production installation behavior changes.",
+      "condition": "The build/promotion command contract, Tauri configuration, bundled assets, native entry points, or production installation behavior changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
+        "node --test scripts/build-workflow.test.mjs scripts/install-app.test.mjs",
         "pnpm build:bundle",
         "node --test scripts/install-app.test.mjs",
+        "pnpm build:release (CI or release preparation)",
+        "pnpm app:update",
         "pnpm app:check",
         "Perform installed-app interaction smoke verification."
       ],
@@ -170,6 +317,8 @@
       "status": "passed",
       "evidence": [
         "src-tauri/src/core.rs::tests::registers_root_and_scans_from_cli_path",
+        "src-tauri/src/core.rs::tests::registering_new_repository_adds_pending_showcase_goal",
+        "src-tauri/src/showcase.rs::tests::automatically_adds_pending_showcase_goal_for_new_repository",
         "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract"
       ]
     },
@@ -178,6 +327,8 @@
       "evidence": [
         "src-tauri/src/core.rs::tests::ordinary_refresh_retains_persisted_scoped_maturity_evidence",
         "src-tauri/src/core.rs::tests::qr_audit_runtime_arguments_apply_the_requested_timeout",
+        "src-tauri/src/core.rs::tests::registering_new_repository_adds_pending_showcase_goal",
+        "src-tauri/src/showcase.rs::tests::automatically_adds_pending_showcase_goal_for_new_repository",
         "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract"
       ]
     },

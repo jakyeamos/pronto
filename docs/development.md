@@ -7,16 +7,18 @@ pnpm dev
 ```
 
 That launches the current checkout with Tauri's live reload. It does not use
-the copy in `/Applications`.
+or update the copy in `/Applications`. Use this live window for direct behavior
+verification while iterating; frontend changes reload automatically and native
+changes rebuild through Tauri's development process.
 
-Every production build now installs the resulting macOS app into
-`/Applications/Pronto.app`. Use:
+When a coherent checkpoint is ready to become the installed daily-driver app,
+promote it explicitly with:
 
 ```sh
-pnpm build
+pnpm app:update
 ```
 
-This builds the current checkout, stages and atomically replaces
+This builds only the macOS app bundle, stages and atomically replaces
 `/Applications/Pronto.app`, and verifies that the entire installed app bundle
 and native executable match the build. Obsolete files from an earlier build
 cannot survive the replacement. If Pronto is running, the installer quits it
@@ -25,12 +27,20 @@ installer also pauses the owned `com.pronto.skill-usage-collector` launch agent
 before replacement and restores it from its existing plist afterward, so its
 KeepAlive policy cannot hold the old executable open. Reopening forces a
 distinct foreground instance so LaunchServices does not mistake the restored
-collector for the desktop window. `pnpm app` is retained as an alias.
+collector for the desktop window. `pnpm build` and `pnpm app` remain
+compatibility aliases for this explicit update lane.
 
-To build only the repository release bundle without installing it, use:
+To build only the macOS app bundle without installing it, use:
 
 ```sh
 pnpm build:bundle
+```
+
+This skips distribution-only artifacts such as the DMG. Generate the complete
+configured release artifact set only when preparing a distribution:
+
+```sh
+pnpm build:release
 ```
 
 To check for install drift without rebuilding:
@@ -41,9 +51,13 @@ pnpm app:check
 
 These build/install commands do not modify the local Pronto database.
 
-An app-facing change is not complete while `/Applications/Pronto.app` differs
-from the current build. Finish with `pnpm build`, `pnpm app:check`, and a launch
-of the installed app when it was not already running.
+An ordinary app-facing source change may be completed against the live
+`pnpm dev` window plus its applicable quality gates without replacing the
+installed app. Installed-app verification remains required when promoting a
+checkpoint, changing Tauri configuration, bundled assets, native entry points,
+or installation behavior, and when preparing a release. Those paths finish
+with `pnpm app:update`, `pnpm app:check`, and a launch of the installed app when
+it was not already running.
 
 ## Rust toolchain contract
 
@@ -57,6 +71,34 @@ cargo +1.88.0 check --manifest-path src-tauri/Cargo.toml --locked
 The `MSRV` GitHub Actions job runs this command independently from the stable
 Rust build so a dependency update cannot silently raise the minimum.
 
+## Parallel refresh workflow
+
+Use `pronto refresh-batch` for an explicitly scoped fleet refresh when the
+read-only scan itself is the bottleneck:
+
+```sh
+pnpm --silent --dir "$PRONTO_ROOT" run cli refresh-batch --parallelism 4 --json
+```
+
+The Dock app's primary Refresh action and the command both snapshot the local
+store, scan repository Git/filesystem evidence
+in bounded parallel workers, and performs one deterministic, locked merge. It
+does not call providers or mutate repository files. If another writer changes
+the store while scans are running, the command reloads and retries the scan
+once; an unresolved conflict is reported as retryable. The ordinary
+`refresh` command remains the CLI compatibility path for a single repository
+or the existing serial critical section.
+
+## Behavior assurance
+
+Critical user-visible behavior is declared in
+`.pronto/behavior-assurance.json` and proven by immutable Quality Runner
+receipts. Run `pnpm --silent run cli behavior --json` to audit the persisted
+fleet projection. Missing or stale Tier-0 evidence blocks release preparation;
+unrelated changes can safely reuse ancestor receipts when declared change
+triggers are untouched. The complete contract and migration guidance is in
+[behavior-assurance.md](./behavior-assurance.md).
+
 ## Remediation queue contract
 
 For sequential agent execution, use the
@@ -67,12 +109,24 @@ transition.
 
 `pronto remediation --json` exposes `pronto-remediation/v3`. The `plans`
 array is the ranked active queue rather than an all-repository inventory.
-Freshly verified or explicitly deferred terminal plans leave that array and
-are retained in `closures`; a later evidence refresh can create a new active
-plan for the same repository. Queue order preserves status, remediation domain,
-and priority before giving the Pronto and AIOS control planes and the Quality
-Runner evidence provider explicit fleet leverage. Repository goal and raw
-action weight are used only after those safety and leverage decisions.
+Freshly verified or explicitly deferred action sets leave that array and are
+retained in the compatibility field `closures` as resolved-action history; a
+later evidence refresh can create a new active plan for the same repository.
+This history records queue transitions, not permanent repository closure.
+Queue order preserves status, remediation domain, and priority before giving
+the Pronto and AIOS control planes and the Quality Runner evidence provider
+explicit fleet leverage. Repository goal and raw action weight are used only
+after those safety and leverage decisions.
+
+Plan `status` is queue/closure state, not a live execution verdict. Use
+`pronto remediation gate <repository> [--workspace <id>] --json` before
+repository remediation. Its `pronto-remediation-execution-gate/v1` receipt
+performs read-only live Git and path checks, combines them with persisted
+ownership evidence, identifies the affected operations for every blocker, and
+projects closure and caller authorization as separate concepts. A missing
+release receipt can therefore block `closure_gate` while execution remains
+`ready`; unavailable, dirty, interrupted, or owner-ambiguous workspaces make
+the execution gate fail closed without relabeling the plan itself.
 
 The run also exposes `github_only_candidates`: authenticated GitHub repositories
 present in the provider snapshot without a matching local checkout. They remain
@@ -104,13 +158,13 @@ The plan's `explanation` is the standard human- and machine-readable operating
 narrative over those actions. It groups active work into ordered phases,
 preserves each action's title, summary, priority, status, and acceptance
 criteria as concrete steps, lists already-healthy coverage separately, and
-states what must become true for closure. The underlying actions remain the
-authority: the explanation must never hide active work, present verified
+states what must become true for the current queue refresh. The underlying
+actions remain the authority: the explanation must never hide active work, present verified
 history as remaining work, or imply authorization for Git, provider,
 publication, release, or pruning mutations. The active-queue Markdown export
 projects the same ordered phase titles as its `Remaining path` column.
 
-The four built-in phases are defaults, not a phase-count limit. A repository
+The five built-in phases are defaults, not a phase-count limit. A repository
 may add as many ordered phases as its real workflow requires through the
 optional `remediation_phases` array in its goal contract. Each phase owns one
 or more action domains and may name an earlier built-in or repository phase in
@@ -121,6 +175,21 @@ ambiguous or cyclic phase graph. If an active action reaches the planner with
 an unassigned domain, Pronto exposes it in `unclassified_remediation` instead
 of omitting it. The explanation projection must contain every active action
 exactly once.
+
+Plans whose resolved target is `public_release` include the built-in
+`public_distribution_boundary` phase whenever the imported
+`quality-runner-release-boundary/v2` receipt is missing, legacy, invalid, stale,
+target-mismatched, policy-mismatched, artifact-mismatched, or failed. That action
+is derived from the receipt's blocking check IDs and remains blocked regardless
+of manual action status. A fresh passing receipt removes it. The receipt proves
+that release-relevant surfaces are classified as `public_core`, `public_adapter`,
+or `local_only`; tracked source and docs are free of personal paths and private
+inventory; artifacts match their allowlist and hashes; installation works with
+an isolated temporary home and private workspace peers absent; and integration
+proof uses sanitized fixtures or consumer-owned tests. `release preview` applies
+the same hard gate, and Pronto never executes receipt content. Other goal targets
+do not inherit this work, and an inferred non-release goal retains only the
+existing goal-confirmation action.
 
 Each plan also carries a goal profile. A repository can confirm that profile in
 `.pronto/remediation-goal.json`:
@@ -155,6 +224,6 @@ closure criteria. Repository additions may strengthen but never remove the
 target's required gates.
 
 Use `pronto remediation export [output-dir] --json` to write the JSON manifest,
-active plan files, retained goal-stamped closure data, and a generated
+active plan files, retained goal-stamped resolved-action history, and a generated
 `repository-remediation-order.md`. Exporting does not authorize repository,
 Git, provider, publication, or pruning changes.
