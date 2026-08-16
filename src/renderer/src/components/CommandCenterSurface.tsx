@@ -177,12 +177,10 @@ export function CommandCenterSurface({
               {quality.maturity_score_display ?? "Not scored"}
               {quality.maturity_score_display && <small>/4</small>}
             </strong>
-            <small>
-              Pronto evidence-governed score
-              {quality.source_maturity_score_display
-                ? ` · QR source ${quality.source_maturity_score_display}/4`
-                : ""}
-            </small>
+            <small>Pronto evidence-governed score</small>
+            {quality.source_maturity_score_display && (
+              <small>QR source {quality.source_maturity_score_display}/4</small>
+            )}
           </div>
           <div>
             <span>CI configuration</span>
