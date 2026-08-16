@@ -175,6 +175,20 @@ repository or provider scope and preserve the exact source commit and evidence
 timestamp. AI remains disabled by default and must not receive source content,
 credentials, or operational authority without a separately designed contract.
 
+## Parallel task lanes and custody
+
+Concurrent feature work uses one branch and linked worktree per feature, with
+`dev` as the integration lane and `main` or `master` as the release lane. The
+isolated-change workflow owns signed renewable custody; Pronto exposes its
+read-only `pronto-task-lanes/v1` projection through repository detail and scoped
+route responses. A stopped agent loses custody after its lease grace period. A
+verified expired lane becomes adoptable when the recorded worktree and branch
+still match live Git, and adoption must preserve dirty WIP. Unsigned, missing,
+or mismatched evidence remains unknown or stale and cannot authorize takeover.
+
+The full state model, incomplete-work fold gate, and failure behavior are in
+[task-lane-custody.md](task-lane-custody.md).
+
 ## Common failure modes and recovery
 
 | Observed problem                                                | Likely boundary                                                       | Safe recovery                                                                                                                                                                                                                                                                                                                                |

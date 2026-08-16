@@ -46,7 +46,8 @@
         "pnpm typecheck",
         "For maturity changes, verify pillar weighting, applicability, assessed versus applicable dimensions, evidence coverage, and critical caps in src-tauri/src/quality.rs tests.",
         "For detector evidence changes, verify blocked or refresh-required receipts never become zero findings and preserve prior raw evidence without a current delta.",
-        "Run the parallel refresh coordinator tests and verify the locked merge preserves every scanned repository."
+        "Run the parallel refresh coordinator tests and verify the locked merge preserves every scanned repository.",
+        "Run cargo test --manifest-path src-tauri/Cargo.toml task_lanes::tests and verify active, adoptable, stale, contested, unknown, closed, and unavailable custody paths remain distinct."
       ],
       "status": "applicable"
     },
@@ -132,6 +133,7 @@
         "Validate every documented command against pnpm cli help.",
         "Verify refresh-batch documents its parallel scan, serialized merge, and conflict-retry boundary.",
         "Verify release preview documents the v2 advisory recommendation dispositions and no-publication boundary.",
+        "Verify repo and scoped route document the pronto-task-lanes/v1 read-only custody projection and its no-mutation authorization boundary.",
         "Verify relative context links resolve inside the repository.",
         "Run a scoped Quality Runner fleet audit and inspect agent_usability."
       ],
@@ -147,7 +149,8 @@
       "validation": [
         "Verify the skill documents refresh-batch parallel scan, serialized merge, and conflict retry semantics.",
         "Verify the skill documents pronto-agent-release/v2 recommendation and fail-closed release semantics.",
-        "Run pnpm cli help and confirm the documented command is exposed."
+        "Run pnpm cli help and confirm the documented command is exposed.",
+        "Verify repo and route remain the only command entry points for task-lane custody; no competing worktree mutator is introduced."
       ],
       "status": "applicable"
     },
@@ -160,7 +163,8 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm format:check",
-        "Review docs against .agents/context/commands.md and package.json scripts."
+        "Review docs against .agents/context/commands.md and package.json scripts.",
+        "Review docs/task-lane-custody.md against the signed isolated-change status classifications and dev-to-release branch policy."
       ],
       "status": "applicable"
     },
@@ -393,7 +397,8 @@
         "src-tauri/src/core.rs::tests::registers_root_and_scans_from_cli_path",
         "src-tauri/src/core.rs::tests::registering_new_repository_enters_the_normal_fleet_without_mutating_showcase",
         "src-tauri/src/showcase.rs::tests::unreviewed_repository_is_projected_without_mutating_showcase_contract",
-        "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract"
+        "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract",
+        "src-tauri/src/task_lanes.rs::tests"
       ]
     },
     "change": {

@@ -16,6 +16,7 @@ pub mod remediation;
 pub mod showcase;
 pub mod skill_usage_collector;
 pub mod skills;
+pub mod task_lanes;
 
 use tauri::Manager;
 
