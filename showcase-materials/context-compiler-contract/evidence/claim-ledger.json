@@ -10,7 +10,7 @@
       "evidence": [
         "case-fixture.json#contract",
         "expected-results.json#valid-baseline",
-        "/Users/jakyeamos/projects/context-compiler-contract/index.mjs"
+        "validator.mjs"
       ],
       "status": "supported"
     },
