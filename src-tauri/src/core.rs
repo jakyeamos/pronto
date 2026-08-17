@@ -10455,6 +10455,7 @@ fn preflight_action_at(
     Ok(preflight)
 }
 
+#[cfg(test)]
 fn audited_scan_and_persist(
     path: &Path,
     state: &mut StoreState,
@@ -10497,6 +10498,7 @@ fn build_targeted_refresh_preflight(
     })
 }
 
+#[cfg(test)]
 fn audited_scan_and_persist_scoped(
     path: &Path,
     state: &mut StoreState,
@@ -10789,6 +10791,12 @@ fn merge_scanned_and_persist(
         append_transition_event(state, old_by_id.get(&repository.id), repository);
     }
     sort_repositories_by_name(&mut repositories);
+    let new_repository_ids = repositories
+        .iter()
+        .filter(|repository| !old_by_id.contains_key(&repository.id))
+        .map(|repository| repository.id.clone())
+        .collect::<HashSet<_>>();
+    showcase::ensure_showcase_goal_placeholders(&repositories, &new_repository_ids)?;
     state.repositories = repositories;
     apply_quality_evidence_scoped(state, target_repository_ids, None);
     apply_release_threshold_conditions(state);

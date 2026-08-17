@@ -396,4 +396,59 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("refresh required");
     expect(markup).toContain("quality-findings-total-unverified");
   });
+
+  it("shows Compass coverage beside progress instead of implying complete evidence", () => {
+    const repository = makeRepository({
+      project_compass: {
+        status: "Ready",
+        contract_path: ".project-compass/contract.json",
+        revision: 7,
+        updated_at: "2026-08-08T00:00:00Z",
+        project_name: "Pronto",
+        identity: "A local-first portfolio command center",
+        audience: "Developers with many active repositories",
+        mvp: {
+          progress_percent: 50,
+          scored_outcome_count: 1,
+          covered_pillar_count: 1,
+          total_pillar_count: 2,
+          confidence: "medium",
+          confidence_percent: 60,
+        },
+        complete_product: {
+          progress_percent: 75,
+          scored_outcome_count: 3,
+          covered_pillar_count: 2,
+          total_pillar_count: 2,
+          confidence: "high",
+          confidence_percent: 100,
+        },
+        open_blockers: 0,
+        open_drift: 0,
+        open_blocker_items: [],
+        open_drift_items: [],
+        error: null,
+      },
+    });
+
+    const row = renderToStaticMarkup(
+      <RepositoryRow
+        repository={repository}
+        onOpen={() => undefined}
+        onCondition={() => undefined}
+      />,
+    );
+    expect(row).toContain("MVP 50% · 1/2 pillars");
+    expect(row).toContain(
+      'title="Coverage incomplete · 1 scoped outcome · 1/2 pillars covered"',
+    );
+
+    const detail = renderToStaticMarkup(
+      <ProjectCompassDetail repository={repository} />,
+    );
+    expect(detail).toContain(
+      "Coverage incomplete · 1 scoped outcome · 1/2 pillars covered",
+    );
+    expect(detail).toContain("3 scoped outcomes · 2/2 pillars covered");
+  });
 });

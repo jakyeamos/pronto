@@ -1,0 +1,68 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "Dsci-proj",
+  "case_id": "DS-0-two-backlog-decision-contract",
+  "reviewed_at": "2026-08-14T06:00:00Z",
+  "levels": [
+    {
+      "id": "contract",
+      "label": "Decision contract",
+      "status": "verified_local",
+      "status_display": "DS-0 contract is versioned and internally consistent",
+      "allowed_claim": "The contract defines a canonical item model, editable criteria, missing-input policy, explanation requirements, and deterministic scenario comparison.",
+      "forbidden_inference": "The contract proves a generalized adapter or a useful ranking on a live backlog.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["decision-contract.json", "evidence/ds-0-contract-receipt.json"]
+    },
+    {
+      "id": "two-source-fixture",
+      "label": "Two-source mapping appendix",
+      "status": "verified_local",
+      "status_display": "Synthetic research and product backlog shapes",
+      "allowed_claim": "The appendix demonstrates the intended source-to-contract mapping and three fail-closed negative cases.",
+      "forbidden_inference": "The mapping ran through the repository's current implementation or represents production data.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["synthetic-fixture.json", "evidence/ds-0-synthetic-material-receipt.json"]
+    },
+    {
+      "id": "adapters",
+      "label": "DS-1 adapter implementation",
+      "status": "blocked_product_gap",
+      "status_display": "Second-backlog adapter is not yet proven",
+      "allowed_claim": "The target and acceptance conditions for source-neutral adapters are documented.",
+      "forbidden_inference": "Both backlog schemas currently pass through the live engine without source-specific changes.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["route-plan.md#/DS-1", "decision-contract.json#/current_native_mapping"]
+    },
+    {
+      "id": "scenario",
+      "label": "Scenario and handoff proof",
+      "status": "not_verified",
+      "status_display": "No current live comparison or export receipt",
+      "allowed_claim": "The contract specifies a deterministic comparison, explanation, and user-owned handoff.",
+      "forbidden_inference": "A changed weight produced a verified queue, recommendation, or export.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["decision-contract.json#/scenario_comparison", "case-study.json#/open_gates"]
+    },
+    {
+      "id": "packaging",
+      "label": "Local material package",
+      "status": "verified_local",
+      "status_display": "Candidate page, short copy, ledger, and 16:9 preview",
+      "allowed_claim": "A local candidate packet makes the contract and its implementation boundary inspectable without credentials or external assets.",
+      "forbidden_inference": "The candidate page is hosted or has been posted to a destination.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["case-study.json", "public/index.html", "public-description.txt", "assets/preview-16x9.png"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "not_verified",
+      "status_display": "No hosted or destination readback",
+      "allowed_claim": "Hosting and external publication remain open gates.",
+      "forbidden_inference": "The case is live on GitHub, a portfolio, Handshake, or another destination.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["evidence/ds-5-material-checkpoint.json"]
+    }
+  ]
+}

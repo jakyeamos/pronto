@@ -1,0 +1,40 @@
+{
+  "schema_version": "pronto-showcase-material-checkpoint/v1",
+  "checkpoint_id": "qs-5-local-material-package-2026-08-14",
+  "project": "ai-code-quality-stack",
+  "status": "candidate_local",
+  "reviewed_at": "2026-08-14T04:33:04Z",
+  "case": {
+    "source_repository": "pronto",
+    "source_revision": "133ff8b741a206721a94ca80e1f8fe556a8e0dc0",
+    "source_file": "src/renderer/src/components/RepositoryAnalyticsPanel.tsx",
+    "source_line": 39,
+    "rule": "anti-slop/no-generic-stat-label",
+    "review_disposition": "accepted"
+  },
+  "artifacts": [
+    { "path": "case-study.json", "status": "present" },
+    { "path": "case-study.md", "status": "present" },
+    { "path": "claim-ledger.json", "status": "present" },
+    { "path": "preview.html", "status": "present" },
+    { "path": "assets/preview-16x9.svg", "status": "reviewed_local" },
+    { "path": "assets/preview-16x9.png", "status": "reviewed_local", "dimensions": "1600x900" },
+    { "path": "public/index.html", "status": "candidate_no_auth_source" },
+    { "path": "public-description.txt", "status": "present" }
+  ],
+  "hashes": {
+    "assets/preview-16x9.svg": "aeba7ba3664cd62ef6ca30ebbff8185484d7ca4f967622faf10d77e49810daf7",
+    "assets/preview-16x9.png": "df9b8dff46481c6b4c04aebd42bcb9affc90238e3756a68e8305a3ed114afb06",
+    "public/index.html": "40bef7430f778af1c50189ace3db73aa7a26cafd7c58f14838ac44fb74de1e12"
+  },
+  "checks": {
+    "source_case_identity": "pass",
+    "ownership_contract": "pass",
+    "preview_render": "pass",
+    "preview_visual_review": "pass",
+    "cross_repository_execution": "open",
+    "hosted_no_auth": "open",
+    "external_destination_readbacks": "open"
+  },
+  "claim_boundary": "The packet is a local candidate material set. Its preview and page source do not prove integrated Pre-CR execution, Quality Runner consumption, hosting, or publication."
+}

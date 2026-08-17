@@ -1,0 +1,43 @@
+{
+  "schema_version": "pronto-showcase-codex-browser-control-material-checkpoint/v1",
+  "project": "browser-control",
+  "gap": "CB-7",
+  "status": "closed_locally",
+  "reviewed_at": "2026-08-14T04:45:00Z",
+  "case_id": "cb-1-synthetic-itinerary-material-001",
+  "source_boundary": {
+    "fixture_source": "evidence/cb-1-fixture-receipt.json",
+    "installed_blocker": "evidence/cb-2-blocker.json",
+    "hosting": "not_attempted",
+    "external_destinations": "not_attempted"
+  },
+  "artifacts": {
+    "case_study": "case-study.json",
+    "case_study_markdown": "case-study.md",
+    "claim_ledger": "claim-ledger.json",
+    "short_description": "public-description.txt",
+    "preview_html": "preview.html",
+    "public_page_source": "public/index.html",
+    "preview_svg": "assets/preview-16x9.svg",
+    "preview_png": "assets/preview-16x9.png"
+  },
+  "verification": {
+    "binary": {
+      "path": "assets/preview-16x9.png",
+      "mime": "image/png",
+      "width": 1600,
+      "height": 900,
+      "crop_safe": true,
+      "legible_at_review": true,
+      "sha256": "5d61022b35b66547ade80014f25c4496dbfb137d733d0b960fdf8b3e93efe186"
+    },
+    "source_hashes": {
+      "assets/preview-16x9.svg": "e78de4aeb65e5d471ed497122d26d297a4e700b593c15a52de855b2e5c095b94",
+      "public/index.html": "6b35626a475a4e9507594f80dd7ad80a8c561fb27a530bc1a6b3e687c04aa486",
+      "case-study.json": "0a011a73f49cbdfb51b15459d180791c85f57400b7f46a028b1df7795b2d4901",
+      "claim-ledger.json": "f0387496d9c6acc1918fa51689aa0e4c8573e74978960f729cfa646669ad35e1",
+      "public-description.txt": "293e8a3934a0f272ba809fd64a66f9d393b5b2c308539ef5c892c3b10a381e3c"
+    }
+  },
+  "claim_boundary": "Local candidate material is complete. Installed CB-2/CB-3 proof, CB-4/CB-5 verification, hosting, and external destination readbacks remain open."
+}

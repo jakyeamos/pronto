@@ -1,0 +1,70 @@
+{
+  "schema_version": "pronto-showcase-readiness-inspector-w6/v1",
+  "project": "readiness-inspector",
+  "status": "candidate_local",
+  "observed_at": "2026-08-14T04:08:16Z",
+  "source_branch": "dev",
+  "source_revision": "2efa5ed66d74cd0b71ae060b3ca6b78558f9bb0d",
+  "goal": "continuation-ready handoff",
+  "profile_version": 1,
+  "inspect": {
+    "status": "ready",
+    "target": "2efa5ed66d74cd0b71ae060b3ca6b78558f9bb0d",
+    "checks": ["tests", "standards"]
+  },
+  "checks": [
+    {
+      "id": "tests",
+      "owner": "repository",
+      "outcome": "passed",
+      "evidence": "readiness-check-receipt-v0.1",
+      "target": "2efa5ed66d74cd0b71ae060b3ca6b78558f9bb0d",
+      "output_sha256": "ba0a7e0d9b0b71e35b64adac7a3482013fcf918733c9a4fd395acf2da1389efa",
+      "next_action": "retain the passing receipt"
+    },
+    {
+      "id": "standards",
+      "owner": "repository",
+      "outcome": "passed",
+      "evidence": "readiness-check-receipt-v0.1",
+      "target": "2efa5ed66d74cd0b71ae060b3ca6b78558f9bb0d",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "next_action": "retain the passing receipt"
+    }
+  ],
+  "negative_probes": {
+    "unknown_check": {
+      "status": "unsupported",
+      "reason": "Unknown check: missing"
+    },
+    "mutating_check": {
+      "status": "blocked",
+      "reason": "Mutating checks require a separate explicit authority."
+    },
+    "failed_check": "source tests cover failed command receipts; a current profile-specific failure readback remains open"
+  },
+  "state_boundary": {
+    "passed": "tests and standards",
+    "failed": "source behavior is covered by tests; current profile-specific readback remains open",
+    "blocked": "mutating checks",
+    "unsupported": "unknown check ids",
+    "stale": "profile-version and current-target matrix remains open",
+    "contradictory": "not claimed",
+    "not_applicable": "not claimed"
+  },
+  "continuity": {
+    "quality_setup_receipt": "not_projected",
+    "evidence_replay_receipt": "not_projected",
+    "native_follow_up": "not_captured"
+  },
+  "source_checks": {
+    "test": "passed: 3",
+    "lint": "passed",
+    "package": "passed"
+  },
+  "safety": {
+    "source_refs_mutated": false,
+    "credentials_collected": false
+  },
+  "claim_boundary": "This current-dev checkpoint proves target-bound individual receipts, explicit unsupported and blocked outcomes, and the source test/lint/package gate. It does not claim Quality Setup or Evidence Replay projection, full stale/contradictory/not-applicable coverage, native follow-up navigation, hosting, or publication."
+}

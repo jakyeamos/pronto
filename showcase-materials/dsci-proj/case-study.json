@@ -1,0 +1,36 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "Dsci-proj",
+  "status": "candidate_local",
+  "case_id": "DS-0-two-backlog-decision-contract",
+  "title": "Dsci-proj: normalize a backlog before asking what comes next",
+  "audience": "Engineering and product teams that need explainable prioritization across changing source systems.",
+  "promise": "Make the decision contract visible: different backlog shapes can describe the same decision inputs, while criteria and final judgment remain user-owned.",
+  "story": [
+    "A research-issue backlog and a product backlog arrive with different field names, states, and evidence shapes.",
+    "The DS-0 contract names one canonical item model, five editable criteria, missing-input policy, and factor-level explanation requirements.",
+    "The synthetic appendix shows how each source maps into that model before any score or queue is treated as a product result.",
+    "A scenario comparison is specified as deterministic over the same normalized inputs, so a changed weight can be inspected rather than guessed.",
+    "DS-1 adapter implementation and current scenario proof remain open; the local packet is a target, not a generalized running engine."
+  ],
+  "evidence": [
+    "decision-contract.json",
+    "synthetic-fixture.json",
+    "evidence/ds-0-contract-receipt.json",
+    "evidence/ds-0-synthetic-material-receipt.json",
+    "assets/preview-16x9.png"
+  ],
+  "verified_locally": [
+    "DS-0 is a versioned decision contract with user-editable weights, fail-closed missing-input policy, source evidence, and deterministic scenario requirements.",
+    "The synthetic fixture contains two meaningfully different backlog shapes and three fail-closed negative cases.",
+    "The local candidate page keeps the normalized item model and the DS-1 implementation boundary visible.",
+    "The local packet includes a candidate no-auth source page, short copy, claim ledger, and reviewed 1600x900 binary."
+  ],
+  "open_gates": [
+    "Implement DS-1 adapters for both backlog schemas without source-specific decision-engine changes.",
+    "Prove a real scenario comparison, explanation, and export/handoff against current product behavior.",
+    "Capture current runnable and direct-surface evidence before calling the case an implemented product.",
+    "Verify a hosted no-auth case URL and read back each external destination before release."
+  ],
+  "claim_boundary": "This packet proves the DS-0 decision contract, a synthetic two-source mapping appendix, and local candidate materials. It does not claim generalized adapters, a live ranking, scenario results, hosted behavior, or publication."
+}

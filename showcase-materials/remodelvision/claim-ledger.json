@@ -1,0 +1,78 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "remodelvision",
+  "case_id": "RV-2-rights-safe-room-concept",
+  "reviewed_at": "2026-08-14T06:00:00Z",
+  "levels": [
+    {
+      "id": "fixture",
+      "label": "Room fixture",
+      "status": "verified_local",
+      "status_display": "Synthetic original with rights-safe manifest",
+      "allowed_claim": "The candidate uses an invented room illustration with no real property, personal location data, people, third-party assets, or provider output.",
+      "forbidden_inference": "The illustration is a homeowner's room, a customer asset, or a generated RemodelVision result.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["asset-manifest.json", "rights-safe-fixture.svg"]
+    },
+    {
+      "id": "contribution",
+      "label": "Contribution and permission",
+      "status": "blocked_owner_review",
+      "status_display": "RV-1 approval is still required",
+      "allowed_claim": "The repository documents a collaborative project and the local ledger records the attribution boundary.",
+      "forbidden_inference": "Git authorship establishes a personal role or collaborator permission to publish.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["contribution-ledger.json", "evidence/rv-1-blocker.json"]
+    },
+    {
+      "id": "runtime",
+      "label": "Current product flow",
+      "status": "blocked_prerequisite",
+      "status_display": "RV-3 runtime and direct-surface proof are open",
+      "allowed_claim": "Static repository checks and the documented target flow exist in the route plan.",
+      "forbidden_inference": "Upload, generation, vision analysis, persistence, estimate, or handoff has been verified here.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/rv-3-blocker.json", "route-plan.md"]
+    },
+    {
+      "id": "constraint-proof",
+      "label": "Constraint adherence",
+      "status": "not_verified",
+      "status_display": "Synthetic concept target only",
+      "allowed_claim": "The case specifies a preserved floor, budget, and storage priority that a future run must trace.",
+      "forbidden_inference": "A live model followed the brief or produced a reliable renovation recommendation.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["case-study.json#/story", "route-plan.md#/RV-4"]
+    },
+    {
+      "id": "estimate-boundary",
+      "label": "Estimate handoff",
+      "status": "not_verified",
+      "status_display": "No cost output or construction guarantee",
+      "allowed_claim": "The ideal target requires assumptions, ranges, date/location limits, and no-guarantee language.",
+      "forbidden_inference": "The packet contains a quote, budget accuracy, or contractor-ready scope.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["route-plan.md#/RV-5"]
+    },
+    {
+      "id": "packaging",
+      "label": "Local material package",
+      "status": "verified_local",
+      "status_display": "Candidate page, short copy, ledger, and 16:9 preview",
+      "allowed_claim": "A local candidate packet makes the synthetic brief and blockers inspectable without private assets.",
+      "forbidden_inference": "The candidate page is hosted or has been posted to a destination.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["case-study.json", "public/index.html", "public-description.txt", "assets/preview-16x9.png"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "not_verified",
+      "status_display": "No hosted or destination readback",
+      "allowed_claim": "Hosting and external publication remain open gates.",
+      "forbidden_inference": "The case is live on GitHub, a portfolio, Handshake, or another destination.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["evidence/rv-6-material-checkpoint.json"]
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "schema_version": "pronto-showcase-material-checkpoint/v1",
+  "checkpoint_id": "rdw-6-local-material-package-2026-08-14",
+  "project": "research-domain-writing",
+  "status": "candidate_local",
+  "reviewed_at": "2026-08-14T05:05:00Z",
+  "source": {
+    "repository": "research-domain-writing",
+    "branch": "codex/rdw-gpt56-modernization",
+    "revision": "3747e6d67f8fa1ce8fb8b7c7b006f2827d043947",
+    "checkout_status": "dirty_at_inspection",
+    "release_provenance": "not_verified"
+  },
+  "artifacts": [
+    { "path": "case-study.json", "status": "present" },
+    { "path": "case-study.md", "status": "present" },
+    { "path": "claim-ledger.json", "status": "present" },
+    { "path": "preview.html", "status": "present" },
+    { "path": "assets/preview-16x9.svg", "status": "reviewed_local" },
+    { "path": "assets/preview-16x9.png", "status": "reviewed_local", "dimensions": "1600x900", "sha256": "baf386a99be0f695eaa4ff934cc0321824823214545b7e4d280719500ddd9aa0" },
+    { "path": "public/index.html", "status": "candidate_no_auth_source" },
+    { "path": "public-description.txt", "status": "present" }
+  ],
+  "checks": {
+    "real_tatum_case": "pass",
+    "unsafe_claim_stop": "pass",
+    "responsive_claim_trace": "pass",
+    "preview_render": "pass",
+    "preview_visual_review": "pass",
+    "release_provenance": "open",
+    "editorial_approval": "open",
+    "hosted_no_auth": "open",
+    "external_destination_readbacks": "open"
+  },
+  "claim_boundary": "This checkpoint proves the real Tatum case, local source-to-claim surface, and reviewed 1600x900 preview. It does not bind the installed release artifact to the active checkout, replace human editorial approval, prove hosted access, or claim publication."
+}

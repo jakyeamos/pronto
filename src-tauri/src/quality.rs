@@ -346,6 +346,10 @@ pub struct QualityFindings {
     #[serde(default)]
     pub actionable_category_counts: BTreeMap<String, u64>,
     #[serde(default)]
+    pub category_counts: BTreeMap<String, u64>,
+    #[serde(default)]
+    pub actionable_category_counts: BTreeMap<String, u64>,
+    #[serde(default)]
     pub actionable_total: u64,
     #[serde(default)]
     pub detector_actionable_total: u64,
@@ -3241,6 +3245,54 @@ pub fn reconcile_finding_dispositions(repository_path: &Path, findings: &mut Qua
     findings.actionable_total = findings.unreviewed_total + actionable_reviewed;
     findings.disposition_status = "Ready".to_string();
     sync_detector_counts(findings);
+}
+
+fn debloat_maturity_evidence(findings: &QualityFindings) -> Option<QualityEvidence> {
+    let detected = findings.category_counts.get("debloat").copied()?;
+    let actionable = findings
+        .actionable_category_counts
+        .get("debloat")
+        .copied()
+        .unwrap_or(detected);
+    let status = if actionable == 0 && findings.freshness == QualityFreshness::Fresh {
+        QualityGateStatus::Passed
+    } else {
+        QualityGateStatus::Blocked
+    };
+    let detail = if actionable > 0 {
+        format!(
+            "QR's structural scan reported {detected} debloat signal(s), with {actionable} unresolved. Each signal requires a broader ownership-pressure audit with confidence assessed separately from implementation readiness; no signal authorizes deletion."
+        )
+    } else if findings.freshness != QualityFreshness::Fresh {
+        format!(
+            "QR reported no unresolved structural debloat signals, but the evidence is {}; refresh the QR scan before treating this review gate as passed.",
+            findings.freshness.as_str()
+        )
+    } else {
+        format!(
+            "QR's structural debloat review has no unresolved signals ({detected} detected). This clears the candidate-review gate only; it does not prove that an ownership-pressure audit found no architectural opportunity, establish deletion readiness, or authorize deletion."
+        )
+    };
+    Some(QualityEvidence {
+        id: "debloat".to_string(),
+        source: QualitySource::Qr,
+        status,
+        freshness: findings.freshness.clone(),
+        observed_at: findings.observed_at.clone(),
+        scanned_commit: findings.scanned_commit.clone(),
+        scanned_branch: findings.scanned_branch.clone(),
+        command: None,
+        source_label: "Quality Runner structural debloat signals".to_string(),
+        report_path: findings.report_path.clone(),
+        report_url: None,
+        report_kind: Some("code-quality-scan".to_string()),
+        detail,
+        verification_level: QualityVerificationLevel::SourceInferred,
+        target_kind: Some("source".to_string()),
+        target_url: None,
+        target_provider: None,
+        deployment_id: None,
+    })
 }
 
 fn debloat_maturity_evidence(findings: &QualityFindings) -> Option<QualityEvidence> {

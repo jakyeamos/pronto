@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   GitBranch,
   MoveHorizontal,
+  ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
 import type { PortfolioSnapshot, RepositorySnapshot } from "../types";
@@ -35,6 +36,62 @@ import {
 } from "./QualityGateHelpers";
 export { measurementConfidenceSummary } from "./QualityGateHelpers";
 
+function BehaviorAssuranceSummary({
+  repository,
+}: {
+  repository: RepositorySnapshot;
+}): ReactElement {
+  const assurance = repository.quality.behavior_assurance;
+  const coverage = assurance.coverage ?? EMPTY_EDGE_COVERAGE;
+  const state = behaviorAssuranceState(assurance);
+  const status = behaviorAssuranceStateLabel(assurance);
+  return (
+    <div className="quality-maturity-summary">
+      <StatusPill
+        tone={
+          state === "current" || state === "not_applicable"
+            ? "mint"
+            : state === "failed" || state === "blocked"
+              ? "coral"
+              : "amber"
+        }
+      >
+        {status}
+      </StatusPill>
+      <strong>
+        Release {assurance.passed_scenario_count}/
+        {assurance.required_scenario_count}
+      </strong>
+      <small>required Tier-0 scenarios</small>
+      <strong>
+        Edge {coverage.verified}/{coverage.total}
+      </strong>
+      <small>
+        verified · {coverage.profiled}/{coverage.total} profiled
+      </small>
+      {(coverage.failed > 0 ||
+        coverage.blocked > 0 ||
+        coverage.stale > 0 ||
+        coverage.unknown > 0) && (
+        <small>
+          {coverage.failed} failed · {coverage.blocked} blocked ·{" "}
+          {coverage.stale} stale · {coverage.unknown} unknown
+        </small>
+      )}
+      {assurance.coverage?.category_gaps.slice(0, 2).map((gap) => (
+        <small key={gap.category}>
+          {gap.category.replaceAll("_", " ")} · {gap.scenario_count} gap
+          {gap.scenario_count === 1 ? "" : "s"}
+        </small>
+      ))}
+      {assurance.gaps[0] && <small>{assurance.gaps[0].message}</small>}
+      {assurance.gaps.length > 1 && (
+        <small>{assurance.gaps.length - 1} more gaps</small>
+      )}
+    </div>
+  );
+}
+
 export function QualityGatesSurface({
   snapshot,
   repositories,
@@ -49,6 +106,7 @@ export function QualityGatesSurface({
   showOverview?: boolean;
 }): ReactElement {
   const [showCustomGates, setShowCustomGates] = useState(false);
+  const [edgeFilter, setEdgeFilter] = useState<EdgeFleetFilter>("all");
   const discoveredCustomGates = customGateColumns(repositories);
   const customGateCountLabel = `${discoveredCustomGates.length} custom gate${
     discoveredCustomGates.length === 1 ? "" : "s"
@@ -75,6 +133,39 @@ export function QualityGatesSurface({
   ).filter((contract) => contract.status !== "current");
   return (
     <>
+      {showOverview && staleEvidenceContracts.length > 0 && (
+        <section
+          className="quality-contract-alerts"
+          aria-label="Evidence contract audits required"
+        >
+          {staleEvidenceContracts.map((contract) => (
+            <article
+              className="quality-contract-alert"
+              key={contract.contract_id}
+            >
+              <ShieldAlert size={20} />
+              <div>
+                <p className="eyebrow">Evidence contract changed</p>
+                <h2>Full fleet audit required</h2>
+                <strong>{contract.label}</strong>
+                <p>{contract.message}</p>
+                <small>{contract.next_safe_step}</small>
+              </div>
+              <div className="quality-contract-coverage">
+                <strong>
+                  {contract.current_repository_count}/
+                  {contract.repository_count}
+                </strong>
+                <span>current</span>
+                <small>
+                  {contract.legacy_repository_count} legacy ·{" "}
+                  {contract.missing_repository_count} missing
+                </small>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
       {showOverview && (
         <EvidenceContractAlerts contracts={staleEvidenceContracts} />
       )}
@@ -334,6 +425,11 @@ export function QualityGatesSurface({
                     className="quality-matrix-sticky quality-matrix-findings-column"
                   >
                     Detector findings
+                  </th>
+                  <th scope="col" className="quality-matrix-gate-column">
+                    <span className="quality-matrix-gate-heading">
+                      Behavior assurance
+                    </span>
                   </th>
                   <th scope="col" className="quality-matrix-gate-column">
                     <span className="quality-matrix-gate-heading">

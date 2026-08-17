@@ -1,0 +1,62 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "ai-code-quality-stack",
+  "case_id": "pronto-generic-analytics-label-stack-001",
+  "reviewed_at": "2026-08-14T04:33:04Z",
+  "review_note": "Local material review records the exact source case and keeps cross-repository execution claims gated.",
+  "levels": [
+    {
+      "id": "detector",
+      "label": "Line-level detection",
+      "status": "verified_local",
+      "status_display": "Accepted Anti-Slop finding at an exact source line",
+      "allowed_claim": "Anti-Slop can report the selected generic-stat-label candidate with a rule, line, rationale, and safe direction.",
+      "forbidden_inference": "The candidate is a confirmed defect without human review, or every generated-code problem is covered.",
+      "public_claim_allowed": true,
+      "evidence_refs": [
+        "integrated-case.json#/reviewed_problem",
+        "../eslint-anti-slop/pronto-case.json#/candidates/1"
+      ]
+    },
+    {
+      "id": "enforcement",
+      "label": "Changed-file enforcement",
+      "status": "open",
+      "status_display": "Pre-CR receipt not yet captured",
+      "allowed_claim": "The target flow requires Pre-CR to run the adapter against the changed-file set and retain an attributable blocking receipt.",
+      "forbidden_inference": "Pre-CR has already blocked this case, or a passing receipt is merge approval.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["integrated-case.json#/target_trace/1"]
+    },
+    {
+      "id": "contextualization",
+      "label": "Repository context",
+      "status": "open",
+      "status_display": "Quality Runner consumption not yet captured",
+      "allowed_claim": "The target flow assigns Quality Runner the canonical finding, repository context, and remediation order.",
+      "forbidden_inference": "Quality Runner has consumed this finding or deduplicated it in a current run.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["integrated-case.json#/target_trace/2"]
+    },
+    {
+      "id": "fallbacks",
+      "label": "Failure and fallback states",
+      "status": "contract_only",
+      "status_display": "States named; cross-repository behavior open",
+      "allowed_claim": "The stack contract distinguishes plugin unavailable, analysis failure, advisory fallback, and dual-source deduplication.",
+      "forbidden_inference": "The fallback matrix has passed in an integrated execution.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["stack-contract.json#/fallback_contract"]
+    },
+    {
+      "id": "packaging",
+      "label": "Local material package",
+      "status": "verified_local",
+      "status_display": "Candidate case, preview, and page source reviewed",
+      "allowed_claim": "A local candidate packet contains the bounded case, claim ledger, candidate 16:9 preview, and no-auth page source.",
+      "forbidden_inference": "The page is hosted, public, or posted to any destination.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/qs-5-material-checkpoint.json"]
+    }
+  ]
+}

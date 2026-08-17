@@ -1,0 +1,36 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "agent-router",
+  "status": "candidate_local",
+  "title": "Agent Router: route complex AI work with reasons",
+  "audience": "Engineers who need a complex request decomposed into attributable tasks instead of sent through a blind round-robin.",
+  "promise": "Turn one high-risk launch-readiness request into a typed graph, compare credible routes, retain bounded worker receipts, and expose disagreement before synthesis.",
+  "story": [
+    "A labeled synthetic launch-readiness request becomes plan, execute, and verify nodes with authority constraints attached.",
+    "The native replay compares candidates with task-specific evidence, explicit unknowns, and a stable selection trace.",
+    "A bounded replay keeps one worker receipt attached to each selected subtask without claiming a live provider session.",
+    "A seeded conflict remains visible and selects model_synthesis, but the current native output still lacks final confidence and fallback fields."
+  ],
+  "evidence": [
+    "replay-case.json",
+    "evidence/ar-1-contract-receipt.json",
+    "evidence/ar-2-3-routing-receipt.json",
+    "execution-replay.json",
+    "evidence/ar-5-blocker.json",
+    "assets/preview-16x9.png"
+  ],
+  "verified_locally": [
+    "AR-1 through AR-4 are closed for the labeled replay/spec slice.",
+    "The native candidate packet records stable route ordering and a Codex winner for the selected replay subtasks.",
+    "The bounded execution replay keeps three synthetic worker receipts attributable and records zero provider invocations.",
+    "The native conflict probe detects disagreement and selects model_synthesis while preserving fixture receipt IDs and rationale.",
+    "The 1600x900 preview is rendered from the same bounded case and visually inspected."
+  ],
+  "open_gates": [
+    "Add or approve confidence and fallback fields in the synthesis output contract.",
+    "Rerun disagreement and missing-result probes, then reconcile receipt totals.",
+    "Keep provider, worktree, cost, and real launch-readiness claims separate from replay evidence.",
+    "Verify a hosted no-auth case and external destination readbacks."
+  ],
+  "claim_boundary": "This packet proves a labeled replay/spec, candidate-selection trace, bounded synthetic execution, and a reviewed local visual explorer. It does not claim live provider execution, worktree mutation, currency cost, final confidence/fallback output, hosting, or publication."
+}

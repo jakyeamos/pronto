@@ -2,6 +2,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -180,6 +181,7 @@ if (existsSync(targetApp) && lstatSync(targetApp).isSymbolicLink()) {
 }
 
 let installedAppWasRunning = false;
+let collectorWasLoaded = false;
 try {
   const appProcessIdsBeforeUpdate = installedAppProcessIds({
     includeCollector: false,

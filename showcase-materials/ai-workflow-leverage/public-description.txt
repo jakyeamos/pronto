@@ -1,0 +1,1 @@
+AI Workflow Leverage measures an AI-assisted workflow against the same human task, inputs, and quality oracle before claiming a gain. This candidate uses a real Tenure maintenance task and stops honestly at the missing event contract: no timing, retry, human-touch, failure, or quality delta is invented.

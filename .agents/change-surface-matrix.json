@@ -124,6 +124,24 @@
       "status": "applicable"
     },
     {
+      "id": "analytics-contract",
+      "scope": "local",
+      "path": "src-tauri/src/core.rs, src/renderer/src/components/Analytics*, and docs/analytics-workspace.md",
+      "owner": "Pronto repository maintainers",
+      "condition": "Analytics metrics, sampling, compatibility, findings, ranges, saved views, or chart behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::analytics",
+        "pnpm vitest run src/renderer/src/components/AnalyticsComponents.test.tsx",
+        "pnpm typecheck",
+        "pnpm build:web",
+        "Verify findings evidence coverage equals findings_repository_count available plus repository_count minus findings_repository_count unavailable at every observation.",
+        "Verify the observed-findings rail is absent for an empty findings array and visible when at least one deterministic finding exists.",
+        "Verify Portfolio contains no chart and Analytics is reachable from primary navigation and the Portfolio text link."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "cli-adapter",
       "scope": "local",
       "path": "bin/pronto.mjs",

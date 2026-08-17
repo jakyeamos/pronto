@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc" font-family="Verdana">
+  <title id="title">Agent Router: route complex AI work with reasons</title>
+  <desc id="desc">A labeled request becomes a typed graph, candidate selection, bounded receipts, and a visible conflict boundary.</desc>
+  <defs>
+    <radialGradient id="glow" cx="84%" cy="0%" r="60%"><stop offset="0" stop-color="#20343c"/><stop offset="1" stop-color="#0c1116"/></radialGradient>
+    <linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#9ce5be"/><stop offset="0.5" stop-color="#ffd183"/><stop offset="1" stop-color="#9ad9ef"/></linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <text x="74" y="82" font-family="Verdana" font-size="15" font-weight="800" letter-spacing="2.4" fill="#9ce5be">AGENT ROUTER · CANDIDATE LOCAL PREVIEW</text>
+  <text x="74" y="180" font-family="Verdana" font-size="70" font-weight="600" fill="#f5f7f8">Route complex AI work</text>
+  <text x="74" y="250" font-family="Verdana" font-size="70" font-weight="600" fill="#f5f7f8">with reasons.</text>
+  <text x="74" y="300" font-family="Verdana" font-size="22" fill="#aab6c0">Typed graph. Credible alternatives. Bounded receipts.</text>
+  <rect x="74" y="360" width="1452" height="68" rx="2" fill="#11181f" stroke="#35424e"/>
+  <text x="98" y="403" font-family="Andale Mono" font-size="20" fill="#d8e0e5">ar-1-launch-readiness · high-risk repo_edit_with_tests · approval required</text>
+  <rect x="74" y="484" width="1452" height="160" fill="#171f27" stroke="#35424e"/>
+  <line x1="558" y1="484" x2="558" y2="644" stroke="#35424e"/><line x1="1042" y1="484" x2="1042" y2="644" stroke="#35424e"/>
+  <circle cx="112" cy="526" r="17" fill="none" stroke="#9ce5be" stroke-width="2"/><text x="107" y="533" font-family="Verdana" font-size="14" font-weight="800" fill="#9ce5be">1</text>
+  <text x="74" y="582" font-family="Verdana" font-size="30" font-weight="600" fill="#f5f7f8">Plan</text><text x="74" y="614" font-family="Verdana" font-size="16" fill="#aab6c0">Dependencies, outputs, authority.</text>
+  <circle cx="596" cy="526" r="17" fill="none" stroke="#ffd183" stroke-width="2"/><text x="591" y="533" font-family="Verdana" font-size="14" font-weight="800" fill="#ffd183">2</text>
+  <text x="558" y="582" font-family="Verdana" font-size="30" font-weight="600" fill="#f5f7f8">Execute</text><text x="558" y="614" font-family="Verdana" font-size="16" fill="#aab6c0">One receipt per selected subtask.</text>
+  <circle cx="1080" cy="526" r="17" fill="none" stroke="#9ad9ef" stroke-width="2"/><text x="1075" y="533" font-family="Verdana" font-size="14" font-weight="800" fill="#9ad9ef">3</text>
+  <text x="1042" y="582" font-family="Verdana" font-size="30" font-weight="600" fill="#f5f7f8">Verify</text><text x="1042" y="614" font-family="Verdana" font-size="16" fill="#aab6c0">Fixture evidence stays attached.</text>
+  <rect x="74" y="690" width="1452" height="80" fill="#171f27" stroke="#35424e"/>
+  <text x="98" y="726" font-family="Verdana" font-size="18" font-weight="600" fill="#f5f7f8">Conflict detected → model_synthesis</text>
+  <text x="98" y="752" font-family="Verdana" font-size="16" fill="#d3dbe0">Receipt IDs and rationale remain visible. Final confidence and fallback are not modeled.</text>
+  <line x1="74" y1="824" x2="1526" y2="824" stroke="url(#line)" stroke-width="2"/>
+  <text x="74" y="854" font-family="Verdana" font-size="14" fill="#aab6c0">Replay/spec material · provider and worktree claims remain separate</text>
+  <text x="1266" y="854" font-family="Verdana" font-size="14" font-weight="800" letter-spacing="1.1" fill="#ffd183">AR-5 OPEN</text>
+</svg>

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">RemodelVision synthetic showcase preview</title>
+  <desc id="desc">A synthetic room brief, three concept directions, and explicit contribution and runtime gates.</desc>
+  <rect width="1600" height="900" fill="#101416"/>
+  <circle cx="1380" cy="-40" r="470" fill="#39564a" opacity=".62"/>
+  <text x="72" y="76" fill="#a7e2c1" font-family="Arial" font-size="14" font-weight="700">REMODEL VISION · CANDIDATE LOCAL PREVIEW</text>
+  <text x="72" y="156" fill="#f2f4ec" font-family="Arial" font-size="70" font-weight="700">Design starts with what</text>
+  <text x="72" y="224" fill="#f2f4ec" font-family="Arial" font-size="70" font-weight="700">cannot change.</text>
+  <text x="72" y="268" fill="#a9b8b1" font-family="Arial" font-size="22">A synthetic room, an explicit brief, and three concept paths that keep the tradeoff visible.</text>
+  <g transform="translate(72 315)">
+    <rect width="430" height="110" fill="#182022" stroke="#40524e"/>
+    <text x="22" y="32" fill="#f1c98b" font-family="Arial" font-size="12" font-weight="700">INPUT FIXTURE</text>
+    <text x="22" y="68" fill="#f2f4ec" font-family="Arial" font-size="20">Synthetic original living room</text>
+    <rect x="442" width="430" height="110" fill="#202c2b" stroke="#40524e"/>
+    <text x="464" y="32" fill="#f1c98b" font-family="Arial" font-size="12" font-weight="700">NON-NEGOTIABLE</text>
+    <text x="464" y="68" fill="#f2f4ec" font-family="Arial" font-size="20">Keep floor · budget near $12k</text>
+    <rect x="884" width="430" height="110" fill="#29302a" stroke="#40524e"/>
+    <text x="906" y="32" fill="#f1c98b" font-family="Arial" font-size="12" font-weight="700">PRIORITY</text>
+    <text x="906" y="68" fill="#f2f4ec" font-family="Arial" font-size="20">Storage shapes the tradeoff</text>
+  </g>
+  <g transform="translate(72 467)">
+    <rect width="330" height="188" fill="#182022" stroke="#40524e"/>
+    <text x="22" y="35" fill="#a7e2c1" font-family="Arial" font-size="12" font-weight="700">BRIEF → TRACE</text>
+    <text x="22" y="82" fill="#f2f4ec" font-family="Arial" font-size="25" font-weight="700">Remember the room.</text>
+    <text x="22" y="121" fill="#d3ddd7" font-family="Arial" font-size="16">Preserved floor and budget</text><text x="22" y="145" fill="#d3ddd7" font-family="Arial" font-size="16">cues stay attached to every path.</text>
+    <rect x="342" width="348" height="188" fill="#1d2828" stroke="#40524e"/>
+    <text x="364" y="35" fill="#a7e2c1" font-family="Arial" font-size="12" font-weight="700">01 · DIRECTION</text><text x="364" y="82" fill="#f2f4ec" font-family="Arial" font-size="25" font-weight="700">Warm minimal</text><text x="364" y="121" fill="#d3ddd7" font-family="Arial" font-size="16">Calm finishes and concealed</text><text x="364" y="145" fill="#d3ddd7" font-family="Arial" font-size="16">storage leave the floor legible.</text>
+    <rect x="700" width="348" height="188" fill="#263332" stroke="#40524e"/>
+    <text x="722" y="35" fill="#a7e2c1" font-family="Arial" font-size="12" font-weight="700">02 · DIRECTION</text><text x="722" y="82" fill="#f2f4ec" font-family="Arial" font-size="25" font-weight="700">Color-forward</text><text x="722" y="121" fill="#d3ddd7" font-family="Arial" font-size="16">One strong wall treatment</text><text x="722" y="145" fill="#d3ddd7" font-family="Arial" font-size="16">makes the budget trade clear.</text>
+    <rect x="1058" width="372" height="188" fill="#29302a" stroke="#40524e"/>
+    <text x="1080" y="35" fill="#a7e2c1" font-family="Arial" font-size="12" font-weight="700">03 · DIRECTION</text><text x="1080" y="82" fill="#f2f4ec" font-family="Arial" font-size="25" font-weight="700">Storage-first</text><text x="1080" y="121" fill="#d3ddd7" font-family="Arial" font-size="16">More utility per wall, with</text><text x="1080" y="145" fill="#d3ddd7" font-family="Arial" font-size="16">a human edit still required.</text>
+  </g>
+  <g transform="translate(72 697)">
+    <rect width="710" height="94" fill="#2a2024" stroke="#40524e"/><text x="22" y="31" fill="#f5a9a0" font-family="Arial" font-size="12" font-weight="700">RV-1 · CONTRIBUTION GATE</text><text x="22" y="64" fill="#eadfdf" font-family="Arial" font-size="16">Owner and collaborator approval remains open.</text>
+    <rect x="722" width="708" height="94" fill="#35252a" stroke="#40524e"/><text x="744" y="31" fill="#f5a9a0" font-family="Arial" font-size="12" font-weight="700">RV-3 · RUNTIME GATE</text><text x="744" y="64" fill="#eadfdf" font-family="Arial" font-size="16">No live upload, estimate, or handoff is claimed.</text>
+  </g>
+  <line x1="72" y1="831" x2="1528" y2="831" stroke="#a7e2c1" stroke-width="2"/>
+  <text x="72" y="863" fill="#a9b8b1" font-family="Arial" font-size="14">Synthetic showcase fixture · not current product output or construction advice</text>
+  <text x="1368" y="863" fill="#f5a9a0" font-family="Arial" font-size="14" font-weight="700">CANDIDATE LOCAL</text>
+</svg>

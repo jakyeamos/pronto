@@ -1,0 +1,33 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "browser-control",
+  "status": "candidate_local",
+  "title": "Codex Browser Control: browser actions that expire when the page changes",
+  "audience": "Teams that need browser automation to bind every mutation to the exact page state a person reviewed.",
+  "promise": "Observe a synthetic itinerary, propose one harmless preference change, require exact approval, verify the fresh state, and refuse the stale plan after the page moves.",
+  "story": [
+    "A labeled synthetic travel page exposes one reversible seat-preference control and a local itinerary-change trigger.",
+    "The intended provider flow binds the plan to the target's semantic identity and page digest before any apply.",
+    "A single-use approval names the mutation, scope, expiry, and current state; independent verification reads the changed value back.",
+    "When the itinerary changes, the semantic target becomes stale and the old plan must stop before mutation."
+  ],
+  "evidence": [
+    "synthetic-fixture.json",
+    "demo-site.html",
+    "evidence/cb-1-fixture-receipt.json",
+    "evidence/cb-2-blocker.json",
+    "assets/preview-16x9.png"
+  ],
+  "verified_locally": [
+    "The self-contained fixture has no network calls, credentials, payment controls, account data, or external mutations.",
+    "The source-aligned semantic target, harmless reversible select action, stale mutation, and target_changed refusal are recorded.",
+    "The current dirty checkout passes lint, typecheck, tests, build, and MCP smoke gates.",
+    "The 1600x900 preview is rendered from the synthetic case and visually inspected."
+  ],
+  "open_gates": [
+    "Reload the matching extension/native-host pair with explicit deployment approval and capture a valid CB-2 observe-to-plan receipt.",
+    "Capture the exact CB-3 approval, apply, verify, and stale-refusal receipts on the disposable local origin.",
+    "Verify a hosted no-auth case URL and external destination readbacks."
+  ],
+  "claim_boundary": "This packet proves a labeled synthetic browser fixture, source contract, and local candidate visual. It does not claim an installed extension round trip, side-panel approval, browser mutation, verification, stale refusal, hosting, or publication."
+}

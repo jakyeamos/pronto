@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent Router · candidate preview</title>
+    <style>
+      :root { color-scheme: dark; --bg:#0c1116; --panel:#171f27; --line:#35424e; --text:#f5f7f8; --muted:#aab6c0; --mint:#9ce5be; --amber:#ffd183; --blue:#9ad9ef; }
+      * { box-sizing:border-box; }
+      body { width:1600px; height:900px; margin:0; overflow:hidden; color:var(--text); background:radial-gradient(circle at 86% 0,#20343c,transparent 34%),var(--bg); font:16px/1.45 Inter,ui-sans-serif,system-ui,sans-serif; }
+      main { padding:62px 74px; }
+      .kicker { color:var(--mint); font-size:14px; font-weight:800; letter-spacing:.15em; text-transform:uppercase; }
+      h1 { margin:18px 0 14px; font-size:72px; letter-spacing:-.05em; line-height:.96; }
+      .lede { max-width:820px; margin:0; color:var(--muted); font-size:21px; }
+      .request { margin-top:42px; padding:18px 22px; border:1px solid var(--line); background:#11181f; font:18px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace; }
+      .graph { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; margin-top:34px; border:1px solid var(--line); background:var(--line); }
+      .node { min-height:150px; padding:24px; background:var(--panel); }
+      .node b { display:inline-grid; width:30px; height:30px; place-items:center; border:1px solid currentColor; border-radius:50%; }
+      .node:nth-child(1) b { color:var(--mint); } .node:nth-child(2) b { color:var(--amber); } .node:nth-child(3) b { color:var(--blue); }
+      h2 { margin:26px 0 5px; font-size:28px; } .node p { margin:0; color:var(--muted); }
+      .receipt { display:grid; grid-template-columns:1.15fr .85fr; gap:1px; margin-top:34px; border:1px solid var(--line); background:var(--line); }
+      .receipt > div { min-height:170px; padding:24px; background:var(--panel); }
+      .receipt h3 { margin:0 0 10px; font-size:22px; } .receipt p { margin:0; color:#d3dbe0; }
+      .badge { display:inline-block; margin-top:20px; color:var(--amber); font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+      footer { display:flex; justify-content:space-between; margin-top:26px; color:var(--muted); font-size:13px; } footer strong { color:var(--amber); }
+    </style>
+  </head>
+  <body><main data-material-status="candidate-local"><div class="kicker">Agent Router · candidate local preview</div><h1>Route complex AI work with reasons.</h1><p class="lede">A typed graph, credible alternatives, bounded worker receipts, and a conflict that stays visible.</p><div class="request">ar-1-launch-readiness · high-risk repo_edit_with_tests · human approval required for writes</div><section class="graph"><article class="node"><b>1</b><h2>Plan</h2><p>Dependencies, outputs, and authority constraints.</p></article><article class="node"><b>2</b><h2>Execute</h2><p>One attributable worker receipt per selected subtask.</p></article><article class="node"><b>3</b><h2>Verify</h2><p>Deterministic fixture evidence stays attached.</p></article></section><section class="receipt"><div><h3>Selection receipt</h3><p>Codex wins the labeled replay with task-specific evidence. Cursor remains a credible alternative; weaker or unavailable paths retain their reasons.</p><span class="badge">Bounded replay · no provider invocation</span></div><div><h3>Conflict boundary</h3><p>Disagreement selects <code>model_synthesis</code>. Final confidence and fallback fields are not modeled yet.</p><span class="badge">AR-5 open</span></div></section><footer><span>Replay/spec material · provider and worktree claims remain separate</span><strong>CONFIDENCE / FALLBACK OPEN</strong></footer></main></body>
+</html>

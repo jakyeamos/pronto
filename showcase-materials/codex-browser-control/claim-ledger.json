@@ -1,0 +1,58 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "browser-control",
+  "case_id": "cb-1-synthetic-itinerary-material-001",
+  "reviewed_at": "2026-08-14T04:45:00Z",
+  "levels": [
+    {
+      "id": "fixture",
+      "label": "Synthetic browser fixture",
+      "status": "verified_local",
+      "status_display": "Disposable itinerary with reversible target",
+      "allowed_claim": "The self-contained fixture exposes a semantic seat-preference target, a harmless reversible select, and a deliberate stale-target mutation.",
+      "forbidden_inference": "The fixture is a real booking, account, payment, or provider session.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["synthetic-fixture.json", "demo-site.html", "evidence/cb-1-fixture-receipt.json#/verification/fixture_contract"]
+    },
+    {
+      "id": "source",
+      "label": "Typed control contract",
+      "status": "verified_local",
+      "status_display": "Source quality gate passed on dirty checkout",
+      "allowed_claim": "The current source checkout passes lint, typecheck, tests, build, and MCP smoke, and exposes typed observe, plan, approval, apply, verify, and rollback surfaces.",
+      "forbidden_inference": "A dirty source checkout is a clean release revision or installed-provider proof.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/cb-1-fixture-receipt.json#/verification/repository_quality", "evidence/cb-2-blocker.json#/source/source_quality"]
+    },
+    {
+      "id": "safety",
+      "label": "Approval and stale-state safety",
+      "status": "partial",
+      "status_display": "Contract and negative case; installed receipt open",
+      "allowed_claim": "The fixture and source contract define exact approval, semantic-target binding, single-use apply, fresh verify, and target_changed refusal before mutation.",
+      "forbidden_inference": "The connected browser has exercised approval, apply, verify, or stale refusal.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["synthetic-fixture.json#/target_action", "synthetic-fixture.json#/stale_mutation", "evidence/cb-2-blocker.json#/installed_probe"]
+    },
+    {
+      "id": "installed",
+      "label": "Installed round trip",
+      "status": "blocked",
+      "status_display": "CB-2 blocked by extension/native-host mismatch",
+      "allowed_claim": "The installed doctor probe reached the configured provider but failed response-schema validation before an observation or plan receipt.",
+      "forbidden_inference": "The installed extension observed a page, produced a valid plan, or applied a mutation.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/cb-2-blocker.json#/installed_probe", "evidence/cb-2-blocker.json#/missing_contract"]
+    },
+    {
+      "id": "packaging",
+      "label": "Local material package",
+      "status": "verified_local",
+      "status_display": "Synthetic case, short copy, preview, and no-auth page source",
+      "allowed_claim": "A local candidate packet contains the synthetic case story, claim ledger, reviewed 16:9 preview, short description, and no-auth page source.",
+      "forbidden_inference": "The page is hosted, public, or posted to a destination.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/cb-7-material-checkpoint.json"]
+    }
+  ]
+}

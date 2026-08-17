@@ -159,6 +159,19 @@ test("rejects an unresolved tool-to-skill relationship", (t) => {
   );
 });
 
+test("rejects an unresolved tool-to-skill relationship", (t) => {
+  const fixture = createFixture(t);
+  const contractPath = path.join(fixture, ".agents/agent-usability.json");
+  const contract = JSON.parse(fs.readFileSync(contractPath, "utf8"));
+  contract.tools[0].skills = ["missing-skill"];
+  writeJson(contractPath, contract);
+
+  assertRejected(
+    runValidator(fixture),
+    /pronto-cli: unknown skill reference: missing-skill/,
+  );
+});
+
 for (const [label, unsafePath] of [
   ["parent traversal", "../outside.md"],
   ["absolute path", "/tmp/outside.md"],
