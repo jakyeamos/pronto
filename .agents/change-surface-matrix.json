@@ -263,6 +263,36 @@
       "status": "applicable"
     },
     {
+      "id": "showcase-validation-fixtures",
+      "scope": "local",
+      "path": "scripts/showcase-materials-terrace-context.test-cases.mjs and showcase-materials/context-compiler-contract/",
+      "owner": "Pronto repository maintainers and Context Compiler Contract package owner",
+      "condition": "Showcase contract fixtures, deterministic validators, evidence receipts, or CI portability boundaries change.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "node --test scripts/showcase-materials.test.mjs",
+        "pnpm contract:check",
+        "Verify the Context Compiler Contract test imports only repository-owned modules while retaining source repository and commit provenance.",
+        "Verify the positive baseline, both labelled mutations, and corrected result preserve the expected validator outcomes."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "javascript-dependency-audit",
+      "scope": "local",
+      "path": "pnpm-workspace.yaml and pnpm-lock.yaml",
+      "owner": "Pronto repository maintainers",
+      "condition": "Workspace dependency overrides or lockfile resolutions change in response to a security advisory or CI audit failure.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "pnpm install --frozen-lockfile",
+        "pnpm audit --audit-level high",
+        "pnpm audit:dependencies",
+        "Verify every locked nanoid resolution selected by the workspace override is at least 3.3.18."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "showcase-contract",
       "scope": "local",
       "path": ".pronto/showcase-goal.json and src-tauri/src/showcase.rs",
