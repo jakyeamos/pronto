@@ -2,27 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import { FolderPlus, ShieldCheck } from "lucide-react";
 import * as api from "./api";
-import { SkillsSurface } from "./components/SkillsComponents";
-import {
-  CommandCenterSurface,
-  type Filter,
-} from "./components/CommandCenterSurface";
+import { AppRouteSurface } from "./components/AppRouteSurface";
+import type { Filter } from "./components/CommandCenterSurface";
 import { AppOverlays } from "./components/AppOverlays";
 import { AppSidebar } from "./components/AppSidebar";
 import { AppTopbar } from "./components/AppTopbar";
-import { AnalyticsRoute } from "./components/AnalyticsRoute";
 import { LiveRelativeTime, StatusPill } from "./components/ConsolePrimitives";
 import { FeedbackBanners } from "./components/FeedbackBanners";
-import { RepositoryDetailSurface } from "./components/Drawers";
-import { PortfolioCollectionsSurface } from "./components/PortfolioCollectionsSurface";
-import { PromotionSurface } from "./components/PromotionSurface";
-import { QualityGatesSurface } from "./components/QualityGatesSurface";
-import { ShowcaseSurface } from "./components/ShowcaseSurface";
-import { RemediationSurface } from "./components/RemediationSurface";
-import { RemoteCatalogSurface } from "./components/RemoteCatalogSurface";
-import { CiTrackerSurface } from "./components/CiTrackerSurface";
 import { RefreshConfirmationDialog } from "./components/RefreshConfirmationDialog";
-import { RemoteDeferredSurface } from "./components/RemoteDeferredSurface";
 import { useEvidenceActions } from "./hooks/useEvidenceActions";
 import { useAppKeyboardShortcuts } from "./hooks/useAppKeyboardShortcuts";
 import { usePortfolioController } from "./hooks/usePortfolioController";
@@ -33,10 +20,6 @@ import {
   countUnsyncedRepositories,
   currentDateLabel,
 } from "./portfolioSelectors";
-import {
-  ActivitySurface,
-  SettingsSurface,
-} from "./components/WorkspaceSurfaces";
 import { navItems, pageCopy, type NavItem } from "./navigation";
 import type {
   CiRunSnapshot,
@@ -352,156 +335,71 @@ export function App(): ReactElement {
             onDismissError={() => setError(null)}
             onDismissNotice={() => setNotice(null)}
           />
-          {showingRepositoryDetail && selectedRepository ? (
-            <RepositoryDetailSurface
-              repository={selectedRepository}
-              remediation={snapshot.remediation}
-              events={snapshot.events}
-              backLabel={
-                activeNav === "showcase"
-                  ? "Back to AI showcase"
-                  : "Back to Portfolio"
-              }
-              analytics={analytics}
-              isRefreshing={isRefreshing}
-              onBack={() => setSelectedRepositoryId(null)}
-              onOpenWorkspace={handleOpenWorkspace}
-              onPrepareRepository={handlePrepareRepository}
-              onTargetBranchChange={handleTargetBranchChange}
-              onLifecycleChange={handleLifecycleChange}
-              onCondition={(condition) =>
-                handleCondition(selectedRepository, condition)
-              }
-              onOpenReport={(reportPath) =>
-                void handleOpenQualityReport(reportPath)
-              }
-            />
-          ) : isPortfolio ? (
-            <>
-              <CommandCenterSurface
-                activeConditionCount={activeConditionCount}
-                dirtyCount={dirtyCount}
-                unsyncedCount={unsyncedCount}
-                repositoryCount={snapshot.repositories.length}
-                rootCount={snapshot.roots.length}
-                quality={snapshot.quality}
-                snapshotGeneratedAt={snapshot.generated_at}
-                isRefreshing={isRefreshing}
-                repositories={repositories}
-                allRepositories={snapshot.repositories}
-                events={snapshot.events}
-                filter={filter}
-                onFilterChange={setFilter}
-                onClearFilters={() => {
-                  setQuery("");
-                  setFilter("all");
-                }}
-                onAddRoot={handleAddRoot}
-                onOpenRepository={handleOpenRepository}
-                onCondition={handleCondition}
-                onRefreshQuality={handleRefreshQuality}
-                onOpenQualityReport={(reportPath) =>
-                  void handleOpenQualityReport(reportPath)
-                }
-                onOpenAnalytics={() => setActiveNav("analytics")}
-              />
-              <QualityGatesSurface
-                snapshot={snapshot}
-                repositories={snapshot.repositories}
-                showOverview={false}
-                onOpenRepository={handleOpenRepository}
-                onOpenReport={(reportPath) =>
-                  void handleOpenQualityReport(reportPath)
-                }
-              />
-            </>
-          ) : activeNav === "showcase" ? (
-            <ShowcaseSurface
-              showcase={snapshot.showcase}
-              repositories={snapshot.repositories}
-              onOpenRepository={handleOpenRepository}
-            />
-          ) : activeNav === "remediation" ? (
-            <RemediationSurface
-              run={snapshot.remediation}
-              repositories={snapshot.repositories}
-              isRefreshing={isRefreshing}
-              onRefresh={handleRefreshRemediation}
-              onExport={handleExportRemediation}
-              onUpdateStatus={handleRemediationStatus}
-              onOpenRepository={handleOpenRepository}
-            />
-          ) : activeNav === "promotions" ? (
-            <PromotionSurface
-              inbox={promotionInbox}
-              isRefreshing={isRefreshing}
-              onRefresh={handleRefreshPromotionInbox}
-              onDecide={handlePromotionDecision}
-            />
-          ) : activeNav === "analytics" ? (
-            <AnalyticsRoute
-              analytics={analytics}
-              repositories={snapshot.repositories}
-              groups={snapshot.groups}
-              products={snapshot.products}
-            />
-          ) : activeNav === "skills" ? (
-            <SkillsSurface
-              snapshot={skills}
-              isRefreshing={isRefreshing}
-              onRefresh={() => void handleRefreshSkills()}
-              onOpenSource={(path) => void handleOpenSkillSource(path)}
-              papercutBacklog={papercutBacklog}
-              onRefreshPapercutBacklog={handleRefreshPapercutBacklog}
-              onCreatePapercut={handleCreatePapercut}
-              onPapercutStatusChange={handlePapercutStatus}
-              onMultiplierProposalStatusChange={handleMultiplierProposalStatus}
-            />
-          ) : activeNav === "activity" ? (
-            <ActivitySurface
-              events={snapshot.events}
-              actionAudits={snapshot.action_audits}
-            />
-          ) : activeNav === "settings" ? (
-            <SettingsSurface
-              roots={snapshot.roots}
-              storagePath={snapshot.storage_path}
-              generatedAt={snapshot.generated_at}
-              retentionDays={snapshot.retention_days}
-              onAddRoot={handleAddRoot}
-              onSaveRoot={handleSaveRoot}
-              onSaveRetention={handleSaveRetention}
-              quality={snapshot.quality}
-            />
-          ) : activeNav === "groups" ? (
-            <PortfolioCollectionsSurface
-              groups={snapshot.groups}
-              products={snapshot.products}
-              repositories={snapshot.repositories}
-              onSaveGroup={handleSaveGroup}
-              onDeleteGroup={handleDeleteGroup}
-              onSaveProduct={handleSaveProduct}
-              onDeleteProduct={handleDeleteProduct}
-            />
-          ) : activeNav === "remote" ? (
-            <RemoteCatalogSurface
-              status={snapshot.provider_status}
-              identities={snapshot.provider_identities}
-              repositories={snapshot.remote_repositories}
-              isRefreshing={isRefreshing}
-              onRefresh={handleRefreshGithub}
-            />
-          ) : activeNav === "ci" ? (
-            <CiTrackerSurface
-              status={snapshot.provider_status}
-              repositories={snapshot.remote_repositories}
-              isRefreshing={isRefreshing}
-              onRefresh={handleRefreshGithub}
-              onStartCodex={handleStartCiCodex}
-            />
-          ) : (
-            <RemoteDeferredSurface />
-          )}
+          <AppRouteSurface
+            activeNav={activeNav}
+            selectedRepository={selectedRepository}
+            snapshot={snapshot}
+            analytics={analytics}
+            promotionInbox={promotionInbox}
+            isRefreshing={isRefreshing}
+            repositories={repositories}
+            filter={filter}
+            activeConditionCount={activeConditionCount}
+            dirtyCount={dirtyCount}
+            unsyncedCount={unsyncedCount}
+            skills={{
+              snapshot: skills,
+              isRefreshing,
+              onRefresh: () => void handleRefreshSkills(),
+              onOpenSource: (path) => void handleOpenSkillSource(path),
+              papercutBacklog,
+              onRefreshPapercutBacklog: handleRefreshPapercutBacklog,
+              onCreatePapercut: handleCreatePapercut,
+              onPapercutStatusChange: handlePapercutStatus,
+              onMultiplierProposalStatusChange: handleMultiplierProposalStatus,
+            }}
+            onBack={() => setSelectedRepositoryId(null)}
+            onOpenWorkspace={handleOpenWorkspace}
+            onPrepareRepository={handlePrepareRepository}
+            onTargetBranchChange={handleTargetBranchChange}
+            onLifecycleChange={handleLifecycleChange}
+            onCondition={handleCondition}
+            onOpenReport={(reportPath) =>
+              void handleOpenQualityReport(reportPath)
+            }
+            onFilterChange={setFilter}
+            onClearFilters={() => {
+              setQuery("");
+              setFilter("all");
+            }}
+            onAddRoot={handleAddRoot}
+            onOpenRepository={handleOpenRepository}
+            onRefreshQuality={handleRefreshQuality}
+            onShowAttention={() => {
+              setQuery("");
+              setFilter("attention");
+            }}
+            onOpenAnalytics={() => setActiveNav("analytics")}
+            promotionActions={{
+              onRefresh: handleRefreshPromotionInbox,
+              onDecide: handlePromotionDecision,
+            }}
+            onRefreshRemediation={handleRefreshRemediation}
+            onExportRemediation={handleExportRemediation}
+            onUpdateRemediationStatus={handleRemediationStatus}
+            onRefreshGithub={handleRefreshGithub}
+            onStartCiCodex={handleStartCiCodex}
+            settingsActions={{
+              onSaveRoot: handleSaveRoot,
+              onSaveRetention: handleSaveRetention,
+            }}
+            collectionActions={{
+              onSaveGroup: handleSaveGroup,
+              onDeleteGroup: handleDeleteGroup,
+              onSaveProduct: handleSaveProduct,
+              onDeleteProduct: handleDeleteProduct,
+            }}
+          />
         </div>
       </main>
       {isRefreshConfirmationOpen && (

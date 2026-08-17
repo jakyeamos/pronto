@@ -21,6 +21,7 @@ import type {
 } from "../types";
 import {
   EmptyState,
+  ExpandableScore,
   formatExactTime,
   NoMatchesState,
 } from "./ConsolePrimitives";
@@ -55,7 +56,7 @@ export function CommandCenterSurface({
   onOpenRepository,
   onCondition,
   onRefreshQuality,
-  onOpenQualityReport,
+  onShowAttention,
   onOpenAnalytics = () => undefined,
 }: {
   activeConditionCount: number;
@@ -76,7 +77,7 @@ export function CommandCenterSurface({
   onOpenRepository: (repository: RepositorySnapshot) => void;
   onCondition: (repository: RepositorySnapshot, condition: Condition) => void;
   onRefreshQuality: () => void;
-  onOpenQualityReport?: (reportPath: string) => void;
+  onShowAttention?: () => void;
   onOpenAnalytics?: () => void;
   analytics?: unknown;
 }): ReactElement {
@@ -90,6 +91,32 @@ export function CommandCenterSurface({
     .slice(0, 3)
     .map(([gateId, count]) => `${qualityGateDisplayLabel(gateId)} (${count})`)
     .join(" · ");
+  const maturityBreakdown = [
+    ...(quality.maturity_pillars ?? []).map((pillar) => ({
+      id: `maturity-${pillar.id}`,
+      label: pillar.label,
+      value: pillar.score === undefined ? "Unknown" : `${pillar.score}/4`,
+      detail: `${pillar.assessed_repository_count} repositories assessed`,
+    })),
+    {
+      id: "maturity-evidence",
+      label: "Evidence coverage",
+      value:
+        quality.maturity_evidence_coverage === undefined
+          ? "Unknown"
+          : `${Math.round(quality.maturity_evidence_coverage * 100)}%`,
+      detail:
+        quality.maturity_fresh_evidence_coverage === undefined
+          ? "Freshness not reported"
+          : `${Math.round(quality.maturity_fresh_evidence_coverage * 100)}% fresh`,
+    },
+    {
+      id: "maturity-disposition",
+      label: "Audit disposition",
+      value: quality.audit_status,
+      detail: `${quality.maturity_provisional_repository_count ?? 0} provisional · ${quality.maturity_capped_repository_count ?? 0} capped`,
+    },
+  ];
 
   return (
     <>
@@ -181,72 +208,122 @@ export function CommandCenterSurface({
           </div>
         </div>
         <div className="command-quality-score-grid">
-          <div>
-            <span>Consolidated fleet maturity</span>
-            <strong>
-              {quality.maturity_score_display ?? "Not scored"}
-              {quality.maturity_score_display && <small>/4</small>}
-            </strong>
-            <small>Pronto evidence-governed score</small>
-            {quality.source_maturity_score_display && (
-              <small>QR source {quality.source_maturity_score_display}/4</small>
-            )}
-          </div>
-          <div>
-            <span>CI configuration</span>
-            <strong>
-              {configuration.ideal > 0
+          <ExpandableScore
+            className="command-quality-score-card"
+            label="Consolidated fleet maturity"
+            value={
+              <>
+                {quality.maturity_score_display ?? "Not scored"}
+                {quality.maturity_score_display && <small>/4</small>}
+              </>
+            }
+            description="Pronto's evidence-governed score remains separate from the Quality Runner source score."
+            title="Open to see the assessed pillars, evidence coverage, and audit disposition."
+            breakdown={maturityBreakdown}
+          />
+          {quality.source_maturity_score_display && (
+            <small className="command-quality-score-source">
+              QR source {quality.source_maturity_score_display}/4
+            </small>
+          )}
+          <ExpandableScore
+            className="command-quality-score-card"
+            label="CI configuration"
+            value={
+              configuration.ideal > 0
                 ? `${configuration.configured}/${configuration.ideal}`
-                : "Not assessed"}
-            </strong>
-            <small>
-              {configuration.ideal === 0
-                ? qualityProfileSummary(quality)
-                : `${configuration.fullRepositories}/${configuration.repositories} repositories at ideal configuration${
-                    configuration.unscoredRepositories > 0
-                      ? ` · ${configuration.unscoredRepositories} not scored`
-                      : ""
-                  }`}
-            </small>
-          </div>
-          <div>
-            <span>Fresh passing evidence</span>
-            <strong>
-              {evidence.ideal > 0
+                : "Not assessed"
+            }
+            description="Configured gates are compared with the recommendation profile; this is configuration coverage, not passing execution evidence."
+            title="Open to separate configured gates, repositories at the ideal profile, and unscored repositories."
+            breakdown={[
+              {
+                id: "configured-gates",
+                label: "Configured gates",
+                value:
+                  configuration.ideal > 0
+                    ? `${configuration.configured}/${configuration.ideal}`
+                    : "Not assessed",
+              },
+              {
+                id: "ideal-repositories",
+                label: "Repositories at ideal",
+                value: `${configuration.fullRepositories}/${configuration.repositories}`,
+              },
+              {
+                id: "unscored-repositories",
+                label: "Repositories not scored",
+                value: configuration.unscoredRepositories,
+                detail:
+                  configuration.ideal === 0
+                    ? qualityProfileSummary(quality)
+                    : `${configuration.fullRepositories}/${configuration.repositories} repositories at ideal configuration`,
+              },
+            ]}
+          />
+          <ExpandableScore
+            className="command-quality-score-card"
+            label="Fresh passing evidence"
+            value={
+              evidence.ideal > 0
                 ? `${evidence.freshPassing}/${evidence.ideal}`
-                : "Not assessed"}
-            </strong>
-            <small>
-              {openGateSummary
-                ? `Evidence updates: ${openGateSummary}`
-                : "No open gate updates"}
-            </small>
-          </div>
+                : "Not assessed"
+            }
+            description="Fresh passing evidence is kept separate from configuration so a declared gate cannot be mistaken for a verified pass."
+            title="Open to see the evidence total and the most common open gate updates."
+            breakdown={[
+              {
+                id: "fresh-passing-gates",
+                label: "Fresh passing gates",
+                value:
+                  evidence.ideal > 0
+                    ? `${evidence.freshPassing}/${evidence.ideal}`
+                    : "Not assessed",
+              },
+              {
+                id: "open-gate-updates",
+                label: "Open gate updates",
+                value: openGateSummary || "None",
+              },
+            ]}
+          />
           {macControl ? (
-            <div>
-              <span>Mac Control maturity</span>
-              <strong>
-                {macControl.implementation_score_display ?? "Not scored"}
-                {macControl.implementation_score_display && <small>/4</small>}
-              </strong>
-              <small>
-                {macControl.implementation_status ?? macControl.status} ·{" "}
-                {macControlFreshnessLabel(macControl.freshness)}
-              </small>
-              {(macControl.implementation_declaration_criteria_count ?? 0) >
-              0 ? (
-                <small>
-                  Legacy declarations:{" "}
-                  {macControl.implementation_declaration_criteria_count}{" "}
-                  recorded · non-scoring until v4 source evidence is established
-                </small>
-              ) : null}
-              <small>
-                Live tasks: {macControl.measured_task_count ?? 0}/
-                {macControl.live_task_count ?? 0} measured ·{" "}
-                {macControl.live_status ?? "Not assessed"}
-              </small>
-            </div>
+            <ExpandableScore
+              className="command-quality-score-card"
+              label="Mac Control semantic evidence"
+              value={
+                <>
+                  {macControl.implementation_criteria_passed_count ?? 0}/
+                  {macControl.implementation_criteria_total ?? 0}
+                  <small> dimensions</small>
+                </>
+              }
+              description="Source-grounded semantics and live task evidence are separate inputs to the Mac Control ideal state."
+              title="Open to see semantic source evidence, live task evidence, and freshness."
+              breakdown={[
+                {
+                  id: "semantic-source-evidence",
+                  label: "Semantic source evidence",
+                  value: `${macControl.implementation_criteria_passed_count ?? 0}/${macControl.implementation_criteria_total ?? 0}`,
+                  detail: `${macControl.implementation_score_display ?? "Not scored"}/4 · ${macControl.implementation_status ?? macControl.status} · ${macControlFreshnessLabel(macControl.freshness)}`,
+                },
+                {
+                  id: "live-task-evidence",
+                  label: "Live task evidence",
+                  value: `${macControl.measured_task_count ?? 0}/${macControl.live_task_count ?? 0}`,
+                  detail: `Live tasks: ${macControl.measured_task_count ?? 0}/${macControl.live_task_count ?? 0} measured · ${macControl.live_status ?? "Not assessed"} (${macControl.live_score_display ?? "Not scored"}/4)`,
+                },
+                {
+                  id: "ideal-state",
+                  label: "Ideal state",
+                  value: macControl.ideal_state ? "Pass" : macControl.status,
+                  detail:
+                    (macControl.implementation_declaration_criteria_count ?? 0)
+                      ? `Legacy declarations: ${macControl.implementation_declaration_criteria_count} recorded · non-scoring until v4 source evidence is established`
+                      : undefined,
+                },
+              ]}
+            />
           ) : null}
         </div>
       </section>
@@ -333,9 +410,7 @@ export function CommandCenterSurface({
         <aside className="right-rail">
           <AttentionQueue
             repositories={allRepositories}
-            onCondition={onCondition}
-            onOpenRepository={onOpenRepository}
-            onOpenReport={onOpenQualityReport}
+            onShowAttention={onShowAttention}
           />
           <Timeline events={events} />
           <section className="provider-card">

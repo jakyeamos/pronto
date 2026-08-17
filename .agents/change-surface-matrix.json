@@ -107,7 +107,8 @@
         "pnpm build:web",
         "Verify the Dock Refresh action invokes refresh_batch and renders the returned merged snapshot.",
         "Verify startup retains the cached portfolio immediately and automatically recovers an unavailable canonical quality audit without conflating Pronto's consolidated score with the Quality Runner source score.",
-        "Verify the command center presents the Mac Control maturity score as the primary value and does not duplicate semantic-coverage counts."
+        "Verify the command center presents the Mac Control maturity score as the primary value and does not duplicate semantic-coverage counts.",
+        "Verify Portfolio renders one canonical repository list by default; attention, edge durability, and quality matrix repository comparisons stay behind explicit disclosures."
       ],
       "status": "applicable"
     },

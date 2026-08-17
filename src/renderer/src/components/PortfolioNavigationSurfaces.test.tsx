@@ -15,7 +15,6 @@ import {
   makePortfolio,
   noop,
   noopRepository,
-  noopCondition,
   AppSidebar,
   AttentionQueue,
   PortfolioCollectionsSurface,
@@ -58,8 +57,6 @@ describe("portfolio navigation surfaces", () => {
     const markup = renderToStaticMarkup(
       <AttentionQueue
         repositories={[repository]}
-        onCondition={noopCondition}
-        onOpenRepository={noopRepository}
       />,
     );
     expect(markup).toContain("Attention queue");
