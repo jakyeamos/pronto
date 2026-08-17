@@ -80,7 +80,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
   - `pronto route [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] [--limit <n>] --json` for the composed, fail-closed agent entry point; it runs the doctor gate once and exposes bounded next, repository, quality, and advisory fold-preview evidence only when the selected scope is ready;
   - `pronto doctor [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] --json` for a fail-closed storage, freshness, and local-path gate before agent routing; scoped checks prevent unrelated fleet rows from blocking repository work, while blocked reports exit non-zero and never write the snapshot;
   - `pronto next [<repository>] [--limit <n>] --json` for bounded daily orientation, ranked attention, and safe inspection follow-ups;
-  - `pronto fold preview [<repository>] [--target <branch>] --json` for advisory branch/worktree candidates and preservation reasons before the reviewed fold workflow;
+  - `pronto fold preview [<repository>] [--target <branch>] [--limit <n>] [--cursor <token>] --json` for paginated advisory branch/worktree candidates and preservation reasons before the reviewed fold workflow;
   - `pronto summary --json` for fleet counts and repository summaries;
   - `pronto repo <repository> --json` for one repository plus its product/group memberships;
   - `pronto quality [<repository>] --json` for fleet or repository quality evidence;

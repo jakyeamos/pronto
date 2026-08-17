@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-13",
+  "last_reviewed": "2026-08-16",
   "surfaces": [
     {
       "id": "matrix-maintenance",
@@ -284,6 +284,7 @@
       "evidence": [
         "src-tauri/src/core.rs::tests::ordinary_refresh_retains_persisted_scoped_maturity_evidence",
         "src-tauri/src/core.rs::tests::qr_audit_runtime_arguments_apply_the_requested_timeout",
+        "src-tauri/src/core.rs::tests::fold_preview_paginates_all_candidates_without_duplicates",
         "src-tauri/src/core.rs::tests::registering_new_repository_adds_pending_showcase_goal",
         "src-tauri/src/showcase.rs::tests::automatically_adds_pending_showcase_goal_for_new_repository",
         "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract"

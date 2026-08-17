@@ -997,9 +997,10 @@ const AGENT_RELEASE_SCHEMA: &str = "pronto-agent-release/v1";
 const AGENT_NEXT_SCHEMA: &str = "pronto-agent-next/v1";
 const DEFAULT_AGENT_NEXT_LIMIT: usize = 12;
 const MAX_AGENT_NEXT_LIMIT: usize = 50;
-const AGENT_FOLD_PREVIEW_SCHEMA: &str = "pronto-agent-fold-preview/v1";
+const AGENT_FOLD_PREVIEW_SCHEMA: &str = "pronto-agent-fold-preview/v2";
 const DEFAULT_AGENT_FOLD_PREVIEW_LIMIT: usize = 24;
 const MAX_AGENT_FOLD_PREVIEW_LIMIT: usize = 100;
+const AGENT_FOLD_CURSOR_VERSION: &str = "v1";
 const AGENT_DOCTOR_SCHEMA: &str = "pronto-agent-doctor/v1";
 const DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES: i64 = 2_880;
 const WORKSPACE_SYNC_EVIDENCE_MAX_AGE_MINUTES: i64 = DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES;
@@ -1258,6 +1259,10 @@ pub struct AgentFoldPreview {
     pub repository_count: usize,
     pub branch_total: usize,
     pub candidate_total: usize,
+    pub returned_count: usize,
+    pub has_more: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
     pub candidates: Vec<AgentFoldCandidate>,
     pub live_verification_required: bool,
     pub authorization: String,
@@ -12922,23 +12927,6 @@ fn agent_fold_candidate(
     }
 }
 
-fn agent_fold_preview_report(
-    snapshot: &PortfolioSnapshot,
-    query: Option<&str>,
-    requested_target: Option<&str>,
-    scope: &str,
-    limit: usize,
-) -> Result<AgentFoldPreview, String> {
-    agent_fold_preview_report_with_merge_preview(
-        snapshot,
-        query,
-        requested_target,
-        scope,
-        limit,
-        true,
-    )
-}
-
 fn agent_fold_preview_report_with_merge_preview(
     snapshot: &PortfolioSnapshot,
     query: Option<&str>,
@@ -12947,6 +12935,29 @@ fn agent_fold_preview_report_with_merge_preview(
     limit: usize,
     include_merge_preview: bool,
 ) -> Result<AgentFoldPreview, String> {
+    agent_fold_preview_report_with_cursor_and_merge_preview(
+        snapshot,
+        query,
+        requested_target,
+        scope,
+        limit,
+        None,
+        include_merge_preview,
+    )
+}
+
+fn agent_fold_preview_report_with_cursor_and_merge_preview(
+    snapshot: &PortfolioSnapshot,
+    query: Option<&str>,
+    requested_target: Option<&str>,
+    scope: &str,
+    limit: usize,
+    cursor: Option<&str>,
+    include_merge_preview: bool,
+) -> Result<AgentFoldPreview, String> {
+    if limit == 0 {
+        return Err("fold preview --limit must be greater than zero".to_string());
+    }
     let repositories = if let Some(query) = query {
         vec![find_cli_repository(snapshot, query)?]
     } else {
@@ -12991,7 +13002,7 @@ fn agent_fold_preview_report_with_merge_preview(
                 target.as_deref(),
                 &target_source,
                 &target_confidence,
-                include_merge_preview,
+                false,
             ));
         }
     }
@@ -13002,7 +13013,28 @@ fn agent_fold_preview_report_with_merge_preview(
             .then_with(|| left.source_branch.cmp(&right.source_branch))
     });
     let candidate_total = candidates.len();
-    candidates.truncate(limit);
+    let cursor_fingerprint = agent_fold_cursor_fingerprint(
+        scope,
+        requested_target,
+        repositories.len(),
+        branch_total,
+        &candidates,
+    );
+    let start = cursor
+        .map(|value| agent_fold_cursor_offset(value, &cursor_fingerprint, candidate_total))
+        .transpose()?
+        .unwrap_or(0);
+    let end = start.saturating_add(limit).min(candidate_total);
+    let mut page_candidates = candidates.drain(start..end).collect::<Vec<_>>();
+    if include_merge_preview {
+        for candidate in &mut page_candidates {
+            let merge_preview = agent_fold_candidate_merge_preview(candidate);
+            candidate.merge_preview = merge_preview;
+        }
+    }
+    let has_more = end < candidate_total;
+    let next_cursor =
+        has_more.then(|| agent_fold_cursor(start + page_candidates.len(), &cursor_fingerprint));
     Ok(AgentFoldPreview {
         schema_version: AGENT_FOLD_PREVIEW_SCHEMA.to_string(),
         generated_at: snapshot.generated_at.clone(),
@@ -13010,10 +13042,86 @@ fn agent_fold_preview_report_with_merge_preview(
         repository_count: repositories.len(),
         branch_total,
         candidate_total,
-        candidates,
+        returned_count: page_candidates.len(),
+        has_more,
+        next_cursor,
+        candidates: page_candidates,
         live_verification_required: true,
         authorization: "Inspection only; use fold-feature-branches for live ref classification, reviewed integration, and any authorized pruning.".to_string(),
     })
+}
+
+fn agent_fold_candidate_merge_preview(
+    candidate: &AgentFoldCandidate,
+) -> Option<AgentFoldMergePreview> {
+    let target = candidate.target_branch.as_deref()?;
+    let merge_path = candidate
+        .workspace_path
+        .as_deref()
+        .map(Path::new)
+        .unwrap_or_else(|| Path::new(&candidate.repository_path));
+    agent_fold_merge_preview(merge_path, &candidate.source_branch, target)
+}
+
+fn agent_fold_cursor_fingerprint(
+    scope: &str,
+    requested_target: Option<&str>,
+    repository_count: usize,
+    branch_total: usize,
+    candidates: &[AgentFoldCandidate],
+) -> String {
+    let payload = serde_json::to_vec(&(
+        scope,
+        requested_target,
+        repository_count,
+        branch_total,
+        candidates,
+    ))
+    .expect("fold preview candidates should be serializable");
+    let digest = Sha256::digest(payload);
+    format!("{digest:x}")
+}
+
+fn agent_fold_cursor(offset: usize, fingerprint: &str) -> String {
+    format!("{AGENT_FOLD_CURSOR_VERSION}:{offset}:{fingerprint}")
+}
+
+fn agent_fold_cursor_offset(
+    cursor: &str,
+    expected_fingerprint: &str,
+    candidate_total: usize,
+) -> Result<usize, String> {
+    let mut parts = cursor.split(':');
+    let version = parts.next();
+    let offset = parts.next();
+    let fingerprint = parts.next();
+    if version != Some(AGENT_FOLD_CURSOR_VERSION)
+        || offset.is_none()
+        || fingerprint.is_none()
+        || parts.next().is_some()
+    {
+        return Err(
+            "invalid fold preview cursor; use the next_cursor returned by a current preview"
+                .to_string(),
+        );
+    }
+    let offset = offset
+        .expect("offset was checked above")
+        .parse::<usize>()
+        .map_err(|_| {
+            "invalid fold preview cursor offset; use the next_cursor returned by a current preview"
+                .to_string()
+        })?;
+    if fingerprint != Some(expected_fingerprint) {
+        return Err(
+            "fold preview cursor does not match this snapshot or scope; restart pagination"
+                .to_string(),
+        );
+    }
+    if offset > candidate_total {
+        return Err("fold preview cursor is past the end of the candidate list".to_string());
+    }
+    Ok(offset)
 }
 
 fn agent_doctor_check(
@@ -13747,13 +13855,16 @@ fn print_human_next(report: &AgentNextReport) {
 
 fn print_human_fold_preview(report: &AgentFoldPreview) {
     println!(
-        "PRONTO FOLD PREVIEW · {} · {} candidates",
-        report.scope, report.candidate_total
+        "PRONTO FOLD PREVIEW · {} · {} candidates ({} returned)",
+        report.scope, report.candidate_total, report.returned_count
     );
     println!(
-        "Branches: {} observed · live verification required: {}",
-        report.branch_total, report.live_verification_required
+        "Branches: {} observed · more: {} · live verification required: {}",
+        report.branch_total, report.has_more, report.live_verification_required
     );
+    if let Some(cursor) = &report.next_cursor {
+        println!("Next cursor: {cursor}");
+    }
     for candidate in &report.candidates {
         println!(
             "  {} · {} -> {} · {} · {}",
@@ -15299,7 +15410,7 @@ pub fn run_cli(arguments: Vec<String>) {
         "fold" => {
             if arguments.get(1).map(String::as_str) != Some("preview") {
                 eprintln!(
-                    "Usage: pronto fold preview [<repository>] [--target <branch>] [--product <name> | --group <name>] [--limit <n>] [--json]"
+                    "Usage: pronto fold preview [<repository>] [--target <branch>] [--product <name> | --group <name>] [--limit <n>] [--cursor <token>] [--json]"
                 );
                 std::process::exit(2);
             }
@@ -15339,12 +15450,27 @@ pub fn run_cli(arguments: Vec<String>) {
                         );
                         std::process::exit(2);
                     }
+                    if parsed == 0 {
+                        eprintln!("Pronto CLI error: --limit must be greater than zero");
+                        std::process::exit(2);
+                    }
                     parsed
                 })
                 .unwrap_or(DEFAULT_AGENT_FOLD_PREVIEW_LIMIT);
+            let cursor = cli_option(command_arguments, "--cursor").unwrap_or_else(|error| {
+                eprintln!("Pronto CLI error: {error}");
+                std::process::exit(2);
+            });
+            if cursor
+                .as_deref()
+                .is_some_and(|value| value.trim().is_empty())
+            {
+                eprintln!("Pronto CLI error: --cursor requires a non-empty token");
+                std::process::exit(2);
+            }
             let positionals = cli_positionals(
                 command_arguments,
-                &["--target", "--product", "--group", "--limit"],
+                &["--target", "--product", "--group", "--limit", "--cursor"],
             )
             .unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
@@ -15352,7 +15478,7 @@ pub fn run_cli(arguments: Vec<String>) {
             });
             if positionals.len() > 1 {
                 eprintln!(
-                    "Usage: pronto fold preview [<repository>] [--target <branch>] [--product <name> | --group <name>] [--limit <n>] [--json]"
+                    "Usage: pronto fold preview [<repository>] [--target <branch>] [--product <name> | --group <name>] [--limit <n>] [--cursor <token>] [--json]"
                 );
                 std::process::exit(2);
             }
@@ -15375,7 +15501,15 @@ pub fn run_cli(arguments: Vec<String>) {
                     )
                 })
                 .and_then(|snapshot| {
-                    agent_fold_preview_report(&snapshot, query, target.as_deref(), &scope, limit)
+                    agent_fold_preview_report_with_cursor_and_merge_preview(
+                        &snapshot,
+                        query,
+                        target.as_deref(),
+                        &scope,
+                        limit,
+                        cursor.as_deref(),
+                        true,
+                    )
                 });
             match result {
                 Ok(report) if json => println!(
@@ -17977,12 +18111,14 @@ mod tests {
         snapshot.repositories[0].workspaces[0].activity.confidence = "Medium".to_string();
         let repository_path = snapshot.repositories[0].path.clone();
 
-        let report = agent_fold_preview_report(
+        let report = agent_fold_preview_report_with_cursor_and_merge_preview(
             &snapshot,
             Some(&repository_path),
             Some("dev"),
             "repository:fixture",
             10,
+            None,
+            true,
         )
         .expect("fold preview should resolve the repository");
 
@@ -17990,6 +18126,9 @@ mod tests {
         assert_eq!(report.repository_count, 1);
         assert_eq!(report.branch_total, 3);
         assert_eq!(report.candidate_total, 2);
+        assert_eq!(report.returned_count, 2);
+        assert!(!report.has_more);
+        assert!(report.next_cursor.is_none());
         assert_eq!(report.candidates.len(), 2);
         let candidate = report
             .candidates
@@ -18000,10 +18139,113 @@ mod tests {
         assert_eq!(candidate.decision, "preserve_unpublished");
         assert_eq!(candidate.integration_state, "Integration eligible");
         assert_eq!(candidate.dirty, Some(false));
+        assert!(candidate.merge_preview.is_some());
         assert!(report.live_verification_required);
         assert!(candidate.authorization.contains("Preview only"));
 
         fs::remove_dir_all(root).expect("fold preview fixture should be removable");
+    }
+
+    #[test]
+    fn fold_preview_paginates_all_candidates_without_duplicates() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        git(&repository, &["switch", "-c", "dev"]);
+        for index in 0..5 {
+            let branch = format!("feature/fold-pagination-{index}");
+            git(&repository, &["switch", "-c", branch.as_str()]);
+            fs::write(
+                repository.join(format!("feature-{index}.txt")),
+                format!("feature {index}\n"),
+            )
+            .expect("pagination feature file should be writable");
+            let file = format!("feature-{index}.txt");
+            git(&repository, &["add", file.as_str()]);
+            git(
+                &repository,
+                &[
+                    "commit",
+                    "-m",
+                    format!("Pagination feature {index}").as_str(),
+                ],
+            );
+            git(&repository, &["switch", "dev"]);
+        }
+        let store = root.join("registry.db");
+        let snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("pagination fixture portfolio should scan");
+        let repository_path = snapshot.repositories[0].path.clone();
+        let mut cursor = None;
+        let mut first_cursor = None;
+        let mut candidate_keys = Vec::new();
+        let mut page_count = 0;
+        let mut candidate_total = None;
+
+        loop {
+            let report = agent_fold_preview_report_with_cursor_and_merge_preview(
+                &snapshot,
+                Some(&repository_path),
+                Some("dev"),
+                "repository:pagination-fixture",
+                2,
+                cursor.as_deref(),
+                false,
+            )
+            .expect("paginated fold preview should resolve");
+            page_count += 1;
+            candidate_total.get_or_insert(report.candidate_total);
+            assert_eq!(Some(report.candidate_total), candidate_total);
+            assert_eq!(report.returned_count, report.candidates.len());
+            assert!(report.returned_count <= 2);
+            candidate_keys.extend(report.candidates.iter().map(|candidate| {
+                format!("{}::{}", candidate.repository_name, candidate.source_branch)
+            }));
+            if !report.has_more {
+                assert!(report.next_cursor.is_none());
+                assert_eq!(candidate_keys.len(), report.candidate_total);
+                break;
+            }
+            let next_cursor = report
+                .next_cursor
+                .clone()
+                .expect("a non-terminal page should return a cursor");
+            if first_cursor.is_none() {
+                first_cursor = Some(next_cursor.clone());
+            }
+            cursor = Some(next_cursor);
+            assert!(page_count < 10, "pagination should terminate");
+        }
+
+        let unique_keys = candidate_keys.iter().collect::<BTreeSet<_>>();
+        assert_eq!(candidate_keys.len(), unique_keys.len());
+        assert!(page_count >= 2);
+        let first_cursor = first_cursor.expect("the first page should return a cursor");
+        let mut reread_snapshot = snapshot.clone();
+        reread_snapshot.generated_at = "different-presentation-time".to_string();
+        let reread = agent_fold_preview_report_with_cursor_and_merge_preview(
+            &reread_snapshot,
+            Some(&repository_path),
+            Some("dev"),
+            "repository:pagination-fixture",
+            2,
+            Some(first_cursor.as_str()),
+            false,
+        )
+        .expect("a cursor should survive a new presentation timestamp");
+        assert_eq!(reread.returned_count, 2);
+        let mismatch = agent_fold_preview_report_with_cursor_and_merge_preview(
+            &snapshot,
+            Some(&repository_path),
+            Some("main"),
+            "repository:pagination-fixture",
+            2,
+            Some(first_cursor.as_str()),
+            false,
+        )
+        .expect_err("a cursor must not cross target scopes");
+        assert!(mismatch.contains("does not match this snapshot or scope"));
+
+        fs::remove_dir_all(root).expect("pagination fixture should be removable");
     }
 
     #[test]
