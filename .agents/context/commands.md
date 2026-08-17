@@ -209,6 +209,24 @@ boundary while preserving the QR score and Mac Control two-lane disposition as
 separate evidence. A missing pointer is labeled `Legacy separate`; an invalid
 or incoherent pointer is `Blocked` and must not fall back to mixing sidecars.
 
+Each repository quality projection also carries
+`foundation_readiness` (`pronto-foundation-readiness/v1`), shown to people as
+**Modernization readiness**. This durable repository-level maturity gate
+indicates whether new work should extend the current foundation, modernize a
+bounded slice alongside the feature, or stabilize the foundation first. Its
+dispositions are `ready_to_extend`, `modernize_alongside`,
+`modernize_first`, `review_required`, `unknown`, and `not_applicable`.
+
+The gate is evidence, not a second decision or approval surface. Agents use its
+reasons, unknowns, confidence, and freshness to make the task-specific
+recommendation directly in chat. `advisory_only: true`,
+`execution_authority: false`, and `blocks_urgent_fixes: false` are hard
+boundaries: the projection never authorizes a rewrite, silently expands scope,
+or prevents a necessary containment fix. Stale, conflicted, refresh-required,
+or thin evidence cannot produce `ready_to_extend`. Structural finding
+dispositions are honored through actionable counts, so non-actionable findings
+do not reappear as modernization work. See `docs/foundation-readiness.md`.
+
 `runtime_resource_efficiency` is a canonical capability within the
 `user_facing_quality` pillar. Quality Runner scores measurable artifact size,
 initial-load, startup, memory, dependency, and production-payload outcomes;

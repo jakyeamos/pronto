@@ -4,6 +4,7 @@ import type {
   QualityFreshness,
   QualityGate,
   QualityMaturity,
+  QualityFreshness,
   QualityReadiness,
   WebReadinessSnapshot,
 } from "./quality";
@@ -220,6 +221,7 @@ export interface QualitySnapshot {
   gates: QualityGate[];
   findings: QualityFindings;
   maturity: QualityMaturity;
+  foundation_readiness: FoundationReadinessGate;
   target_fleet_audit_root?: string;
   ci_readiness: QualityReadiness;
   mac_control_ideal_state?: MacControlRepositoryState;
@@ -231,6 +233,37 @@ export interface QualitySnapshot {
   last_ingested_at?: string;
   ingestion_status: string;
   ingestion_message?: string;
+}
+
+export interface FoundationReadinessReason {
+  id: string;
+  severity: "blocking" | "modernize" | "supporting" | string;
+  summary: string;
+  evidence: string[];
+}
+
+export interface FoundationReadinessGate {
+  schema: "pronto-foundation-readiness/v1" | string;
+  label: string;
+  disposition:
+    | "ready_to_extend"
+    | "modernize_alongside"
+    | "modernize_first"
+    | "review_required"
+    | "unknown"
+    | "not_applicable";
+  confidence: "low" | "medium" | "high";
+  freshness: QualityFreshness;
+  advisory_only: boolean;
+  execution_authority: boolean;
+  blocks_urgent_fixes: boolean;
+  summary: string;
+  reasons: FoundationReadinessReason[];
+  unknowns: string[];
+  next_step: string;
+  observed_at?: string;
+  scanned_commit?: string;
+  scanned_branch?: string;
 }
 
 export interface QualityMeasurementConfidence {

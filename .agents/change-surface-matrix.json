@@ -47,6 +47,7 @@
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::doctor_ --no-fail-fast",
         "pnpm typecheck",
         "For maturity changes, verify pillar weighting, applicability, assessed versus applicable dimensions, evidence coverage, and critical caps in src-tauri/src/quality.rs tests.",
+        "For foundation-readiness changes, verify ready, modernize-alongside, modernize-first, stale, incomplete, unknown, not-applicable, accepted-intentional, advisory-only, and urgent-fix behavior in src-tauri/tests/foundation_readiness.rs.",
         "For detector evidence changes, verify blocked or refresh-required receipts never become zero findings and preserve prior raw evidence without a current delta.",
         "Run the parallel refresh coordinator tests and verify the locked merge preserves every scanned repository.",
         "Run cargo test --manifest-path src-tauri/Cargo.toml task_lanes::tests and verify active, adoptable, stale, contested, unknown, closed, and unavailable custody paths remain distinct."
@@ -196,6 +197,7 @@
         "Verify refresh-batch documents its parallel scan, serialized merge, and conflict-retry boundary.",
         "Verify release preview documents the v2 advisory recommendation dispositions and no-publication boundary.",
         "Verify repo and scoped route document the pronto-task-lanes/v1 read-only custody projection and its no-mutation authorization boundary.",
+        "Verify foundation_readiness documents all six dispositions, freshness and evidence-coverage fail-closed behavior, chat-owned decisions, and the no-rewrite/no-urgent-fix-block authority boundary.",
         "Verify relative context links resolve inside the repository.",
         "Verify workspace-manifest requires exact role coverage and emits workspace-fleet-manifest/v1 without mutation authority.",
         "Verify workspace-policy generation is documented as dry-run by default, explicit --write/--replace, exact role-map coverage, and no Git/provider mutation.",
@@ -215,6 +217,7 @@
         "Verify the skill documents pronto-agent-release/v2 recommendation and fail-closed release semantics.",
         "Verify the skill documents workspace-policy generation, its dry-run/write/replace boundary, and repository-only mutation scope.",
         "Verify the skill documents read-only route, scoped stale-record refresh, provenance classification, and transactional cleanup postconditions.",
+        "Verify the skill tells agents to consume foundation_readiness as repository evidence and make the task-specific recommendation in chat without treating it as rewrite authority.",
         "Run pnpm cli help and confirm the documented command is exposed.",
         "Verify repo and route remain the only command entry points for task-lane custody; no competing worktree mutator is introduced."
       ],

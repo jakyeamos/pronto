@@ -175,6 +175,16 @@ outcomes according to their evidence strength. Implementation techniques such
 as route-level lazy loading are evidence inputs, never pass conditions by
 themselves.
 
+The repository quality payload includes the additive
+`pronto-foundation-readiness/v1` modernization maturity gate documented in
+[foundation-readiness.md](foundation-readiness.md). Pronto derives it only
+from current repository maturity, actionable structural findings, behavior
+assurance, and installed-runtime evidence. It is projected through the
+existing quality, repository, and route JSON contracts; it does not add a
+queue, inbox, approval step, mutation command, or second human review surface.
+Detailed reasons and unknowns remain machine-readable for an agent to turn into
+a task-specific recommendation in chat.
+
 The [Mac Control maturity gate](mac-control-maturity-gate.md) contributes
 implementation-contract and live-task-evidence dimensions to the consolidated
 score for every registered repository unless that repository explicitly proves

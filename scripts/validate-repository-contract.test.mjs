@@ -25,6 +25,7 @@ const fixtureFiles = [
   "docs/quality-gate-recommendation-matrix.md",
   "docs/cache-design-maturity-gate.md",
   "docs/ci-tracker.md",
+  "docs/foundation-readiness.md",
   "docs/mac-control-maturity-gate.md",
   "docs/remediation-sequential-handoff.md",
   "docs/repository-contract.md",
