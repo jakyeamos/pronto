@@ -14,11 +14,11 @@ use std::process::Command;
 
 pub const CUSTODY_PROJECTION_SCHEMA: &str = "pronto-custody-projection/v1";
 pub const WORKSPACE_POLICY_SCHEMA: &str = "workspace-policy/v1";
+pub const WORKSPACE_POLICY_RELATIVE_PATH: &str = ".agents/workspace-policy.json";
 const TASK_SCHEMA: &str = "isolated-change-task/v2";
 const LEGACY_TASK_SCHEMA: &str = "isolated-change-task/v1";
 const DEFAULT_LEASE_SECONDS: i64 = 24 * 60 * 60;
 const DEFAULT_ADOPTION_SECONDS: i64 = 72 * 60 * 60;
-const DEFAULT_WORKSPACE_POLICY_RELATIVE_PATH: &str = ".agents/workspace-policy.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CustodyLane {
@@ -188,7 +188,7 @@ fn nonempty_policy_string(value: Option<&Value>, field: &str) -> Result<String, 
 }
 
 fn workspace_policy_path(repository: &Path) -> PathBuf {
-    repository.join(DEFAULT_WORKSPACE_POLICY_RELATIVE_PATH)
+    repository.join(WORKSPACE_POLICY_RELATIVE_PATH)
 }
 
 fn policy_workspace_path(repository: &Path, value: Option<&String>) -> Option<PathBuf> {
@@ -1217,7 +1217,7 @@ mod tests {
         });
         fs::create_dir_all(repo.join(".agents")).expect("policy directory");
         fs::write(
-            repo.join(DEFAULT_WORKSPACE_POLICY_RELATIVE_PATH),
+            repo.join(WORKSPACE_POLICY_RELATIVE_PATH),
             serde_json::to_vec_pretty(&policy).expect("policy JSON"),
         )
         .expect("workspace policy");
@@ -1272,7 +1272,7 @@ mod tests {
         let repo = temp_repo();
         fs::create_dir_all(repo.join(".agents")).expect("policy directory");
         fs::write(
-            repo.join(DEFAULT_WORKSPACE_POLICY_RELATIVE_PATH),
+            repo.join(WORKSPACE_POLICY_RELATIVE_PATH),
             "{\"schema_version\":\"workspace-policy/v1\",\"repository_role\":\"production_product\"}",
         )
         .expect("invalid policy");

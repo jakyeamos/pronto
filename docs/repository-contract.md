@@ -26,6 +26,10 @@ unavailable until it is regenerated from the exact `dev` commit.
 - Focused Rust modules such as `quality.rs`, `remediation.rs`,
   `change_matrix.rs`, and `showcase.rs` own their domain rules. Add behavior
   there instead of duplicating it in the renderer or Node adapter.
+- `workspace-policy generate` owns the explicit per-repository
+  `.agents/workspace-policy.json` projection from the reviewed fleet role map.
+  It defaults to a no-write plan and only `--write` may create files; it never
+  performs Git, provider, branch, worktree, or ref-protection mutations.
 - `src/renderer/src/` renders shared projection contracts. It may format state
   but must not invent freshness, passing evidence, authorization, or closure.
 - `bin/pronto.mjs` is a thin launcher for the native CLI. It invokes bare
@@ -170,7 +174,10 @@ tool relationship in `.agents/agent-usability.json`; Pronto imports the QR
 projection and never infers passing coverage from file volume.
 
 Network refreshes, Git writes, provider mutations, application installation,
-and release publication are separate authority boundaries. Use the narrowest
+and release publication are separate authority boundaries. Repository policy
+generation is the narrow local-metadata exception: its explicit `--write`
+surface is limited to `.agents/workspace-policy.json`, with conflict and
+symlink checks before installation. Use the narrowest
 repository or provider scope and preserve the exact source commit and evidence
 timestamp. AI remains disabled by default and must not receive source content,
 credentials, or operational authority without a separately designed contract.
@@ -229,6 +236,8 @@ before:
 
 - changing Pronto's persisted local registry or repository-owned disposition
   ledgers;
+- generating or replacing repository-owned `.agents/workspace-policy.json`
+  files (use the exact role map and explicit `--write`/`--replace` boundary);
 - installing global/system prerequisites or writing `/Applications/Pronto.app`;
 - committing, merging, rebasing, pushing, pruning, deleting, or rewriting Git
   state;

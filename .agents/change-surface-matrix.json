@@ -62,10 +62,13 @@
         "cargo check --manifest-path src-tauri/Cargo.toml --lib",
         "pnpm cli custody --json and pnpm cli custody <repository-path> --json",
         "pnpm cli workspace-manifest --role-map <exact workspace-role-map/v1 file> --json",
+        "pnpm cli workspace-policy generate --role-map <exact workspace-role-map/v1 file> --json",
+        "pnpm cli workspace-policy generate --role-map <exact workspace-role-map/v1 file> --write --json against a disposable fixture or explicitly scoped repository",
         "pnpm typecheck",
         "pnpm vitest run src/renderer/src/components/RepositoryDetailSurfaces.test.tsx",
         "Verify unsupported, malformed, legacy unsigned, binding-mismatched, dirty, operation-active, and unavailable-evidence lanes retain granular dispositions and never become adoptable.",
         "Verify workspace-policy/v1 separates role-defined canonical workspaces from temporary lease-required lanes and reports 2P + 1N baseline drift without mutation authority.",
+        "Verify workspace-policy-generation/v1 defaults to read_only=true and implementation_allowed=false, uses plan-first conflict blocking, and writes only the repository policy file when --write is explicit.",
         "Verify the command and renderer expose read_only=true and implementation_allowed=false."
       ],
       "status": "applicable"
@@ -154,6 +157,7 @@
         "Verify release preview documents the v2 advisory recommendation dispositions and no-publication boundary.",
         "Verify relative context links resolve inside the repository.",
         "Verify workspace-manifest requires exact role coverage and emits workspace-fleet-manifest/v1 without mutation authority.",
+        "Verify workspace-policy generation is documented as dry-run by default, explicit --write/--replace, exact role-map coverage, and no Git/provider mutation.",
         "Run a scoped Quality Runner fleet audit and inspect agent_usability."
       ],
       "status": "applicable"
@@ -168,6 +172,7 @@
       "validation": [
         "Verify the skill documents refresh-batch parallel scan, serialized merge, and conflict retry semantics.",
         "Verify the skill documents pronto-agent-release/v2 recommendation and fail-closed release semantics.",
+        "Verify the skill documents workspace-policy generation, its dry-run/write/replace boundary, and repository-only mutation scope.",
         "Run pnpm cli help and confirm the documented command is exposed."
       ],
       "status": "applicable"

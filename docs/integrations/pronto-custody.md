@@ -76,9 +76,35 @@ their working ref. The review explicitly assigns Bballedu's release ref to
 `master`. This gives the current fleet a baseline target of `2*10 + 58 = 78`;
 future role changes remain separate, reviewable policy decisions.
 
-The generator reports current active temporary lanes from live custody
-evidence. It does not write repository policy files, protect refs, grant
-custody, or delete worktrees.
+The manifest generator reports current active temporary lanes from live custody
+evidence. It remains read-only: it does not write repository policy files,
+protect refs, grant custody, or delete worktrees.
+
+### Repository policy-file generation
+
+Per-repository policy files are a separate, explicit local-write surface. Use
+the same reviewed role map to plan or generate `.agents/workspace-policy.json`
+in each registered Git repository:
+
+```bash
+pronto workspace-policy generate \
+  --role-map /path/to/workspace-role-map.json \
+  [--repository <id|path|name>] --json
+```
+
+Without `--write`, the command emits `workspace-policy-generation/v1` and
+per-repository `would_create`/`would_replace` results without changing files.
+`--write` creates missing files. An existing differing file is a conflict until
+`--replace --write` is explicitly supplied. Fleet generation is plan-first:
+any blocked Git root, symlinked `.agents` directory or policy file, malformed
+target, or unresolved conflict prevents ready targets from being applied, so a
+fleet run does not silently produce a partial policy set. An explicit
+`--repository` scopes the plan to one registered repository.
+
+This command writes only the repository-owned policy file. It never commits or
+pushes, protects `main`/`master` or `dev`, grants temporary-lane custody, creates
+or removes worktrees, or changes provider state. Each generated file must be
+reviewed and committed through that repository's normal integration lane.
 
 ## State and disposition
 
