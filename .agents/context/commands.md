@@ -109,6 +109,16 @@ dimension mean, and rebuilds the local pillar view without claiming that the
 old feed supplied v2 evidence. Project Compass and product readiness remain
 separate projections and never raise or lower repository maturity.
 
+Quality Runner now publishes the QR maturity feed and Mac Control ideal-state
+report through the coordinated pointer
+`~/.quality-runner/fleet-audit/current/maturity-checkpoint.json` using schema
+`quality-runner-maturity-checkpoint/v1`. Pronto imports that pointer first and
+requires its hashed components to bind one `as_of`, audit IDs, repository
+population, and primary observed commits. A valid pointer gives one freshness
+boundary while preserving the QR score and Mac Control two-lane disposition as
+separate evidence. A missing pointer is labeled `Legacy separate`; an invalid
+or incoherent pointer is `Blocked` and must not fall back to mixing sidecars.
+
 Quality, summary, attention, and remediation projections expose generic
 `evidence_contracts` state. Observation freshness and contract freshness are
 independent: a recent report whose observed schema differs from the registered
@@ -264,8 +274,9 @@ applicable improvements toward the ideal, but must not create superficial
 documentation, configuration, tests, or other artifacts solely to raise the
 score. The 4.0/4 ideal additionally requires every configured maturity gate,
 including the fresh, commit-matched Mac Control ideal-state gate where
-applicable; this is a score condition, not a four-repository count. See
-`docs/mac-control-maturity-gate.md` for the report contract and explicit
+applicable; this is a score condition, not a four-repository count. The
+coordinated checkpoint is the freshness boundary for that gate. See
+`docs/mac-control-maturity-gate.md` for the report, checkpoint, and explicit
 not-applicable handling.
 Only `mac-control-task-manifest/v4` source-grounded dimensions can contribute
 to the implementation lane. V1 through v3 declaration counts remain visible

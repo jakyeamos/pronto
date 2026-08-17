@@ -1,16 +1,46 @@
 # Mac Control maturity gate
 
-Pronto imports the canonical Quality Runner maturity feed as its source score,
-then consolidates locally audited operational dimensions into the displayed
-0–4 fleet score. The Mac Control ideal-state contract contributes two of those
-dimensions: `mac_control.implementation_contract` and
-`mac_control.live_task_evidence`. A repository may claim the `4.0/4.0` ideal
-only when both applicable lanes are fresh and passing. `4/4` is not a
-four-repository denominator.
+Pronto imports a QR-owned coordinated maturity checkpoint before projecting
+the displayed 0–4 fleet score. The checkpoint binds the canonical Quality
+Runner source score and the Mac Control ideal-state report to one freshness
+boundary; the Mac Control contract still contributes two separate dimensions:
+`mac_control.implementation_contract` and `mac_control.live_task_evidence`.
+A repository may claim the `4.0/4.0` ideal only when both applicable lanes are
+fresh and passing. `4/4` is not a four-repository denominator.
+
+If the checkpoint pointer is absent, Pronto retains a compatibility path for
+the older separate feeds and labels the portfolio `Legacy separate`. If the
+pointer exists but is malformed, incoherent, or tampered with, Pronto reports
+the checkpoint as blocked/invalid and does not silently combine the sidecars.
+A valid checkpoint outside its freshness policy remains visibly
+`Coordinated`/`Stale`; it is not promoted to an ideal-state pass.
+
+## Coordinated checkpoint
+
+The QR-owned pointer is:
+
+```text
+~/.quality-runner/fleet-audit/current/maturity-checkpoint.json
+```
+
+It uses schema `quality-runner-maturity-checkpoint/v1` and references a
+versioned bundle under
+`~/.quality-runner/fleet-audit/current/checkpoints/<checkpoint-id>/` containing
+`maturity.json`, `mac-control-ideal-state.json`, and the Mac Control summary.
+The pointer records component hashes and requires the QR and Mac Control audit
+IDs, `as_of`/`observed_at`, repository population, and primary observed commits
+to agree. `publication_status: "ready"` proves coherence and replay-valid
+publication; `quality_status` remains independent and may be
+`ready_with_blockers` when the evidence is fresh but not passing.
+
+Pronto evaluates the checkpoint freshness window from the pointer timestamp.
+Freshness therefore answers “is this one QR/Mac Control snapshot current?”;
+the Mac Control lane status still answers “did the two required evidence lanes
+pass?”
 
 ## Canonical evidence
 
-Mac Control publishes the report at:
+The Mac Control component is published at:
 
 ```text
 ~/.quality-runner/fleet-audit/current/mac-control-ideal-state.json

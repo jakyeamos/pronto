@@ -4319,12 +4319,25 @@ fn apply_quality_evidence_scoped(
 ) {
     let persisted_fleet_root = persisted_fleet_audit_root(state);
     let fleet_audit_root = fleet_audit_root.or(persisted_fleet_root.as_deref());
-    let feed_path = quality::canonical_maturity_feed_path();
-    let audit = quality::maturity_feed_import(feed_path.as_deref(), &state.repositories);
+    let checkpoint_path = quality::canonical_maturity_checkpoint_path();
+    let coordinated =
+        quality::maturity_checkpoint_import(checkpoint_path.as_deref(), &state.repositories);
+    let (audit, mac_control, checkpoint) = if let Some(import) = coordinated {
+        (import.audit, import.mac_control, import.checkpoint)
+    } else {
+        let feed_path = quality::canonical_maturity_feed_path();
+        let audit = quality::maturity_feed_import(feed_path.as_deref(), &state.repositories);
+        let mac_control_scope = state.repositories.clone();
+        let mac_control = mac_control_maturity::evaluate_canonical(&mac_control_scope);
+        (
+            audit,
+            mac_control,
+            quality::MaturityCheckpointSnapshot::legacy(),
+        )
+    };
     let fleet = quality::fleet_audit_import(fleet_audit_root, &state.repositories);
-    let mac_control_scope = state.repositories.clone();
-    let mac_control = mac_control_maturity::evaluate_canonical(&mac_control_scope);
     state.quality = audit.portfolio;
+    state.quality.maturity_checkpoint = checkpoint;
     state.quality.mac_control_ideal_state = mac_control.portfolio.clone();
     state.quality.evidence_contracts = vec![mac_control.portfolio.evidence_contract.clone()];
     let remote_by_name = state

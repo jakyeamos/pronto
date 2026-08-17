@@ -1077,6 +1077,14 @@ describe("quality evidence surfaces", () => {
               assessed_repository_count: 1,
             },
           ],
+          maturity_checkpoint: {
+            status: "Coordinated",
+            publication_status: "Published",
+            quality_status: "ready_with_blockers",
+            freshness: "Fresh",
+            checkpoint_id: "checkpoint-1",
+            observed_at: "2026-07-26T11:00:00Z",
+          },
         })}
         repositories={[repository]}
         onOpenRepository={noopRepository}
@@ -1087,6 +1095,7 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("QR source holistic");
     expect(markup).toContain("80% evidence");
     expect(markup).toContain("70% fresh");
+    expect(markup).toContain("QR + Mac Control checkpoint: Coordinated");
     expect(markup).toContain("1 provisional");
     expect(markup).toContain(
       "Product readiness and Project Compass progress are reported separately",

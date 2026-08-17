@@ -238,6 +238,22 @@
       "status": "applicable"
     },
     {
+      "id": "quality-runner-maturity-checkpoint",
+      "scope": "external",
+      "path": "~/.quality-runner/fleet-audit/current/maturity-checkpoint.json, quality-runner-maturity-checkpoint/v1, src-tauri/src/quality.rs, and maturity quality surfaces",
+      "owner": "Quality Runner and Pronto integration owners",
+      "condition": "The QR/Mac Control coordinated freshness envelope, component binding, publication status, compatibility fallback, or user-facing checkpoint disposition changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "uv run --locked pytest tests/test_maturity_feed.py",
+        "cargo test --manifest-path src-tauri/Cargo.toml maturity_checkpoint",
+        "pnpm vitest run src/renderer/src/components/QualityComponents.test.tsx",
+        "pnpm typecheck",
+        "Read back a coordinated QR/Mac Control checkpoint in Pronto and verify invalid pointers fail closed."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "github-provider",
       "scope": "external",
       "path": "github.com/jakyeamos/pronto",
