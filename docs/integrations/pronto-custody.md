@@ -69,6 +69,13 @@ incomplete. Missing or extra repository IDs fail the command. The resulting
 qr fleet workspace-target calculate --manifest /path/to/workspace-fleet.json --json
 ```
 
+The checked-in `.pronto/workspace-role-map.json` is the initial exact-coverage
+fleet map. Its entries are intentionally `role_unresolved` until a reviewed
+role decision supplies the production or supporting fields. This makes the
+folding and custody surfaces machine-readable without inventing `P` or
+protecting the wrong refs; changing an entry to a resolved role is a separate,
+reviewable policy decision.
+
 The generator reports current active temporary lanes from live custody
 evidence. It does not write repository policy files, protect refs, grant
 custody, or delete worktrees.

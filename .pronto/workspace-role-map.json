@@ -1,0 +1,277 @@
+{
+  "schema_version": "workspace-role-map/v1",
+  "repositories": [
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/agent-eval-contract",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/agent-eval-runtime",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/agent-router",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/ai-context-runtime",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/ai-workflow-leverage",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/AIOS",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/attentiond",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/automation-flight-recorder",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/Bballedu",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/behavior-coverage-atlas",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/BidCamp",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/BIP-Console",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/Book",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/browser-control",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/BBDSE/cap-fit-builder",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/career-ops",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/change-integration-simulator",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/change-radius",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/ci-incident-router",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/claude-config",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/BBDSE/CLFE",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/codex",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/context-compiler-contract",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/contract-watch",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/Crimclock",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/daily-front-page",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/debug-trail",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/deletion-proof-workbench",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/dispatches-from-cyberspace",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/dotfiles",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/Dsci-proj",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/eslint-plugin-anti-slop",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/evidence-replay",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/failure-capsule",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/Fantasy",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/fleet-radar",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/gmail-mcp-bridge",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/jakye-skill-family",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/jakyeamos-agent-skills",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/jakyeamos-agentic-setup-private",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/jakyeamos-profile",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/LaxDS",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/mac-control",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/marketing-autoresearch",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/participant-dedup",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/portfolio",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/pre-cr-suite-lsp",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/Documents/pronto",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/quality-lens",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/quality-runner",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/quality-setup",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/readiness-inspector",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/relay",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/remediation-canvas",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/remodelvision",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/research-domain-writing",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/review-attention-map",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/review-sandbox",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/BBDSE/RTE Transferable Signals",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/rule-lab",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/BBDSE/signal-lab",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/AIOS/skills-library",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/soundscape-app",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/tenure",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/Terrace",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/tmcp",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/BBDSE/womens-stats",
+      "repository_role": "role_unresolved"
+    },
+    {
+      "repository_id": "repository:/Users/jakyeamos/projects/workflow-gateboard",
+      "repository_role": "role_unresolved"
+    }
+  ]
+}
