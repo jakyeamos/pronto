@@ -232,6 +232,8 @@ export interface CustodyLane {
   work_item_id?: string;
   branch?: string;
   worktree?: string;
+  workspace_class?: string;
+  lease_required?: boolean;
   state: string;
   disposition: string;
   dispositions: string[];
@@ -242,6 +244,33 @@ export interface CustodyLane {
   head_sha?: string;
   last_activity_at?: string;
   lease_expires_at?: string;
+}
+
+export interface WorkspacePolicyProjection {
+  schema_version: string;
+  repository_id?: string;
+  repository_role: string;
+  status: string;
+  disposition: string;
+  baseline_target: number | null;
+  canonical_target: number | null;
+  canonical_observed: number;
+  temporary_observed: number;
+  active_temporary_lanes: number;
+  retained_lane_count: number;
+  managed_target_total: number | null;
+  canonical_workspaces: Array<{
+    id: string;
+    role: string;
+    ref: string;
+    path?: string | null;
+    protected: boolean;
+  }>;
+  protected_refs: string[];
+  lease_required_for: string;
+  canonical_protection: string;
+  policy_path?: string | null;
+  drift: string[];
 }
 
 export interface CustodySnapshot {
@@ -264,6 +293,7 @@ export interface CustodySnapshot {
     paths: string[];
     status: string;
   }>;
+  workspace_policy?: WorkspacePolicyProjection;
   integrity: Record<string, string>;
 }
 

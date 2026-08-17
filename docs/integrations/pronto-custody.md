@@ -22,6 +22,31 @@ The native projection is `pronto-custody-projection/v1`; the CLI envelope is
 heads, status, operation markers, open-file evidence, and local receipt files.
 Cached Pronto labels do not authorize custody decisions.
 
+## Role-based workspace targets
+
+Custody is projected alongside a separate workspace policy dimension. A policy
+classifies the repository's protected canonical workspaces by role:
+
+- `production_product` has two canonical workspaces: `release` on `main` or
+  `master`, and `integration` on the repository's `dev` line.
+- `supporting_project` has one canonical `working` workspace on its actual
+  working branch.
+- `role_unresolved` is explicit and does not produce a baseline target.
+
+The fleet baseline is `2P + 1N`, where `P` is the number of production products
+and `N` is the number of supporting projects. Active feature, agent,
+verification, adoption, and cleanup worktrees are temporary lanes; they do not
+count toward that baseline and require isolated-change leases. A deliberate
+retention exception is reported separately with its review deadline.
+
+The projection exposes `baseline_target`, `canonical_observed`,
+`temporary_observed`, `active_temporary_lanes`, `retained_lane_count`,
+`managed_target_total`, and `drift`. Canonical protection and temporary-lane
+custody are separate dimensions: a canonical workspace is protected by the
+role policy, while every other workspace must be leased. A missing or invalid
+policy remains an explicit `policy_missing` or `policy_invalid` condition; it
+does not authorize adoption, deletion, or integration.
+
 ## State and disposition
 
 Each lane has an independent lifecycle `state`:
