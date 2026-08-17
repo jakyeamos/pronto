@@ -69,12 +69,12 @@ incomplete. Missing or extra repository IDs fail the command. The resulting
 qr fleet workspace-target calculate --manifest /path/to/workspace-fleet.json --json
 ```
 
-The checked-in `.pronto/workspace-role-map.json` is the initial exact-coverage
-fleet map. Its entries are intentionally `role_unresolved` until a reviewed
-role decision supplies the production or supporting fields. This makes the
-folding and custody surfaces machine-readable without inventing `P` or
-protecting the wrong refs; changing an entry to a resolved role is a separate,
-reviewable policy decision.
+The checked-in `.pronto/workspace-role-map.json` is the reviewed exact-coverage
+fleet map: 10 production products and 58 supporting projects. Its production
+entries use `main` or `master` plus `dev`; its supporting entries use `dev` as
+their working ref. The review explicitly assigns Bballedu's release ref to
+`master`. This gives the current fleet a baseline target of `2*10 + 58 = 78`;
+future role changes remain separate, reviewable policy decisions.
 
 The generator reports current active temporary lanes from live custody
 evidence. It does not write repository policy files, protect refs, grant
