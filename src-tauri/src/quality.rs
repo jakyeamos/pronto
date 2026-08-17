@@ -2152,6 +2152,7 @@ fn maturity_pillar_patterns(pillar: &str) -> &'static [&'static str] {
             "deployment_rollback",
             "diagnosability.",
             "failure_modes",
+            "long_running_task_",
             "observability",
             "operability",
             "release_",
@@ -2222,7 +2223,12 @@ fn maturity_pillar_capabilities(
             ("diagnosability", &["diagnosability."]),
             (
                 "operational_observability",
-                &["observability", "operability"],
+                &[
+                    "observability",
+                    "operability",
+                    "long_running_task_observability",
+                    "long_running_task_optimization",
+                ],
             ),
         ],
         "user_facing_quality" => &[
@@ -7287,6 +7293,38 @@ mod tests {
         assert_eq!(model.score, Some(2.0));
         assert_eq!(model.status, "blocked");
         assert!(model.critical_cap.applied);
+    }
+
+    #[test]
+    fn repository_maturity_maps_long_running_task_dimensions_to_operability() {
+        let maturity = QualityMaturity {
+            dimension_scores: BTreeMap::from([
+                ("long_running_task_observability".to_string(), 2.0),
+                ("long_running_task_optimization".to_string(), 0.0),
+            ]),
+            ..QualityMaturity::default()
+        };
+
+        let model = build_repository_maturity_model(&maturity);
+        let operability = model
+            .pillars
+            .iter()
+            .find(|pillar| pillar.id == "operability_release_safety")
+            .expect("long-running task dimensions should map to operability");
+
+        assert!(model.evidence.unmapped_dimensions.is_empty());
+        assert_eq!(
+            operability
+                .dimension_scores
+                .get("long_running_task_observability"),
+            Some(&2.0)
+        );
+        assert_eq!(
+            operability
+                .dimension_scores
+                .get("long_running_task_optimization"),
+            Some(&0.0)
+        );
     }
 
     #[test]

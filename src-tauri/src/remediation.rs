@@ -2893,10 +2893,11 @@ fn add_maturity_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
     }
     for (dimension, score) in &maturity.dimension_scores {
         if *score < MATURITY_CLOSURE_TARGET {
+            let (title, first_acceptance_criterion) = maturity_dimension_action_copy(dimension);
             seeds.push(ActionSeed {
                 stable_key: format!("maturity:dimension:{dimension}"),
                 domain: "maturity".to_string(),
-                title: format!("Improve the {dimension} maturity dimension"),
+                title,
                 summary: format!(
                     "The dimension score is {score:.3}/4; the minimum closure target is {MATURITY_CLOSURE_TARGET:.1}/4 and the evidence-backed ideal is {MATURITY_IDEAL_SCORE:.1}/4."
                 ),
@@ -2904,7 +2905,7 @@ fn add_maturity_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
                 priority: "P2".to_string(),
                 weight: 2,
                 acceptance_criteria: vec![
-                    format!("Address the evidence-backed gaps for {dimension}."),
+                    first_acceptance_criterion,
                     format!(
                         "Fresh imported maturity evidence reports {dimension} at or above {MATURITY_CLOSURE_TARGET:.1}/4."
                     ),
@@ -2926,6 +2927,23 @@ fn add_maturity_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSee
                 source_run_id: maturity.audit_id.clone(),
             });
         }
+    }
+}
+
+fn maturity_dimension_action_copy(dimension: &str) -> (String, String) {
+    match dimension {
+        "long_running_task_observability" => (
+            "Add agent-readable progress to long-running tasks".to_string(),
+            "Expose machine-readable heartbeat or progress state and actionable diagnostics for every qualified long-running task.".to_string(),
+        ),
+        "long_running_task_optimization" => (
+            "Review long-running tasks for avoidable repeated work".to_string(),
+            "Document or implement bounded execution and work-reduction evidence such as batching, caching, checkpointing, cursors, incremental work, or one-time materialization.".to_string(),
+        ),
+        _ => (
+            format!("Improve the {dimension} maturity dimension"),
+            format!("Address the evidence-backed gaps for {dimension}."),
+        ),
     }
 }
 
@@ -6667,6 +6685,16 @@ mod tests {
             .maturity
             .dimension_scores
             .insert("matrix_maintenance".to_string(), 0.0);
+        repository
+            .quality
+            .maturity
+            .dimension_scores
+            .insert("long_running_task_observability".to_string(), 2.0);
+        repository
+            .quality
+            .maturity
+            .dimension_scores
+            .insert("long_running_task_optimization".to_string(), 0.0);
         fs::write(
             findings_dir.join("repo.json"),
             serde_json::to_string(&serde_json::json!({
@@ -6730,6 +6758,30 @@ mod tests {
                 .count(),
             1
         );
+        let observability = plan
+            .actions
+            .iter()
+            .find(|action| {
+                action.stable_key == "maturity:dimension:long_running_task_observability"
+            })
+            .expect("observability gap should become deferred maturity work");
+        assert_eq!(
+            observability.title,
+            "Add agent-readable progress to long-running tasks"
+        );
+        assert_eq!(observability.priority, "P2");
+        assert_eq!(observability.severity, "maturity");
+        let optimization = plan
+            .actions
+            .iter()
+            .find(|action| action.stable_key == "maturity:dimension:long_running_task_optimization")
+            .expect("optimization gap should become deferred maturity work");
+        assert_eq!(
+            optimization.title,
+            "Review long-running tasks for avoidable repeated work"
+        );
+        assert_eq!(optimization.priority, "P2");
+        assert_eq!(optimization.severity, "maturity");
         fs::remove_dir_all(root).expect("fleet fixture should be removable");
     }
 }

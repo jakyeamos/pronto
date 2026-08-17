@@ -121,6 +121,15 @@ remediation queue. After using the scoped report to identify gaps, rerun the
 complete audit without `--standard`, publish its replay-valid feed, and refresh
 Pronto; the diagnostic slice alone does not change the score or queue.
 
+Long-running task review uses the same producer/consumer boundary. Run
+`qr fleet audit run --all --projects-root /path/to/projects --standard long-running-tasks --json`
+for the diagnostic inventory. QR qualifies tasks from explicit annotations or
+concrete timeout declarations, never names alone, and assesses
+`long_running_task_observability` plus `long_running_task_optimization`.
+Complete QR feeds map both dimensions into Pronto's operability pillar and
+create deferred P2 maturity actions. They are triage work, not automatic fixes
+or immediate repository blockers.
+
 The canonical maturity feed is `quality-runner-maturity-feed/v2`. Its headline
 score is a risk-weighted repository-quality measure over seven pillars, not a
 flat mean of however many dimensions happen to exist. Consumers must retain
