@@ -180,13 +180,12 @@ if (existsSync(targetApp) && lstatSync(targetApp).isSymbolicLink()) {
 }
 
 let installedAppWasRunning = false;
-let collectorWasLoaded;
 try {
   const appProcessIdsBeforeUpdate = installedAppProcessIds({
     includeCollector: false,
   });
   installedAppWasRunning = appProcessIdsBeforeUpdate.length > 0;
-  collectorWasLoaded = collectorServiceIsLoaded();
+  const collectorWasLoaded = collectorServiceIsLoaded();
   if (appProcessIdsBeforeUpdate.length > 0) {
     terminateInstalledApp(appProcessIdsBeforeUpdate);
     waitForInstalledAppToQuit();
