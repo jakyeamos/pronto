@@ -47,6 +47,32 @@ role policy, while every other workspace must be leased. A missing or invalid
 policy remains an explicit `policy_missing` or `policy_invalid` condition; it
 does not authorize adoption, deletion, or integration.
 
+### Fleet manifest generation
+
+Pronto generates the QR input manifest from the registered fleet and live
+temporary-lane projections. It requires an explicit, exact-coverage role map;
+it never infers product role from Showcase labels, repository names, or branch
+activity:
+
+```bash
+pronto workspace-manifest --role-map /path/to/workspace-role-map.json --json
+```
+
+The role map uses `workspace-role-map/v1` and contains one entry per registered
+repository. Production entries require `release_ref` (`main` or `master`) and
+`integration_ref` (`dev`); supporting entries require the actual
+`working_ref`; unresolved entries are allowed but keep the fleet baseline
+incomplete. Missing or extra repository IDs fail the command. The resulting
+`workspace-fleet-manifest/v1` is read-only and can be passed to QR:
+
+```bash
+qr fleet workspace-target calculate --manifest /path/to/workspace-fleet.json --json
+```
+
+The generator reports current active temporary lanes from live custody
+evidence. It does not write repository policy files, protect refs, grant
+custody, or delete worktrees.
+
 ## State and disposition
 
 Each lane has an independent lifecycle `state`:

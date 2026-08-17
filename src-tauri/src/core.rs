@@ -50,6 +50,8 @@ const RELEASE_COMMIT_LIMIT: usize = 1_000;
 const TARGET_EVIDENCE_GATE_TIMEOUT_SECONDS: u64 = 120;
 const TARGET_EVIDENCE_TOTAL_TIMEOUT_SECONDS: u64 = 600;
 const DEFAULT_FLEET_DETECTOR_TIMEOUT_SECONDS: u64 = 600;
+const WORKSPACE_ROLE_MAP_SCHEMA: &str = "workspace-role-map/v1";
+const WORKSPACE_FLEET_MANIFEST_SCHEMA: &str = "workspace-fleet-manifest/v1";
 
 static NEXT_ACTION_AUDIT_ID: AtomicU64 = AtomicU64::new(0);
 static NEXT_EVENT_ID: AtomicU64 = AtomicU64::new(0);
@@ -14765,10 +14767,160 @@ fn print_cli_json_error(command: &str, error: &str) {
     );
 }
 
+fn required_workspace_role_string(
+    entry: &serde_json::Map<String, Value>,
+    field: &str,
+) -> Result<String, String> {
+    let value = entry
+        .get(field)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| format!("workspace role map field {field} must be a non-empty string"))?;
+    Ok(value.to_string())
+}
+
+fn workspace_policy_for_role(
+    repository_id: &str,
+    entry: &serde_json::Map<String, Value>,
+) -> Result<Value, String> {
+    let role = required_workspace_role_string(entry, "repository_role")?;
+    let canonical_workspaces = match role.as_str() {
+        "production_product" => {
+            let release_ref = required_workspace_role_string(entry, "release_ref")?;
+            if !matches!(release_ref.as_str(), "main" | "master") {
+                return Err(format!(
+                    "{repository_id}: production release_ref must be main or master"
+                ));
+            }
+            let integration_ref = required_workspace_role_string(entry, "integration_ref")?;
+            if integration_ref != "dev" {
+                return Err(format!(
+                    "{repository_id}: production integration_ref must be dev"
+                ));
+            }
+            vec![
+                serde_json::json!({
+                    "id": "release",
+                    "role": "release",
+                    "ref": release_ref,
+                    "path": Value::Null,
+                    "protected": true,
+                }),
+                serde_json::json!({
+                    "id": "integration",
+                    "role": "integration",
+                    "ref": integration_ref,
+                    "path": Value::Null,
+                    "protected": true,
+                }),
+            ]
+        }
+        "supporting_project" => {
+            let working_ref = required_workspace_role_string(entry, "working_ref")?;
+            vec![serde_json::json!({
+                "id": "working",
+                "role": "working",
+                "ref": working_ref,
+                "path": Value::Null,
+                "protected": true,
+            })]
+        }
+        "role_unresolved" => Vec::new(),
+        _ => {
+            return Err(format!(
+                "{repository_id}: repository_role must be production_product, supporting_project, or role_unresolved"
+            ));
+        }
+    };
+    let retention_exceptions = entry
+        .get("retention_exceptions")
+        .cloned()
+        .unwrap_or_else(|| Value::Array(Vec::new()));
+    if !retention_exceptions.is_array() {
+        return Err(format!(
+            "{repository_id}: retention_exceptions must be an array"
+        ));
+    }
+    Ok(serde_json::json!({
+        "schema_version": "workspace-policy/v1",
+        "repository_id": repository_id,
+        "repository_role": role,
+        "canonical_workspaces": canonical_workspaces,
+        "retention_exceptions": retention_exceptions,
+    }))
+}
+
+fn workspace_fleet_manifest(state: &StoreState, role_map: &Value) -> Result<Value, String> {
+    let role_map = role_map
+        .as_object()
+        .ok_or_else(|| "workspace role map must contain an object".to_string())?;
+    if role_map.get("schema_version").and_then(Value::as_str) != Some(WORKSPACE_ROLE_MAP_SCHEMA) {
+        return Err(format!(
+            "workspace role map schema_version must be {WORKSPACE_ROLE_MAP_SCHEMA}"
+        ));
+    }
+    let entries = role_map
+        .get("repositories")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "workspace role map repositories must be an array".to_string())?;
+    let mut by_id = BTreeMap::new();
+    for (index, value) in entries.iter().enumerate() {
+        let entry = value
+            .as_object()
+            .ok_or_else(|| format!("workspace role map repositories[{index}] must be an object"))?;
+        let repository_id = required_workspace_role_string(entry, "repository_id")?;
+        if by_id.insert(repository_id.clone(), entry).is_some() {
+            return Err(format!(
+                "workspace role map contains duplicate repository_id {repository_id}"
+            ));
+        }
+    }
+    let registered_ids: BTreeSet<String> = state
+        .repositories
+        .iter()
+        .map(|repository| repository.id.clone())
+        .collect();
+    let mapped_ids: BTreeSet<String> = by_id.keys().cloned().collect();
+    let missing: Vec<String> = registered_ids.difference(&mapped_ids).cloned().collect();
+    let extra: Vec<String> = mapped_ids.difference(&registered_ids).cloned().collect();
+    if !missing.is_empty() || !extra.is_empty() {
+        return Err(format!(
+            "workspace role map must cover the registered fleet exactly; missing={missing:?}, extra={extra:?}"
+        ));
+    }
+
+    let mut repositories = Vec::with_capacity(state.repositories.len());
+    for repository in &state.repositories {
+        let entry = by_id
+            .get(&repository.id)
+            .expect("role map coverage was checked above");
+        let policy = workspace_policy_for_role(&repository.id, entry)?;
+        let live = crate::custody::project(Path::new(&repository.path))?;
+        repositories.push(serde_json::json!({
+            "repository_id": repository.id,
+            "repository_path": repository.path,
+            "active_temporary_lanes": live.workspace_policy.active_temporary_lanes,
+            "policy": policy,
+        }));
+    }
+    Ok(serde_json::json!({
+        "schema_version": WORKSPACE_FLEET_MANIFEST_SCHEMA,
+        "generated_at": iso_now(),
+        "source": "pronto registered fleet plus explicit workspace-role-map/v1",
+        "role_map_schema_version": WORKSPACE_ROLE_MAP_SCHEMA,
+        "repository_count": repositories.len(),
+        "repositories": repositories,
+        "read_only": true,
+        "implementation_allowed": false,
+    }))
+}
+
 fn print_cli_usage() {
     println!(
         "Usage: pronto . | pronto analytics [--range-days <days>] [--json] | pronto analytics view list|save --config-json <json|@file>|delete <id>|default <id> [--json] | pronto skills [<skill-id>] [--json] | pronto custody [<repository>] [--json] | pronto papercuts list --json | pronto papercuts observe --stdin --json [--dry-run] | pronto papercuts contract --json | pronto papercuts digest --week current --json | pronto papercuts propose --stdin --json | pronto papercuts proposal set-status <id> <status> --json | pronto papercuts health --json | pronto behavior [<repository>] [--filter <missing|legacy|unprofiled|partially_verified|stale|failed|blocked|unknown|current|not_applicable>] [--fresh] [--json] | pronto change-matrix repo <repository> [--operation <add|change|remove>] [--json] | pronto change-matrix skill <skill-id> [--operation <add|change|remove>] [--json] | pronto route [<repository>] [--fresh] [--json] | pronto quality [<repository>] [--json] | pronto quality refresh [--json] | pronto quality detector-refresh [--qr-bin <path>] [--timeout-seconds <positive-integer>] [--agent-review-mode <off|auto|parallel|required>] [--json] | pronto refresh [<repository|group|product|repository-path>] [--json] | pronto refresh-batch [<repository|group|product|repository-path>] [--parallelism <positive-integer>] [--json] | pronto prepare <repository> [--workspace <id>] [--fresh] [--json] | pronto release preview <repository> [--workspace <id>] [--fresh] [--json] | pronto remediation gate <repository> [--workspace <id>] [--json] | pronto remediation handoff-check <repository> [--workspace <id>] [--json] | pronto quality disposition set <repository> <fingerprint> <status> --reason <text> --reviewer <name> [--evidence <reference>]... [--expires-at <timestamp>] [--json] | pronto repo set-target <repository> <branch> [--json] | pronto status [--fresh] [--json] | pronto help"
     );
+    println!("Workspace manifest: pronto workspace-manifest --role-map <path|@json> [--json]");
 }
 
 pub fn run_cli(arguments: Vec<String>) {
@@ -14778,6 +14930,68 @@ pub fn run_cli(arguments: Vec<String>) {
     match command {
         "help" | "-h" | "--help" => {
             print_cli_usage();
+        }
+        "workspace-manifest" => {
+            let result = (|| -> Result<Value, String> {
+                let _ = cli_positionals(&arguments, &["--role-map"])?;
+                let role_map_path = cli_option(&arguments, "--role-map")?.ok_or_else(|| {
+                    "workspace-manifest requires --role-map <path|@json>".to_string()
+                })?;
+                let source = role_map_path.strip_prefix('@').unwrap_or(&role_map_path);
+                let content = fs::read_to_string(source)
+                    .map_err(|error| format!("Could not read --role-map file: {error}"))?;
+                let role_map: Value = serde_json::from_str(&content)
+                    .map_err(|error| format!("--role-map must contain valid JSON: {error}"))?;
+                let state = load_store_read_only(&path)?;
+                workspace_fleet_manifest(&state, &role_map)
+            })();
+            match result {
+                Ok(report) if json => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+                ),
+                Ok(report) => {
+                    let repositories = report
+                        .get("repositories")
+                        .and_then(Value::as_array)
+                        .cloned()
+                        .unwrap_or_default();
+                    let production = repositories
+                        .iter()
+                        .filter(|entry| {
+                            entry
+                                .get("policy")
+                                .and_then(|policy| policy.get("repository_role"))
+                                .and_then(Value::as_str)
+                                == Some("production_product")
+                        })
+                        .count();
+                    let supporting = repositories
+                        .iter()
+                        .filter(|entry| {
+                            entry
+                                .get("policy")
+                                .and_then(|policy| policy.get("repository_role"))
+                                .and_then(Value::as_str)
+                                == Some("supporting_project")
+                        })
+                        .count();
+                    let unresolved = repositories.len().saturating_sub(production + supporting);
+                    println!(
+                        "PRONTO WORKSPACE MANIFEST · {} repositories · {} production · {} supporting · {} unresolved",
+                        repositories.len(), production, supporting, unresolved
+                    );
+                    println!("Baseline: {}P + {}N", production, supporting);
+                    println!("Use --json for the workspace-fleet-manifest/v1 payload.");
+                }
+                Err(error) => {
+                    if json {
+                        print_cli_json_error("workspace-manifest", &error);
+                    }
+                    eprintln!("Pronto could not generate workspace manifest: {error}");
+                    std::process::exit(1);
+                }
+            }
         }
         "custody" => {
             let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
@@ -21436,5 +21650,57 @@ mod tests {
             .iter()
             .any(|candidate| candidate.id == "curated" && candidate.is_default));
         fs::remove_dir_all(root).expect("analytics view fixture should be removable");
+    }
+
+    #[test]
+    fn workspace_role_map_requires_explicit_production_refs() {
+        let entry = serde_json::json!({
+            "repository_role": "production_product"
+        });
+        let error = workspace_policy_for_role(
+            "example-repository",
+            entry.as_object().expect("role entry should be an object"),
+        )
+        .expect_err("production role without refs must fail closed");
+        assert!(error.contains("release_ref"));
+    }
+
+    #[test]
+    fn workspace_role_map_builds_canonical_roles_without_mutation_fields() {
+        let entry = serde_json::json!({
+            "repository_role": "production_product",
+            "release_ref": "master",
+            "integration_ref": "dev"
+        });
+        let policy = workspace_policy_for_role(
+            "example-repository",
+            entry.as_object().expect("role entry should be an object"),
+        )
+        .expect("complete production role should validate");
+        assert_eq!(policy["schema_version"], "workspace-policy/v1");
+        assert_eq!(policy["repository_role"], "production_product");
+        assert_eq!(
+            policy["canonical_workspaces"].as_array().map(Vec::len),
+            Some(2)
+        );
+        assert_eq!(
+            policy["retention_exceptions"].as_array().map(Vec::len),
+            Some(0)
+        );
+    }
+
+    #[test]
+    fn workspace_fleet_manifest_requires_exact_registered_coverage() {
+        let state = StoreState::default();
+        let role_map = serde_json::json!({
+            "schema_version": WORKSPACE_ROLE_MAP_SCHEMA,
+            "repositories": [{
+                "repository_id": "not-registered",
+                "repository_role": "role_unresolved"
+            }]
+        });
+        let error = workspace_fleet_manifest(&state, &role_map)
+            .expect_err("extra role-map entries must fail closed");
+        assert!(error.contains("extra"));
     }
 }

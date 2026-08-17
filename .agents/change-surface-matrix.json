@@ -61,6 +61,7 @@
         "cargo test --manifest-path src-tauri/Cargo.toml custody::tests",
         "cargo check --manifest-path src-tauri/Cargo.toml --lib",
         "pnpm cli custody --json and pnpm cli custody <repository-path> --json",
+        "pnpm cli workspace-manifest --role-map <exact workspace-role-map/v1 file> --json",
         "pnpm typecheck",
         "pnpm vitest run src/renderer/src/components/RepositoryDetailSurfaces.test.tsx",
         "Verify unsupported, malformed, legacy unsigned, binding-mismatched, dirty, operation-active, and unavailable-evidence lanes retain granular dispositions and never become adoptable.",
@@ -152,6 +153,7 @@
         "Verify refresh-batch documents its parallel scan, serialized merge, and conflict-retry boundary.",
         "Verify release preview documents the v2 advisory recommendation dispositions and no-publication boundary.",
         "Verify relative context links resolve inside the repository.",
+        "Verify workspace-manifest requires exact role coverage and emits workspace-fleet-manifest/v1 without mutation authority.",
         "Run a scoped Quality Runner fleet audit and inspect agent_usability."
       ],
       "status": "applicable"
