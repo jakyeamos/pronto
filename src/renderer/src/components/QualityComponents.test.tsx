@@ -13,9 +13,11 @@ import {
   makePortfolio,
   noopRepository,
   noopReport,
+  ProjectCompassDetail,
   QualityFindingsSummary,
   QualityOutcomeSummary,
   QualityGatesSurface,
+  RepositoryRow,
 } from "./QualityComponents.test-support";
 afterEach(cleanup);
 // quality-gate: allow static-ui-test: verifies the read-only evidence contract and release-source copy

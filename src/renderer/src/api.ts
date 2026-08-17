@@ -24,11 +24,6 @@ import type {
   RepositoryPreparation,
   ReleaseRecipeConfig,
   ReleaseRuleConfig,
-  PromotionDecision,
-  PromotionInbox,
-  CreatePapercutInput,
-  PapercutBacklog,
-  PapercutStatus,
 } from "./types";
 
 function isDesktopBridgeAvailable(): boolean {
@@ -55,13 +50,6 @@ export async function refresh(): Promise<PortfolioSnapshot> {
     parallelism: null,
   });
   return report.snapshot;
-}
-
-export async function refreshQuality(): Promise<PortfolioSnapshot> {
-  if (!isDesktopBridgeAvailable()) {
-    throw new Error("Quality refresh is available in the Pronto desktop app.");
-  }
-  return invoke<PortfolioSnapshot>("refresh_quality");
 }
 
 export async function refreshQuality(): Promise<PortfolioSnapshot> {
