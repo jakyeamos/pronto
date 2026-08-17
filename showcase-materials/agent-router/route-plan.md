@@ -1,10 +1,11 @@
 # Agent Router route plan
 
-Status: AR-1 through AR-4 are closed for the labeled replay/spec slice. AR-5 is
-partially observed but blocked at the native output contract: the planner
-exposes conflict labels and `model_synthesis`, but not the confidence or
-fallback decision the showcase acceptance requires. Complete provider and
-worktree execution remain incomplete.
+Status: AR-1 through AR-4 are closed for the labeled replay/spec slice. AR-7 is
+closed as a local visual package. AR-5 is partially observed but blocked at the
+native output contract: the planner exposes conflict labels and
+`model_synthesis`, but not the confidence or fallback decision the showcase
+acceptance requires. Complete provider and worktree execution remain
+incomplete.
 
 The [canonical target](../ideal-demo-targets.md#agent-router) owns the durable
 promise and proof gate.
@@ -60,7 +61,7 @@ AR-6; packaging — AR-7.
 | AR-4 | Complete or explicitly simulate bounded execution | Selected subtasks return attributable results; replay data is labeled and no incomplete provider is presented as live  | Runtime owner         | **Closed:** labeled bounded replay, worker receipts, and provider-state ledger             |
 | AR-5 | Prove conflict-aware synthesis                    | A seeded disagreement or missing result remains visible and changes the final confidence or fallback                   | Synthesis owner       | Boundary fixture and output assertion                                                      |
 | AR-6 | Reconcile receipt totals                          | Task outputs, costs, timings, provider identities, and final result agree across the receipt                           | Evidence owner        | Automated reconciliation check                                                             |
-| AR-7 | Build a public visual explorer                    | A viewer can inspect graph, alternatives, selected route, and receipt without running the CLI                          | Showcase/design owner | No-auth prototype and comprehension review                                                 |
+| AR-7 | Build a public visual explorer                    | **Closed locally 2026-08-14:** a candidate page, claim ledger, crop-safe 16:9 preview, short copy, and no-auth page source let a viewer inspect the graph, route choice, bounded receipt, and AR-5 boundary without running the CLI | Showcase/design owner | `case-study.json`, `claim-ledger.json`, `assets/preview-16x9.png`, and `public/index.html` |
 
 **Build order:** AR-1 → AR-2/AR-3 → AR-4 → AR-5/AR-6 → AR-7.
 

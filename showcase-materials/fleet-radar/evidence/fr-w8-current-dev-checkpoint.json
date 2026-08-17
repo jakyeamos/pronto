@@ -1,0 +1,73 @@
+{
+  "schema_version": "pronto-showcase-fleet-radar-w8/v1",
+  "project": "fleet-radar",
+  "observed_at": "2026-08-14T04:08:16Z",
+  "source_branch": "codex/c6-fleet-radar",
+  "source_revision": "9d02de1a035c2f96383e42f6507999cb33d12892",
+  "source_checkout_dirty_paths": [
+    ".project-compass/contract.json",
+    "README.md",
+    "docs/PRD.md",
+    "docs/acceptance-matrix.json",
+    "fleet-radar/registry.json",
+    "src/core.mjs",
+    "test/core.test.mjs"
+  ],
+  "registry": {
+    "path": "fleet-radar/registry.json",
+    "version": 1,
+    "repositories": ["readiness-inspector", "rule-lab"]
+  },
+  "refresh": {
+    "status": "ready",
+    "observed_at": "2026-08-14T04:08:05.127Z",
+    "registry_issues": [],
+    "repository_states": [
+      {
+        "name": "readiness-inspector",
+        "path_status": "available",
+        "receipt_read_status": "ok",
+        "state": "ready",
+        "freshness": "fresh",
+        "working_tree": "dirty",
+        "receipt_contract": "supported",
+        "native_link": "file:///Users/jakyeamos/projects/readiness-inspector/.readiness-inspector/latest.json#check=tests",
+        "next_action": null
+      },
+      {
+        "name": "rule-lab",
+        "path_status": "available",
+        "receipt_read_status": "missing",
+        "state": "missing",
+        "freshness": "unknown",
+        "working_tree": "unknown",
+        "receipt_contract": "unsupported/unreadable",
+        "native_link": "file:///Users/jakyeamos/projects/rule-lab/.readiness-inspector/latest.json",
+        "next_action": "Produce a supported receipt, then refresh Fleet Radar."
+      }
+    ],
+    "attention_states": ["dirty", "missing", "unknown freshness"]
+  },
+  "contract_projection": {
+    "producer_status_invented": false,
+    "target_and_outcome_preserved": true,
+    "native_links_present": true,
+    "direct_navigation_readback": "open"
+  },
+  "failure_matrix": {
+    "missing": "verified_local",
+    "unreadable": "verified_local",
+    "mixed": "verified_local",
+    "stale": "verified_local",
+    "dirty": "verified_local",
+    "duplicate": "verified_local",
+    "refresh_race": "source test verified; live concurrent mutation readback open"
+  },
+  "source_checks": {
+    "test": "passed: 7",
+    "lint": "passed",
+    "package": "passed",
+    "cli_refresh": "passed"
+  },
+  "claim_boundary": "This current-dev checkpoint proves a configured local registry refresh, receipt-contract projection, native-link metadata, and explicit missing/dirty/fresh states. It does not claim two healthy real producer receipts, successful direct tool launching, public no-auth hosting, or external publication."
+}

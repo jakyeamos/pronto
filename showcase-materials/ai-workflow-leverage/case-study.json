@@ -1,0 +1,37 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "ai-workflow-leverage",
+  "status": "candidate_local",
+  "case_id": "AL-1-tenure-review-task-state-observability",
+  "title": "AI Workflow Leverage: measure the work before claiming the gain",
+  "audience": "Teams comparing human and AI-assisted maintenance work who need the same task, oracle, and evidence contract on both sides.",
+  "promise": "Pair one real Tenure maintenance task with a shared quality oracle, then show exactly which measurements are still unknown before making an efficiency claim.",
+  "story": [
+    "One attributable Tenure task is fixed against a protected baseline, with an allowlisted file scope and explicit exclusions.",
+    "Manual and assisted lanes receive identical inputs, completion criteria, and behavioral checks.",
+    "The shared oracle checks observable state, focused tests, scope, and provenance without treating the historical reference implementation as a measured lane.",
+    "The story stops at the missing append-only event contract instead of inventing time, retries, human touches, failures, or quality deltas."
+  ],
+  "evidence": [
+    "case-fixture.json",
+    "protocol.md",
+    "evidence/protocol-receipt.json",
+    "evidence/al-2-blocker.json",
+    "synthetic-fixture.json",
+    "assets/preview-16x9.png"
+  ],
+  "verified_locally": [
+    "AL-1 selects the real Tenure task Expose Tenure review and capture task-state contracts.",
+    "Both lanes share a protected baseline, allowlisted paths, exclusions, and one quality oracle.",
+    "The synthetic appendix has one valid contract and two fail-closed mutations.",
+    "The AL-2 receipt identifies agent-eval-runtime as the owner of the missing paired-measurement event contract.",
+    "The local 1600x900 preview keeps the paired-lane concept and blocker visible without exposing private source data."
+  ],
+  "open_gates": [
+    "Approve and implement the shared append-only event schema in agent-eval-runtime.",
+    "Run the manual and bounded assisted lanes prospectively with raw receipts.",
+    "Apply the same quality oracle and reconcile any supported deltas.",
+    "Verify a hosted no-auth case and external destination readbacks."
+  ],
+  "claim_boundary": "This packet proves a real comparable task, a fixed paired protocol, a shared quality oracle, and a reason-coded measurement blocker. It does not claim that AI is faster, that quality held in a paired run, that the historical reference implementation is an outcome, or that the case is hosted or published."
+}

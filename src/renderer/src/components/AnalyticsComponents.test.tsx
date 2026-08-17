@@ -7,7 +7,7 @@ import type {
   RepositorySnapshot,
 } from "../types";
 import { AnalyticsSurface } from "./AnalyticsComponents";
-import { metricsShareAxis } from "./AnalyticsCharts";
+import { metricsShareAxis, metricValue } from "./AnalyticsCharts";
 import {
   HorizontalBarChart,
   StackedBarChart,
@@ -61,7 +61,39 @@ function makeAnalytics(
     history_available_from: samples[0]?.observed_at,
     portfolio_samples: samples,
     repositories: [],
-    metric_catalog: [],
+    metric_catalog: [
+      {
+        id: "findings.repositories.unavailable",
+        label: "Findings unavailable",
+        description: "Repositories without detector-level findings evidence.",
+        unit: "repositories",
+        denominator: "portfolio",
+        scope: "portfolio",
+        time_semantics: "point-in-time",
+        window_days: null,
+        aggregation: "sum",
+        polarity: "lower-is-better",
+        source: "quality-runner",
+        freshness: "local-refresh",
+        allowed_visualizations: ["stacked-bar"],
+      },
+      {
+        id: "findings.repositories.available",
+        label: "Findings evidence available",
+        description:
+          "Repositories with detector-level findings evidence, including evidenced zero counts.",
+        unit: "repositories",
+        denominator: "portfolio",
+        scope: "portfolio",
+        time_semantics: "point-in-time",
+        window_days: null,
+        aggregation: "sum",
+        polarity: "higher-is-better",
+        source: "quality-runner",
+        freshness: "local-refresh",
+        allowed_visualizations: ["stacked-bar"],
+      },
+    ],
     findings: [],
     views: [],
     default_view_id: "curated",
@@ -182,6 +214,51 @@ describe("analytics charts", () => {
     expect(markup).toContain('aria-sort="descending"');
     expect(markup).toContain(">Findings ↓</button>");
     expect(markup).toContain(">Repository</button>");
+  });
+
+  it("replaces unknown workspace activity with findings evidence coverage", () => {
+    const sample = makeSample();
+    const markup = renderToStaticMarkup(
+      <AnalyticsSurface
+        analytics={makeAnalytics([sample])}
+        repositories={[]}
+      />,
+    );
+
+    expect(metricValue(sample, "findings.repositories.available")).toBe(2);
+    expect(metricValue(sample, "findings.repositories.unavailable")).toBe(1);
+    expect(markup).toContain("Findings evidence coverage");
+    expect(markup).toContain("detector-level findings evidence");
+    expect(markup).toContain("a findings count is unavailable");
+    expect(markup).not.toContain("Workspace activity composition");
+  });
+
+  it("hides the findings rail when there are no deterministic findings", () => {
+    const empty = renderToStaticMarkup(
+      <AnalyticsSurface
+        analytics={makeAnalytics([makeSample()])}
+        repositories={[]}
+      />,
+    );
+    const withFinding = makeAnalytics([makeSample()]);
+    withFinding.findings = [
+      {
+        id: "freshness-gap",
+        kind: "coverage-gap",
+        severity: "attention",
+        title: "Fresh evidence is incomplete",
+        detail: "Some applicable evidence has not been refreshed.",
+        metric_ids: ["quality.evidence_score"],
+      },
+    ];
+    const populated = renderToStaticMarkup(
+      <AnalyticsSurface analytics={withFinding} repositories={[]} />,
+    );
+
+    expect(empty).not.toContain("Observed findings");
+    expect(empty).not.toContain("No deterministic finding was generated");
+    expect(populated).toContain("Observed findings");
+    expect(populated).toContain("Fresh evidence is incomplete");
   });
 
   it("treats serialized null metrics as unavailable instead of crashing", () => {

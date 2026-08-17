@@ -23,11 +23,15 @@ Existing v1 sample rows remain untouched and are adapted into governed metric
 observations when read.
 
 The curated workspace separates commit volume from branch divergence and also
-covers workspace activity composition, quality and evidence cohorts, finding
-severity, repository-by-gate coverage, release readiness, and remediation
-backlog and progress. Metrics introduced after a historical observation are
-shown as unavailable for that observation rather than being backfilled as
-zero.
+covers dirty and unsynced workspace friction, quality and evidence cohorts,
+findings evidence coverage, finding severity, repository-by-gate coverage,
+release readiness, and remediation backlog and progress. Findings evidence
+coverage compares repositories with a detector-level findings source against
+repositories where a count is unavailable; an evidenced zero remains distinct
+from missing evidence. Metrics introduced after a historical observation are
+derived from the stored sample when possible, and otherwise shown as
+unavailable rather than being backfilled as zero. The observed-findings rail is
+omitted when the selected range contains no deterministic findings.
 
 Saved views are stored only in Pronto's SQLite database:
 

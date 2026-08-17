@@ -1,8 +1,8 @@
 {
   "schema_version": "pronto-showcase-claim-ledger/v1",
   "project": "readiness-inspector",
-  "case_id": "readiness-inspector-w5-projection-001",
-  "reviewed_at": "2026-08-14T00:04:42Z",
+  "case_id": "readiness-inspector-w6-current-dev-001",
+  "reviewed_at": "2026-08-14T04:08:16Z",
   "levels": [
     {
       "id": "individual-states",
@@ -13,7 +13,8 @@
       "forbidden_inference": "A local check matrix proves the repository is ready for every goal.",
       "public_claim_allowed": true,
       "evidence_refs": [
-        "evidence/ri-w5-upstream-projection.json#/individual_checks"
+        "evidence/ri-w5-upstream-projection.json#/individual_checks",
+        "evidence/ri-w6-current-dev-checkpoint.json#/checks"
       ]
     },
     {
@@ -25,7 +26,8 @@
       "forbidden_inference": "The receipts are current for a moving upstream repository without a freshness readback.",
       "public_claim_allowed": true,
       "evidence_refs": [
-        "evidence/ri-w5-upstream-projection.json#/fixture_revision"
+        "evidence/ri-w5-upstream-projection.json#/fixture_revision",
+        "evidence/ri-w6-current-dev-checkpoint.json#/inspect/target"
       ]
     },
     {
@@ -36,7 +38,10 @@
       "allowed_claim": "Upstream projection is the next integration gate.",
       "forbidden_inference": "Readiness Inspector already provides native upstream receipt continuity.",
       "public_claim_allowed": false,
-      "evidence_refs": ["evidence/ri-w5-upstream-projection.json#/continuity"]
+      "evidence_refs": [
+        "evidence/ri-w5-upstream-projection.json#/continuity",
+        "evidence/ri-w6-current-dev-checkpoint.json#/continuity"
+      ]
     },
     {
       "id": "deployment",

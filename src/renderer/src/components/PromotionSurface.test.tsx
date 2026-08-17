@@ -98,6 +98,24 @@ function inboxFixture(overrides: Partial<PromotionInbox> = {}): PromotionInbox {
       raw_source_bytes_copied: false,
       jas_mutation: false,
     },
+    funnel: {
+      schema_version: "leverage-promotion-funnel/v1",
+      status: "pass",
+      evaluation_candidate_drafts: 188,
+      ready_behavior_identity_clusters: 136,
+      selected_forward_test_work_items: 136,
+      promotion_packets: 0,
+      forward_test_pass: 2,
+      forward_test_failed: 1,
+      forward_test_blocked: 1,
+      packets_blocked: 1,
+      packets_failed: 0,
+      quantification_pending: 2,
+      promotion_candidates: 1,
+      source_triage_artifact: "artifacts/improvement-triage/latest.json",
+      manual_review_required: true,
+      jas_mutation: false,
+    },
     errors: [],
     manual_review_required: true,
     jas_mutation: false,
@@ -129,8 +147,15 @@ describe("PromotionSurface", () => {
     expect(markup).toContain("Discovery coverage");
     expect(markup).toContain("Asset observations");
     expect(markup).toContain(
-      "Asset observations are review inputs, not candidates.",
+      "Discovery drafts and asset observations are review inputs, not formed candidates.",
     );
+    expect(markup).toContain("AWL evaluation pipeline");
+    expect(markup).toContain("Evaluation inputs");
+    expect(markup).toContain("source rows; not promotions");
+    expect(markup).toContain("Tests completed");
+    expect(markup).toContain("3");
+    expect(markup).toContain("Evaluation blocked");
+    expect(markup).toContain("Candidates formed");
     expect(markup).toContain("prompts");
     expect(markup).toContain("Workflow port candidate");
     expect(markup).toContain("Promote public");
@@ -269,6 +294,6 @@ describe("PromotionSurface", () => {
 
     expect(markup).toContain("AWL review is unavailable");
     expect(markup).toContain("The AWL checkout is not available.");
-    expect(markup).toContain("No evaluated candidates are waiting");
+    expect(markup).toContain("No candidate records are waiting");
   });
 });

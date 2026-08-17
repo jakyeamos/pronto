@@ -50,6 +50,19 @@ wheel does not embed that revision, its recorded build worktree no longer
 exists, and the active source checkout differs. The visual walkthrough is now
 locally addressable; release provenance and public hosting are not proven.
 
+## 4. Local showcase package
+
+The agent-owned material layer is now assembled locally: `preview.html`, a
+crop-safe 1600×900 SVG/PNG preview, and
+`evidence/rdw-6-material-checkpoint.json` sit beside the real case, claim
+ledger, captions, and no-auth page source. The preview keeps the Tatum line,
+the stopped “elite two-way engine” inference, and the evidence-safe repair in
+one frame.
+
+This closes the thumbnail/material packaging gap only. RDW-0 release-source
+provenance, RDW-4 editorial approval, no-auth hosting, and external destination
+readbacks remain open; the local package is not a release or publication claim.
+
 Project disposition: `targeted_gap_closure` — preserve the proven packet and QA
 path, reconcile installed/source pack provenance, then package the proof
 visually.

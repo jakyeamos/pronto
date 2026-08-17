@@ -1,0 +1,68 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "portable-agentic-workbench",
+  "case_id": "pw-1-safe-tool-guards-material-001",
+  "reviewed_at": "2026-08-14T04:40:07Z",
+  "levels": [
+    {
+      "id": "manifest",
+      "label": "Public workflow selection",
+      "status": "verified_local",
+      "status_display": "Manifest-backed safe-tool-guards contract",
+      "allowed_claim": "The case uses the public, dependency-free safe-tool-guards workflow and names its two allowlisted contract files.",
+      "forbidden_inference": "The selected workflow represents the whole workbench catalog or a production deployment.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["case-fixture.json#/asset", "case-fixture.json#/source_boundary"]
+    },
+    {
+      "id": "install",
+      "label": "Preview and install",
+      "status": "verified_local",
+      "status_display": "Two clean targets, explicit apply, no silent overwrite",
+      "allowed_claim": "Generic and Codex dry-runs are non-mutating; explicit apply copies two allowlisted files and a second apply is refused when both files exist.",
+      "forbidden_inference": "The installer registered a host, contacted a provider, or changed files outside the explicit target root.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/validation-receipt.json#/runs", "expected-results.json#/cases"]
+    },
+    {
+      "id": "parity",
+      "label": "Portable projection",
+      "status": "verified_local",
+      "status_display": "Native projections share destinations and hashes",
+      "allowed_claim": "The generic and Codex projections have matching relative destinations, action counts, and file hashes while provider registration remains manual.",
+      "forbidden_inference": "Matching files prove equivalent model decisions, tool calls, host hooks, or quality outcomes.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/validation-receipt.json#/parity", "case-fixture.json#/observed/projection_hashes"]
+    },
+    {
+      "id": "recovery",
+      "label": "Receipt-scoped recovery",
+      "status": "verified_local",
+      "status_display": "Owned files recover; modified and unrelated files stay protected",
+      "allowed_claim": "Recovery previews and removes unchanged receipt-owned files, preserves an unrelated sentinel, and blocks when a receipt-owned file was modified.",
+      "forbidden_inference": "The case proves rollback of host registration or provider runtime state.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/validation-receipt.json#/recovery", "expected-results.json#/cases/11"]
+    },
+    {
+      "id": "runtime",
+      "label": "Host runtime equivalence",
+      "status": "blocked",
+      "status_display": "PW-4 blocked by no-provider/no-registration boundary",
+      "allowed_claim": "The runtime comparison records why generic and Codex host behavior cannot be compared under the selected policy.",
+      "forbidden_inference": "The portable files execute identically in generic and Codex hosts.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/runtime-comparison.json", "expected-results.json#/open_gaps/0"]
+    },
+    {
+      "id": "packaging",
+      "label": "Local material package",
+      "status": "verified_local",
+      "status_display": "Case study, claim ledger, preview, short copy, and page source",
+      "allowed_claim": "A local candidate packet contains the evidence-bound case, reviewed binary preview, short description, and no-auth page source.",
+      "forbidden_inference": "The packet is hosted, public, or posted to a destination.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/pw-7-material-checkpoint.json"]
+    }
+  ]
+}

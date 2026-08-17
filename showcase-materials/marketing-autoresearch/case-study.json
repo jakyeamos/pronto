@@ -1,0 +1,38 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "marketing-autoresearch",
+  "status": "candidate_local",
+  "case_id": "MA-1-public-ai-showcase-prioritization",
+  "title": "Marketing Autoresearch: turn a brief into evidence, then stop before publish",
+  "audience": "Engineering managers, applied-AI leaders, and forward-deployed hiring teams evaluating trustworthy technical execution.",
+  "promise": "Start with a real public portfolio decision brief, preserve source and uncertainty boundaries, and make the human publication gate visible before any external action.",
+  "story": [
+    "A real public portfolio question asks which AI Showcase lane should be foregrounded next and what proof gap limits trust.",
+    "The brief names three candidate lanes, an allowed source registry, evidence rules, exclusions, and a one-page report contract.",
+    "The privacy review excludes client work, private paths, credentials, raw provider payloads, outreach, spend, and publication.",
+    "The current no-live probe is report-only with zero external mutations, but it stops because observations are missing and the runtime has no brief-aware source-to-claim receipt.",
+    "The public candidate ends at a locked handoff: a future report and refusal receipt must be produced by the owning runtime before release claims are made."
+  ],
+  "evidence": [
+    "brief.json",
+    "privacy-review.json",
+    "synthetic-fixture.json",
+    "evidence/ma-2-blocker.json",
+    "assets/preview-16x9.png"
+  ],
+  "verified_locally": [
+    "MA-1 is a real public-safe portfolio maintenance question, not an invented market result.",
+    "The brief carries three candidate lanes, three approved logical source entries, source-to-claim rules, stop conditions, and a blocked_pending_human_review publication state.",
+    "Privacy review passes with conditions and explicitly excludes BidCamp, Soundscape, private data, credentials, absolute paths, and external actions.",
+    "The isolated no-live probe records report-only execution and zero external mutations while preserving the missing-observation blocker.",
+    "The synthetic appendix exercises private-source, unlinked-claim, and publish-request refusals without becoming market evidence.",
+    "The local packet includes a candidate no-auth source page and reviewed 1600x900 preview."
+  ],
+  "open_gates": [
+    "Add a brief-aware run input and source-to-claim receipt owned by marketing-autoresearch (or an explicitly owned adapter with the same redaction rules).",
+    "Rerun MA-2 with current retrieval dates, allowed-source checks, uncertainty labels, and a traceable report artifact.",
+    "Capture a real publication refusal receipt and external-state readback; the local policy is not a runtime receipt.",
+    "Verify a hosted no-auth case URL and external destination readbacks."
+  ],
+  "claim_boundary": "This packet proves a real public-safe brief, privacy boundary, fail-closed no-live probe, synthetic refusal appendix, and local candidate materials. It does not claim audience demand, a winning lane, research quality, a report result, runtime publication refusal, hosting, or publication."
+}

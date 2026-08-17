@@ -14,6 +14,13 @@ formation. The tab only reads the resulting evidence and records the owner's
 choice; it does not create test packets, run tests, calculate measurements, or
 assemble candidates.
 
+The Evaluation pipeline panel keeps the upstream funnel separate from the
+promotion queue. `evaluation_candidate_drafts` is a count of source rows, not
+pending promotions. Behavior identities and forward-test work items are
+intermediate AWL stages. Tests completed, blocked evaluations, quantification
+pending, review packets, and candidates formed are displayed as separate
+counts; only the final candidate records enter the owner decision surface.
+
 The tab is the owner-controlled admission boundary. For an accepted complete
 candidate, it invokes JAS's explicit `apply` command with a disposable approval
 artifact, the selected mode, and the candidate's sanitized projection. JAS

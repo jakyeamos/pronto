@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="A bounded case for moving one generated-code finding from Anti-Slop detection through Pre-CR enforcement to Quality Runner context." />
+    <title>AI Code Quality Stack · one finding, three responsibilities</title>
+    <style>
+      :root { color-scheme: dark; --bg: #0c1014; --panel: #171d24; --line: #34404b; --text: #f5f7f8; --muted: #aeb7c0; --mint: #92e8be; --amber: #ffd185; --blue: #94d9f1; }
+      * { box-sizing: border-box; }
+      body { margin: 0; color: var(--text); background: radial-gradient(circle at 85% 0, #1b2c34, transparent 32rem), var(--bg); font: 16px/1.6 Inter, ui-sans-serif, system-ui, sans-serif; }
+      .wrap { width: min(1120px, calc(100% - 44px)); margin: 0 auto; }
+      header { border-bottom: 1px solid var(--line); }
+      header .wrap { display: flex; justify-content: space-between; align-items: center; min-height: 62px; gap: 22px; }
+      header strong, header span { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; }
+      header span { color: var(--muted); }
+      section { padding: 84px 0; border-top: 1px solid var(--line); }
+      .hero { padding: clamp(78px, 10vw, 132px) 0 96px; border-top: 0; }
+      .kicker { color: var(--mint); font-size: .74rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+      h1, h2 { max-width: 860px; margin: 18px 0 24px; letter-spacing: -.055em; line-height: .98; }
+      h1 { font-size: clamp(3.2rem, 7vw, 6.4rem); }
+      h2 { font-size: clamp(2.4rem, 5vw, 4.4rem); }
+      .lede { max-width: 67ch; margin: 0; color: var(--muted); font-size: 1.16rem; }
+      .case { margin-top: 42px; padding: 20px 22px; border: 1px solid var(--line); background: #11171d; font: 17px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x: auto; }
+      mark { padding: 2px 5px; color: #ffe0a2; background: rgba(255, 209, 133, .18); }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; border: 1px solid var(--line); background: var(--line); }
+      article { min-height: 250px; padding: 28px; background: rgba(23, 29, 36, .92); }
+      article:nth-child(1) .number { color: var(--mint); }
+      article:nth-child(2) .number { color: var(--amber); }
+      article:nth-child(3) .number { color: var(--blue); }
+      .number { display: grid; width: 32px; height: 32px; place-items: center; margin-bottom: 38px; border: 1px solid currentColor; border-radius: 50%; font-weight: 800; }
+      h3 { margin: 0 0 5px; font-size: 1.35rem; }
+      .owner, .state { color: var(--muted); font-size: .86rem; }
+      article p { margin: 20px 0 0; color: #d4dbe0; }
+      .state { display: inline-block; margin-top: 23px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+      .boundary { background: #eef2ef; color: #1a211e; }
+      .boundary p { max-width: 70ch; color: #5a665f; font-size: 1.08rem; }
+      .boundary strong { color: #1d5840; }
+      footer { padding: 30px 0 54px; color: var(--muted); font-size: .82rem; }
+      @media (max-width: 760px) { header .wrap { align-items: flex-start; flex-direction: column; justify-content: center; padding: 12px 0; gap: 4px; } .grid { grid-template-columns: 1fr; } article { min-height: 0; } }
+    </style>
+  </head>
+  <body>
+    <header><div class="wrap"><strong>AI Code Quality Stack</strong><span>Candidate local case · integration proof open</span></div></header>
+    <main data-material-status="candidate-local">
+      <section class="hero"><div class="wrap"><div class="kicker">One real source case</div><h1>One finding. Three responsibilities.</h1><p class="lede">A generated-code problem starts as a precise Anti-Slop diagnostic, becomes a changed-file Pre-CR decision, and then enters Quality Runner with its repository context intact.</p><div class="case">src/renderer/src/components/RepositoryAnalyticsPanel.tsx:39 · &lt;h2&gt;<mark>Analytics</mark>&lt;/h2&gt;</div></div></section>
+      <section><div class="wrap"><div class="kicker">Ownership stays clear</div><h2>The evidence moves. The products do not merge.</h2><div class="grid"><article><span class="number">1</span><h3>Detect</h3><span class="owner">ESLint Anti-Slop</span><p>Own the AST rule and the line-level rationale. Human review decides whether the candidate is accepted.</p><span class="state">Source evidence available</span></article><article><span class="number">2</span><h3>Enforce</h3><span class="owner">Pre-CR · narrow stack role</span><p>Run the adapter against changed files and keep an attributable blocking receipt before review.</p><span class="state">Receipt not yet captured</span></article><article><span class="number">3</span><h3>Contextualize</h3><span class="owner">Quality Runner</span><p>Consume the canonical finding, add repository signals, and order remediation without a duplicate heuristic.</p><span class="state">Consumption not yet captured</span></article></div></div></section>
+      <section class="boundary"><div class="wrap"><div class="kicker">Boundary</div><h2>One integration story, three standalone products.</h2><p>This candidate page proves the selected case and its ownership contract. It does not claim a completed Pre-CR handoff, a current Quality Runner run, hosted access, or external publication. The standalone Pre-CR IDE story and Quality Runner audit story remain separate.</p><p><strong>Current status:</strong> local material package complete; cross-repository execution proof remains open.</p></div></section>
+    </main>
+    <footer><div class="wrap">AI Code Quality Stack · candidate local case study · source and proof boundaries are explicit</div></footer>
+  </body>
+</html>

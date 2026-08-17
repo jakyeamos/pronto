@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc" font-family="Verdana" >
+  <title id="title">AI Code Quality Stack: one finding, three responsibilities</title>
+  <desc id="desc">A real source finding moves through Anti-Slop detection, Pre-CR enforcement, and Quality Runner context. Cross-repository execution remains open.</desc>
+  <defs>
+    <radialGradient id="glow" cx="82%" cy="0%" r="60%">
+      <stop offset="0" stop-color="#1d3039"/>
+      <stop offset="1" stop-color="#0b0e12"/>
+    </radialGradient>
+    <linearGradient id="line" x1="0" x2="1">
+      <stop offset="0" stop-color="#8ee7bd"/>
+      <stop offset="0.5" stop-color="#ffd083"/>
+      <stop offset="1" stop-color="#92d7f2"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <text x="74" y="82" font-family="Verdana" font-size="15" font-weight="800" letter-spacing="2.5" fill="#8ee7bd">AI CODE QUALITY STACK · CANDIDATE LOCAL PREVIEW</text>
+  <text x="74" y="180" font-family="Verdana" font-size="72" font-weight="600" fill="#f6f7f8">One finding.</text>
+  <text x="74" y="252" font-family="Verdana" font-size="72" font-weight="600" fill="#f6f7f8">Three responsibilities.</text>
+  <text x="74" y="302" font-family="Verdana" font-size="22" fill="#aeb7c2">Detect the generated-code problem. Enforce the changed-file policy.</text>
+  <text x="74" y="334" font-family="Verdana" font-size="22" fill="#aeb7c2">Add repository context without duplicating the evidence.</text>
+  <rect x="74" y="386" width="1452" height="68" rx="2" fill="#11171d" stroke="#34404e"/>
+  <text x="98" y="429" font-family="Andale Mono" font-size="20" fill="#d8dee4">src/renderer/src/components/RepositoryAnalyticsPanel.tsx:39  &lt;h2&gt;</text>
+  <rect x="908" y="405" width="118" height="34" rx="3" fill="#5e4b26" fill-opacity=".55"/>
+  <text x="925" y="429" font-family="Andale Mono" font-size="20" fill="#ffe0a1">Analytics</text>
+  <text x="1038" y="429" font-family="Andale Mono" font-size="20" fill="#d8dee4">&lt;/h2&gt;</text>
+  <rect x="74" y="510" width="1452" height="238" fill="#171c24" stroke="#34404e"/>
+  <line x1="558" y1="510" x2="558" y2="748" stroke="#34404e"/>
+  <line x1="1042" y1="510" x2="1042" y2="748" stroke="#34404e"/>
+  <circle cx="112" cy="554" r="17" fill="none" stroke="#8ee7bd" stroke-width="2"/>
+  <text x="107" y="561" font-family="Verdana" font-size="14" font-weight="800" fill="#8ee7bd">1</text>
+  <text x="74" y="618" font-family="Verdana" font-size="30" font-weight="650" fill="#f6f7f8">Detect</text>
+  <text x="74" y="648" font-family="Verdana" font-size="16" fill="#aeb7c2">ESLint Anti-Slop</text>
+  <text x="74" y="694" font-family="Verdana" font-size="16" fill="#d2d8de">Exact rule, line, rationale,</text>
+  <text x="74" y="720" font-family="Verdana" font-size="16" fill="#d2d8de">and safe direction.</text>
+  <text x="74" y="782" font-family="Verdana" font-size="12" font-weight="800" letter-spacing="1.2" fill="#aeb7c2">REAL SOURCE CASE SELECTED</text>
+  <circle cx="596" cy="554" r="17" fill="none" stroke="#ffd083" stroke-width="2"/>
+  <text x="591" y="561" font-family="Verdana" font-size="14" font-weight="800" fill="#ffd083">2</text>
+  <text x="558" y="618" font-family="Verdana" font-size="30" font-weight="650" fill="#f6f7f8">Enforce</text>
+  <text x="558" y="648" font-family="Verdana" font-size="16" fill="#aeb7c2">Pre-CR · narrow stack role</text>
+  <text x="558" y="694" font-family="Verdana" font-size="16" fill="#d2d8de">Changed-file policy and</text>
+  <text x="558" y="720" font-family="Verdana" font-size="16" fill="#d2d8de">attributable blocking receipt.</text>
+  <text x="558" y="782" font-family="Verdana" font-size="12" font-weight="800" letter-spacing="1.2" fill="#aeb7c2">EXECUTION PROOF OPEN</text>
+  <circle cx="1080" cy="554" r="17" fill="none" stroke="#92d7f2" stroke-width="2"/>
+  <text x="1075" y="561" font-family="Verdana" font-size="14" font-weight="800" fill="#92d7f2">3</text>
+  <text x="1042" y="618" font-family="Verdana" font-size="30" font-weight="650" fill="#f6f7f8">Contextualize</text>
+  <text x="1042" y="648" font-family="Verdana" font-size="16" fill="#aeb7c2">Quality Runner</text>
+  <text x="1042" y="694" font-family="Verdana" font-size="16" fill="#d2d8de">Repository evidence and</text>
+  <text x="1042" y="720" font-family="Verdana" font-size="16" fill="#d2d8de">remediation order, once.</text>
+  <text x="1042" y="782" font-family="Verdana" font-size="12" font-weight="800" letter-spacing="1.2" fill="#aeb7c2">CONSUMPTION PROOF OPEN</text>
+  <line x1="74" y1="824" x2="1526" y2="824" stroke="url(#line)" stroke-width="2"/>
+  <text x="74" y="854" font-family="Verdana" font-size="14" fill="#aeb7c2">Integration story · standalone product boundaries preserved</text>
+  <text x="1251" y="854" font-family="Verdana" font-size="14" font-weight="800" letter-spacing="1.2" fill="#ffd083">INTEGRATION PROOF OPEN</text>
+</svg>

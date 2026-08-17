@@ -57,6 +57,8 @@
         "pnpm vitest run src/renderer/src/components/AnalyticsComponents.test.tsx",
         "pnpm typecheck",
         "pnpm build:web",
+        "Verify findings evidence coverage equals findings_repository_count available plus repository_count minus findings_repository_count unavailable at every observation.",
+        "Verify the observed-findings rail is absent for an empty findings array and visible when at least one deterministic finding exists.",
         "Verify Portfolio contains no chart and Analytics is reachable from primary navigation and the Portfolio text link."
       ],
       "status": "applicable"

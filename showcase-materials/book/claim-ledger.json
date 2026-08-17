@@ -1,0 +1,68 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "book",
+  "case_id": "BK-1-synthetic-reading-to-media-arc",
+  "reviewed_at": "2026-08-14T06:00:00Z",
+  "levels": [
+    {
+      "id": "synthetic-appendix",
+      "label": "Rights-safe chapter appendix",
+      "status": "verified_local",
+      "status_display": "Original synthetic prose and media plan",
+      "allowed_claim": "The candidate specifies four narrative beats, synthetic audio tokens, original visual treatment, and reader controls.",
+      "forbidden_inference": "The appendix is the product chapter, product authorship, or a soundtrack-backed runtime capture.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["synthetic-fixture.json", "evidence/bk-1-synthetic-material-receipt.json"]
+    },
+    {
+      "id": "product-capability",
+      "label": "Reader and authoring capability",
+      "status": "source_grounded_partial",
+      "status_display": "Repository documents the reader seam; direct current proof is open",
+      "allowed_claim": "The repository documents manifest-driven chapters, motion, layered audio, authoring, and reader controls.",
+      "forbidden_inference": "The current hosted reader synchronizes every layer or passes an accessibility audit.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["route-plan.md", "contribution-ledger.json"]
+    },
+    {
+      "id": "rights-attribution",
+      "label": "Chapter, asset, and attribution rights",
+      "status": "blocked_owner_review",
+      "status_display": "BK-1 ledger is still required",
+      "allowed_claim": "The local contribution ledger identifies the missing chapter, soundtrack, font, sensitive-content, and AI/human decisions.",
+      "forbidden_inference": "Repository ownership or bot commits establish publication permission or a complete authorship statement.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["contribution-ledger.json", "evidence/bk-1-blocker.json"]
+    },
+    {
+      "id": "accessibility",
+      "label": "Reader control and accessibility",
+      "status": "not_verified",
+      "status_display": "Controls are specified, not directly exercised here",
+      "allowed_claim": "The intended contract includes mute, reduced motion, keyboard navigation, and font scale.",
+      "forbidden_inference": "The live reader has passed a current direct-surface accessibility audit.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["synthetic-fixture.json#/media_plan/controls", "case-study.json#/open_gates"]
+    },
+    {
+      "id": "packaging",
+      "label": "Local material package",
+      "status": "verified_local",
+      "status_display": "Candidate page, short copy, ledger, and 16:9 preview",
+      "allowed_claim": "A local candidate packet makes the synthetic narrative and rights boundary inspectable without repository assets.",
+      "forbidden_inference": "The candidate page is hosted or has been posted to a destination.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["case-study.json", "public/index.html", "public-description.txt", "assets/preview-16x9.png"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "not_verified",
+      "status_display": "No hosted or destination readback",
+      "allowed_claim": "Hosting and external publication remain open gates.",
+      "forbidden_inference": "The case is live on GitHub, a portfolio, Handshake, or another destination.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["evidence/bk-6-material-checkpoint.json"]
+    }
+  ]
+}

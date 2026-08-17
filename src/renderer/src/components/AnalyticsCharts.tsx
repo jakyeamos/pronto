@@ -50,6 +50,11 @@ export function metricValue(
     "quality.evidence_score": sample.ci_readiness_score,
     "findings.total": sample.findings_total,
     "findings.high_severity": sample.high_severity_findings,
+    "findings.repositories.available": sample.findings_repository_count,
+    "findings.repositories.unavailable": Math.max(
+      0,
+      sample.repository_count - sample.findings_repository_count,
+    ),
     "release.ready_repositories": sample.release_ready_repository_count,
     "release.configured_repositories": sample.release_rule_repository_count,
     "remediation.actions.open": sample.remediation_open_action_count,

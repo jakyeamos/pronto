@@ -7,26 +7,28 @@
   "promise": "Declare a goal, inspect each owner-bound predicate, preserve its evidence and state, and follow the next action.",
   "story": [
     "A versioned release-candidate profile declares individual checks and binds them to one target revision.",
-    "A passing test and a failed dependency audit remain separate, each with its own owner, evidence, and next action.",
-    "A publish check is blocked because it would mutate external state without separate authority.",
-    "A missing profile remains unsupported instead of becoming an inferred pass, while upstream projection and stale matrices stay visible as open gates."
+    "Current-dev inspect and run commands record passing tests and standards checks with owner, evidence, target, and next action.",
+    "A mutating check is blocked because it would change state without separate authority, while an unknown check remains unsupported.",
+    "Failed-check behavior is covered by the source tests, while upstream projection and stale matrices stay visible as open gates."
   ],
   "evidence": [
     "evidence/ri-w5-upstream-projection.json",
+    "evidence/ri-w6-current-dev-checkpoint.json",
     "../../../projects/readiness-inspector/README.md",
-    "../../../projects/readiness-inspector/docs/acceptance-matrix.json"
+    "../../../projects/readiness-inspector/docs/acceptance-matrix.json",
+    "assets/preview-16x9.png"
   ],
   "verified_locally": [
-    "Real CLI inspect and run commands on a versioned temporary profile.",
-    "Passed, failed, blocked, and unsupported outcomes retained as individual checks.",
-    "Every recorded receipt is bound to the fixture target revision.",
-    "Source tests, lint, and package checks pass."
+    "Current-dev CLI inspect and run commands record two checks against target 2efa5ed6.",
+    "Passed receipts, unknown-check unsupported, and mutating-check blocked outcomes remain individual.",
+    "Source tests cover failed-check receipts without collapsing the state into a score.",
+    "Source tests, lint, and package checks pass; the 1600×900 SVG/PNG preview is rendered and visually inspected."
   ],
   "open_gates": [
     "Project Quality Setup and Evidence Replay receipts as owner-bound checks.",
     "Expand stale, contradictory, and not-applicable state coverage.",
     "Prove native follow-up navigation for failed checks.",
-    "Capture crop-safe preview, hosted no-auth case, and external destination readbacks."
+    "Verify a hosted no-auth case and record external destination readbacks."
   ],
-  "claim_boundary": "This is a local candidate packet for explainable goal-specific checks; it does not claim a complete upstream projection, hosting, or publication."
+  "claim_boundary": "This is a current-dev candidate packet for explainable goal-specific checks and a reviewed binary preview; it does not claim complete upstream projection, full stale/contradictory/not-applicable coverage, native follow-up navigation, hosting, or publication."
 }

@@ -13,20 +13,23 @@
   ],
   "evidence": [
     "evidence/dpw-w4-bounded-deletion.json",
+    "evidence/dpw-w5-current-dev-checkpoint.json",
     "../../../projects/deletion-proof-workbench/README.md",
-    "../../../projects/deletion-proof-workbench/docs/acceptance-matrix.json"
+    "../../../projects/deletion-proof-workbench/docs/acceptance-matrix.json",
+    "assets/preview-16x9.png"
   ],
   "verified_locally": [
-    "Real temporary TypeScript fixture with one bounded deletion and one known consumer.",
-    "Explicit apply writes a recovery reference and changes only the candidate declaration.",
+    "Current-dev source gate passes 3 tests, lint, and package checks.",
+    "Temporary Git fixture at 28f71408 previews and applies unusedThing with a recovery reference.",
     "Known static consumer blocks apply and package export map remains an unknown boundary.",
-    "Source tests, lint, and package checks pass."
+    "Dynamic, reflective, generated, and external consumer classes remain explicit unknowns.",
+    "The 1600×900 SVG/PNG preview is rendered and visually inspected."
   ],
   "open_gates": [
     "Exercise stale-candidate, generated, reflective, and failing-test negative fixtures.",
     "Connect the receipt to Change Radius and Contract Watch without copying authority.",
-    "Capture a crop-safe image preview and verify a hosted no-auth case.",
+    "Verify a hosted no-auth case.",
     "Record external GitHub, portfolio, and Handshake readbacks."
   ],
-  "claim_boundary": "This packet proves a local W4 bounded-deletion and refusal slice; it does not claim universal non-use, complete consumer coverage, hosting, or publication."
+  "claim_boundary": "This packet proves a current-dev bounded-deletion/refusal/recovery slice and a reviewed binary preview; it does not claim universal non-use, stale/generated/reflection/failing-test coverage, downstream parity, hosting, or publication."
 }

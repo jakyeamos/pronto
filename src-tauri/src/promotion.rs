@@ -71,6 +71,8 @@ pub struct PromotionInbox {
     pub coverage: Option<Value>,
     #[serde(default)]
     pub discovery: Option<Value>,
+    #[serde(default)]
+    pub funnel: Option<Value>,
     pub errors: Vec<Value>,
     pub manual_review_required: bool,
     pub jas_mutation: bool,
@@ -208,6 +210,7 @@ fn unavailable(message: String) -> PromotionInbox {
         counts: PromotionCounts::default(),
         coverage: None,
         discovery: None,
+        funnel: None,
         errors: vec![Value::String(message.clone())],
         manual_review_required: true,
         jas_mutation: false,

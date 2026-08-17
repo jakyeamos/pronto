@@ -189,8 +189,10 @@ function FindingRail({
   analytics,
 }: {
   analytics: AnalyticsSnapshot;
-}): ReactElement {
+}): ReactElement | null {
   const findings = analytics.findings ?? [];
+  if (findings.length === 0) return null;
+
   return (
     <aside
       className="analytics-findings"
@@ -203,24 +205,18 @@ function FindingRail({
         </div>
         <span>{findings.length}</span>
       </div>
-      {findings.length ? (
-        <ol>
-          {findings.map((finding) => (
-            <li
-              key={finding.id}
-              className={`analytics-finding analytics-finding-${finding.severity}`}
-            >
-              <span>{finding.kind.replace("-", " ")}</span>
-              <strong>{finding.title}</strong>
-              <p>{finding.detail}</p>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <div className="analytics-state">
-          No deterministic finding was generated for this range.
-        </div>
-      )}
+      <ol>
+        {findings.map((finding) => (
+          <li
+            key={finding.id}
+            className={`analytics-finding analytics-finding-${finding.severity}`}
+          >
+            <span>{finding.kind.replace("-", " ")}</span>
+            <strong>{finding.title}</strong>
+            <p>{finding.detail}</p>
+          </li>
+        ))}
+      </ol>
     </aside>
   );
 }
@@ -319,19 +315,17 @@ function CuratedWorkspace({
           />
         </ChartCard>
         <ChartCard
-          eyebrow="Workspace activity"
-          title="Activity composition"
-          description="Active, interrupted, idle, and unknown workspaces are shown as a point-in-time composition over recent refreshes."
+          eyebrow="Findings evidence"
+          title="Repository coverage"
+          description="Repositories with detector-level findings evidence are compared with repositories where a findings count is unavailable."
         >
           <GovernedBars
             samples={samples}
             metrics={pick(
-              "workspaces.activity.active",
-              "workspaces.activity.interrupted",
-              "workspaces.activity.idle",
-              "workspaces.activity.unknown",
+              "findings.repositories.unavailable",
+              "findings.repositories.available",
             )}
-            ariaLabel="Workspace activity composition"
+            ariaLabel="Findings evidence coverage"
             stacked
           />
         </ChartCard>

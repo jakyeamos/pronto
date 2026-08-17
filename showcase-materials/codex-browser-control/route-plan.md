@@ -1,7 +1,9 @@
 # Codex Browser Control route plan
 
 Status: CB-1 is closed as a labeled synthetic fixture and source-backed
-contract receipt. CB-2 is now explicitly blocked at the installed round trip:
+contract receipt. CB-7 is now closed as the local case-study, claim, short-copy,
+no-auth page-source, and reviewed binary-preview package. CB-2 is explicitly
+blocked at the installed round trip:
 the current source build passes, but the connected Chrome provider is an older
 extension revision and its doctor response fails protocol validation. The
 canonical checkout is `/Users/jakyeamos/projects/browser-control` (the
@@ -65,9 +67,9 @@ CB-5, CB-6; packaging — CB-7.
 | CB-4 | Prove apply-once and fresh verification         | The approved preference changes once and a new observation reads back the expected value                                    | Execution/verification owner | Apply and verify receipts plus DOM readback                  |
 | CB-5 | Prove stale-state refusal before mutation       | Manual page change invalidates the old plan; replay leaves the page unchanged                                               | Safety owner                 | Before/after state, refusal receipt, and negative assertion  |
 | CB-6 | Validate privacy and external-action boundaries | Captures contain no real history, accounts, tokens, or sensitive page content; mutation authority is fixture-scoped         | Privacy/security owner       | Permission and media review                                  |
-| CB-7 | Package the no-auth case                        | Public viewers can inspect plan, approval, verified result, and refusal without installing the extension                    | Showcase owner               | Case-study link and responsive review                        |
+| CB-7 | Package the no-auth case                        | **Closed locally 2026-08-14:** synthetic plan, approval, refusal case, short copy, page source, and reviewed 16:9 preview are present | Showcase owner               | `case-study.json`, `claim-ledger.json`, `public-description.txt`, `public/index.html`, `evidence/cb-7-material-checkpoint.json` |
 
-**Build order:** CB-1 **closed** → CB-2/CB-3 → CB-4/CB-5 → CB-6 → CB-7.
+**Build order:** CB-1 **closed** → CB-2/CB-3 → CB-4/CB-5 → CB-6 → CB-7 (local package closed; hosted case remains separate).
 
 ## 4. CB-1 closure
 
@@ -115,3 +117,12 @@ would change persistent per-user Chrome/Codex state and requires explicit
 deployment approval under the repository contract. Park CB-2/CB-3 until that
 reviewed reload is authorized, then capture the synthetic observe-to-plan and
 exact approval path together.
+
+## 7. Local showcase package
+
+The local candidate distribution layer is now self-contained: [`case-study.json`](case-study.json),
+[`claim-ledger.json`](claim-ledger.json), [`public-description.txt`](public-description.txt),
+[`preview.html`](preview.html), [`public/index.html`](public/index.html), and the
+reviewed 1600x900 binary bound by [`evidence/cb-7-material-checkpoint.json`](evidence/cb-7-material-checkpoint.json).
+It intentionally describes CB-1 and the CB-2 blocker without presenting a
+synthetic page as an installed browser receipt.

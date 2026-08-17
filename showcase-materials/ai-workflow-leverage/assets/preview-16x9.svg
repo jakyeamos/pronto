@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc" font-family="Verdana, sans-serif">
+  <title id="title">AI Workflow Leverage: measure the work before claiming the gain</title>
+  <desc id="desc">A real Tenure task is split into manual and assisted lanes that converge on one quality oracle, with the missing event contract called out.</desc>
+  <defs>
+    <radialGradient id="glow" cx="86%" cy="0%" r="70%"><stop offset="0" stop-color="#27415b"/><stop offset="1" stop-color="#0b1118"/></radialGradient>
+    <linearGradient id="rule" x1="0" x2="1"><stop offset="0" stop-color="#8ed8c1"/><stop offset=".5" stop-color="#ffd27f"/><stop offset="1" stop-color="#a6c8ff"/></linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <text x="74" y="76" font-size="15" font-weight="800" letter-spacing="2.4" fill="#8ed8c1">AI WORKFLOW LEVERAGE · CANDIDATE LOCAL PREVIEW</text>
+  <text x="74" y="182" font-size="68" font-weight="600" fill="#f5f7fa">Measure the work</text>
+  <text x="74" y="252" font-size="68" font-weight="600" fill="#f5f7fa">before the gain.</text>
+  <text x="74" y="302" font-size="22" fill="#aab8c5">Same task. Same oracle. No invented deltas.</text>
+  <rect x="74" y="358" width="1452" height="92" fill="#111b25" stroke="#33485b"/>
+  <text x="100" y="396" font-size="14" font-weight="800" letter-spacing="1.7" fill="#ffd27f">REAL TENURE TASK · AL-1</text>
+  <text x="100" y="430" font-family="Andale Mono, monospace" font-size="20" fill="#e5edf4">Expose review and capture task-state contracts · protected baseline · allowlisted paths</text>
+  <rect x="74" y="490" width="694" height="172" fill="#152535" stroke="#33485b"/>
+  <rect x="832" y="490" width="694" height="172" fill="#1d2837" stroke="#33485b"/>
+  <text x="104" y="534" font-size="16" font-weight="800" letter-spacing="1.4" fill="#8ed8c1">MANUAL LANE</text>
+  <text x="104" y="578" font-size="28" fill="#f5f7fa">Human-only implementation</text>
+  <text x="104" y="614" font-size="16" fill="#aab8c5">Active work, waits, touches, retries, and outcome receipt</text>
+  <text x="862" y="534" font-size="16" font-weight="800" letter-spacing="1.4" fill="#a6c8ff">ASSISTED LANE</text>
+  <text x="862" y="578" font-size="28" fill="#f5f7fa">Bounded AI + human review</text>
+  <text x="862" y="614" font-size="16" fill="#aab8c5">Same scope, oracle, authority, and stop conditions</text>
+  <line x1="421" y1="662" x2="421" y2="714" stroke="#8ed8c1" stroke-width="3"/><line x1="1179" y1="662" x2="1179" y2="714" stroke="#a6c8ff" stroke-width="3"/>
+  <rect x="74" y="714" width="1452" height="96" fill="#202d3b" stroke="#33485b"/>
+  <text x="100" y="752" font-size="16" font-weight="800" fill="#ffd27f">SHARED QUALITY ORACLE</text>
+  <text x="100" y="784" font-size="18" fill="#f5f7fa">State contract · focused tests · scope · provenance</text>
+  <text x="1160" y="752" font-size="15" font-weight="800" fill="#ffb1a4">AL-2 BLOCKED</text>
+  <text x="1160" y="784" font-size="14" fill="#ffb1a4">Event contract owner: agent-eval-runtime</text>
+  <line x1="74" y1="846" x2="1526" y2="846" stroke="url(#rule)" stroke-width="2"/>
+  <text x="74" y="874" font-size="14" fill="#aab8c5">Protocol material · timing, quality, recovery, and publication remain unclaimed</text>
+</svg>

@@ -1,0 +1,1 @@
+Portable Agentic Workbench carries one safety contract across agent hosts: preview a public workflow, apply only allowlisted files, compare generic and Codex projections, and recover receipt-owned changes without touching unrelated files. This local case proves install and recovery boundaries; host-runtime equivalence and hosted publication remain open.

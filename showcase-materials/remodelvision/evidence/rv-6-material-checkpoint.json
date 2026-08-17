@@ -1,0 +1,37 @@
+{
+  "schema_version": "pronto-showcase-material-checkpoint/v1",
+  "checkpoint_id": "rv-6-local-material-package-2026-08-14",
+  "project": "remodelvision",
+  "status": "candidate_local",
+  "reviewed_at": "2026-08-14T06:00:00Z",
+  "source": {
+    "repository": "remodelvision",
+    "case_id": "RV-2-rights-safe-room-concept",
+    "fixture_status": "passed_synthetic_original",
+    "contribution_status": "blocked_rv_1",
+    "runtime_status": "blocked_rv_3",
+    "release_provenance": "not_verified"
+  },
+  "artifacts": [
+    { "path": "case-study.json", "status": "present" },
+    { "path": "case-study.md", "status": "present" },
+    { "path": "claim-ledger.json", "status": "present" },
+    { "path": "preview.html", "status": "present" },
+    { "path": "assets/preview-16x9.svg", "status": "reviewed_local" },
+    { "path": "assets/preview-16x9.png", "status": "reviewed_local", "dimensions": "1600x900", "sha256": "a79002b9a7c86ca725248a2a4aed58811476f5fb6ed59e408c5648fe0f1b78a8" },
+    { "path": "public/index.html", "status": "candidate_no_auth_source" },
+    { "path": "public-description.txt", "status": "present" }
+  ],
+  "checks": {
+    "rights_safe_fixture": "pass",
+    "contribution_approval": "blocked_rv_1",
+    "current_runnable_flow": "blocked_rv_3",
+    "constraint_adherence": "not_verified",
+    "estimate_boundary": "not_verified",
+    "preview_render": "pass",
+    "preview_visual_review": "pass",
+    "hosted_no_auth": "open",
+    "external_destination_readbacks": "open"
+  },
+  "claim_boundary": "This checkpoint proves the synthetic rights-safe fixture, local candidate materials, and their explicit blocker labels. It does not prove RemodelVision's current product flow, personal contribution permission, constraint adherence, estimate behavior, hosting, or external publication."
+}

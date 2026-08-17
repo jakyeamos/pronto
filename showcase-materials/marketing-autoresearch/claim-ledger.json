@@ -1,0 +1,88 @@
+{
+  "schema_version": "pronto-showcase-claim-ledger/v1",
+  "project": "marketing-autoresearch",
+  "case_id": "MA-1-public-ai-showcase-prioritization",
+  "reviewed_at": "2026-08-14T05:35:00Z",
+  "levels": [
+    {
+      "id": "brief-selection",
+      "label": "Decision brief",
+      "status": "verified_local",
+      "status_display": "Real public portfolio question with bounded lanes",
+      "allowed_claim": "The packet fixes a real public-safe portfolio decision, three candidate lanes, an audience, a success definition, and explicit exclusions.",
+      "forbidden_inference": "The brief measures audience demand or proves that one lane wins.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["brief.json#/decision", "brief.json#/audience", "brief.json#/claim_boundary"]
+    },
+    {
+      "id": "privacy-boundary",
+      "label": "Privacy and authority",
+      "status": "verified_local",
+      "status_display": "Report-only scope passes with redaction conditions",
+      "allowed_claim": "The reviewed scope excludes client work, private data, credentials, absolute paths, outreach, spend, publication, and repository mutation.",
+      "forbidden_inference": "A privacy review authorizes provider access, publication, or outreach.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["privacy-review.json", "brief.json#/research_scope/exclusions"]
+    },
+    {
+      "id": "shadow-run",
+      "label": "Report-only probe",
+      "status": "blocked_owner_contract",
+      "status_display": "No-live run stops with missing observations",
+      "allowed_claim": "The isolated probe is report-only, records zero external mutations, and preserves the missing-observation state.",
+      "forbidden_inference": "The probe is a research result, audience signal, or recommendation.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/ma-2-blocker.json#/observed_surface"]
+    },
+    {
+      "id": "source-to-claim",
+      "label": "Traceable evidence",
+      "status": "blocked_owner_contract",
+      "status_display": "Brief-aware receipt schema is missing",
+      "allowed_claim": "The current runtime cannot bind this brief to source IDs, retrieval dates, allowed-source checks, uncertainty labels, and material claims.",
+      "forbidden_inference": "Profile-level observations or a hand-authored ledger close MA-2.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["evidence/ma-2-blocker.json#/owner_boundary", "evidence/ma-2-blocker.json#/why_existing_run_is_insufficient"]
+    },
+    {
+      "id": "report",
+      "label": "Decision report",
+      "status": "not_verified",
+      "status_display": "No source-backed recommendation report",
+      "allowed_claim": "The report contract is specified: recommendation, evidence, contradiction, unknowns, next experiment, and human handoff.",
+      "forbidden_inference": "A report recommendation, campaign opportunity, or rejected alternative already exists.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["brief.json#/report_contract", "evidence/ma-2-blocker.json"]
+    },
+    {
+      "id": "publication-boundary",
+      "label": "Human publication gate",
+      "status": "blocked",
+      "status_display": "Policy boundary is present; runtime refusal receipt is open",
+      "allowed_claim": "The brief and privacy review require blocked_pending_human_review and exclude external mutation.",
+      "forbidden_inference": "A real publish attempt has already produced a refusal receipt or external-state readback.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["brief.json#/report_contract/publication_state", "privacy-review.json#/conditions", "synthetic-fixture.json#/negative_cases"]
+    },
+    {
+      "id": "packaging",
+      "label": "Local material package",
+      "status": "verified_local",
+      "status_display": "Candidate page, short copy, claim ledger, and 16:9 preview",
+      "allowed_claim": "A local candidate packet makes the brief, boundary, blocker, and future handoff inspectable without private source data.",
+      "forbidden_inference": "The candidate page is hosted, public, or posted to a destination.",
+      "public_claim_allowed": true,
+      "evidence_refs": ["case-study.json", "public/index.html", "public-description.txt", "assets/preview-16x9.png"]
+    },
+    {
+      "id": "deployment",
+      "label": "External release",
+      "status": "not_verified",
+      "status_display": "No hosted or destination readback",
+      "allowed_claim": "Hosting and external publication remain unverified.",
+      "forbidden_inference": "The case is live on the portfolio, GitHub, or Handshake.",
+      "public_claim_allowed": false,
+      "evidence_refs": ["evidence/ma-7-material-checkpoint.json"]
+    }
+  ]
+}

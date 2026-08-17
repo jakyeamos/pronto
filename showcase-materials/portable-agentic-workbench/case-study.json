@@ -1,0 +1,35 @@
+{
+  "schema_version": "pronto-showcase-case-study/v1",
+  "project": "portable-agentic-workbench",
+  "status": "candidate_local",
+  "title": "Portable Agentic Workbench: carry safety contracts across hosts",
+  "audience": "Teams that maintain agent workflows across hosts and need installs, projections, and recovery to stay explicit.",
+  "promise": "Take one public workflow from manifest to dry-run, project it into two supported targets, and recover only the receipt-owned files without hiding the provider edge.",
+  "story": [
+    "The public safe-tool-guards manifest names two allowlisted contract files and keeps dependencies empty.",
+    "Generic and Codex dry-runs preview the same two copies without mutating either empty target root.",
+    "Apply receipts, overwrite refusal, matching hashes, and receipt-scoped recovery make the local safety boundary inspectable.",
+    "The runtime comparison stops honestly: host behavior and provider-backed execution remain outside the repository policy."
+  ],
+  "evidence": [
+    "case-fixture.json",
+    "expected-results.json",
+    "evidence/validation-receipt.json",
+    "evidence/claim-ledger.json",
+    "evidence/runtime-comparison.json",
+    "assets/preview-16x9.png"
+  ],
+  "verified_locally": [
+    "The manifest-backed safe-tool-guards selection passes catalog, skills, and safety validation.",
+    "Generic and Codex dry-runs report two allowlisted copies with zero post-preview mutations.",
+    "Apply, overwrite refusal, matching projection hashes, manual-review visibility, and receipt-scoped recovery are recorded for both targets.",
+    "Modified receipt-owned content blocks recovery while an unrelated sentinel remains protected.",
+    "The 1600x900 preview is rendered from the same case and visually inspected."
+  ],
+  "open_gates": [
+    "Provide a permitted executable host runtime or an approved offline adapter for PW-4 equivalence checks.",
+    "Verify a hosted no-auth case URL and external destination readbacks.",
+    "Keep browser capture and video optional follow-ons rather than prerequisites."
+  ],
+  "claim_boundary": "This packet proves a local manifest, install, projection, and recovery contract. It does not claim equivalent agent decisions, host registration, provider execution, production quality, hosted access, or publication."
+}

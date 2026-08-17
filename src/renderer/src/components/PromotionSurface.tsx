@@ -12,6 +12,7 @@ import type {
   PromotionCoverage,
   PromotionDiscoverySummary,
   PromotionDecision,
+  PromotionFunnel,
   PromotionInbox,
 } from "../types";
 import { formatExactTime, formatTime, StatusPill } from "./ConsolePrimitives";
@@ -109,6 +110,96 @@ function formatBytes(value: number): string {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function FunnelMetric({
+  label,
+  value,
+  note,
+}: {
+  label: string;
+  value: number;
+  note: string;
+}): ReactElement {
+  return (
+    <div className="promotion-funnel-metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{note}</small>
+    </div>
+  );
+}
+
+function EvaluationPipelinePanel({
+  funnel,
+}: {
+  funnel?: PromotionFunnel | null;
+}): ReactElement | null {
+  if (!funnel) return null;
+
+  const testsCompleted = funnel.forward_test_pass + funnel.forward_test_failed;
+  const evaluationsBlocked =
+    funnel.forward_test_blocked + funnel.packets_blocked;
+
+  return (
+    <section className="surface-panel promotion-funnel-panel">
+      <div className="surface-heading">
+        <div>
+          <p className="eyebrow">AWL evaluation pipeline</p>
+          <h2>Inputs, tests, and candidates are separate</h2>
+          <p>
+            Evaluation inputs are source rows, not pending promotion decisions.
+            Only formed candidate records enter the owner review queue.
+          </p>
+        </div>
+        <StatusPill tone={funnel.status === "pass" ? "mint" : "amber"}>
+          {funnel.status === "pass" ? "Projection current" : funnel.status}
+        </StatusPill>
+      </div>
+      <div className="promotion-funnel-grid">
+        <FunnelMetric
+          label="Evaluation inputs"
+          value={funnel.evaluation_candidate_drafts}
+          note="source rows; not promotions"
+        />
+        <FunnelMetric
+          label="Behavior identities"
+          value={funnel.ready_behavior_identity_clusters}
+          note="deduplicated behaviors"
+        />
+        <FunnelMetric
+          label="Forward-test work items"
+          value={funnel.selected_forward_test_work_items}
+          note="selected execution queue"
+        />
+        <FunnelMetric
+          label="Tests completed"
+          value={testsCompleted}
+          note={`${funnel.forward_test_pass} passed · ${funnel.forward_test_failed} failed`}
+        />
+        <FunnelMetric
+          label="Evaluation blocked"
+          value={evaluationsBlocked}
+          note={`${funnel.forward_test_blocked} test · ${funnel.packets_blocked} packet`}
+        />
+        <FunnelMetric
+          label="Quantification pending"
+          value={funnel.quantification_pending}
+          note="awaiting baseline/observed evidence"
+        />
+        <FunnelMetric
+          label="Review packets"
+          value={funnel.promotion_packets}
+          note={`${funnel.packets_failed} failed packet${funnel.packets_failed === 1 ? "" : "s"}`}
+        />
+        <FunnelMetric
+          label="Candidates formed"
+          value={funnel.promotion_candidates}
+          note="complete and draft records"
+        />
+      </div>
+    </section>
+  );
+}
+
 function CoveragePanel({
   coverage,
   discovery,
@@ -165,12 +256,13 @@ function CoveragePanel({
             <strong>{discovery.asset_observation_documents}</strong>
           </div>
           <div>
-            <span>Candidate drafts</span>
+            <span>Latest discovery drafts</span>
             <strong>{discovery.candidate_drafts}</strong>
           </div>
           <p>
-            Asset observations are review inputs, not candidates. They become
-            candidates only after testing, quantification, and packet review.
+            Discovery drafts and asset observations are review inputs, not
+            formed candidates. They become candidates only after testing,
+            quantification, and packet review.
           </p>
         </div>
       )}
@@ -317,12 +409,12 @@ export function PromotionSurface({
 
       <section className="promotion-overview-grid">
         <div className="promotion-card">
-          <span>Pending</span>
+          <span>Awaiting decision</span>
           <strong>{inbox.counts.pending}</strong>
-          <small>Need your choice</small>
+          <small>Owner choice on candidate records</small>
         </div>
         <div className="promotion-card">
-          <span>Complete packets</span>
+          <span>Complete candidate packets</span>
           <strong>{inbox.counts.complete}</strong>
           <small>{inbox.counts.drafts} draft-only candidates</small>
         </div>
@@ -339,6 +431,7 @@ export function PromotionSurface({
       </section>
 
       <CoveragePanel coverage={inbox.coverage} discovery={inbox.discovery} />
+      <EvaluationPipelinePanel funnel={inbox.funnel} />
 
       {inbox.status !== "pass" && (
         <div className="promotion-status-banner" role="alert">
@@ -405,7 +498,7 @@ export function PromotionSurface({
             <div className="surface-empty promotion-empty">
               <Check size={18} />
               <span>
-                No evaluated candidates are waiting in the promotion inbox.
+                No candidate records are waiting in the promotion inbox.
               </span>
             </div>
           ) : (

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Deletion Proof Workbench current local evidence</title>
+  <desc id="desc">A bounded export deletion is previewed, applied with recovery evidence, refused when a known consumer remains, and kept separate from unknown consumer classes.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#17151d"/><stop offset="1" stop-color="#2c2634"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000" flood-opacity=".34"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="120" cy="80" r="360" fill="#aee6ce" opacity=".09"/>
+  <g font-family="Arial, sans-serif" fill="#f5f2ef">
+    <text x="112" y="126" fill="#aee6ce" font-size="19" font-weight="700" letter-spacing="3">DELETION PROOF WORKBENCH · LOCAL</text>
+    <text x="112" y="240" font-size="66" font-weight="700">Unknown is</text>
+    <text x="112" y="322" font-size="66" font-weight="700">a result.</text>
+    <text x="112" y="405" fill="#b9b3bd" font-size="27">Preview one export, authorize one bounded change,</text>
+    <text x="112" y="444" fill="#b9b3bd" font-size="27">and keep the way back visible.</text>
+    <g filter="url(#shadow)">
+      <rect x="855" y="118" width="610" height="630" rx="18" fill="#28252f" stroke="#aee6ce" stroke-opacity=".24"/>
+    </g>
+    <text x="900" y="175" fill="#b9b3bd" font-size="18" letter-spacing="2">SRC/MODEL.MJS · APPLY</text>
+    <text x="900" y="216" font-size="32" font-weight="700">target 28f71408</text>
+    <rect x="900" y="254" width="520" height="96" rx="8" fill="#17151d" stroke="#aee6ce" stroke-opacity=".25"/>
+    <text x="934" y="294" fill="#aee6ce" font-size="19" font-weight="700" letter-spacing="2">PREVIEW</text>
+    <text x="934" y="330" fill="#b9b3bd" font-size="20">unusedThing · 0 bounded static refs</text>
+    <rect x="900" y="370" width="520" height="96" rx="8" fill="#17151d" stroke="#aee6ce" stroke-opacity=".25"/>
+    <text x="934" y="410" fill="#aee6ce" font-size="19" font-weight="700" letter-spacing="2">APPLIED</text>
+    <text x="934" y="446" fill="#b9b3bd" font-size="20">recovery reference recorded</text>
+    <rect x="900" y="486" width="520" height="96" rx="8" fill="#17151d" stroke="#ffca7c" stroke-opacity=".48"/>
+    <text x="934" y="526" fill="#ffca7c" font-size="19" font-weight="700" letter-spacing="2">REFUSED</text>
+    <text x="934" y="562" fill="#b9b3bd" font-size="20">usedThing · known consumer blocks apply</text>
+    <rect x="900" y="602" width="520" height="96" rx="8" fill="#17151d" stroke="#ff958c" stroke-opacity=".42"/>
+    <text x="934" y="642" fill="#ff958c" font-size="19" font-weight="700" letter-spacing="2">UNKNOWN</text>
+    <text x="934" y="678" fill="#b9b3bd" font-size="20">dynamic · reflective · generated · external</text>
+    <text x="112" y="780" fill="#b9b3bd" font-size="19">Current local material · stale breadth, downstream parity, hosting, and publication remain gated.</text>
+  </g>
+</svg>

@@ -1,7 +1,8 @@
 # Deletion Proof Workbench route plan
 
-Status: C0 public Showcase admission is complete; real deletion and recovery
-proof remain gated.
+Status: C0 public Showcase admission is complete; current-dev bounded deletion,
+refusal, recovery, and a reviewed 16:9 binary preview are verified. Broader
+negative coverage, downstream parity, hosting, and publication remain gated.
 
 The [ideal target](../ideal-demo-targets.md#deletion-proof-workbench) owns the
 promise and proof gate. The safe result may be “unknown consumers remain.”
@@ -16,7 +17,8 @@ verification, and recovery are separate states.
 
 ## 2. Concept materials
 
-All frames below are **concept frames** until one real export deletion passes.
+The frames below now have a current-dev export sequence behind them. The
+broader failure matrix and cross-tool handoff remain proof gates.
 
 | Frame            | Visual                                                       | On-screen line                  | Intended evidence moment   |
 | ---------------- | ------------------------------------------------------------ | ------------------------------- | -------------------------- |
@@ -33,22 +35,23 @@ preview/apply/recovery state stack. Avoid a green “safe to delete” badge.
 
 ## 3. Build-gap specification
 
-Reviewed baseline: the W4 proof MVP supports bounded symbol inspection, unknown
-consumer classes, explicit apply, and recovery references. A real deletion and
-cross-tool evidence remain open.
+Reviewed baseline: the current-dev proof supports bounded symbol inspection,
+unknown consumer classes, explicit apply, and recovery references in a temporary
+Git fixture. Stale/generated/reflection/failing-test negatives and cross-tool
+evidence remain open.
 
-Project disposition: `targeted_gap_closure` — preview and apply one real
-unreferenced export while preserving unknown consumers.
+Project disposition: `targeted_gap_closure` — preserve the bounded deletion
+contract while closing negative-state and downstream handoff gaps.
 
 Gap classes: demo_integration — DPW-0; evidence — DPW-1; product — DPW-2;
 packaging — DPW-3.
 
 | ID    | Gap to close                      | Observable acceptance condition                                                     | Owner          | Required proof                  |
 | ----- | --------------------------------- | ----------------------------------------------------------------------------------- | -------------- | ------------------------------- |
-| DPW-0 | Prove one bounded deletion        | A real export is previewed and applied with explicit authorization                  | Product owner  | Current-branch deletion receipt |
+| DPW-0 | Prove one bounded deletion        | A current-dev export is previewed and applied with explicit authorization          | Product owner  | Current-dev deletion receipt   |
 | DPW-1 | Preserve unknown consumer classes | Dynamic, generated, external, and unresolved references remain visible              | Evidence owner | Reference/unknown matrix        |
 | DPW-2 | Prove recovery and refusal        | Verification failure or changed target refuses safely and retains recovery evidence | Safety owner   | Negative and recovery receipts  |
-| DPW-3 | Package the public case           | Preview, short copy, no-auth deletion case, and proof link agree                    | Showcase owner | Material review and readback    |
+| DPW-3 | Package the public case           | Reviewed SVG/PNG preview, short copy, no-auth deletion case, and proof link agree  | Showcase owner | Material review and readback   |
 
 **Required build order:** DPW-0 → DPW-1 → DPW-2 → DPW-3. Video is optional
 after the evidence gate.

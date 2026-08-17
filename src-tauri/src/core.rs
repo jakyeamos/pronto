@@ -2607,6 +2607,18 @@ fn adapt_analytics_sample(mut sample: AnalyticsMetricSample) -> AnalyticsMetricS
         sample.high_severity_findings.map(|v| v as f64),
     );
     insert(
+        "findings.repositories.available",
+        Some(sample.findings_repository_count as f64),
+    );
+    insert(
+        "findings.repositories.unavailable",
+        Some(
+            sample
+                .repository_count
+                .saturating_sub(sample.findings_repository_count) as f64,
+        ),
+    );
+    insert(
         "release.ready_repositories",
         Some(sample.release_ready_repository_count as f64),
     );
@@ -3091,6 +3103,34 @@ fn analytics_metric_catalog() -> Vec<MetricDefinition> {
             None,
             "sum",
             "lower-is-better",
+            "quality-runner",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "findings.repositories.unavailable",
+            "Findings unavailable",
+            "Repositories without detector-level findings evidence.",
+            "repositories",
+            "portfolio",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "lower-is-better",
+            "quality-runner",
+            &["line", "bar", "stacked-bar", "table"],
+        ),
+        metric_definition(
+            "findings.repositories.available",
+            "Findings evidence available",
+            "Repositories with detector-level findings evidence, including evidenced zero counts.",
+            "repositories",
+            "portfolio",
+            "portfolio",
+            "point-in-time",
+            None,
+            "sum",
+            "higher-is-better",
             "quality-runner",
             &["line", "bar", "stacked-bar", "table"],
         ),
@@ -20045,6 +20085,14 @@ mod tests {
         );
         assert_eq!(adapted.metrics["git.ahead_commits"], Some(75.0));
         assert_eq!(adapted.metrics["quality.maturity_score"], Some(2.5));
+        assert_eq!(
+            adapted.metrics["findings.repositories.available"],
+            Some(1.0)
+        );
+        assert_eq!(
+            adapted.metrics["findings.repositories.unavailable"],
+            Some(0.0)
+        );
         assert_eq!(adapted.metrics["workspaces.activity.active"], Some(1.0));
         assert_eq!(adapted.metrics["remediation.actions.open"], None);
         assert_eq!(adapted.metrics["remediation.progress_percent"], None);
@@ -20074,6 +20122,13 @@ mod tests {
                 "workspaces.activity.interrupted".to_string(),
                 "workspaces.activity.idle".to_string(),
                 "workspaces.activity.unknown".to_string()
+            ]
+        ));
+        assert!(metric_axis_compatible(
+            &catalog,
+            &[
+                "findings.repositories.unavailable".to_string(),
+                "findings.repositories.available".to_string()
             ]
         ));
         assert!(metric_axis_compatible(
