@@ -1592,9 +1592,10 @@ h1 {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.qr-case-context {
+.qr-case-back {
   display: inline-flex;
   align-items: center;
+  gap: 7px;
   padding: 5px 0;
   border: 0;
   color: var(--muted);
@@ -1602,7 +1603,7 @@ h1 {
   cursor: pointer;
   font-size: 10px;
 }
-.qr-case-context:hover {
+.qr-case-back:hover {
   color: var(--text);
 }
 .qr-case-opening {
@@ -4296,9 +4297,9 @@ h1 {
   justify-content: space-between;
   gap: 12px;
 }
-.repository-detail-context {
-  color: var(--faint);
-  font-size: 9px;
+.repository-back-button {
+  padding-left: 0;
+  color: var(--blue);
 }
 .repository-detail-header {
   display: flex;

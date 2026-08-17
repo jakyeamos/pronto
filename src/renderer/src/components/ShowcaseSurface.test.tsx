@@ -272,7 +272,12 @@ describe("ShowcaseSurface", () => {
     expect(screen.getByText("Critical boundary")).toBeTruthy();
     expect(screen.getByText("fixtures/corpus/partial-js")).toBeTruthy();
 
-    fireEvent.click(screen.getByText("All showcase projects"));
+    expect(
+      screen.getByRole("button", { name: "All showcase projects" }),
+    ).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "All showcase projects" }),
+    );
     expect(
       screen.getByText("Create materials for every showcase project"),
     ).toBeTruthy();

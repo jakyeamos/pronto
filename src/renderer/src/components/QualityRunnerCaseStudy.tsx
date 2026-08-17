@@ -5,6 +5,7 @@ FIRST VIEWPORT: “4,022 findings, driven by what this codebase values” beside
 */
 import type { ReactElement } from "react";
 import {
+  ArrowLeft,
   Ban,
   CheckCircle2,
   FileCheck2,
@@ -52,7 +53,8 @@ export function QualityRunnerCaseStudy({
   return (
     <article className="qr-case" aria-labelledby="qr-case-title">
       <header className="qr-case-nav">
-        <button type="button" className="qr-case-context" onClick={onBack}>
+        <button type="button" className="qr-case-back" onClick={onBack}>
+          <ArrowLeft size={15} aria-hidden="true" />
           All showcase projects
         </button>
         <span>Historical case · Tenure · July 2026</span>
