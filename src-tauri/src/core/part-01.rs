@@ -53,7 +53,7 @@ use std::time::{Duration as StdDuration, Instant};
 
 const STORE_VERSION: u8 = 5;
 
-const SQLITE_SCHEMA_VERSION: i64 = 10;
+const SQLITE_SCHEMA_VERSION: i64 = 11;
 
 const DEFAULT_RETENTION_DAYS: i64 = 90;
 

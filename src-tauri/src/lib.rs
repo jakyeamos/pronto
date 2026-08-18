@@ -18,6 +18,7 @@ pub mod showcase;
 pub mod skill_usage_collector;
 pub mod skills;
 pub mod task_lanes;
+pub mod telescope;
 
 use tauri::Manager;
 
@@ -177,6 +178,9 @@ pub fn run() {
             core::set_release_version,
             core::set_ai_permission,
             core::preview_ai_summary,
+            core::get_repository_telescope,
+            core::refresh_repository_telescope,
+            core::cancel_repository_telescope_refresh,
             custody::get_custody,
             core::set_retention_days,
             core::upsert_product,

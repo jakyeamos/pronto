@@ -251,6 +251,14 @@ fn initialize_store(connection: &SqliteConnection) -> Result<(), String> {
                  id TEXT PRIMARY KEY,
                  generated_at TEXT NOT NULL,
                  payload_json TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS telescope_cache (
+                 repository_id TEXT NOT NULL,
+                 schema_version TEXT NOT NULL,
+                 workspace_fingerprint TEXT NOT NULL,
+                 generated_at TEXT NOT NULL,
+                 payload_json TEXT NOT NULL,
+                 PRIMARY KEY(repository_id, schema_version, workspace_fingerprint)
              );",
         )
         .map_err(|error| format!("Could not initialize Pronto database: {error}"))?;

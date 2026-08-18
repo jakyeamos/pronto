@@ -8,6 +8,7 @@ pub fn run_cli(arguments: Vec<String>) {
         "workspace-manifest" => run_cli_arm_03(&arguments, json, &path, command),
         "custody" => run_cli_arm_04(&arguments, json, &path, command),
         "skills" => run_cli_arm_05(&arguments, json, &path, command),
+        "telescope" => run_cli_arm_38(&arguments, json, &path, command),
         "papercuts" => run_cli_arm_06(&arguments, json, &path, command),
         "behavior" => run_cli_arm_07(&arguments, json, &path, command),
         "change-matrix" => run_cli_arm_08(&arguments, json, &path, command),
