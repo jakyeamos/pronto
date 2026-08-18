@@ -25,9 +25,12 @@ it is evidence for a separately authorized cleanup, not deletion authority.
 `route --json` is the preferred composed entry point for agent orientation. It
 performs the same read-only doctor gate for the selected scope and, only when
 that gate is ready, includes bounded `next`, repository, quality,
-`change_maturity`, and `fold_preview` projections from the same snapshot
-boundary. The change summary is advisory and recommends a read-only matrix
-inspection; it does not create a missing matrix. The fold preview uses the
+`change_maturity`, `developer_legibility`, `change_surface_hotspots`, and
+`fold_preview` projections from the same snapshot boundary. The change summary
+and the two maturity gates are advisory and recommend read-only inspection;
+they do not create a missing matrix or modify a repository. Older feeds may
+omit the new dimensions, in which case their route values remain `unknown`
+until the producer audit is rerun. The fold preview uses the
 repository's persisted target branch when configured, falls back to the
 observed default branch, and remains advisory; use direct `fold preview` when a
 one-off explicit target is needed. The composed route leaves `merge_preview`
