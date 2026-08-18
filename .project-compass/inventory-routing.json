@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "revision": 1,
+  "project": {
+    "name": "Pronto inventory and routing",
+    "identity": "The Pronto portfolio and routing surface for local repository truth.",
+    "audience": "Operators and agents coordinating a repository fleet without losing workspace state.",
+    "core_loop": "Read live repository evidence, classify the current state, project a safe next action, and preserve the handoff.",
+    "north_star": "A fleet operator can see what is true locally and what action is safe without turning stale projection into authority.",
+    "not_this": [
+      "Mutating repositories without explicit authorization",
+      "Treating stale provider state as live Git truth",
+      "Owning every quality or release contract"
+    ]
+  },
+  "scope": {
+    "id": "inventory-routing",
+    "kind": "subsystem",
+    "parent_id": "project",
+    "purpose": "Maintain a durable local view of repositories and workspaces and explain the next safe action from current evidence.",
+    "boundary": "Owns portfolio inventory, workspace identity, route and next-action projections, and their renderer and CLI presentation; quality findings and release/provider adapters remain outside this child.",
+    "non_goals": [
+      "Mutating repositories without explicit authorization",
+      "Treating stale provider state as live Git truth",
+      "Owning every quality or release contract"
+    ],
+    "parent_outcomes": [
+      "durable-local-inventory",
+      "explainable-next-action",
+      "preserve-workspace-truth"
+    ],
+    "paths": [
+      "src-tauri/src/core.rs",
+      "src-tauri/src/bin/pronto_cli.rs",
+      "src/renderer/src/components/PortfolioComponents.tsx",
+      "src/renderer/src/components/PortfolioCollectionsSurface.tsx"
+    ]
+  },
+  "targets": {
+    "mvp": {
+      "definition": "The scoped boundary is explicitly ratified, its parent outcome is clear, and its smallest local proof is repeatable."
+    },
+    "complete_product": {
+      "definition": "The scoped boundary remains aligned through changes, interfaces, and user-visible or consumer-facing verification."
+    }
+  },
+  "pillars": [
+    {
+      "id": "inventory-routing-purpose",
+      "name": "Draft scoped purpose",
+      "outcomes": [
+        {
+          "id": "inventory-routing-aligned-boundary",
+          "name": "The Pronto inventory and routing boundary advances its parent outcome without silently taking on sibling responsibilities.",
+          "targets": [
+            "mvp",
+            "complete_product"
+          ],
+          "maturity": 25,
+          "confidence": "low",
+          "layers": {
+            "intended": "Drafted from explicit repository documentation; pending owner quiz and ratification.",
+            "planned": "Local proof and sibling contracts are pending the boundary decision.",
+            "implemented": "Observed implementation paths: src-tauri/src/core.rs, src-tauri/src/bin/pronto_cli.rs, src/renderer/src/components/PortfolioComponents.tsx, src/renderer/src/components/PortfolioCollectionsSurface.tsx.",
+            "verified": "No independently scoped end-to-end proof has been accepted yet."
+          },
+          "evidence": [
+            {
+              "ref": ".agents/context/README.md",
+              "note": "Repository documentation used to draft this child boundary; not treated as user intent until quiz review.",
+              "observed_at": "2026-08-14T23:31:00Z"
+            },
+            {
+              "ref": "docs/repository-contract.md",
+              "note": "Repository documentation used to draft this child boundary; not treated as user intent until quiz review.",
+              "observed_at": "2026-08-14T23:31:00Z"
+            },
+            {
+              "ref": "docs/quality-gate-recommendation-matrix.md",
+              "note": "Repository documentation used to draft this child boundary; not treated as user intent until quiz review.",
+              "observed_at": "2026-08-14T23:31:00Z"
+            },
+            {
+              "ref": "docs/implementation-plan.md",
+              "note": "Repository documentation used to draft this child boundary; not treated as user intent until quiz review.",
+              "observed_at": "2026-08-14T23:31:00Z"
+            }
+          ],
+          "blockers": [
+            {
+              "kind": "product-decision",
+              "summary": "Owner must ratify, split, merge, or retire this draft child Compass through the realignment quiz before it becomes active truth."
+            },
+            {
+              "kind": "verification",
+              "summary": "An independently scoped local proof and its neighboring handoffs are not yet established."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "source_layers": {
+    "intended": [
+      {
+        "ref": ".agents/context/README.md",
+        "note": "Explicit repository documentation is the current basis for this draft; owner quiz remains open.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "docs/repository-contract.md",
+        "note": "Explicit repository documentation is the current basis for this draft; owner quiz remains open.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "docs/quality-gate-recommendation-matrix.md",
+        "note": "Explicit repository documentation is the current basis for this draft; owner quiz remains open.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "docs/implementation-plan.md",
+        "note": "Explicit repository documentation is the current basis for this draft; owner quiz remains open.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      }
+    ],
+    "planned": [],
+    "implemented": [
+      {
+        "ref": "src-tauri/src/core.rs",
+        "note": "Observed implementation or contract path used as evidence only.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "src-tauri/src/bin/pronto_cli.rs",
+        "note": "Observed implementation or contract path used as evidence only.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "src/renderer/src/components/PortfolioComponents.tsx",
+        "note": "Observed implementation or contract path used as evidence only.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "src/renderer/src/components/PortfolioCollectionsSurface.tsx",
+        "note": "Observed implementation or contract path used as evidence only.",
+        "observed_at": "2026-08-14T23:31:00Z"
+      }
+    ],
+    "verified": []
+  },
+  "drift": [
+    {
+      "kind": "verification-gap",
+      "summary": "This child boundary is a draft derived from repository documentation and has not yet been ratified or independently verified.",
+      "status": "open",
+      "observed_at": "2026-08-14T23:31:00Z",
+      "evidence": [
+        {
+          "ref": ".agents/context/README.md",
+          "note": "Draft boundary needs explicit owner confirmation and local proof.",
+          "observed_at": "2026-08-14T23:31:00Z"
+        }
+      ]
+    }
+  ],
+  "updated_at": "2026-08-14T23:31:00Z"
+}
