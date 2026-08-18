@@ -317,6 +317,7 @@
         "pnpm vitest run src/renderer/src/components/QualityComponents.test.tsx",
         "cargo test --manifest-path src-tauri/Cargo.toml quality::tests::imports_holistic_v2_maturity_projection",
         "Verify cache_design maintains explicit passing, attention, unknown, not_applicable, stale, blocked, failed, and missing states without exposing local paths.",
+        "Confirm runtime_resource_efficiency is sourced from outcome evidence and remains non-critical unless observed harm is represented by an existing critical dimension.",
         "Confirm Project Compass and product-readiness values remain separate from repository maturity."
       ],
       "status": "applicable"

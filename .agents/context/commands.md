@@ -180,6 +180,15 @@ boundary while preserving the QR score and Mac Control two-lane disposition as
 separate evidence. A missing pointer is labeled `Legacy separate`; an invalid
 or incoherent pointer is `Blocked` and must not fall back to mixing sidecars.
 
+`runtime_resource_efficiency` is a canonical capability within the
+`user_facing_quality` pillar. Quality Runner scores measurable artifact size,
+initial-load, startup, memory, dependency, and production-payload outcomes;
+Pronto must not infer a passing score from the presence of lazy loading or any
+other implementation mechanism. Preserve explicit unavailable, stale,
+conflicted, `unknown`, and `not_applicable` evidence. See
+`docs/runtime-resource-efficiency-maturity.md` for the scoring and evidence
+contract.
+
 Quality, summary, attention, and remediation projections expose generic
 `evidence_contracts` state. Observation freshness and contract freshness are
 independent: a recent report whose observed schema differs from the registered

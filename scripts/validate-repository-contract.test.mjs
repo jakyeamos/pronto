@@ -28,6 +28,7 @@ const fixtureFiles = [
   "docs/repository-contract.md",
   "docs/task-lane-custody.md",
   ".pronto/cache-lifecycle.json",
+  "docs/runtime-resource-efficiency-maturity.md",
   "scripts/validate-repository-contract.mjs",
 ];
 
