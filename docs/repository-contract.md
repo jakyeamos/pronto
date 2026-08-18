@@ -1,6 +1,6 @@
 # Pronto repository operating contract
 
-Last reviewed: 2026-08-16.
+Last reviewed: 2026-08-20.
 
 This is the repository-specific execution contract for contributors and
 agents. The canonical branch is `main`; work is developed on an isolated
@@ -26,12 +26,19 @@ unavailable until it is regenerated from the exact `dev` commit.
 - Focused Rust modules such as `quality.rs`, `remediation.rs`,
   `change_matrix.rs`, and `showcase.rs` own their domain rules. Add behavior
   there instead of duplicating it in the renderer or Node adapter.
+- `src-tauri/src/telescope.rs` owns the versioned source-derived architecture
+  graph, language adapters, workspace binding, uncertainty, and cache privacy.
+  Workflow systems annotate that graph through lenses; Compass, ICM, quality,
+  remediation, and activity evidence must not rewrite its base topology.
 - `workspace-policy generate` owns the explicit per-repository
   `.agents/workspace-policy.json` projection from the reviewed fleet role map.
   It defaults to a no-write plan and only `--write` may create files; it never
   performs Git, provider, branch, worktree, or ref-protection mutations.
 - `src/renderer/src/` renders shared projection contracts. It may format state
   but must not invent freshness, passing evidence, authorization, or closure.
+  Telescope layout runs outside the main rendering path; canvas selection,
+  animation, and lens state remain renderer concerns and do not mutate the
+  repository or persisted operational evidence.
 - `bin/pronto.mjs` is the checkout-direct, zero-dependency Node launcher for
   the native CLI. It resolves its own project root and must remain independent
   of the calling repository's package-manager shim. It invokes bare `cargo` so

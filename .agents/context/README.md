@@ -1,6 +1,6 @@
 # Pronto agent context
 
-Last reviewed: 2026-08-01.
+Last reviewed: 2026-08-18.
 
 Pronto is the local-first portfolio and Git evidence surface for this machine.
 Use this index when a task needs portfolio-wide repository state, workspace
@@ -21,6 +21,9 @@ Read the deeper file only when the task matches it:
 - [Repository operating contract](../../docs/repository-contract.md) —
   architecture ownership, coding and security constraints, failure recovery,
   approval gates, definition of done, and installation/release rollback.
+- [Repository Telescope](../../docs/telescope.md) — source-derived architecture
+  projection, freshness and privacy contract, canvas interactions, and
+  independently composable workflow lenses.
 - [Implementation examples](../../docs/implementation-examples.md) — existing
   end-to-end patterns for projection, quality, remediation, and change-surface
   work.

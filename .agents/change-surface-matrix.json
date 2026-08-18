@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-17",
+  "last_reviewed": "2026-08-20",
   "reviewed_no_impact": [
     {
       "change": "Split the renderer API barrel into defaults, review commands, and portfolio commands.",
@@ -23,7 +23,11 @@
       "path": ".agents/change-surface-matrix.json",
       "owner": "Pronto repository maintainers",
       "condition": "A material feature, functionality, behavior, CLI/API, workflow, data, integration, security/privacy, or quality/release change is added or changed.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "Update this matrix in the same change with affected surfaces, contracts, documentation, tests, evidence, owners, and projections.",
         "For a purely internal refactor or isolated fix with no matrix impact, record a reviewed no-impact reason in the same change record; omission is not an implicit no-impact decision."
@@ -36,7 +40,11 @@
       "path": "src-tauri/src/",
       "owner": "Pronto repository maintainers",
       "condition": "Repository evidence, persistence, routing, provider, quality, remediation, command contracts, workspace provenance, missing-path classification, or transactional cleanup changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml",
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::migrates_schema_v1_for_action_audits",
@@ -60,7 +68,11 @@
       "path": "src-tauri/src/custody.rs, src-tauri/src/core.rs, src-tauri/src/lib.rs, src-tauri/src/showcase.rs, src-tauri/src/remediation.rs, src/renderer/src/types.ts, src/renderer/src/components/RepositoryInventoryPanels.tsx, src/renderer/src/components/RepositoryDetailSurfaces.test.tsx, docs/integrations/pronto-custody.md, .agents/context/commands.md, .agents/change-surface-matrix.json",
       "owner": "Pronto and isolated-change-workflow integration owners",
       "condition": "Custody lifecycle projection, live Git evidence, granular disposition taxonomy, CLI/API surface, or read-only UI behavior changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml custody::tests",
         "cargo check --manifest-path src-tauri/Cargo.toml --lib",
@@ -83,7 +95,11 @@
       "path": "src/renderer/src/",
       "owner": "Pronto repository maintainers",
       "condition": "A projected field, workspace provenance label, state label, navigation surface, or user-visible remediation behavior changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "pnpm vitest run",
         "pnpm vitest run src/renderer/src/components/QualityReadinessSurfaces.test.tsx",
@@ -101,7 +117,11 @@
       "path": "src-tauri/src/promotion.rs, src/renderer/src/types/promotion.ts, src/renderer/src/components/PromotionSurface.tsx, src/renderer/src/components/PromotionCoveragePanel.tsx, src/renderer/src/styles.css",
       "owner": "Pronto repository maintainers and AWL promotion-packet owner",
       "condition": "The promotion inbox exposes the AWL evaluation-to-review funnel, packet count, candidate count semantics, or review boundary copy.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "pnpm vitest run src/renderer/src/components/PromotionSurface.test.tsx",
         "pnpm typecheck",
@@ -117,7 +137,11 @@
       "path": "src-tauri/src/core.rs, src-tauri/src/quality.rs, src/renderer/src/components/Analytics*, src/renderer/src/types/quality.ts, src/renderer/src/styles.css, and docs/analytics-workspace.md",
       "owner": "Pronto repository maintainers",
       "condition": "Analytics metrics, sampling, compatibility, findings, ranges, saved views, or chart behavior changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::analytics",
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::quality_refresh_records_changed_analytics_and_deduplicates_unchanged_imports",
@@ -138,7 +162,11 @@
       "path": "src-tauri/src/promotion.rs, src/renderer/src/components/PromotionSurface.tsx, src/renderer/src/components/PromotionSurface.test.tsx, src/renderer/src/types/promotion.ts, src/renderer/src/styles.css, and docs/promotion-inbox.md",
       "owner": "Pronto repository maintainers",
       "condition": "The AWL evaluation funnel, promotion queue eligibility, decision-history display, or JAS admission boundary changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml promotion::tests",
         "pnpm vitest run src/renderer/src/components/PromotionSurface.test.tsx",
@@ -154,7 +182,11 @@
       "path": "src-tauri/src/core.rs, src/renderer/src/components/Analytics*, and docs/analytics-workspace.md",
       "owner": "Pronto repository maintainers",
       "condition": "Analytics metrics, sampling, compatibility, findings, ranges, saved views, or chart behavior changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::analytics",
         "pnpm vitest run src/renderer/src/components/AnalyticsComponents.test.tsx",
@@ -172,7 +204,11 @@
       "path": "bin/pronto.mjs",
       "owner": "Pronto repository maintainers",
       "condition": "The native CLI binary, command syntax, JSON schema, workspace cleanup contract, or prerequisite resolution changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "pnpm cli help",
         "pnpm cli refresh-batch --parallelism 2 --json",
@@ -186,12 +222,44 @@
       "status": "applicable"
     },
     {
+      "id": "telescope-projection",
+      "scope": "local and external consumer contract",
+      "path": "src-tauri/src/telescope.rs, src-tauri/src/core.rs, src-tauri/src/lib.rs, src/renderer/src/components/Telescope*, src/renderer/src/components/telescopeLayout*, src/renderer/src/types/telescope.ts, src/renderer/src/api.ts, src/renderer/src/components/Drawers.tsx, src/renderer/src/components/AppSidebar.tsx, src/renderer/src/styles.css, docs/telescope.md, docs/repository-contract.md, .agents/context/, ~/.agents/skills/pronto/",
+      "owner": "Pronto repository maintainers and Codex skill routing",
+      "condition": "The source-derived topology, workspace binding, cache, extraction adapters, canvas interactions, workflow lenses, CLI or Tauri command, privacy boundary, or Telescope documentation changes.",
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml telescope::tests",
+        "cargo test --manifest-path src-tauri/Cargo.toml",
+        "pnpm vitest run src/renderer/src/components/TelescopeSurface.test.tsx src/renderer/src/api.test.ts src/renderer/src/components/AppSidebar.test.tsx src/renderer/src/components/MacControlContract.test.tsx",
+        "pnpm typecheck",
+        "pnpm build:web",
+        "pnpm build:bundle",
+        "pnpm cli help and verify telescope plus telescope refresh syntax",
+        "Exercise pronto telescope <registered-repository> --json, a repeated cached get, and pronto telescope refresh <registered-repository> --json.",
+        "Verify deterministic IDs, branch/commit/dirty/workspace binding, stale-cache invalidation, dynamic imports, cycles, monorepo topology, and unsupported-language partial coverage.",
+        "Verify cached and CLI JSON contains no source bodies, uncommitted diffs, runtime payload values, credentials, or absolute personal paths.",
+        "Verify synchronized map/navigator selection, What it does and How it's built inspector modes, lens isolation, flow inspection and pause, keyboard navigation, and reduced motion.",
+        "Exercise the packaged Tauri surface at desktop and compact widths, including cooperative refresh cancellation; source tests and builds do not substitute for visible behavior verification.",
+        "Verify Compass and ICM remain optional lenses and AI enrichment is disabled by default with explicit provenance when enabled."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "agent-context",
       "scope": "local",
       "path": ".agents/context/ and .agents/agent-usability.json",
       "owner": "Pronto repository maintainers",
       "condition": "Agent-visible commands, workspace lifecycle classification, documentation and skill relationships, freshness semantics, authorization boundaries, or routing behavior changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "Validate every documented command against node bin/pronto.mjs help.",
         "Verify refresh-batch documents its parallel scan, serialized merge, and conflict-retry boundary.",
@@ -201,6 +269,7 @@
         "Verify relative context links resolve inside the repository.",
         "Verify workspace-manifest requires exact role coverage and emits workspace-fleet-manifest/v1 without mutation authority.",
         "Verify workspace-policy generation is documented as dry-run by default, explicit --write/--replace, exact role-map coverage, and no Git/provider mutation.",
+        "Verify Telescope documents the cached versus forced-refresh boundary, active-worktree binding, partial extraction, and repository-read-only privacy contract.",
         "Run a scoped Quality Runner fleet audit and inspect agent_usability."
       ],
       "status": "applicable"
@@ -210,8 +279,12 @@
       "scope": "external",
       "path": "~/.agents/skills/pronto/ and ~/.agents/skills/pronto/references/cli-contract.md",
       "owner": "Pronto repository maintainers and Codex skill routing",
-      "condition": "The Pronto CLI command surface, workspace cleanup contract, or its agent operating boundary changes.",
-      "operations": ["add", "change", "remove"],
+      "condition": "The Pronto CLI command surface, workspace cleanup contract, Telescope projection, or its agent operating boundary changes.",
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "Verify the skill documents refresh-batch parallel scan, serialized merge, and conflict retry semantics.",
         "Verify the skill documents pronto-agent-release/v2 recommendation and fail-closed release semantics.",
@@ -219,6 +292,7 @@
         "Verify the skill documents read-only route, scoped stale-record refresh, provenance classification, and transactional cleanup postconditions.",
         "Verify the skill tells agents to consume foundation_readiness as repository evidence and make the task-specific recommendation in chat without treating it as rewrite authority.",
         "Run pnpm cli help and confirm the documented command is exposed.",
+        "Dogfood Telescope from a fresh context against positive, negative, and unsupported-language boundary cases, then run the skill structural validator.",
         "Verify repo and route remain the only command entry points for task-lane custody; no competing worktree mutator is introduced."
       ],
       "status": "applicable"
@@ -229,7 +303,11 @@
       "path": "docs/",
       "owner": "Pronto repository maintainers",
       "condition": "Product boundaries, workspace lifecycle, architecture, remediation order, quality gates, release behavior, or operator workflow changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "pnpm format:check",
         "Review docs against .agents/context/commands.md and package.json scripts.",
@@ -243,7 +321,11 @@
       "path": "skills/isolated-change-workflow/, ~/.agents/skills/isolated-change-workflow/, and docs/isolated-change-workflow.md",
       "owner": "Pronto repository maintainers and provider-neutral skill routing",
       "condition": "Repository mutation isolation, task receipt, pre-commit enforcement, or integration-readiness behavior changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "Run the skill creator quick validator against skills/isolated-change-workflow.",
         "Run python3 -m unittest discover -s skills/isolated-change-workflow/scripts -p 'test_*.py'.",
@@ -259,7 +341,11 @@
       "path": ".pronto/ and .project-compass/",
       "owner": "Pronto repository maintainers",
       "condition": "The desired remediation state, product truth, progress, blocker, drift, or continuity evidence changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "pnpm cli remediation \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm cli remediation gate \"$(git rev-parse --show-toplevel)\" --json",
@@ -274,7 +360,11 @@
       "path": "scripts/showcase-materials-terrace-context.test-cases.mjs and showcase-materials/context-compiler-contract/",
       "owner": "Pronto repository maintainers and Context Compiler Contract package owner",
       "condition": "Showcase contract fixtures, deterministic validators, evidence receipts, or CI portability boundaries change.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "node --test scripts/showcase-materials.test.mjs",
         "pnpm contract:check",
@@ -289,7 +379,11 @@
       "path": "pnpm-workspace.yaml and pnpm-lock.yaml",
       "owner": "Pronto repository maintainers",
       "condition": "Workspace dependency overrides or lockfile resolutions change in response to a security advisory or CI audit failure.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "pnpm install --frozen-lockfile",
         "pnpm audit --audit-level high",
@@ -304,7 +398,11 @@
       "path": ".pronto/showcase-goal.json and src-tauri/src/showcase.rs",
       "owner": "Pronto repository maintainers",
       "condition": "A repository is newly registered while a fleet AI Showcase contract exists, or the Showcase goal, eligibility, readiness, or publication projection changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "Newly discovered repositories enter the normal registered fleet during the registry merge.",
         "Registration and refresh do not mutate the Showcase contract or create placeholder rows; Showcase additions require an immediate explicit review with complete contract fields.",
@@ -321,7 +419,11 @@
       "path": ".quality-runner.toml and package.json:scripts.failure-visibility",
       "owner": "Pronto repository maintainers",
       "condition": "Fallback, degradation, evidence normalization, or negative-path behavior changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "pnpm failure-visibility",
         "Run Quality Runner verify-gates with --only-gate failure_visibility in disposable mode and inspect evidence_state."
@@ -334,7 +436,11 @@
       "path": "~/.codex/state_5.sqlite::skill_invocations",
       "owner": "Codex runtime fork and Pronto provider adapter",
       "condition": "Codex skill event identity, persistence, status semantics, retention, or Pronto aggregation changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "Run scoped codex-state skill_invocations tests.",
         "Run the Codex explicit and implicit skill integration tests.",
@@ -349,7 +455,11 @@
       "path": "127.0.0.1:43180/v1/metrics -> ~/Library/Application Support/Pronto/codex-skill-metrics.db",
       "owner": "Codex OTLP metrics exporter and Pronto localhost collector",
       "condition": "Codex skill metric name, dimensions, temporality, OTLP JSON shape, collector lifecycle, coverage semantics, or source precedence changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "Run scoped skill_usage_collector and Skills fallback tests.",
         "node --test scripts/skill-usage-collector.test.mjs",
@@ -365,7 +475,11 @@
       "path": ".pronto/cache-lifecycle.json",
       "owner": "Pronto repository maintainers",
       "condition": "Rebuildable artifacts, cache ownership, worktree isolation, retention authorization, or rebuild commands change.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "pnpm contract:check",
         "Verify every artifact path remains Git-ignored and every rebuild command is current."
@@ -378,7 +492,11 @@
       "path": "~/.quality-runner/fleet-audit/current/maturity.json and quality-runner-maturity-feed/v2",
       "owner": "Quality Runner",
       "condition": "Quality Runner changes its maturity feed, holistic pillar model, repository identity, gate, finding, maturity dimension, applicability, evidence coverage, critical cap, agent-usability, growth-health, freshness, or provenance contract.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "quality-runner doctor --json",
         "quality-runner fleet audit run --repo-path \"$(git rev-parse --show-toplevel)\" --json",
@@ -399,7 +517,11 @@
       "path": "src-tauri/src/core.rs, src-tauri/src/quality.rs, Quality Runner fleet detector publication, repository-local QR runs, and Pronto quality import",
       "owner": "Pronto and Quality Runner integration owners",
       "condition": "Fleet detector command, producer schema, exact-target publication, per-repository status, or findings coverage behavior changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::quality_detector_refresh",
         "lifecycle-aware detector coverage regression excludes exact QR unsupported paths while retaining tracked totals",
@@ -416,7 +538,11 @@
       "path": "Quality Runner long_running_task_observability and long_running_task_optimization dimensions, src-tauri/src/quality.rs, src-tauri/src/remediation.rs, and agent command guidance",
       "owner": "Pronto and Quality Runner integration owners",
       "condition": "Long-running task qualification, dimension import, pillar mapping, remediation copy, priority, or blocker semantics change.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml quality::tests::repository_maturity_maps_long_running_task_dimensions_to_operability",
         "cargo test --manifest-path src-tauri/Cargo.toml remediation::tests::canonical_maturity_projection_owns_below_target_fleet_dimension_action",
@@ -430,7 +556,11 @@
       "path": "<repository>/.quality-runner/web-readiness.json",
       "owner": "Quality Runner and the target repository",
       "condition": "Web applicability, evidence levels, target identity, categorical readiness, route evidence, or release consumption changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "qr web-readiness <repository> --json",
         "pnpm cli quality <repository> --json",
@@ -444,7 +574,11 @@
       "path": "~/.quality-runner/fleet-audit/current/mac-control-ideal-state.json, src-tauri/src/mac_control_maturity.rs, and the Quality Gates renderer",
       "owner": "Quality Runner, Mac Control, and Pronto integration owners",
       "condition": "Mac Control manifest schema, semantic evidence, source-grounding, provider-boundary, score, freshness, or user-facing disposition changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml mac_control_maturity",
         "pnpm vitest run src/renderer/src/components/QualityComponents.test.tsx",
@@ -459,7 +593,11 @@
       "path": ".pronto/installed-runtime-parity.json and producer-owned install/process manifests",
       "owner": "Repository runtime producer and Pronto maintainers",
       "condition": "Installed-runtime parity schema, stage classification, process proof, projection, or remediation behavior changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml installed_runtime --no-default-features",
         "pnpm vitest run src/renderer/src/components/QualityComponents.test.tsx",
@@ -473,7 +611,11 @@
       "path": "src-tauri/src/core.rs, .agents/context/commands.md, docs/developer-legibility-maturity.md, and the Quality Runner maturity feed",
       "owner": "Pronto and Quality Runner integration owners",
       "condition": "Developer-legibility dimension, score, status, gap, newcomer-evidence, or route projection changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml agent_route",
         "pnpm cli route \"$(git rev-parse --show-toplevel)\" --json",
@@ -487,7 +629,11 @@
       "path": "~/.quality-runner/fleet-audit/current/maturity-checkpoint.json, quality-runner-maturity-checkpoint/v1, src-tauri/src/quality.rs, and maturity quality surfaces",
       "owner": "Quality Runner and Pronto integration owners",
       "condition": "The QR/Mac Control coordinated freshness envelope, component binding, publication status, compatibility fallback, or user-facing checkpoint disposition changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "uv run --locked pytest tests/test_maturity_feed.py",
         "cargo test --manifest-path src-tauri/Cargo.toml maturity_checkpoint",
@@ -503,7 +649,11 @@
       "path": "src-tauri/src/core.rs, src-tauri/src/quality.rs, Quality Runner fleet detector publication, repository-local QR runs, and Pronto quality import",
       "owner": "Pronto and Quality Runner integration owners",
       "condition": "Fleet detector command, producer schema, exact-target publication, per-repository status, or findings coverage behavior changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::quality_detector_refresh",
         "lifecycle-aware detector coverage regression excludes exact QR unsupported paths while retaining tracked totals",
@@ -520,7 +670,11 @@
       "path": "github.com/jakyeamos/pronto",
       "owner": "GitHub provider adapter and repository maintainers",
       "condition": "Remote identity, branch, pull request, release, or check-run evidence changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "gh auth status --hostname github.com",
         "pnpm cli refresh-github \"$(git rev-parse --show-toplevel)\" --json",
@@ -535,7 +689,11 @@
       "path": "src-tauri/src/core.rs, src/renderer/src/components/CiTrackerSurface.tsx, docs/ci-tracker.md",
       "owner": "Pronto repository maintainers and ci-incident-router maintainers",
       "condition": "GitHub Actions workflow-run projection, failed-job explanation, prompt-artifact availability, or the user-controlled Codex diagnosis handoff changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::parses_ci_runs_with_failure_context_forks_artifacts_and_stable_signatures",
         "pnpm typecheck",
@@ -551,7 +709,11 @@
       "path": "/Applications/Pronto.app",
       "owner": "Pronto repository maintainers",
       "condition": "The build/promotion command contract, Tauri configuration, bundled assets, native entry points, or production installation behavior changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "node --test scripts/build-workflow.test.mjs scripts/install-app.test.mjs",
         "node --test scripts/skill-usage-collector.test.mjs",
@@ -573,7 +735,11 @@
       "path": "~/.codex/hooks/papercuts-capture.py and ~/.codex/hooks/papercuts_capture/",
       "owner": "Pronto repository maintainers",
       "condition": "Papercuts capture, privacy, spool, health, or recovery behavior changes.",
-      "operations": ["add", "change", "remove"],
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
       "validation": [
         "pnpm papercuts:hook:test",
         "node --test scripts/install-papercuts-hook.test.mjs",

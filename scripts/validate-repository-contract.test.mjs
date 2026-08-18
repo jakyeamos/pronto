@@ -30,6 +30,7 @@ const fixtureFiles = [
   "docs/remediation-sequential-handoff.md",
   "docs/repository-contract.md",
   "docs/task-lane-custody.md",
+  "docs/telescope.md",
   ".pronto/cache-lifecycle.json",
   "docs/runtime-resource-efficiency-maturity.md",
   "src-tauri/src/quality.rs",
