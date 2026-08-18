@@ -9,6 +9,7 @@ use crate::quality::{
 use crate::remediation::{self, RemediationRun};
 use crate::showcase::{self, ShowcasePortfolioSnapshot};
 use crate::skills::{self, SkillsSnapshot};
+use crate::task_lanes::{self, TaskLaneReport};
 use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use rusqlite::{params, Connection as SqliteConnection, OpenFlags, OptionalExtension, Row};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -1138,6 +1139,7 @@ pub struct AgentRepositoryDetail {
     pub repository: RepositorySnapshot,
     pub products: Vec<ProductConfig>,
     pub groups: Vec<GroupConfig>,
+    pub task_lanes: TaskLaneReport,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14230,6 +14232,7 @@ fn agent_repository_detail(
             .filter(|group| group.repository_ids.iter().any(|id| id == &repository.id))
             .cloned()
             .collect(),
+        task_lanes: task_lanes::inspect(Path::new(&repository.path)),
     }
 }
 
@@ -14603,6 +14606,21 @@ fn print_human_repository(detail: &AgentRepositoryDetail) {
             .filter(|condition| condition.status == "Active")
             .count()
     );
+    println!(
+        "Task lanes: {} active · {} adoptable · {} stale · {} contested · {} unknown · {} total",
+        detail.task_lanes.counts.active,
+        detail.task_lanes.counts.adoptable,
+        detail.task_lanes.counts.stale,
+        detail.task_lanes.counts.contested,
+        detail.task_lanes.counts.unknown,
+        detail.task_lanes.counts.total
+    );
+    if detail.task_lanes.source.status != "available" {
+        println!(
+            "  custody evidence unavailable: {}",
+            detail.task_lanes.source.detail
+        );
+    }
     for workspace in &repository.workspaces {
         let cleanliness = if !workspace.status_available {
             "unavailable"
