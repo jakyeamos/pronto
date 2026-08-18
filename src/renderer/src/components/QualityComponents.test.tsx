@@ -403,18 +403,16 @@ describe("quality evidence surfaces", () => {
     const repository = makeRepository();
     const markup = renderToStaticMarkup(
       <QualityGatesSurface
-        snapshot={
-          makePortfolio([repository], {
-            maturity_checkpoint: {
-              status: "Coordinated",
-              publication_status: "Published",
-              quality_status: "ready_with_blockers",
-              freshness: "Fresh",
-              checkpoint_id: "checkpoint-1",
-              observed_at: "2026-07-26T11:00:00Z",
-            },
-          })
-        }
+        snapshot={makePortfolio([repository], {
+          maturity_checkpoint: {
+            status: "Coordinated",
+            publication_status: "Published",
+            quality_status: "ready_with_blockers",
+            freshness: "Fresh",
+            checkpoint_id: "checkpoint-1",
+            observed_at: "2026-07-26T11:00:00Z",
+          },
+        })}
         repositories={[repository]}
         onOpenRepository={noopRepository}
       />,

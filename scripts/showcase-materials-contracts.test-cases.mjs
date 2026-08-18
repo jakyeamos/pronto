@@ -390,10 +390,7 @@ test("release material inventory joins every public project and destination row"
   );
   const targetRowCount = targets.project_targets
     .filter((project) => project.release_state !== "not_applicable")
-    .reduce(
-      (total, project) => total + project.targets.length,
-      0,
-    );
+    .reduce((total, project) => total + project.targets.length, 0);
 
   assert.equal(
     publicProjects.length,

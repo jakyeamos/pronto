@@ -79,16 +79,30 @@ const classifyGate = (project) => {
   if (/rights|attribution|editorial|contribution approval/i.test(text)) {
     return "rights_or_editorial_authority";
   }
-  if (/authenticated|Google Sheets|live-sheet|owner-authenticated/i.test(text)) {
+  if (
+    /authenticated|Google Sheets|live-sheet|owner-authenticated/i.test(text)
+  ) {
     return "owner_authenticated_provider";
   }
-  if (/hosted|external destination|readback|Handshake upload|public access|deploy/i.test(text)) {
+  if (
+    /hosted|external destination|readback|Handshake upload|public access|deploy/i.test(
+      text,
+    )
+  ) {
     return "hosting_or_external_readback";
   }
-  if (/owner contract|owner|collaborator|approval|confidence|fallback|version|deployment/i.test(text)) {
+  if (
+    /owner contract|owner|collaborator|approval|confidence|fallback|version|deployment/i.test(
+      text,
+    )
+  ) {
     return "owner_or_provider_contract";
   }
-  if (/runtime|installed|VS Code|native|producer|adapter|scenario|receipt|proof|matrix|capture/i.test(text)) {
+  if (
+    /runtime|installed|VS Code|native|producer|adapter|scenario|receipt|proof|matrix|capture/i.test(
+      text,
+    )
+  ) {
     return "product_or_evidence_gate";
   }
   return "review_gate";
@@ -134,7 +148,9 @@ const localFixSlots = [
 ];
 
 const firstExisting = async (candidates) => {
-  for (const candidate of Array.isArray(candidates) ? candidates : [candidates]) {
+  for (const candidate of Array.isArray(candidates)
+    ? candidates
+    : [candidates]) {
     if (await exists(candidate)) return candidate;
   }
   return null;
@@ -143,7 +159,11 @@ const firstExisting = async (candidates) => {
 const packageFor = (project) => {
   const readinessProject = readinessByRepo.get(project.repository_name);
   const routeDir = readinessProject?.route?.split("/")[0];
-  return packageOverrides[project.repository_name] ?? routeDir ?? project.repository_name;
+  return (
+    packageOverrides[project.repository_name] ??
+    routeDir ??
+    project.repository_name
+  );
 };
 
 const rows = [];
@@ -181,10 +201,12 @@ for (const project of publicProjects) {
     if (target.release_state === "deferred") state = "deferred_by_decision";
     else if (target.release_state === "blocked") state = "blocked_by_gate";
     else if (!localPackageComplete) state = "local_package_incomplete";
-    else if (project.missing_materials.length > 0) state = "local_packet_ready_with_open_gate";
+    else if (project.missing_materials.length > 0)
+      state = "local_packet_ready_with_open_gate";
     else state = "local_packet_ready";
   }
-  const deferral = override?.deferral ??
+  const deferral =
+    override?.deferral ??
     (state === "deferred_by_decision"
       ? {
           type: "owner_or_provider_contract",
@@ -231,15 +253,27 @@ for (const project of publicProjects) {
 
 const summary = {
   public_project_count: rows.length,
-  local_packet_ready_count: rows.filter((row) => row.local_package_complete).length,
-  local_package_incomplete_count: rows.filter((row) => !row.local_package_complete).length,
-  local_fix_complete_count: rows.filter((row) => row.local_fix.state === "complete").length,
-  local_fix_partial_count: rows.filter((row) => row.local_fix.state === "partial").length,
+  local_packet_ready_count: rows.filter((row) => row.local_package_complete)
+    .length,
+  local_package_incomplete_count: rows.filter(
+    (row) => !row.local_package_complete,
+  ).length,
+  local_fix_complete_count: rows.filter(
+    (row) => row.local_fix.state === "complete",
+  ).length,
+  local_fix_partial_count: rows.filter(
+    (row) => row.local_fix.state === "partial",
+  ).length,
   deferred_or_blocked_count: rows.filter((row) => row.deferral).length,
   externally_postable_count: rows.filter(
-    (row) => row.local_package_complete && row.open_materials.length === 0 && row.external_posting_proof,
+    (row) =>
+      row.local_package_complete &&
+      row.open_materials.length === 0 &&
+      row.external_posting_proof,
   ).length,
-  publication_receipts_recorded: rows.filter((row) => row.external_posting_proof).length,
+  publication_receipts_recorded: rows.filter(
+    (row) => row.external_posting_proof,
+  ).length,
 };
 
 const ledger = {

@@ -45,7 +45,7 @@ function formatBytes(value: number): string {
   return `${(value / 1024 ** exponent).toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
 }
 
-export function CacheDesignSummary({
+function CacheDesignSummary({
   maturity,
 }: {
   maturity: QualityMaturity;

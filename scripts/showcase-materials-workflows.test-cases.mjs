@@ -222,52 +222,60 @@ test("Marketing Autoresearch MA-1 binds a public decision brief to privacy and r
 });
 
 test("RemodelVision scopes owner attribution safely while closing the synthetic fixture gap", async () => {
-  const [ledger, approval, fixture, blocker, runtimeBlocker, route, contract, readiness] =
-    await Promise.all([
-      readFile(
-        new URL(
-          "showcase-materials/remodelvision/contribution-ledger.json",
-          root,
-        ),
-        "utf8",
-      ).then(JSON.parse),
-      readFile(
-        new URL(
-          "showcase-materials/remodelvision/evidence/owner-approval.json",
-          root,
-        ),
-        "utf8",
-      ).then(JSON.parse),
-      readFile(
-        new URL("showcase-materials/remodelvision/asset-manifest.json", root),
-        "utf8",
-      ).then(JSON.parse),
-      readFile(
-        new URL(
-          "showcase-materials/remodelvision/evidence/rv-1-blocker.json",
-          root,
-        ),
-        "utf8",
-      ).then(JSON.parse),
-      readFile(
-        new URL(
-          "showcase-materials/remodelvision/evidence/rv-3-blocker.json",
-          root,
-        ),
-        "utf8",
-      ).then(JSON.parse),
-      readFile(
-        new URL("showcase-materials/remodelvision/route-plan.md", root),
-        "utf8",
+  const [
+    ledger,
+    approval,
+    fixture,
+    blocker,
+    runtimeBlocker,
+    route,
+    contract,
+    readiness,
+  ] = await Promise.all([
+    readFile(
+      new URL(
+        "showcase-materials/remodelvision/contribution-ledger.json",
+        root,
       ),
-      readFile(new URL(".pronto/showcase-goal.json", root), "utf8").then(
-        JSON.parse,
+      "utf8",
+    ).then(JSON.parse),
+    readFile(
+      new URL(
+        "showcase-materials/remodelvision/evidence/owner-approval.json",
+        root,
       ),
-      readFile(
-        new URL("showcase-materials/rehearsal-readiness.json", root),
-        "utf8",
-      ).then(JSON.parse),
-    ]);
+      "utf8",
+    ).then(JSON.parse),
+    readFile(
+      new URL("showcase-materials/remodelvision/asset-manifest.json", root),
+      "utf8",
+    ).then(JSON.parse),
+    readFile(
+      new URL(
+        "showcase-materials/remodelvision/evidence/rv-1-blocker.json",
+        root,
+      ),
+      "utf8",
+    ).then(JSON.parse),
+    readFile(
+      new URL(
+        "showcase-materials/remodelvision/evidence/rv-3-blocker.json",
+        root,
+      ),
+      "utf8",
+    ).then(JSON.parse),
+    readFile(
+      new URL("showcase-materials/remodelvision/route-plan.md", root),
+      "utf8",
+    ),
+    readFile(new URL(".pronto/showcase-goal.json", root), "utf8").then(
+      JSON.parse,
+    ),
+    readFile(
+      new URL("showcase-materials/rehearsal-readiness.json", root),
+      "utf8",
+    ).then(JSON.parse),
+  ]);
 
   assert.equal(
     ledger.schema_version,

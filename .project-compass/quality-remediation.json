@@ -53,10 +53,7 @@
         {
           "id": "quality-remediation-aligned-boundary",
           "name": "The Pronto quality and remediation boundary advances its parent outcome without silently taking on sibling responsibilities.",
-          "targets": [
-            "mvp",
-            "complete_product"
-          ],
+          "targets": ["mvp", "complete_product"],
           "maturity": 25,
           "confidence": "low",
           "layers": {

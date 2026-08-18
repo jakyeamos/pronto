@@ -54,14 +54,22 @@ test("RDW's real case preserves the semantic and deterministic gate boundary", a
 });
 
 test("RDW's publication candidate keeps hosting and deployment claims gated", async () => {
-  const [manifest, approval, provenance, page, description, checkpoint, preview] = await Promise.all([
+  const [
+    manifest,
+    approval,
+    provenance,
+    page,
+    description,
+    checkpoint,
+    preview,
+  ] = await Promise.all([
     readFile(
       new URL(
         "showcase-materials/research-domain-writing/final-package.json",
         root,
       ),
       "utf8",
-      ).then(JSON.parse),
+    ).then(JSON.parse),
     readFile(
       new URL(
         "showcase-materials/research-domain-writing/evidence/editorial-approval.json",
@@ -119,7 +127,10 @@ test("RDW's publication candidate keeps hosting and deployment claims gated", as
     provenance.disposition.release_artifact_to_source_revision,
     "verified_attested",
   );
-  assert.equal(provenance.disposition.rdw_0_status, "closed_by_owner_attestation");
+  assert.equal(
+    provenance.disposition.rdw_0_status,
+    "closed_by_owner_attestation",
+  );
   assert.equal(provenance.asset_manifest.all_installed_assets_match, true);
   assert.equal(approval.approver, "Jakye Amos");
   assert.equal(approval.review.human_publication_boundary_preserved, true);
@@ -129,7 +140,9 @@ test("RDW's publication candidate keeps hosting and deployment claims gated", as
   assert.equal(checkpoint.status, "candidate_local");
   assert.equal(checkpoint.checks.preview_visual_review, "pass");
   assert.equal(
-    checkpoint.artifacts.find((artifact) => artifact.path.endsWith("preview-16x9.png"))?.dimensions,
+    checkpoint.artifacts.find((artifact) =>
+      artifact.path.endsWith("preview-16x9.png"),
+    )?.dimensions,
     "1600x900",
   );
   assert.match(preview, /data-material-status="candidate-local"/);

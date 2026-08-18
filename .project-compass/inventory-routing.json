@@ -52,10 +52,7 @@
         {
           "id": "inventory-routing-aligned-boundary",
           "name": "The Pronto inventory and routing boundary advances its parent outcome without silently taking on sibling responsibilities.",
-          "targets": [
-            "mvp",
-            "complete_product"
-          ],
+          "targets": ["mvp", "complete_product"],
           "maturity": 25,
           "confidence": "low",
           "layers": {
