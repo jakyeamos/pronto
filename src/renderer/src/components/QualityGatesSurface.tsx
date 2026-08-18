@@ -70,6 +70,7 @@ export function QualityGatesSurface({
   const configuration = qualityConfigurationSummary(portfolioQuality);
   const evidence = qualityEvidenceSummary(portfolioQuality);
   const macControl = portfolioQuality.mac_control_ideal_state;
+  const maturityCheckpoint = portfolioQuality.maturity_checkpoint;
   const staleEvidenceContracts = (
     portfolioQuality.evidence_contracts ?? []
   ).filter((contract) => contract.status !== "current");
@@ -96,6 +97,13 @@ export function QualityGatesSurface({
             <MeasurementConfidenceSummary
               confidence={portfolioQuality.measurement_confidence}
             />
+            <small>
+              QR + Mac Control checkpoint:{" "}
+              {maturityCheckpoint?.status ?? "Legacy separate"}
+              {maturityCheckpoint?.observed_at
+                ? ` · ${formatTime(maturityCheckpoint.observed_at)}`
+                : ""}
+            </small>
             {portfolioQuality.source_maturity_score_display && (
               <small>
                 {portfolioQuality.feed_schema ===

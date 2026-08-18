@@ -166,6 +166,15 @@ export function CommandCenterSurface({
             <strong>{formatExactTime(quality.latest_audit_at)}</strong>
           </div>
           <div>
+            <span>QR + Mac Control checkpoint</span>
+            <strong>
+              {quality.maturity_checkpoint?.status ?? "Legacy separate"}
+            </strong>
+            <small>
+              {formatExactTime(quality.maturity_checkpoint?.observed_at)}
+            </small>
+          </div>
+          <div>
             <span>Pronto snapshot</span>
             <strong>{formatExactTime(snapshotGeneratedAt)}</strong>
           </div>

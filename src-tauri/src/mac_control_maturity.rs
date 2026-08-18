@@ -583,6 +583,14 @@ pub fn evaluate_report_at(
     evaluate_report(report, report_path, repositories)
 }
 
+pub fn blocked_for_checkpoint(
+    repositories: &[RepositorySnapshot],
+    report_path: Option<String>,
+    reason: impl Into<String>,
+) -> MacControlEvaluation {
+    blocked(repositories, report_path, reason.into())
+}
+
 fn evaluate_report(
     report: MacControlIdealStateReport,
     report_path: Option<String>,

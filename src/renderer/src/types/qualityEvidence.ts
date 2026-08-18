@@ -1,6 +1,7 @@
 import type {
   InstalledRuntimeSnapshot,
   QualityFindings,
+  QualityFreshness,
   QualityGate,
   QualityMaturity,
   QualityReadiness,
@@ -87,6 +88,19 @@ interface MacControlPortfolioSnapshot {
   observed_at?: string;
   report_path?: string;
   run_id?: string;
+}
+
+export interface MaturityCheckpointSnapshot {
+  status: string;
+  publication_status: string;
+  quality_status: string;
+  freshness: QualityFreshness;
+  checkpoint_id?: string;
+  observed_at?: string;
+  qr_audit_id?: string;
+  mac_control_audit_id?: string;
+  path?: string;
+  reason?: string;
 }
 
 interface BehaviorAssuranceGap {
@@ -280,6 +294,7 @@ export interface QualityPortfolioSnapshot {
     { label: string; meaning: string; next_step?: string }
   >;
   mac_control_ideal_state?: MacControlPortfolioSnapshot;
+  maturity_checkpoint?: MaturityCheckpointSnapshot;
   behavior_assurance?: BehaviorAssurancePortfolioState;
   evidence_contracts?: EvidenceContractFleetCoverage[];
 }

@@ -234,13 +234,26 @@ function MaturityAuditCard({
       </div>
       <div className="quality-audit-settings-grid">
         <div className="quality-audit-root">
-          <span>Feed path</span>
+          <span>QR feed path</span>
           <strong>
             {quality.audit_root ??
               "~/.quality-runner/fleet-audit/current/maturity.json"}
           </strong>
           <small>
             The path is owned by Quality Runner and cannot be changed here.
+          </small>
+        </div>
+        <div className="quality-audit-root">
+          <span>Coordinated checkpoint</span>
+          <strong>
+            {quality.maturity_checkpoint?.path ??
+              "~/.quality-runner/fleet-audit/current/maturity-checkpoint.json"}
+          </strong>
+          <small>
+            {quality.maturity_checkpoint?.status ?? "Legacy separate"} ·{" "}
+            {quality.maturity_checkpoint?.status === "Coordinated"
+              ? "QR and Mac Control freshness is evaluated from one published snapshot."
+              : "QR and Mac Control remain separate legacy evidence feeds until a checkpoint is published."}
           </small>
         </div>
       </div>

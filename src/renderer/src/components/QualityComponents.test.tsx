@@ -399,6 +399,30 @@ describe("quality evidence surfaces", () => {
     expect(markup).toContain("quality-findings-total-unverified");
   });
 
+  it("shows a coordinated QR and Mac Control checkpoint when published", () => {
+    const repository = makeRepository();
+    const markup = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={
+          makePortfolio([repository], {
+            maturity_checkpoint: {
+              status: "Coordinated",
+              publication_status: "Published",
+              quality_status: "ready_with_blockers",
+              freshness: "Fresh",
+              checkpoint_id: "checkpoint-1",
+              observed_at: "2026-07-26T11:00:00Z",
+            },
+          })
+        }
+        repositories={[repository]}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup).toContain("QR + Mac Control checkpoint: Coordinated");
+  });
+
   it("shows Compass coverage beside progress instead of implying complete evidence", () => {
     const repository = makeRepository({
       project_compass: {

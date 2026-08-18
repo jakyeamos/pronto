@@ -4,7 +4,9 @@ use crate::behavior_assurance::{
 use crate::core::{CheckSnapshot, RemoteRepositorySnapshot, RepositorySnapshot};
 use crate::evidence_contract::{EvidenceContractFleetCoverage, EvidenceContractRepositoryStatus};
 use crate::installed_runtime::{self, InstalledRuntimeSnapshot};
-use crate::mac_control_maturity::{MacControlPortfolioSnapshot, MacControlRepositoryState};
+use crate::mac_control_maturity::{
+    MacControlEvaluation, MacControlPortfolioSnapshot, MacControlRepositoryState,
+};
 use crate::release_boundary::{self, ReleaseBoundarySnapshot};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
@@ -12,7 +14,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::thread;
 use std::time::{Duration as StdDuration, Instant};
@@ -22,6 +24,9 @@ pub const FINDING_DISPOSITIONS_SCHEMA: &str = "pronto-quality-finding-dispositio
 pub const FINDING_DISPOSITIONS_RELATIVE_PATH: &str = ".pronto/quality-finding-dispositions.json";
 pub const CANONICAL_MATURITY_FEED_RELATIVE_PATH: &str =
     ".quality-runner/fleet-audit/current/maturity.json";
+pub const CANONICAL_MATURITY_CHECKPOINT_RELATIVE_PATH: &str =
+    ".quality-runner/fleet-audit/current/maturity-checkpoint.json";
+const MATURITY_CHECKPOINT_SCHEMA: &str = "quality-runner-maturity-checkpoint/v1";
 const MATURITY_FEED_SCHEMAS: [&str; 2] = [
     "quality-runner-maturity-feed/v1",
     "quality-runner-maturity-feed/v2",
@@ -969,6 +974,61 @@ pub struct QualityPortfolioSnapshot {
     pub behavior_assurance: BehaviorAssurancePortfolioState,
     #[serde(default)]
     pub evidence_contracts: Vec<EvidenceContractFleetCoverage>,
+    #[serde(default)]
+    pub maturity_checkpoint: MaturityCheckpointSnapshot,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MaturityCheckpointSnapshot {
+    pub status: String,
+    pub publication_status: String,
+    pub quality_status: String,
+    pub freshness: QualityFreshness,
+    #[serde(default)]
+    pub checkpoint_id: Option<String>,
+    #[serde(default)]
+    pub observed_at: Option<String>,
+    #[serde(default)]
+    pub qr_audit_id: Option<String>,
+    #[serde(default)]
+    pub mac_control_audit_id: Option<String>,
+    #[serde(default)]
+    pub path: Option<String>,
+    #[serde(default)]
+    pub reason: Option<String>,
+}
+
+impl Default for MaturityCheckpointSnapshot {
+    fn default() -> Self {
+        Self {
+            status: "Not configured".to_string(),
+            publication_status: "Unknown".to_string(),
+            quality_status: "Unknown".to_string(),
+            freshness: QualityFreshness::Unknown,
+            checkpoint_id: None,
+            observed_at: None,
+            qr_audit_id: None,
+            mac_control_audit_id: None,
+            path: None,
+            reason: None,
+        }
+    }
+}
+
+impl MaturityCheckpointSnapshot {
+    pub fn legacy() -> Self {
+        Self {
+            status: "Legacy separate".to_string(),
+            publication_status: "Legacy".to_string(),
+            quality_status: "Unknown".to_string(),
+            freshness: QualityFreshness::Unknown,
+            reason: Some(
+                "QR maturity and Mac Control evidence are available as separate legacy feeds."
+                    .to_string(),
+            ),
+            ..Self::default()
+        }
+    }
 }
 
 impl Default for QualityPortfolioSnapshot {
@@ -1016,6 +1076,7 @@ impl Default for QualityPortfolioSnapshot {
             mac_control_ideal_state: MacControlPortfolioSnapshot::default(),
             behavior_assurance: BehaviorAssurancePortfolioState::default(),
             evidence_contracts: Vec::new(),
+            maturity_checkpoint: MaturityCheckpointSnapshot::default(),
         }
     }
 }
@@ -1025,6 +1086,356 @@ pub struct AuditImport {
     pub portfolio: QualityPortfolioSnapshot,
     pub maturities: HashMap<String, QualityMaturity>,
     pub behavior_assurance: HashMap<String, BehaviorAssuranceRepositoryState>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CoordinatedMaturityImport {
+    pub audit: AuditImport,
+    pub mac_control: MacControlEvaluation,
+    pub checkpoint: MaturityCheckpointSnapshot,
+}
+
+pub fn maturity_checkpoint_import(
+    checkpoint_path: Option<&Path>,
+    repositories: &[RepositorySnapshot],
+) -> Option<CoordinatedMaturityImport> {
+    let checkpoint_path = checkpoint_path?;
+    if checkpoint_path.is_symlink() {
+        return Some(blocked_maturity_checkpoint_import(
+            checkpoint_path,
+            repositories,
+            "The canonical maturity checkpoint must not be a symlink.",
+        ));
+    }
+    if !checkpoint_path.exists() {
+        return None;
+    }
+    if !checkpoint_path.is_file() {
+        return Some(blocked_maturity_checkpoint_import(
+            checkpoint_path,
+            repositories,
+            "The canonical maturity checkpoint is not a regular file.",
+        ));
+    }
+    let result = read_json(checkpoint_path)
+        .ok_or_else(|| "The canonical maturity checkpoint is invalid JSON.".to_string())
+        .and_then(|checkpoint| {
+            load_coordinated_maturity_checkpoint(checkpoint_path, repositories, &checkpoint)
+        });
+    Some(match result {
+        Ok(import) => import,
+        Err(reason) => blocked_maturity_checkpoint_import(checkpoint_path, repositories, &reason),
+    })
+}
+
+fn load_coordinated_maturity_checkpoint(
+    checkpoint_path: &Path,
+    repositories: &[RepositorySnapshot],
+    checkpoint: &Value,
+) -> Result<CoordinatedMaturityImport, String> {
+    if checkpoint.get("schema").and_then(Value::as_str) != Some(MATURITY_CHECKPOINT_SCHEMA) {
+        return Err(format!(
+            "The maturity checkpoint schema must be {MATURITY_CHECKPOINT_SCHEMA}."
+        ));
+    }
+    if checkpoint.get("status").and_then(Value::as_str) != Some("complete")
+        || checkpoint.get("publication_status").and_then(Value::as_str) != Some("ready")
+    {
+        return Err("The maturity checkpoint is not a complete published snapshot.".to_string());
+    }
+    let checkpoint_id = checkpoint_string(checkpoint, "checkpoint_id")?;
+    let observed_at = checkpoint_string(checkpoint, "observed_at")?;
+    let quality_status = checkpoint_string(checkpoint, "quality_status")?;
+    let components = checkpoint_object(checkpoint, "components")?;
+    let qr_component = checkpoint_object_from(components, "qr_maturity")?;
+    let mac_component = checkpoint_object_from(components, "mac_control")?;
+    let qr_audit_id = checkpoint_string_from(qr_component, "audit_id")?;
+    let mac_control_audit_id = checkpoint_string_from(mac_component, "audit_id")?;
+    let qr_as_of = checkpoint_string_from(qr_component, "as_of")?;
+    let mac_control_as_of = checkpoint_string_from(mac_component, "as_of")?;
+    if qr_as_of != observed_at || mac_control_as_of != observed_at {
+        return Err("The maturity checkpoint component timestamps do not match.".to_string());
+    }
+
+    let qr_path = resolve_checkpoint_component(
+        checkpoint_path,
+        checkpoint_string_from(qr_component, "path")?,
+        "QR maturity feed",
+    )?;
+    verify_checkpoint_component_hash(&qr_path, qr_component, "QR maturity feed")?;
+    let mac_control_path = resolve_checkpoint_component(
+        checkpoint_path,
+        checkpoint_string_from(mac_component, "path")?,
+        "Mac Control report",
+    )?;
+    verify_checkpoint_component_hash(&mac_control_path, mac_component, "Mac Control report")?;
+
+    let feed = read_json(&qr_path)
+        .ok_or_else(|| "The checkpoint QR maturity component is invalid JSON.".to_string())?;
+    if !validate_maturity_feed(&feed) {
+        return Err("The checkpoint QR maturity component failed feed validation.".to_string());
+    }
+    let feed_source = feed
+        .get("source")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "The checkpoint QR maturity source is missing.".to_string())?;
+    if feed_source.get("audit_id").and_then(Value::as_str) != Some(qr_audit_id.as_str())
+        || feed_source.get("as_of").and_then(Value::as_str) != Some(observed_at.as_str())
+    {
+        return Err("The checkpoint QR maturity source does not match its pointer.".to_string());
+    }
+    validate_checkpoint_target(checkpoint, &feed, repositories)?;
+
+    let mac_report = read_json(&mac_control_path)
+        .ok_or_else(|| "The checkpoint Mac Control component is invalid JSON.".to_string())?;
+    if mac_report.get("schema_version").and_then(Value::as_str)
+        != Some(crate::mac_control_maturity::MAC_CONTROL_SCHEMA)
+        || mac_report.get("producer").and_then(Value::as_str) != Some("mac-control")
+        || mac_report.get("run_id").and_then(Value::as_str) != Some(mac_control_audit_id.as_str())
+        || mac_report.get("observed_at").and_then(Value::as_str) != Some(observed_at.as_str())
+    {
+        return Err("The checkpoint Mac Control component does not match its pointer.".to_string());
+    }
+
+    let audit = maturity_feed_import(Some(&qr_path), repositories);
+    if audit.portfolio.audit_status == "Unavailable" {
+        return Err("The checkpoint QR maturity component could not be imported.".to_string());
+    }
+    let mac_control =
+        crate::mac_control_maturity::evaluate_report_at(&mac_control_path, repositories);
+    if mac_control.portfolio.run_id.as_deref() != Some(mac_control_audit_id.as_str())
+        || mac_control.portfolio.observed_at.as_deref() != Some(observed_at.as_str())
+    {
+        return Err("The imported Mac Control report does not match its pointer.".to_string());
+    }
+
+    let checkpoint_freshness = evaluate_audit_freshness_at(Some(&observed_at), Utc::now());
+    let mut audit = audit;
+    audit.portfolio.maturity_checkpoint = MaturityCheckpointSnapshot {
+        status: "Coordinated".to_string(),
+        publication_status: "Published".to_string(),
+        quality_status,
+        freshness: checkpoint_freshness.clone(),
+        checkpoint_id: Some(checkpoint_id),
+        observed_at: Some(observed_at),
+        qr_audit_id: Some(qr_audit_id),
+        mac_control_audit_id: Some(mac_control_audit_id),
+        path: Some(checkpoint_path.to_string_lossy().to_string()),
+        reason: checkpoint
+            .get("reason")
+            .and_then(Value::as_str)
+            .map(str::to_string),
+    };
+    Ok(CoordinatedMaturityImport {
+        audit,
+        mac_control,
+        checkpoint: MaturityCheckpointSnapshot {
+            status: "Coordinated".to_string(),
+            publication_status: "Published".to_string(),
+            quality_status: checkpoint_string(checkpoint, "quality_status")?,
+            freshness: checkpoint_freshness,
+            checkpoint_id: checkpoint
+                .get("checkpoint_id")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+            observed_at: checkpoint
+                .get("observed_at")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+            qr_audit_id: Some(checkpoint_string_from(qr_component, "audit_id")?),
+            mac_control_audit_id: Some(checkpoint_string_from(mac_component, "audit_id")?),
+            path: Some(checkpoint_path.to_string_lossy().to_string()),
+            reason: checkpoint
+                .get("reason")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+        },
+    })
+}
+
+fn blocked_maturity_checkpoint_import(
+    checkpoint_path: &Path,
+    repositories: &[RepositorySnapshot],
+    reason: &str,
+) -> CoordinatedMaturityImport {
+    let path = checkpoint_path.to_string_lossy().to_string();
+    let mut audit = AuditImport::default();
+    audit.portfolio.audit_root = Some(path.clone());
+    audit.portfolio.latest_audit_path = Some(path.clone());
+    audit.portfolio.audit_status = "Blocked".to_string();
+    let checkpoint = MaturityCheckpointSnapshot {
+        status: "Blocked".to_string(),
+        publication_status: "Invalid".to_string(),
+        quality_status: "Blocked".to_string(),
+        freshness: QualityFreshness::Unknown,
+        path: Some(path.clone()),
+        reason: Some(reason.to_string()),
+        ..MaturityCheckpointSnapshot::default()
+    };
+    audit.portfolio.maturity_checkpoint = checkpoint.clone();
+    let mac_control =
+        crate::mac_control_maturity::blocked_for_checkpoint(repositories, Some(path), reason);
+    CoordinatedMaturityImport {
+        audit,
+        mac_control,
+        checkpoint,
+    }
+}
+
+fn validate_checkpoint_target(
+    checkpoint: &Value,
+    feed: &Value,
+    repositories: &[RepositorySnapshot],
+) -> Result<(), String> {
+    let target = checkpoint_object(checkpoint, "target")?;
+    let target_count = target
+        .get("repository_count")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| "The maturity checkpoint target count is missing.".to_string())?
+        as usize;
+    let target_repositories = target
+        .get("repositories")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "The maturity checkpoint target repositories are missing.".to_string())?;
+    if target_repositories.len() != target_count {
+        return Err("The maturity checkpoint target count is inconsistent.".to_string());
+    }
+    let mut commits = HashMap::new();
+    for repository in target_repositories {
+        let repository_id = checkpoint_string(repository, "repo_id")?;
+        let observed_commit = checkpoint_string(repository, "observed_commit")?;
+        if commits.insert(repository_id, observed_commit).is_some() {
+            return Err(
+                "The maturity checkpoint target contains duplicate repositories.".to_string(),
+            );
+        }
+    }
+    let projections = feed
+        .get("repositories")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "The checkpoint QR maturity repositories are missing.".to_string())?;
+    if projections.len() != target_count {
+        return Err("The checkpoint target and QR maturity populations do not match.".to_string());
+    }
+    for projection in projections {
+        let repository_id = checkpoint_string(projection, "repo_id")?;
+        let target_commit = commits.get(&repository_id).ok_or_else(|| {
+            "The checkpoint target and QR maturity repositories do not match.".to_string()
+        })?;
+        if projection.get("target_head").and_then(Value::as_str) != Some(target_commit.as_str()) {
+            return Err(format!(
+                "The checkpoint target commit does not match QR maturity for {repository_id}."
+            ));
+        }
+    }
+    for repository in repositories {
+        let repository_id = repository_feed_id(repository);
+        if !commits.contains_key(&repository_id) {
+            return Err(format!(
+                "The checkpoint target is missing Pronto repository {}.",
+                repository.name
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn resolve_checkpoint_component(
+    checkpoint_path: &Path,
+    raw_path: String,
+    label: &str,
+) -> Result<PathBuf, String> {
+    let relative = Path::new(&raw_path);
+    if relative.is_absolute()
+        || relative.components().any(|component| {
+            matches!(
+                component,
+                Component::CurDir
+                    | Component::ParentDir
+                    | Component::RootDir
+                    | Component::Prefix(_)
+            )
+        })
+    {
+        return Err(format!("{label} path must be a safe relative path."));
+    }
+    let root = checkpoint_path
+        .parent()
+        .and_then(Path::parent)
+        .ok_or_else(|| "The maturity checkpoint root is unavailable.".to_string())?;
+    let root = fs::canonicalize(root)
+        .map_err(|error| format!("The maturity checkpoint root could not be resolved: {error}"))?;
+    let candidate = root.join(relative);
+    if candidate.is_symlink() {
+        return Err(format!("{label} must not be a symlink."));
+    }
+    let resolved = fs::canonicalize(&candidate)
+        .map_err(|error| format!("{label} could not be resolved: {error}"))?;
+    if !resolved.starts_with(&root) {
+        return Err(format!("{label} resolves outside the checkpoint root."));
+    }
+    Ok(candidate)
+}
+
+fn verify_checkpoint_component_hash(
+    path: &Path,
+    component: &serde_json::Map<String, Value>,
+    label: &str,
+) -> Result<(), String> {
+    let expected = checkpoint_string_from(component, "sha256")?;
+    let actual = Sha256::digest(
+        fs::read(path).map_err(|error| format!("{label} could not be read: {error}"))?,
+    )
+    .iter()
+    .map(|byte| format!("{byte:02x}"))
+    .collect::<String>();
+    if actual != expected {
+        return Err(format!(
+            "{label} hash does not match its checkpoint pointer."
+        ));
+    }
+    Ok(())
+}
+
+fn checkpoint_object<'a>(
+    value: &'a Value,
+    key: &str,
+) -> Result<&'a serde_json::Map<String, Value>, String> {
+    value
+        .get(key)
+        .and_then(Value::as_object)
+        .ok_or_else(|| format!("The maturity checkpoint field {key} is missing."))
+}
+
+fn checkpoint_object_from<'a>(
+    value: &'a serde_json::Map<String, Value>,
+    key: &str,
+) -> Result<&'a serde_json::Map<String, Value>, String> {
+    value
+        .get(key)
+        .and_then(Value::as_object)
+        .ok_or_else(|| format!("The maturity checkpoint component {key} is missing."))
+}
+
+fn checkpoint_string(value: &Value, key: &str) -> Result<String, String> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .filter(|candidate| !candidate.trim().is_empty())
+        .map(str::to_string)
+        .ok_or_else(|| format!("The maturity checkpoint field {key} is missing."))
+}
+
+fn checkpoint_string_from(
+    value: &serde_json::Map<String, Value>,
+    key: &str,
+) -> Result<String, String> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .filter(|candidate| !candidate.trim().is_empty())
+        .map(str::to_string)
+        .ok_or_else(|| format!("The maturity checkpoint component field {key} is missing."))
 }
 
 #[derive(Debug, Clone)]
@@ -1117,6 +1528,10 @@ pub struct FleetAuditImport {
 
 pub fn canonical_maturity_feed_path() -> Option<PathBuf> {
     dirs::home_dir().map(|home| home.join(CANONICAL_MATURITY_FEED_RELATIVE_PATH))
+}
+
+pub fn canonical_maturity_checkpoint_path() -> Option<PathBuf> {
+    dirs::home_dir().map(|home| home.join(CANONICAL_MATURITY_CHECKPOINT_RELATIVE_PATH))
 }
 
 pub fn is_stable_detector_report(report_path: Option<&str>) -> bool {
@@ -5758,6 +6173,137 @@ mod tests {
         feed["provenance_hash"] =
             Value::String(maturity_feed_hash(&feed).expect("fixture feed should hash"));
         feed
+    }
+
+    fn fixture_sha256(path: &Path) -> String {
+        Sha256::digest(fs::read(path).expect("fixture component should be readable"))
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect()
+    }
+
+    #[test]
+    fn coordinated_maturity_checkpoint_import_binds_both_evidence_lanes() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root.join("repo"));
+        let as_of = "2026-07-26T11:00:00Z";
+        let bundle = root.join("current/checkpoints/checkpoint-fixture");
+        fs::create_dir_all(&bundle).expect("checkpoint bundle should be writable");
+        let feed_path = bundle.join("maturity.json");
+        fs::write(
+            &feed_path,
+            serde_json::to_vec(&fixture_maturity_feed(&repository, as_of))
+                .expect("fixture feed should serialize"),
+        )
+        .expect("fixture feed should be writable");
+        let mac_control_path = bundle.join("mac-control-ideal-state.json");
+        fs::write(
+            &mac_control_path,
+            serde_json::to_vec(&serde_json::json!({
+                "schema_version": "pronto-mac-control-ideal-state/v1",
+                "producer": "mac-control",
+                "scope": "quality_runner_fleet",
+                "run_id": "mac-audit-fixture",
+                "observed_at": as_of,
+                "repositories": [{
+                    "repository_id": repository_feed_id(&repository),
+                    "repository_name": repository.name.clone(),
+                    "applicability": "not_applicable",
+                    "applicability_reason": "The fixture has no supported task surface.",
+                    "observed_at": as_of,
+                    "observed_commit": "abc",
+                    "manifest_schema": "",
+                    "supported_tasks": [],
+                    "criteria": {},
+                    "evidence": [],
+                    "implementation_contract": {},
+                    "live_task_evidence": {}
+                }]
+            }))
+            .expect("fixture report should serialize"),
+        )
+        .expect("fixture report should be writable");
+        let checkpoint_path = root.join("current/maturity-checkpoint.json");
+        let repository_id = repository_feed_id(&repository);
+        fs::write(
+            &checkpoint_path,
+            serde_json::to_vec(&serde_json::json!({
+                "schema": MATURITY_CHECKPOINT_SCHEMA,
+                "status": "complete",
+                "publication_status": "ready",
+                "quality_status": "ready_with_blockers",
+                "checkpoint_id": "checkpoint-fixture",
+                "observed_at": as_of,
+                "target": {
+                    "repository_count": 1,
+                    "repositories": [{
+                        "repo_id": repository_id,
+                        "observed_commit": "abc"
+                    }]
+                },
+                "components": {
+                    "qr_maturity": {
+                        "audit_id": "audit-fixture",
+                        "as_of": as_of,
+                        "path": "current/checkpoints/checkpoint-fixture/maturity.json",
+                        "sha256": fixture_sha256(&feed_path)
+                    },
+                    "mac_control": {
+                        "audit_id": "mac-audit-fixture",
+                        "as_of": as_of,
+                        "path": "current/checkpoints/checkpoint-fixture/mac-control-ideal-state.json",
+                        "sha256": fixture_sha256(&mac_control_path)
+                    }
+                }
+            }))
+            .expect("checkpoint should serialize"),
+        )
+        .expect("checkpoint should be writable");
+
+        let imported =
+            maturity_checkpoint_import(Some(&checkpoint_path), std::slice::from_ref(&repository))
+                .expect("checkpoint should be attempted");
+
+        assert_eq!(imported.checkpoint.status, "Coordinated");
+        assert_eq!(
+            imported.checkpoint.qr_audit_id.as_deref(),
+            Some("audit-fixture")
+        );
+        assert_eq!(
+            imported.checkpoint.mac_control_audit_id.as_deref(),
+            Some("mac-audit-fixture")
+        );
+        assert_eq!(
+            imported.audit.portfolio.latest_audit_id.as_deref(),
+            Some("audit-fixture")
+        );
+        assert_eq!(
+            imported.mac_control.portfolio.run_id.as_deref(),
+            Some("mac-audit-fixture")
+        );
+    }
+
+    #[test]
+    fn invalid_maturity_checkpoint_does_not_fallback_to_separate_feeds() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root.join("repo"));
+        let checkpoint_path = root.join("current/maturity-checkpoint.json");
+        fs::create_dir_all(
+            checkpoint_path
+                .parent()
+                .expect("checkpoint should have a parent"),
+        )
+        .expect("checkpoint directory should be writable");
+        fs::write(&checkpoint_path, b"{\"schema\":\"wrong\"}")
+            .expect("invalid checkpoint should be writable");
+
+        let imported =
+            maturity_checkpoint_import(Some(&checkpoint_path), std::slice::from_ref(&repository))
+                .expect("existing checkpoint should be attempted");
+
+        assert_eq!(imported.checkpoint.status, "Blocked");
+        assert_eq!(imported.audit.portfolio.audit_status, "Blocked");
+        assert_eq!(imported.mac_control.portfolio.status, "Blocked");
     }
 
     #[test]
