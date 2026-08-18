@@ -65,6 +65,16 @@ const projection: TelescopeProjection = {
     },
   ],
   flows: [],
+  actions: [],
+  action_coverage: {
+    inventory_status: "missing",
+    total: 0,
+    authored: 0,
+    inferred: 0,
+    partial: 0,
+    mapped: 0,
+    unmapped: 0,
+  },
   warnings: [],
   enrichment: {
     enabled: false,

@@ -289,6 +289,16 @@ contract digest is unchanged and no committed or dirty path matches that
 behavior's declared change triggers. `release preview` applies the same Tier-0
 gate. See `docs/behavior-assurance.md` for the artifact contract.
 
+Telescope's searchable `actions` projection is a consumer of the behavior
+assurance contract, not an alternate behavioral inventory. Authored action
+entries may link a `behaviorId` and inherit its scenarios; declared behaviors
+without a visual mapping appear as review actions, while unlinked flow and
+entrypoint actions remain explicitly unprofiled. Use `action_coverage` and the
+linked behavior state/evidence fields to distinguish visual explanation from
+verified behavior. Selecting an action only focuses the read-only city and
+inspector; it does not execute the action or bypass Pronto's existing guarded
+handoff surfaces.
+
 The Node launcher normally resolves `cargo` from the documented Homebrew paths
 and then `PATH`. Set `PRONTO_CARGO` to an explicit Cargo executable only when a
 different verified Rust toolchain is required.

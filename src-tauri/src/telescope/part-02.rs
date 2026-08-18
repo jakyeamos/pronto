@@ -169,6 +169,7 @@ fn extract_projection(
         } else {
             String::new()
         };
+        let measured_lines = content.lines().count();
         let kind = classify_node(&file.relative_path, &content);
         let (symbols, data_shapes) = if file.supported {
             extract_symbols_and_shapes(&content, &file.language)
@@ -224,6 +225,13 @@ fn extract_projection(
             }],
             symbols,
             data_shapes,
+            source_paths: vec![file.relative_path.clone()],
+            measured_lines,
+            source_file_count: 1,
+            visual_building_id: None,
+            visual_archetype: visual_archetype_for_kind(&kind).to_string(),
+            visual_override_provenance: "measured-default".to_string(),
+            narrative_status: "derived".to_string(),
         });
     }
 
@@ -235,6 +243,12 @@ fn extract_projection(
             parent_id: None,
             summary: "Imported packages and services outside this repository.".to_string(),
             confidence: "high".to_string(),
+            provenance: vec!["static-import".to_string()],
+            source_file_count: 0,
+            measured_lines: 0,
+            visual_archetype: "low-slab".to_string(),
+            visual_override_provenance: "measured-default".to_string(),
+            narrative_status: "derived".to_string(),
         });
         for specifier in external_specifiers {
             let id = stable_id("external", &specifier);
@@ -254,6 +268,13 @@ fn extract_projection(
                 source_anchors: Vec::new(),
                 symbols: Vec::new(),
                 data_shapes: Vec::new(),
+                source_paths: Vec::new(),
+                measured_lines: 0,
+                source_file_count: 0,
+                visual_building_id: None,
+                visual_archetype: "low-slab".to_string(),
+                visual_override_provenance: "measured-default".to_string(),
+                narrative_status: "derived".to_string(),
             });
         }
     }
@@ -316,12 +337,59 @@ fn extract_projection(
                 symbol: None,
                 provenance: "source".to_string(),
             }),
+            rail_kind: rail_kind_for_relationship(&import.kind).to_string(),
+            visual_override_provenance: "measured-default".to_string(),
+            narrative_status: "derived".to_string(),
         });
     }
     edges.sort_by(|left, right| left.id.cmp(&right.id));
     nodes.sort_by(|left, right| left.id.cmp(&right.id));
     groups.sort_by(|left, right| left.id.cmp(&right.id));
-    let flows = build_flows(&nodes, &edges);
+    annotate_group_measurements(&mut groups, &nodes);
+    let mut flows = build_flows(&nodes, &edges);
+    let measured_fingerprint = measured_topology_fingerprint(&files, &edges);
+    let narrative = load_and_apply_narrative(
+        request.workspace_path,
+        &files,
+        &measured_fingerprint,
+        &mut groups,
+        &mut nodes,
+        &mut edges,
+        &mut flows,
+        &mut warnings,
+        cancellation,
+    )?;
+    let behavior_contract = load_behavior_contract(request.workspace_path, &mut warnings);
+    let (actions, action_coverage) =
+        build_telescope_actions(&narrative, &behavior_contract, &nodes, &edges, &flows);
+    for action in &actions {
+        if let Some(behavior_id) = &action.behavior_id {
+            if action.behavior_state != "declared" {
+                warnings.push(TelescopeWarning {
+                    code: "action-behavior-unresolved".to_string(),
+                    message: format!(
+                        "Action {} references behavior {} but that ID is not present in the canonical behavior contract; it remains unprofiled.",
+                        action.id, behavior_id
+                    ),
+                    scope: "actions".to_string(),
+                });
+            }
+        }
+    }
+    if matches!(
+        action_coverage.inventory_status.as_str(),
+        "missing" | "inferred" | "partial"
+    ) {
+        warnings.push(TelescopeWarning {
+            code: "action-inventory-partial".to_string(),
+            message: match action_coverage.inventory_status.as_str() {
+                "missing" => "No user-action inventory was found; Telescope is showing only source-derived flow actions.".to_string(),
+                "inferred" => "The action inventory is inferred from static flows; review .pronto/telescope-map.json before treating actions as confirmed product behavior.".to_string(),
+                _ => "Some catalogued actions do not have complete source or relationship mapping and are shown as partial.".to_string(),
+            },
+            scope: "actions".to_string(),
+        });
+    }
     let confidence = if files.is_empty() {
         "unavailable"
     } else if partial_count == 0 && !truncated {
@@ -364,6 +432,8 @@ fn extract_projection(
         nodes,
         edges,
         flows,
+        actions,
+        action_coverage,
         warnings,
         enrichment: TelescopeEnrichment {
             enabled: false,
@@ -372,5 +442,6 @@ fn extract_projection(
             source_content_transmitted: false,
             status: "disabled-by-default".to_string(),
         },
+        narrative,
     })
 }

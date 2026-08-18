@@ -6671,7 +6671,7 @@ h1 {
   min-height: 670px;
   height: min(780px, calc(100vh - 168px));
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   overflow: hidden;
   border: 1px solid #d7dee7;
   border-radius: 17px;
@@ -6783,6 +6783,172 @@ h1 {
 .telescope-lens-state.tone-coral {
   color: #9f3f42;
   background: #ffe9e9;
+}
+.telescope-actions {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.42fr) minmax(300px, 0.58fr);
+  gap: 7px 12px;
+  padding: 8px 12px 7px;
+  border-bottom: 1px solid var(--telescope-line);
+  background: rgba(255, 255, 255, 0.78);
+}
+.telescope-actions-heading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.telescope-actions-heading > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.telescope-actions-heading .eyebrow {
+  color: #5a6d85;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.telescope-actions-heading strong {
+  overflow: hidden;
+  color: #26364b;
+  font-size: 11px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.telescope-action-coverage,
+.telescope-action-note {
+  color: #718197;
+  font-size: 8px;
+  line-height: 1.35;
+}
+.telescope-action-coverage {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.telescope-action-search {
+  min-width: 0;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  border: 1px solid #d8e0e9;
+  border-radius: 8px;
+  color: #6680a0;
+  background: #f8fafc;
+}
+.telescope-action-search:focus-within {
+  border-color: #9abcf5;
+  box-shadow: 0 0 0 3px rgba(55, 120, 246, 0.1);
+}
+.telescope-action-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 10px;
+}
+.telescope-action-search > button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #6c7d92;
+  background: #e9eef5;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.telescope-action-results {
+  min-width: 0;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.telescope-action-results > button {
+  min-width: 142px;
+  max-width: 220px;
+  display: grid;
+  flex: 0 0 auto;
+  gap: 1px;
+  justify-items: start;
+  padding: 6px 8px;
+  border: 1px solid #dfe6ef;
+  border-radius: 8px;
+  color: #31445c;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+.telescope-action-results > button:hover,
+.telescope-action-results > button.active {
+  border-color: #9abcf5;
+  color: #1e5fca;
+  background: #eef5ff;
+}
+.telescope-action-results > button > span {
+  color: #7b8b9e;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.telescope-action-results > button > strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 9px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.telescope-action-results > button > small {
+  color: #8391a1;
+  font-size: 8px;
+}
+.telescope-action-results > button.active > small {
+  color: #3778f6;
+}
+.telescope-action-reset {
+  min-width: auto !important;
+  align-self: center;
+  border-style: dashed !important;
+  color: #5c6e84 !important;
+  background: transparent !important;
+}
+.telescope-action-empty {
+  padding: 8px 2px;
+  color: #7b8999;
+  font-size: 9px;
+}
+.telescope-action-note {
+  grid-column: 1 / -1;
+}
+.telescope-action-evidence {
+  display: grid;
+  gap: 3px;
+  margin: 11px 0;
+  padding: 8px 9px;
+  border: 1px solid #e0e7ef;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+.telescope-action-evidence span {
+  color: #718197;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.telescope-action-evidence strong {
+  color: #34475e;
+  font-size: 9px;
+  font-weight: 550;
+  line-height: 1.4;
 }
 .telescope-frame {
   min-height: 0;
@@ -7205,6 +7371,312 @@ h1 {
 .telescope-flow-token.is-paused {
   fill: #7c8a9c;
 }
+.telescope-scene-levels {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 7px;
+  padding-left: 7px;
+  border-left: 1px solid #dfe5ec;
+}
+.telescope-scene-levels button {
+  min-height: 24px;
+  padding-inline: 7px;
+  color: #7b8796;
+  font-size: 8px;
+}
+.telescope-scene-levels button.active {
+  color: #345f9f;
+  border-color: #cddcf2;
+  background: #edf4ff;
+}
+.telescope-district-node {
+  position: relative;
+  overflow: visible;
+  padding: 15px 19px;
+  border: 0;
+  border-radius: 26px;
+  color: #52647a;
+  background: transparent;
+  box-shadow: none;
+}
+.telescope-district-node::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 3px 4px 7px;
+  border: 1px solid rgba(134, 157, 184, 0.32);
+  border-radius: 24px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.68),
+      rgba(230, 237, 246, 0.6)
+    ),
+    repeating-linear-gradient(
+      135deg,
+      rgba(121, 151, 183, 0.08) 0,
+      rgba(121, 151, 183, 0.08) 1px,
+      transparent 1px,
+      transparent 16px
+    );
+  box-shadow:
+    0 16px 26px rgba(73, 97, 126, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  transform: skewX(-12deg) rotateX(55deg);
+  transform-origin: 50% 100%;
+}
+.telescope-district-node > div:not(.telescope-district-marker) {
+  position: relative;
+  display: grid;
+  gap: 3px;
+}
+.telescope-district-node strong {
+  color: #3f536c;
+  font-size: 11px;
+  letter-spacing: -0.015em;
+}
+.telescope-district-node small {
+  margin-top: 0;
+  color: #8c9aaa;
+  font-size: 8px;
+}
+.telescope-district-marker {
+  position: absolute;
+  top: 13px;
+  right: 16px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #f8fbff;
+  border-radius: 50%;
+  background: #79a6e8;
+  box-shadow: 0 0 0 3px rgba(121, 166, 232, 0.17);
+}
+.telescope-district-kind {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  color: #a1adba;
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.telescope-building-node {
+  position: relative;
+  display: block;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #344a63;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.telescope-building-node > * {
+  transform: none;
+}
+.telescope-building-silhouette {
+  position: absolute;
+  z-index: 0;
+  inset: -9px -14px -7px;
+  width: calc(100% + 28px);
+  height: calc(100% + 16px);
+  overflow: visible;
+  pointer-events: none;
+}
+.building-shadow {
+  fill: rgba(53, 74, 101, 0.15);
+}
+.building-top {
+  fill: #dce9f8;
+  stroke: #aec8e7;
+  stroke-width: 1.2;
+}
+.building-front {
+  fill: #b8d0ee;
+  stroke: #9dbbe0;
+  stroke-width: 1.2;
+}
+.building-side {
+  fill: #8eafd7;
+  stroke: #80a2ca;
+  stroke-width: 1.2;
+}
+.building-fins path,
+.building-window-grid path,
+.building-tower-lines path,
+.building-slab-lines path,
+.building-low-line {
+  fill: none;
+  stroke: rgba(61, 105, 159, 0.48);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.building-fins path {
+  fill: rgba(238, 246, 255, 0.66);
+  stroke: rgba(77, 123, 180, 0.62);
+  stroke-width: 1;
+}
+.building-tower-lines .building-spire {
+  stroke: #5e8ecf;
+  stroke-width: 2.4;
+}
+.telescope-archetype-tower .building-front {
+  fill: #a9c8ef;
+}
+.telescope-archetype-slab-stack .building-front {
+  fill: #c6d4e8;
+}
+.telescope-archetype-slab-stack .building-side {
+  fill: #9eafc7;
+}
+.telescope-archetype-fin-row .building-front {
+  fill: #b8e0d7;
+}
+.telescope-archetype-fin-row .building-side {
+  fill: #89bdb7;
+}
+.telescope-archetype-low-slab .building-front {
+  fill: #d9d4c8;
+}
+.telescope-archetype-low-slab .building-side {
+  fill: #b8b09f;
+}
+.telescope-archetype-cube .building-front {
+  fill: #c4d4e8;
+}
+.telescope-building-copy {
+  position: absolute;
+  z-index: 2;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  display: grid;
+  gap: 2px;
+  pointer-events: none;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+.telescope-building-copy strong {
+  overflow: hidden;
+  color: #304862;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.telescope-building-copy small {
+  overflow: hidden;
+  color: #60758e;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.telescope-building-meta {
+  position: absolute;
+  z-index: 2;
+  top: 2px;
+  right: 9px;
+  left: 9px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #527098;
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+}
+.telescope-building-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.telescope-building-meta em {
+  margin-left: auto;
+  padding: 2px 4px;
+  border-radius: 999px;
+  color: #8b5c1a;
+  background: rgba(255, 245, 221, 0.88);
+  font-size: 6px;
+  font-style: normal;
+  text-transform: uppercase;
+}
+.telescope-building-meta i {
+  margin-left: auto;
+  color: #a56c1d;
+}
+.telescope-building-node.is-selected .building-top,
+.telescope-building-node.is-selected .building-front,
+.telescope-building-node.is-selected .building-side {
+  stroke: #3778f6;
+  stroke-width: 2;
+  filter: drop-shadow(0 3px 4px rgba(55, 120, 246, 0.23));
+}
+.telescope-building-node.is-selected .telescope-building-copy strong {
+  color: #1f60cf;
+}
+.telescope-building-node.is-dimmed,
+.telescope-district-node.is-dimmed {
+  opacity: 0.18;
+}
+.telescope-building-node.is-filtered,
+.telescope-district-node.is-filtered {
+  display: none;
+}
+.react-flow__edge-path.telescope-edge {
+  fill: none;
+  stroke: #93a8c0;
+  stroke-width: 1.7;
+}
+.react-flow__edge-path.telescope-rail-kind-data {
+  stroke: #4c8df7;
+  stroke-width: 2.2;
+}
+.react-flow__edge-path.telescope-rail-kind-control {
+  stroke: #6b7e99;
+  stroke-width: 1.45;
+}
+.react-flow__edge-path.telescope-rail-kind-event {
+  stroke: #c98949;
+  stroke-dasharray: 3 4;
+}
+.react-flow__edge-path.telescope-rail-kind-import {
+  stroke: #8e9caf;
+  stroke-dasharray: 2 5;
+  stroke-width: 1.2;
+}
+.react-flow__edge-path.telescope-edge.is-uncertain {
+  stroke-dasharray: 7 6;
+  opacity: 0.68;
+}
+.telescope-flow-token-group {
+  pointer-events: none;
+}
+.telescope-flow-token-group .telescope-flow-token,
+.telescope-flow-token-group .telescope-flow-token-halo {
+  pointer-events: auto;
+}
+.telescope-flow-token-halo {
+  fill: rgba(55, 120, 246, 0.12);
+  stroke: rgba(55, 120, 246, 0.26);
+  stroke-width: 1;
+}
+.telescope-flow-token-label {
+  fill: #55708e;
+  font-size: 8px;
+  font-weight: 650;
+  pointer-events: none;
+}
+.telescope-flow-token-group.is-paused .telescope-flow-token-label {
+  fill: #778495;
+}
+.telescope-flow-token {
+  outline: none;
+}
+.telescope-flow-token:focus-visible {
+  stroke: #1e5fca;
+  stroke-width: 3;
+}
 .telescope-warnings {
   display: flex;
   gap: 12px;
@@ -7280,6 +7752,16 @@ h1 {
     padding-block: 8px;
   }
   .telescope-strip > div:last-child span {
+    display: none;
+  }
+  .telescope-actions {
+    grid-template-columns: 1fr;
+  }
+  .telescope-action-search,
+  .telescope-action-note {
+    grid-column: 1;
+  }
+  .telescope-action-coverage {
     display: none;
   }
   .telescope-frame {

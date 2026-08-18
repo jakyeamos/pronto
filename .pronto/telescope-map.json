@@ -1,0 +1,617 @@
+{
+  "schemaVersion": "pronto-telescope-map/v1",
+  "status": "draft",
+  "visualModelVersion": "pronto-telescope-city/v1",
+  "groups": [
+    {
+      "id": "experience",
+      "label": "Experience district",
+      "kind": "product-surface",
+      "summary": "The open workspace where people choose a repository, inspect evidence, and move between Pronto surfaces.",
+      "pathPrefixes": [
+        "src/renderer/src/App.tsx",
+        "src/renderer/src/components/AppSidebar.tsx",
+        "src/renderer/src/components/AppTopbar.tsx",
+        "src/renderer/src/components/Drawers.tsx",
+        "src/renderer/src/components/ConsolePrimitives.tsx"
+      ],
+      "visualArchetype": "district",
+      "status": "draft"
+    },
+    {
+      "id": "telescope-city",
+      "label": "Telescope city",
+      "kind": "architecture-explainer",
+      "summary": "The visual explanation layer that turns measured repository structure into readable districts, buildings, rails, and flows.",
+      "pathPrefixes": [
+        "src/renderer/src/components/TelescopeSurface.tsx",
+        "src/renderer/src/components/TelescopeGraphElements.tsx",
+        "src/renderer/src/components/telescopeSceneModel.ts",
+        "src/renderer/src/components/telescopeSceneLayout.ts",
+        "src/renderer/src/components/telescopeLayout.ts",
+        "src/renderer/src/types/telescope.ts",
+        "src-tauri/src/telescope.rs"
+      ],
+      "visualArchetype": "district",
+      "status": "draft"
+    },
+    {
+      "id": "native-orchestration",
+      "label": "Native orchestration",
+      "kind": "runtime-boundary",
+      "summary": "The Tauri and Rust boundary that binds the desktop surface to registered workspaces and guarded Pronto operations.",
+      "pathPrefixes": [
+        "src-tauri/src/lib.rs",
+        "src-tauri/src/core.rs"
+      ],
+      "visualArchetype": "district",
+      "status": "draft"
+    },
+    {
+      "id": "evidence-quality",
+      "label": "Evidence district",
+      "kind": "quality-and-evidence",
+      "summary": "Quality, behavior assurance, runtime parity, and evidence contracts explain whether the repository is trustworthy and current.",
+      "pathPrefixes": [
+        "src-tauri/src/quality.rs",
+        "src-tauri/src/behavior_assurance.rs",
+        "src-tauri/src/evidence_contract.rs",
+        "src-tauri/src/installed_runtime.rs"
+      ],
+      "visualArchetype": "district",
+      "status": "draft"
+    },
+    {
+      "id": "workflow-delivery",
+      "label": "Workflow and delivery",
+      "kind": "operational-workflow",
+      "summary": "Changes, custody, remediation, release rules, promotion, and task lanes carry work from a finding to a guarded delivery decision.",
+      "pathPrefixes": [
+        "src-tauri/src/remediation.rs",
+        "src-tauri/src/custody.rs",
+        "src-tauri/src/task_lanes.rs",
+        "src-tauri/src/release_boundary.rs",
+        "src-tauri/src/promotion.rs",
+        "src-tauri/src/change_matrix.rs"
+      ],
+      "visualArchetype": "district",
+      "status": "draft"
+    },
+    {
+      "id": "intent-automation",
+      "label": "Intent and automation",
+      "kind": "intelligence-workflow",
+      "summary": "Compass, skill usage, and activity signals add operational context without redefining the source-derived architecture.",
+      "pathPrefixes": [
+        "src-tauri/src/project_compass.rs",
+        "src-tauri/src/skills.rs",
+        "src-tauri/src/skill_usage_collector.rs",
+        "src-tauri/src/papercuts.rs"
+      ],
+      "visualArchetype": "district",
+      "status": "draft"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "workspace-shell",
+      "label": "Workspace shell",
+      "groupId": "experience",
+      "whatItDoes": "Frames the active repository and gives a person one calm place to understand what is happening.",
+      "howItsBuilt": "A React application composes route surfaces, shared state, keyboard behavior, and guarded actions.",
+      "files": ["src/renderer/src/App.tsx"],
+      "visualArchetype": "tower",
+      "status": "draft"
+    },
+    {
+      "id": "global-rail",
+      "label": "Global rail",
+      "groupId": "experience",
+      "whatItDoes": "Keeps portfolio, work, evidence, and configuration reachable without crowding the architecture canvas.",
+      "howItsBuilt": "A compact sidebar and topbar provide stable navigation while contextual details stay in drawers.",
+      "files": ["src/renderer/src/components/AppSidebar.tsx"],
+      "visualArchetype": "fin-row",
+      "status": "draft"
+    },
+    {
+      "id": "detail-drawer",
+      "label": "Detail drawer",
+      "groupId": "experience",
+      "whatItDoes": "Opens focused repository detail without making every explanation persist on screen.",
+      "howItsBuilt": "The drawer composes repository surfaces and hands Telescope a selected repository snapshot.",
+      "files": ["src/renderer/src/components/Drawers.tsx"],
+      "visualArchetype": "slab-stack",
+      "status": "draft"
+    },
+    {
+      "id": "telescope-surface",
+      "label": "Telescope surface",
+      "groupId": "telescope-city",
+      "whatItDoes": "Lets anyone follow a repository story from a district overview into source evidence.",
+      "howItsBuilt": "A React Flow viewport coordinates scene layout, synchronized selection, level of detail, flow tokens, and workflow lenses.",
+      "files": ["src/renderer/src/components/TelescopeSurface.tsx"],
+      "visualArchetype": "tower",
+      "status": "draft"
+    },
+    {
+      "id": "city-buildings",
+      "label": "City silhouettes",
+      "groupId": "telescope-city",
+      "whatItDoes": "Uses recognizable building forms to make routes, stores, interfaces, services, and integrations legible before labels are read.",
+      "howItsBuilt": "Custom SVG primitives render fin rows, towers, slab stacks, cubes, and low slabs inside React Flow nodes.",
+      "files": ["src/renderer/src/components/TelescopeGraphElements.tsx"],
+      "visualArchetype": "fin-row",
+      "status": "draft"
+    },
+    {
+      "id": "scene-model",
+      "label": "Scene model",
+      "groupId": "telescope-city",
+      "whatItDoes": "Chooses what belongs in the overview, subsystem, and source views while keeping every building traceable.",
+      "howItsBuilt": "Deterministic bucketing compacts measured nodes, preserves authored buildings, and marks the primary story flow.",
+      "files": ["src/renderer/src/components/telescopeSceneModel.ts"],
+      "visualArchetype": "slab-stack",
+      "status": "draft"
+    },
+    {
+      "id": "scene-layout",
+      "label": "District layout",
+      "groupId": "telescope-city",
+      "whatItDoes": "Places neighborhoods and routes so the city remains open, readable, and stable across refreshes.",
+      "howItsBuilt": "A dependency-light grid and dimetric projection pack buildings, preserve spacing, and route rails around silhouettes.",
+      "files": ["src/renderer/src/components/telescopeSceneLayout.ts"],
+      "visualArchetype": "cube",
+      "status": "draft"
+    },
+    {
+      "id": "telescope-contract",
+      "label": "Telescope contract",
+      "groupId": "telescope-city",
+      "whatItDoes": "Carries measured topology, authored meaning, provenance, freshness, and privacy-safe source handoffs to the UI.",
+      "howItsBuilt": "Typed projection interfaces make narrative status, coverage, visual overrides, rails, and flows explicit.",
+      "files": ["src/renderer/src/types/telescope.ts"],
+      "visualArchetype": "cube",
+      "status": "draft"
+    },
+    {
+      "id": "telescope-extractor",
+      "label": "Repository extractor",
+      "groupId": "telescope-city",
+      "whatItDoes": "Measures the active worktree so the city remains tied to real files, relationships, freshness, and coverage.",
+      "howItsBuilt": "Rust adapters inspect supported source files, fall back to generic topology, and overlay the authored map without rewriting it.",
+      "files": ["src-tauri/src/telescope.rs"],
+      "visualArchetype": "tower",
+      "status": "draft"
+    },
+    {
+      "id": "tauri-boundary",
+      "label": "Desktop boundary",
+      "groupId": "native-orchestration",
+      "whatItDoes": "Connects the desktop shell to the repository registry, guarded commands, and local evidence surfaces.",
+      "howItsBuilt": "Tauri commands and Rust modules expose typed read-only projections while keeping mutation behind existing gates.",
+      "files": ["src-tauri/src/lib.rs"],
+      "visualArchetype": "cube",
+      "status": "draft"
+    },
+    {
+      "id": "repository-core",
+      "label": "Repository core",
+      "groupId": "native-orchestration",
+      "whatItDoes": "Resolves registered repositories and supplies the workspace context that every Telescope answer needs.",
+      "howItsBuilt": "A Rust core owns repository snapshots, command routing, and the bridge to the Telescope generator.",
+      "files": ["src-tauri/src/core.rs"],
+      "visualArchetype": "tower",
+      "status": "draft"
+    },
+    {
+      "id": "quality-runner",
+      "label": "Quality runner",
+      "groupId": "evidence-quality",
+      "whatItDoes": "Shows which quality dimensions, checks, and findings affect a building or rail.",
+      "howItsBuilt": "Quality projections preserve freshness, detector coverage, maturity, and installed-runtime evidence states.",
+      "files": ["src-tauri/src/quality.rs"],
+      "visualArchetype": "fin-row",
+      "status": "draft"
+    },
+    {
+      "id": "behavior-assurance",
+      "label": "Behavior assurance",
+      "groupId": "evidence-quality",
+      "whatItDoes": "Separates verified behavior from assumptions so an attractive map cannot imply unsupported certainty.",
+      "howItsBuilt": "Repository contracts and receipts feed explicit verified, stale, unavailable, partial, and conflicted states.",
+      "files": ["src-tauri/src/behavior_assurance.rs"],
+      "visualArchetype": "cube",
+      "status": "draft"
+    },
+    {
+      "id": "remediation-plans",
+      "label": "Remediation plans",
+      "groupId": "workflow-delivery",
+      "whatItDoes": "Attaches current blockers, actions, dependencies, and closure evidence to the architecture involved.",
+      "howItsBuilt": "Remediation projections overlay source-bound findings and hand actions off to guarded preparation surfaces.",
+      "files": ["src-tauri/src/remediation.rs"],
+      "visualArchetype": "slab-stack",
+      "status": "draft"
+    },
+    {
+      "id": "custody-lanes",
+      "label": "Custody lanes",
+      "groupId": "workflow-delivery",
+      "whatItDoes": "Makes active work, ownership, and safe integration paths visible without guessing from prompts or filenames.",
+      "howItsBuilt": "Custody records and workspace evidence drive changes and ownership overlays with explicit verification boundaries.",
+      "files": ["src-tauri/src/custody.rs"],
+      "visualArchetype": "fin-row",
+      "status": "draft"
+    },
+    {
+      "id": "release-gates",
+      "label": "Release gates",
+      "groupId": "workflow-delivery",
+      "whatItDoes": "Shows the path from changed subsystem through checks and release rules to a ship-ready decision.",
+      "howItsBuilt": "Release boundary checks consume repository evidence and preserve blocked, stale, and unavailable outcomes.",
+      "files": ["src-tauri/src/release_boundary.rs"],
+      "visualArchetype": "tower",
+      "status": "draft"
+    },
+    {
+      "id": "compass-intent",
+      "label": "Compass intent",
+      "groupId": "intent-automation",
+      "whatItDoes": "Adds goals, blockers, and drift context to the architecture without becoming the source of its topology.",
+      "howItsBuilt": "Project Compass remains an optional adapter projected as a lens over source-derived districts and flows.",
+      "files": ["src-tauri/src/project_compass.rs"],
+      "visualArchetype": "low-slab",
+      "status": "draft"
+    },
+    {
+      "id": "verified-automation",
+      "label": "Verified automation",
+      "groupId": "intent-automation",
+      "whatItDoes": "Explains which agent or skill activity is verified and where recurring automation friction is accumulating.",
+      "howItsBuilt": "Skill usage and papercut collectors provide evidence-bound activity overlays rather than inferred activity.",
+      "files": ["src-tauri/src/skills.rs", "src-tauri/src/skill_usage_collector.rs"],
+      "visualArchetype": "low-slab",
+      "status": "draft"
+    }
+  ],
+  "edges": [
+    {
+      "id": "shell-to-drawer",
+      "sourceFile": "src/renderer/src/App.tsx",
+      "targetFile": "src/renderer/src/components/Drawers.tsx",
+      "kind": "control",
+      "label": "open workspace",
+      "railKind": "control",
+      "status": "draft"
+    },
+    {
+      "id": "drawer-to-city",
+      "sourceFile": "src/renderer/src/components/Drawers.tsx",
+      "targetFile": "src/renderer/src/components/TelescopeSurface.tsx",
+      "kind": "control",
+      "label": "enter architecture",
+      "railKind": "control",
+      "status": "draft"
+    },
+    {
+      "id": "city-to-api",
+      "sourceFile": "src/renderer/src/components/TelescopeSurface.tsx",
+      "targetFile": "src/renderer/src/api.ts",
+      "kind": "data",
+      "label": "repository projection",
+      "railKind": "data",
+      "status": "draft"
+    },
+    {
+      "id": "city-to-buildings",
+      "sourceFile": "src/renderer/src/components/TelescopeSurface.tsx",
+      "targetFile": "src/renderer/src/components/TelescopeGraphElements.tsx",
+      "kind": "control",
+      "label": "render city",
+      "railKind": "control",
+      "status": "draft"
+    },
+    {
+      "id": "city-to-scene",
+      "sourceFile": "src/renderer/src/components/TelescopeSurface.tsx",
+      "targetFile": "src/renderer/src/components/telescopeSceneModel.ts",
+      "kind": "data",
+      "label": "scene model",
+      "railKind": "data",
+      "status": "draft"
+    },
+    {
+      "id": "quality-to-assurance",
+      "sourceFile": "src-tauri/src/quality.rs",
+      "targetFile": "src-tauri/src/behavior_assurance.rs",
+      "kind": "control",
+      "label": "verify",
+      "railKind": "control",
+      "status": "draft"
+    },
+    {
+      "id": "quality-to-release",
+      "sourceFile": "src-tauri/src/quality.rs",
+      "targetFile": "src-tauri/src/release_boundary.rs",
+      "kind": "data",
+      "label": "quality evidence",
+      "railKind": "data",
+      "status": "draft"
+    },
+    {
+      "id": "skills-to-collector",
+      "sourceFile": "src-tauri/src/skills.rs",
+      "targetFile": "src-tauri/src/skill_usage_collector.rs",
+      "kind": "event",
+      "label": "verified activity",
+      "railKind": "event",
+      "status": "draft"
+    }
+  ],
+  "flows": [
+    {
+      "id": "understand-repository",
+      "label": "Understand a repository",
+      "kind": "user-story",
+      "nodeIds": ["workspace-shell", "detail-drawer", "telescope-surface", "telescope-contract"],
+      "edgeIds": ["shell-to-drawer", "drawer-to-city", "city-to-api"],
+      "dataShape": "repository story",
+      "status": "draft",
+      "primary": true
+    },
+    {
+      "id": "explore-architecture",
+      "label": "Explore architecture",
+      "kind": "visual-flow",
+      "nodeIds": ["telescope-surface", "city-buildings", "scene-model", "scene-layout"],
+      "edgeIds": ["city-to-buildings", "city-to-scene"],
+      "dataShape": "district, building, and rail model",
+      "status": "draft",
+      "primary": false
+    },
+    {
+      "id": "quality-to-delivery",
+      "label": "Quality to delivery",
+      "kind": "operational-flow",
+      "nodeIds": ["quality-runner", "behavior-assurance", "release-gates"],
+      "edgeIds": ["quality-to-assurance", "quality-to-release"],
+      "dataShape": "evidence and release decision",
+      "status": "draft",
+      "primary": false
+    }
+  ],
+  "actions": [
+    {
+      "id": "open-repository",
+      "label": "Open a repository",
+      "verb": "Open",
+      "category": "navigate",
+      "whatItDoes": "Moves from the portfolio into the selected repository workspace and its visual explanation.",
+      "howItsBuilt": "The global shell opens a repository drawer and hands the registered workspace to the repository surface.",
+      "files": ["src/renderer/src/App.tsx", "src/renderer/src/components/Drawers.tsx"],
+      "nodeIds": ["workspace-shell", "detail-drawer"],
+      "flowId": "understand-repository",
+      "status": "draft",
+      "readOnly": true,
+      "guarded": false
+    },
+    {
+      "id": "understand-repository",
+      "label": "Understand this repository",
+      "verb": "Understand",
+      "category": "explain",
+      "whatItDoes": "Starts with the repository story and reveals how Pronto turns source evidence into an explorable city.",
+      "howItsBuilt": "The drawer, Telescope surface, and versioned projection contract form the read-only handoff.",
+      "files": ["src/renderer/src/components/Drawers.tsx", "src/renderer/src/components/TelescopeSurface.tsx", "src-tauri/src/telescope.rs"],
+      "nodeIds": ["detail-drawer", "telescope-surface", "telescope-contract"],
+      "flowId": "understand-repository",
+      "status": "draft",
+      "readOnly": true,
+      "guarded": false
+    },
+    {
+      "id": "explore-architecture",
+      "label": "Explore the architecture",
+      "verb": "Explore",
+      "category": "inspect",
+      "whatItDoes": "Shows the repository as neighborhoods, buildings, rails, and flows that can be explored at several levels of detail.",
+      "howItsBuilt": "The authored scene model and deterministic layout transform measured nodes into a responsive visual city.",
+      "files": ["src/renderer/src/components/TelescopeSurface.tsx", "src/renderer/src/components/telescopeSceneModel.ts"],
+      "nodeIds": ["telescope-surface", "city-buildings", "scene-model", "scene-layout"],
+      "flowId": "explore-architecture",
+      "status": "draft",
+      "readOnly": true,
+      "guarded": false
+    },
+    {
+      "id": "find-action",
+      "label": "Find an action",
+      "verb": "Find",
+      "category": "navigate",
+      "whatItDoes": "Searches the canonical action projection and focuses the city on the behavior or workflow you want to understand.",
+      "howItsBuilt": "The renderer filters backend actions, resolves their mapped nodes and rails, and leaves the full city available underneath the focus.",
+      "files": ["src/renderer/src/components/TelescopeSurface.tsx", "src/renderer/src/types/telescope.ts"],
+      "nodeIds": ["telescope-surface", "telescope-contract"],
+      "status": "draft",
+      "readOnly": true,
+      "guarded": false
+    },
+    {
+      "id": "inspect-source-evidence",
+      "label": "Inspect source evidence",
+      "verb": "Inspect",
+      "category": "evidence",
+      "whatItDoes": "Explains which source files and relationships support a building, rail, flow, or action.",
+      "howItsBuilt": "Repository-relative anchors, symbols, provenance, and confidence travel with the projection without caching source bodies.",
+      "files": ["src/renderer/src/components/TelescopeSurface.tsx", "src-tauri/src/telescope.rs"],
+      "nodeIds": ["telescope-surface", "telescope-extractor", "telescope-contract"],
+      "status": "draft",
+      "readOnly": true,
+      "guarded": false
+    },
+    {
+      "id": "refresh-map",
+      "label": "Refresh the workspace map",
+      "verb": "Refresh",
+      "category": "freshness",
+      "whatItDoes": "Regenerates the city from the active worktree so the map is bound to the current commit and dirty-state fingerprint.",
+      "howItsBuilt": "Telescope extraction runs through the Tauri and CLI projection boundary with cooperative cancellation and cache replacement.",
+      "files": ["src/renderer/src/components/TelescopeSurface.tsx", "src-tauri/src/telescope.rs", "src-tauri/src/core.rs"],
+      "nodeIds": ["telescope-surface", "telescope-extractor", "repository-core"],
+      "status": "draft",
+      "readOnly": true,
+      "guarded": true
+    },
+    {
+      "id": "audit-behaviors",
+      "label": "Audit behavior assurance",
+      "verb": "Audit",
+      "category": "behavior",
+      "whatItDoes": "Shows which declared behaviors are missing evidence and keeps assurance gaps from becoming a ready claim.",
+      "howItsBuilt": "The action is backed by the repository-owned v2 behavior contract and Quality Runner's replay-verified projection.",
+      "files": ["src-tauri/src/behavior_assurance.rs", "src-tauri/src/core.rs"],
+      "nodeIds": ["quality-runner", "behavior-assurance"],
+      "behaviorId": "behavior-audit-cli",
+      "status": "draft",
+      "readOnly": true,
+      "guarded": true
+    },
+    {
+      "id": "inspect-behavior-evidence",
+      "label": "Inspect behavior evidence",
+      "verb": "Inspect",
+      "category": "behavior",
+      "whatItDoes": "Separates contract, profile, result, freshness, verification, and release state for the selected behavior.",
+      "howItsBuilt": "The behavior assurance projection links immutable receipts and bounded scenario coverage without exposing sensitive traces.",
+      "files": ["src-tauri/src/behavior_assurance.rs", "src-tauri/src/quality.rs"],
+      "nodeIds": ["quality-runner", "behavior-assurance"],
+      "behaviorId": "behavior-feed-projection",
+      "status": "draft",
+      "readOnly": true,
+      "guarded": true
+    },
+    {
+      "id": "check-release-assurance",
+      "label": "Check release assurance",
+      "verb": "Check",
+      "category": "delivery",
+      "whatItDoes": "Explains whether release preparation is blocked by a missing, stale, failed, or insufficient behavior receipt.",
+      "howItsBuilt": "The release boundary consumes the same Tier-0 behavior assurance state rather than maintaining a second gate.",
+      "files": ["src-tauri/src/behavior_assurance.rs", "src-tauri/src/release_boundary.rs", "src-tauri/src/core.rs"],
+      "nodeIds": ["behavior-assurance", "release-gates"],
+      "flowId": "quality-to-delivery",
+      "behaviorId": "behavior-release-gate",
+      "status": "draft",
+      "readOnly": true,
+      "guarded": true
+    },
+    {
+      "id": "inspect-assurance-portfolio",
+      "label": "Inspect assurance across the portfolio",
+      "verb": "Inspect",
+      "category": "quality",
+      "whatItDoes": "Compares release assurance with all-tier edge durability without treating either view as a generic green score.",
+      "howItsBuilt": "Quality workspace projections preserve the behavior assurance taxonomy and bounded repository filters.",
+      "files": ["src-tauri/src/behavior_assurance.rs", "src-tauri/src/quality.rs"],
+      "nodeIds": ["quality-runner", "behavior-assurance"],
+      "behaviorId": "behavior-portfolio-visibility",
+      "status": "draft",
+      "readOnly": true,
+      "guarded": true
+    },
+    {
+      "id": "review-custody",
+      "label": "Review workspace custody",
+      "verb": "Review",
+      "category": "changes",
+      "whatItDoes": "Shows the evidence and safe next step for active, dirty, stale, or unavailable workspaces before any guarded handoff.",
+      "howItsBuilt": "Custody receipts and live Git state project into Pronto as read-only lanes with granular dispositions.",
+      "files": ["src-tauri/src/custody.rs", "src-tauri/src/core.rs"],
+      "nodeIds": ["custody-lanes", "repository-core"],
+      "behaviorId": "custody-projection",
+      "status": "draft",
+      "readOnly": true,
+      "guarded": true
+    },
+    {
+      "id": "review-service-lifecycle",
+      "label": "Review service lifecycle safety",
+      "verb": "Review",
+      "category": "activity",
+      "whatItDoes": "Explains whether a routine update can restart a loaded service safely or requires an explicit registration path.",
+      "howItsBuilt": "The behavior contract and lifecycle tests distinguish unchanged, missing, and materially changed LaunchAgents.",
+      "files": ["scripts/install-app.mjs", "scripts/skill-usage-collector.mjs"],
+      "nodeIds": ["verified-automation", "repository-core"],
+      "behaviorId": "background-service-lifecycle",
+      "status": "draft",
+      "readOnly": true,
+      "guarded": true
+    },
+    {
+      "id": "see-changes",
+      "label": "See what changed",
+      "verb": "Compare",
+      "category": "changes",
+      "whatItDoes": "Focuses the city on dirty workspaces, branch movement, and integration paths that may affect the repository story.",
+      "howItsBuilt": "Changes and custody remain an overlay over source-derived nodes; they do not rewrite the architecture.",
+      "files": ["src-tauri/src/core.rs", "src-tauri/src/custody.rs"],
+      "nodeIds": ["workspace-shell", "repository-core", "custody-lanes"],
+      "status": "draft",
+      "readOnly": true,
+      "guarded": true
+    },
+    {
+      "id": "work-remediation",
+      "label": "Work the remediation plan",
+      "verb": "Remediate",
+      "category": "remediation",
+      "whatItDoes": "Shows the architecture involved in current remediation actions, blockers, dependencies, and closure evidence.",
+      "howItsBuilt": "Remediation remains a guarded Pronto handoff; the city only filters and explains affected source-backed areas.",
+      "files": ["src-tauri/src/remediation.rs", "src-tauri/src/custody.rs"],
+      "nodeIds": ["remediation-plans", "custody-lanes"],
+      "status": "draft",
+      "readOnly": false,
+      "guarded": true
+    },
+    {
+      "id": "prepare-delivery",
+      "label": "Prepare delivery",
+      "verb": "Prepare",
+      "category": "delivery",
+      "whatItDoes": "Explains the path from changed subsystem through validation and release rules without claiming that preparation has run.",
+      "howItsBuilt": "The delivery lens connects repository evidence, custody, release gates, and guarded preparation surfaces.",
+      "files": ["src-tauri/src/core.rs", "src-tauri/src/release_boundary.rs"],
+      "nodeIds": ["custody-lanes", "release-gates", "repository-core"],
+      "status": "draft",
+      "readOnly": false,
+      "guarded": true
+    },
+    {
+      "id": "open-source-workspace",
+      "label": "Open source workspace",
+      "verb": "Open",
+      "category": "handoff",
+      "whatItDoes": "Hands a selected source anchor to the existing editor surface for direct inspection.",
+      "howItsBuilt": "Telescope preserves repository-relative evidence and delegates opening to the guarded Pronto workspace handoff.",
+      "files": ["src/renderer/src/components/TelescopeSurface.tsx", "src-tauri/src/core.rs"],
+      "nodeIds": ["telescope-surface", "repository-core"],
+      "status": "draft",
+      "readOnly": true,
+      "guarded": true
+    },
+    {
+      "id": "preview-ai-summary",
+      "label": "Preview an AI summary",
+      "verb": "Preview",
+      "category": "intelligence",
+      "whatItDoes": "Shows an optional repository-scoped summary while preserving the difference between inference and confirmed source evidence.",
+      "howItsBuilt": "AI enrichment remains disabled by default and is mediated by the existing permission and preview boundary.",
+      "files": ["src-tauri/src/core.rs", "src-tauri/src/telescope.rs"],
+      "nodeIds": ["repository-core", "telescope-contract"],
+      "status": "draft",
+      "readOnly": true,
+      "guarded": true
+    }
+  ],
+  "primaryFlowId": "understand-repository"
+}

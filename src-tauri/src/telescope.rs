@@ -1,3 +1,6 @@
+use crate::behavior_assurance::{
+    BehaviorContract, BehaviorContractBehavior, CONTRACT_PATH, CONTRACT_SCHEMA,
+};
 use chrono::Utc;
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
@@ -16,8 +19,15 @@ include!("telescope/part-02.rs");
 include!("telescope/part-03.rs");
 include!("telescope/part-04.rs");
 include!("telescope/part-05.rs");
+include!("telescope/part-06.rs");
+include!("telescope/part-07.rs");
+include!("telescope/part-08.rs");
+include!("telescope/part-09.rs");
+include!("telescope/part-10.rs");
 
 #[cfg(test)]
 mod tests {
     include!("telescope/tests-01.rs");
+    include!("telescope/tests-02.rs");
+    include!("telescope/tests-03.rs");
 }

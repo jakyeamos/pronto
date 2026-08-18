@@ -4,7 +4,6 @@ import type {
   QualityFreshness,
   QualityGate,
   QualityMaturity,
-  QualityFreshness,
   QualityReadiness,
   WebReadinessSnapshot,
 } from "./quality";

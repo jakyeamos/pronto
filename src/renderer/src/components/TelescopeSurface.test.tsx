@@ -130,6 +130,40 @@ const projection: TelescopeProjection = {
       provenance: "static-route",
     },
   ],
+  actions: [
+    {
+      id: "inspect-request",
+      label: "Inspect the repository request",
+      verb: "Inspect",
+      category: "evidence",
+      what_it_does: "Focuses the city on the request path.",
+      how_its_built: "Uses the mapped request flow and its source anchors.",
+      node_ids: ["node-api", "node-store"],
+      edge_ids: ["edge-api-store"],
+      flow_id: "flow-request",
+      behavior_id: "behavior-feed-projection",
+      scenario_ids: ["missing-invalid-stale-never-green"],
+      behavior_state: "declared",
+      behavior_verification: "automated",
+      source_anchors: [{ path: "src/api.ts", line: 12, provenance: "source" }],
+      status: "reviewed",
+      confidence: "high",
+      provenance: "authored-action-inventory",
+      read_only: true,
+      guarded: true,
+    },
+  ],
+  action_coverage: {
+    inventory_status: "reviewed",
+    total: 1,
+    authored: 1,
+    inferred: 0,
+    partial: 0,
+    mapped: 1,
+    unmapped: 0,
+    behavior_backed: 1,
+    unprofiled: 0,
+  },
   warnings: [],
   enrichment: {
     enabled: false,
@@ -202,12 +236,52 @@ describe("TelescopeSurface", () => {
     fireEvent.click(screen.getByRole("button", { name: "Quality" }));
     expect(screen.getByText(/actionable findings/i)).toBeTruthy();
     fireEvent.click(
-      screen.getByRole("button", { name: /Repository request/i }),
+      screen.getByRole("button", { name: "Flow: Repository request" }),
     );
     expect(screen.getByText("TelescopeProjection")).toBeTruthy();
     expect(
       screen.getByText(/no runtime payload values are captured/i),
     ).toBeTruthy();
+  });
+
+  it("searches the action catalog and focuses the city with canonical behavior evidence", () => {
+    render(
+      <TelescopeSurface
+        repository={makeRepository()}
+        remediation={remediation}
+        events={[]}
+        initialProjection={projection}
+        onOpenWorkspace={async () => undefined}
+      />,
+    );
+
+    const search = screen.getByRole("textbox", {
+      name: "Find a Telescope action",
+    });
+    fireEvent.change(search, { target: { value: "repository request" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: /Inspect the repository request/ }),
+    );
+
+    expect(
+      screen.getByText("Focuses the city on the request path."),
+    ).toBeTruthy();
+    expect(screen.getByText(/Behavior contract unavailable/i)).toBeTruthy();
+    expect(
+      screen
+        .getByRole("button", { name: "Subsystems" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "How it’s built" }));
+    expect(screen.getByText("behavior-feed-projection")).toBeTruthy();
+    expect(screen.getByText(/no mutation is performed/i)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show full city" }));
+    expect(
+      screen
+        .getByRole("button", { name: "Overview" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
   });
 
   it("respects reduced motion while preserving a static inspectable token and keyboard selection", async () => {

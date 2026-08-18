@@ -244,3 +244,156 @@
         assert!(!database.exists());
         let _ = fs::remove_dir_all(root);
     }
+
+    #[test]
+    fn authored_manifest_overlays_meaning_and_survives_measured_refresh() {
+        let root = fixture_root("authored-map");
+        fs::write(
+            root.join("src/main.ts"),
+            "import { load } from './services/load';\nexport function main() { return load(); }",
+        )
+        .unwrap();
+        fs::write(
+            root.join("src/services/load.ts"),
+            "export function load() { return true; }",
+        )
+        .unwrap();
+        fs::create_dir_all(root.join(".pronto")).unwrap();
+        fs::write(
+            root.join(NARRATIVE_MANIFEST_PATH),
+            r#"{
+              "schemaVersion": "pronto-telescope-map/v1",
+              "status": "reviewed",
+              "visualModelVersion": "pronto-telescope-city/v1",
+              "groups": [
+                {"id":"surface","label":"Surface","pathPrefixes":["src"],"visualArchetype":"district","status":"reviewed"},
+                {"id":"runtime","label":"Runtime","pathPrefixes":["runtime"],"visualArchetype":"district","status":"reviewed"},
+                {"id":"data","label":"Data","pathPrefixes":["data"],"visualArchetype":"district","status":"reviewed"},
+                {"id":"delivery","label":"Delivery","pathPrefixes":["delivery"],"visualArchetype":"district","status":"reviewed"}
+              ],
+              "nodes": [
+                {
+                  "id":"request-story",
+                  "label":"Request gateway",
+                  "whatItDoes":"Receives a user request and starts the loading story.",
+                  "howItsBuilt":"A thin route module delegates to the loader through an explicit import.",
+                  "files":["src/main.ts"],
+                  "visualArchetype":"tower",
+                  "status":"reviewed"
+                },
+                {
+                  "id":"loader-story",
+                  "label":"Loader",
+                  "whatItDoes":"Loads the requested resource for the active story.",
+                  "howItsBuilt":"A focused TypeScript module keeps the loading boundary small.",
+                  "files":["src/services/load.ts"],
+                  "visualArchetype":"cube",
+                  "status":"reviewed"
+                }
+              ],
+              "edges": [
+                {
+                  "id":"request-to-loader",
+                  "sourceFile":"src/main.ts",
+                  "targetFile":"src/services/load.ts",
+                  "kind":"data",
+                  "label":"request",
+                  "railKind":"data",
+                  "status":"reviewed"
+                }
+              ],
+              "flows": [
+                {
+                  "id":"primary-request",
+                  "label":"User request",
+                  "kind":"request",
+                  "nodeIds":["request-story","loader-story"],
+                  "edgeIds":["request-to-loader"],
+                  "dataShape":"request",
+                  "status":"reviewed",
+                  "primary":true
+                }
+              ],
+              "primaryFlowId":"primary-request"
+            }"#,
+        )
+        .unwrap();
+        let database = root.join("registry.db");
+        let request = TelescopeRequest {
+            repository_id: "repo",
+            repository_name: "Fixture",
+            workspace_id: "workspace",
+            workspace_path: &root,
+            branch: "dev",
+            known_commit: Some("abc123"),
+            known_dirty: false,
+        };
+
+        let first = get_or_generate(&database, &request, true).unwrap();
+        assert_eq!(first.narrative.status, "reviewed");
+        assert_eq!(first.narrative.coverage.coverage_percent, 100);
+        assert_eq!(
+            first.narrative.primary_flow_id.as_deref(),
+            Some("primary-request")
+        );
+        assert!(first
+            .groups
+            .iter()
+            .any(|group| group.id == "surface" && group.label == "Surface"));
+        assert!(first
+            .nodes
+            .iter()
+            .filter(|node| node
+                .source_paths
+                .iter()
+                .any(|path| path == "src/main.ts" || path == "src/services/load.ts"))
+            .all(|node| node.group_id == "surface"));
+        assert!(first
+            .warnings
+            .iter()
+            .all(|warning| warning.code != "narrative-flow-unmapped"));
+        let request_node = first
+            .nodes
+            .iter()
+            .find(|node| node.visual_building_id.as_deref() == Some("request-story"))
+            .unwrap();
+        assert_eq!(
+            request_node.semantic_summary,
+            "Receives a user request and starts the loading story."
+        );
+        assert_eq!(request_node.summary_status, "reviewed");
+        assert_eq!(request_node.visual_archetype, "tower");
+        assert!(first
+            .edges
+            .iter()
+            .any(|edge| edge.label == "request" && edge.rail_kind == "data"));
+        assert!(first
+            .flows
+            .iter()
+            .any(|flow| flow.id == "primary-request" && flow.primary));
+
+        fs::write(
+            root.join("src/services/load.ts"),
+            "export function load() { return true; }\nexport const refreshed = true;",
+        )
+        .unwrap();
+        let refreshed = get_or_generate(&database, &request, true).unwrap();
+        let refreshed_request_node = refreshed
+            .nodes
+            .iter()
+            .find(|node| node.visual_building_id.as_deref() == Some("request-story"))
+            .unwrap();
+        assert_eq!(
+            refreshed_request_node.semantic_summary,
+            request_node.semantic_summary
+        );
+        assert!(refreshed
+            .nodes
+            .iter()
+            .any(|node| node.measured_lines == 2
+                && node.source_paths == vec!["src/services/load.ts"]));
+        let json = serde_json::to_string(&refreshed).unwrap();
+        assert!(!json.contains("return true"));
+        assert!(!json.contains(root.to_string_lossy().as_ref()));
+        let _ = fs::remove_dir_all(root);
+    }

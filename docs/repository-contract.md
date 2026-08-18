@@ -28,8 +28,14 @@ unavailable until it is regenerated from the exact `dev` commit.
   there instead of duplicating it in the renderer or Node adapter.
 - `src-tauri/src/telescope.rs` owns the versioned source-derived architecture
   graph, language adapters, workspace binding, uncertainty, and cache privacy.
-  Workflow systems annotate that graph through lenses; Compass, ICM, quality,
-  remediation, and activity evidence must not rewrite its base topology.
+  `.pronto/telescope-map.json` owns the repository's authored narrative layer
+  while measured files, counts, relationships, coverage, and freshness remain
+  extractor-owned. Workflow systems annotate that graph through lenses;
+  Compass, ICM, quality, remediation, and activity evidence must not rewrite
+  its base topology. Telescope actions are a read-only visual projection over
+  the canonical `.pronto/behavior-assurance.json` v2 contract and Quality
+  Runner receipts; `behaviorId` links and coverage counts must not become a
+  duplicate behavioral contract or a second verification path.
 - `workspace-policy generate` owns the explicit per-repository
   `.agents/workspace-policy.json` projection from the reviewed fleet role map.
   It defaults to a no-write plan and only `--write` may create files; it never

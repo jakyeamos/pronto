@@ -1,4 +1,6 @@
 pub const SCHEMA_VERSION: &str = "pronto-telescope/v1";
+pub const NARRATIVE_MANIFEST_PATH: &str = ".pronto/telescope-map.json";
+pub const VISUAL_MODEL_VERSION: &str = "pronto-telescope-city/v1";
 const MAX_SOURCE_FILES: usize = 2_500;
 const MAX_SOURCE_BYTES: u64 = 512 * 1024;
 const SOURCE_EXTENSIONS: &[&str] = &[
@@ -20,8 +22,14 @@ pub struct TelescopeProjection {
     pub nodes: Vec<TelescopeNode>,
     pub edges: Vec<TelescopeEdge>,
     pub flows: Vec<TelescopeFlow>,
+    #[serde(default)]
+    pub actions: Vec<TelescopeAction>,
+    #[serde(default)]
+    pub action_coverage: TelescopeActionCoverage,
     pub warnings: Vec<TelescopeWarning>,
     pub enrichment: TelescopeEnrichment,
+    #[serde(default)]
+    pub narrative: TelescopeNarrative,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -63,6 +71,18 @@ pub struct TelescopeGroup {
     pub parent_id: Option<String>,
     pub summary: String,
     pub confidence: String,
+    #[serde(default)]
+    pub provenance: Vec<String>,
+    #[serde(default)]
+    pub source_file_count: usize,
+    #[serde(default)]
+    pub measured_lines: usize,
+    #[serde(default)]
+    pub visual_archetype: String,
+    #[serde(default)]
+    pub visual_override_provenance: String,
+    #[serde(default)]
+    pub narrative_status: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -88,6 +108,20 @@ pub struct TelescopeNode {
     pub source_anchors: Vec<TelescopeAnchor>,
     pub symbols: Vec<String>,
     pub data_shapes: Vec<String>,
+    #[serde(default)]
+    pub source_paths: Vec<String>,
+    #[serde(default)]
+    pub measured_lines: usize,
+    #[serde(default)]
+    pub source_file_count: usize,
+    #[serde(default)]
+    pub visual_building_id: Option<String>,
+    #[serde(default)]
+    pub visual_archetype: String,
+    #[serde(default)]
+    pub visual_override_provenance: String,
+    #[serde(default)]
+    pub narrative_status: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -102,6 +136,12 @@ pub struct TelescopeEdge {
     pub provenance: String,
     pub inferred: bool,
     pub source_anchor: Option<TelescopeAnchor>,
+    #[serde(default)]
+    pub rail_kind: String,
+    #[serde(default)]
+    pub visual_override_provenance: String,
+    #[serde(default)]
+    pub narrative_status: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -114,6 +154,59 @@ pub struct TelescopeFlow {
     pub data_shape: Option<String>,
     pub confidence: String,
     pub provenance: String,
+    #[serde(default)]
+    pub narrative_status: String,
+    #[serde(default)]
+    pub primary: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TelescopeAction {
+    pub id: String,
+    pub label: String,
+    pub verb: String,
+    pub category: String,
+    pub what_it_does: String,
+    pub how_its_built: String,
+    pub node_ids: Vec<String>,
+    pub edge_ids: Vec<String>,
+    pub flow_id: Option<String>,
+    #[serde(default)]
+    pub behavior_id: Option<String>,
+    #[serde(default)]
+    pub scenario_ids: Vec<String>,
+    #[serde(default)]
+    pub behavior_state: String,
+    #[serde(default)]
+    pub behavior_verification: String,
+    pub source_anchors: Vec<TelescopeAnchor>,
+    pub status: String,
+    pub confidence: String,
+    pub provenance: String,
+    pub read_only: bool,
+    pub guarded: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct TelescopeActionCoverage {
+    #[serde(default)]
+    pub inventory_status: String,
+    #[serde(default)]
+    pub total: usize,
+    #[serde(default)]
+    pub authored: usize,
+    #[serde(default)]
+    pub inferred: usize,
+    #[serde(default)]
+    pub partial: usize,
+    #[serde(default)]
+    pub mapped: usize,
+    #[serde(default)]
+    pub unmapped: usize,
+    #[serde(default)]
+    pub behavior_backed: usize,
+    #[serde(default)]
+    pub unprofiled: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -130,6 +223,173 @@ pub struct TelescopeEnrichment {
     pub model: Option<String>,
     pub source_content_transmitted: bool,
     pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct TelescopeNarrative {
+    #[serde(default)]
+    pub manifest_path: String,
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub manifest_fingerprint: Option<String>,
+    #[serde(default)]
+    pub measured_fingerprint: Option<String>,
+    #[serde(default)]
+    pub visual_model_version: String,
+    #[serde(default)]
+    pub primary_flow_id: Option<String>,
+    #[serde(default)]
+    pub authored_groups: Vec<TelescopeNarrativeGroup>,
+    #[serde(default)]
+    pub authored_nodes: Vec<TelescopeNarrativeNode>,
+    #[serde(default)]
+    pub authored_edges: Vec<TelescopeNarrativeEdge>,
+    #[serde(default)]
+    pub authored_flows: Vec<TelescopeNarrativeFlow>,
+    #[serde(default)]
+    pub authored_actions: Vec<TelescopeNarrativeAction>,
+    #[serde(default)]
+    pub coverage: TelescopeNarrativeCoverage,
+    #[serde(default)]
+    pub drift_warnings: Vec<TelescopeWarning>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct TelescopeNarrativeCoverage {
+    #[serde(default)]
+    pub authored_source_files: usize,
+    #[serde(default)]
+    pub mapped_source_files: usize,
+    #[serde(default)]
+    pub unmapped_source_files: Vec<String>,
+    #[serde(default)]
+    pub coverage_percent: u8,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct TelescopeNarrativeGroup {
+    pub id: String,
+    pub label: String,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub summary: String,
+    #[serde(default, rename = "pathPrefixes")]
+    pub path_prefixes: Vec<String>,
+    #[serde(default, rename = "visualArchetype")]
+    pub visual_archetype: String,
+    #[serde(default)]
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct TelescopeNarrativeNode {
+    pub id: String,
+    pub label: String,
+    #[serde(default, rename = "groupId")]
+    pub group_id: String,
+    #[serde(default, rename = "whatItDoes")]
+    pub what_it_does: String,
+    #[serde(default, rename = "howItsBuilt")]
+    pub how_its_built: String,
+    #[serde(default)]
+    pub files: Vec<String>,
+    #[serde(default, rename = "visualArchetype")]
+    pub visual_archetype: String,
+    #[serde(default)]
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct TelescopeNarrativeEdge {
+    pub id: String,
+    #[serde(rename = "sourceFile")]
+    pub source_file: String,
+    #[serde(rename = "targetFile")]
+    pub target_file: String,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub label: String,
+    #[serde(default, rename = "railKind")]
+    pub rail_kind: String,
+    #[serde(default)]
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct TelescopeNarrativeFlow {
+    pub id: String,
+    pub label: String,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default, rename = "nodeIds")]
+    pub node_ids: Vec<String>,
+    #[serde(default, rename = "edgeIds")]
+    pub edge_ids: Vec<String>,
+    #[serde(default, rename = "dataShape")]
+    pub data_shape: Option<String>,
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub primary: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct TelescopeNarrativeAction {
+    pub id: String,
+    pub label: String,
+    #[serde(default)]
+    pub verb: String,
+    #[serde(default)]
+    pub category: String,
+    #[serde(default, rename = "whatItDoes")]
+    pub what_it_does: String,
+    #[serde(default, rename = "howItsBuilt")]
+    pub how_its_built: String,
+    #[serde(default)]
+    pub files: Vec<String>,
+    #[serde(default, rename = "nodeIds")]
+    pub node_ids: Vec<String>,
+    #[serde(default, rename = "edgeIds")]
+    pub edge_ids: Vec<String>,
+    #[serde(default, rename = "flowId")]
+    pub flow_id: Option<String>,
+    #[serde(default, rename = "behaviorId")]
+    pub behavior_id: Option<String>,
+    #[serde(default, rename = "scenarioIds")]
+    pub scenario_ids: Vec<String>,
+    #[serde(default)]
+    pub status: String,
+    #[serde(default, rename = "readOnly")]
+    pub read_only: bool,
+    #[serde(default)]
+    pub guarded: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+struct TelescopeManifest {
+    #[serde(default, rename = "schemaVersion")]
+    schema_version: String,
+    #[serde(default)]
+    status: String,
+    #[serde(default, rename = "topologyFingerprint")]
+    topology_fingerprint: Option<String>,
+    #[serde(default, rename = "visualModelVersion")]
+    visual_model_version: Option<String>,
+    #[serde(default, rename = "primaryFlowId")]
+    primary_flow_id: Option<String>,
+    #[serde(default)]
+    groups: Vec<TelescopeNarrativeGroup>,
+    #[serde(default)]
+    nodes: Vec<TelescopeNarrativeNode>,
+    #[serde(default)]
+    edges: Vec<TelescopeNarrativeEdge>,
+    #[serde(default)]
+    flows: Vec<TelescopeNarrativeFlow>,
+    #[serde(default)]
+    actions: Vec<TelescopeNarrativeAction>,
 }
 
 #[derive(Debug, Clone)]

@@ -224,7 +224,7 @@
     {
       "id": "telescope-projection",
       "scope": "local and external consumer contract",
-      "path": "src-tauri/src/telescope.rs, src-tauri/src/core.rs, src-tauri/src/lib.rs, src/renderer/src/components/Telescope*, src/renderer/src/components/telescopeLayout*, src/renderer/src/types/telescope.ts, src/renderer/src/api.ts, src/renderer/src/components/Drawers.tsx, src/renderer/src/components/AppSidebar.tsx, src/renderer/src/styles.css, docs/telescope.md, docs/repository-contract.md, .agents/context/, ~/.agents/skills/pronto/",
+      "path": "src-tauri/src/telescope.rs, src-tauri/src/behavior_assurance.rs, src-tauri/src/core.rs, src-tauri/src/lib.rs, .pronto/telescope-map.json, .pronto/behavior-assurance.json, src/renderer/src/components/Telescope*, src/renderer/src/components/telescopeLayout*, src/renderer/src/components/telescopeScene*, src/renderer/src/types/telescope.ts, src/renderer/src/api.ts, src/renderer/src/components/Drawers.tsx, src/renderer/src/components/AppSidebar.tsx, src/renderer/src/styles.css, docs/telescope.md, docs/repository-contract.md, .agents/context/, ~/.agents/skills/pronto/",
       "owner": "Pronto repository maintainers and Codex skill routing",
       "condition": "The source-derived topology, workspace binding, cache, extraction adapters, canvas interactions, workflow lenses, CLI or Tauri command, privacy boundary, or Telescope documentation changes.",
       "operations": [
@@ -242,8 +242,12 @@
         "pnpm cli help and verify telescope plus telescope refresh syntax",
         "Exercise pronto telescope <registered-repository> --json, a repeated cached get, and pronto telescope refresh <registered-repository> --json.",
         "Verify deterministic IDs, branch/commit/dirty/workspace binding, stale-cache invalidation, dynamic imports, cycles, monorepo topology, and unsupported-language partial coverage.",
+        "Validate .pronto/telescope-map.json group limits, source-relative paths, authored edge anchors, flow references, draft/reviewed status, measured-versus-authored provenance, and narrative drift without manifest mutation.",
+        "Validate the action catalog against .pronto/behavior-assurance.json: behaviorId links resolve to the canonical contract, unmapped declared behaviors remain visible as review actions, and unlinked actions stay explicitly unprofiled.",
+        "Verify the visual model renders distinct building archetypes, district plates, typed rails, uncertain-path styling, labeled payload tokens, primary-flow framing, collision-free deterministic layout, and overview-to-source coverage.",
         "Verify cached and CLI JSON contains no source bodies, uncommitted diffs, runtime payload values, credentials, or absolute personal paths.",
         "Verify synchronized map/navigator selection, What it does and How it's built inspector modes, lens isolation, flow inspection and pause, keyboard navigation, and reduced motion.",
+        "Exercise action search, action-specific city focus, behavior evidence states, scenario/source handoffs, and the read-only boundary without executing catalog actions.",
         "Exercise the packaged Tauri surface at desktop and compact widths, including cooperative refresh cancellation; source tests and builds do not substitute for visible behavior verification.",
         "Verify Compass and ICM remain optional lenses and AI enrichment is disabled by default with explicit provenance when enabled."
       ],

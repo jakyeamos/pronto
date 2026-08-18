@@ -121,8 +121,48 @@ fn build_groups(files: &[SourceFile]) -> Vec<TelescopeGroup> {
             parent_id: None,
             summary: format!("Source modules grouped under {label}."),
             confidence: "high".to_string(),
+            provenance: vec!["workspace-source".to_string()],
+            source_file_count: 0,
+            measured_lines: 0,
+            visual_archetype: "district".to_string(),
+            visual_override_provenance: "measured-default".to_string(),
+            narrative_status: "derived".to_string(),
         })
         .collect()
+}
+
+fn annotate_group_measurements(groups: &mut [TelescopeGroup], nodes: &[TelescopeNode]) {
+    let mut measurements = BTreeMap::<String, (usize, usize)>::new();
+    for node in nodes {
+        let entry = measurements.entry(node.group_id.clone()).or_default();
+        entry.0 += node.source_file_count;
+        entry.1 += node.measured_lines;
+    }
+    for group in groups {
+        let (source_file_count, measured_lines) =
+            measurements.get(&group.id).copied().unwrap_or_default();
+        group.source_file_count = source_file_count;
+        group.measured_lines = measured_lines;
+    }
+}
+
+fn visual_archetype_for_kind(kind: &str) -> &'static str {
+    match kind {
+        "route" | "entrypoint" => "tower",
+        "store" => "slab-stack",
+        "interface" => "fin-row",
+        "integration" => "low-slab",
+        "service" => "cube",
+        _ => "cube",
+    }
+}
+
+fn rail_kind_for_relationship(kind: &str) -> &'static str {
+    match kind {
+        "dynamic" => "event",
+        "contains" | "uses" => "control",
+        _ => "import",
+    }
 }
 
 fn group_id_for_path(path: &str) -> String {
@@ -183,4 +223,68 @@ fn semantic_summary(label: &str, kind: &str) -> String {
         "entrypoint" => format!("Starts an application boundary through {label}."),
         _ => format!("Defines the {label} module."),
     }
+}
+
+fn extract_symbols_and_shapes(content: &str, language: &str) -> (Vec<String>, Vec<String>) {
+    let mut symbols = BTreeSet::new();
+    let mut shapes = BTreeSet::new();
+    for line in content.lines().take(8_000) {
+        let trimmed = line.trim_start();
+        let symbol_prefixes: &[&str] = if language == "Rust" {
+            &[
+                "pub fn ",
+                "fn ",
+                "pub struct ",
+                "struct ",
+                "pub enum ",
+                "enum ",
+                "pub trait ",
+                "trait ",
+            ]
+        } else {
+            &[
+                "export function ",
+                "export class ",
+                "export const ",
+                "function ",
+                "class ",
+                "const ",
+            ]
+        };
+        for prefix in symbol_prefixes {
+            if let Some(rest) = trimmed.strip_prefix(prefix) {
+                if let Some(name) = identifier(rest) {
+                    symbols.insert(name);
+                }
+            }
+        }
+        for prefix in [
+            "export interface ",
+            "interface ",
+            "export type ",
+            "type ",
+            "pub struct ",
+            "struct ",
+            "pub enum ",
+            "enum ",
+        ] {
+            if let Some(rest) = trimmed.strip_prefix(prefix) {
+                if let Some(name) = identifier(rest) {
+                    shapes.insert(name);
+                }
+            }
+        }
+    }
+    (
+        symbols.into_iter().take(12).collect(),
+        shapes.into_iter().take(12).collect(),
+    )
+}
+
+fn identifier(value: &str) -> Option<String> {
+    let name = value
+        .chars()
+        .take_while(|character| character.is_ascii_alphanumeric() || *character == '_')
+        .collect::<String>();
+    (!name.is_empty()).then_some(name)
 }

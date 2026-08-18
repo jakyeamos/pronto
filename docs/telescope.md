@@ -23,6 +23,9 @@ matching cached projection intact.
 The projection contains:
 
 - `groups`, `nodes`, `edges`, and directional `flows` with deterministic IDs;
+- `actions` and `action_coverage`, which make useful read-only operations
+  searchable and map each operation to city nodes, rails, flows, source
+  anchors, and (when available) a behavior-assurance ID;
 - semantic and implementation summaries, repository-relative source anchors,
   symbols, technologies, and statically derived data shapes;
 - relationship direction, kind, confidence, and provenance;
@@ -62,6 +65,73 @@ payload values, credentials, or absolute personal paths. AI enrichment is
 disabled by default and, when introduced, remains explicit and
 repository-scoped.
 
+## Authored map and visual model
+
+Telescope separates what the machine can measure from what a human chooses to
+explain. A repository may add `.pronto/telescope-map.json` using
+`pronto-telescope-map/v1`. The manifest is a small, repository-local narrative
+layer: its groups are neighborhoods, its nodes are meaningful buildings, its
+edges name the story rails, and its flows describe the user or system journeys
+worth following.
+
+The boundary is deliberate:
+
+- authored groups, labels, `whatItDoes`, `howItsBuilt`, visual archetypes,
+  representative files, and flow meaning are `draft` or `reviewed` prose;
+- measured files, counts, lines, extracted symbols, source anchors,
+  relationships, coverage, freshness, and geometry inputs come from the active
+  worktree; and
+- generated summaries and optional AI enrichment stay inferred until a person
+  reviews them. Refresh updates measured data, reports narrative drift, and
+  never overwrites the manifest's explanations or layout decisions.
+
+The manifest should contain four to seven human-named neighborhoods and about
+15–25 overview buildings. `pathPrefixes` create conceptual districts from
+source-backed files; a node's `groupId` and `files` can make a more specific
+building assignment. Every authored edge must identify source-relative files
+that the extractor can resolve, and every flow must reference valid authored
+node and edge IDs. Unmapped source files remain visible as measured topology,
+and missing, partial, unsupported, stale, or inferred relationships remain
+explicit in the projection rather than becoming confirmed claims.
+
+The renderer presents this narrative as a visual explanation, not a box graph:
+it uses a deterministic 2:1 dimetric scene, neighborhood plates, recognizable
+`fin-row`, `tower`, `slab-stack`, `cube`, and `low-slab` silhouettes, typed data,
+control, event, and import rails, and plain-language moving payload tokens.
+Solid rails carry confirmed extracted relationships; muted, dashed, or hatched
+rails signal inferred or partial evidence. Overview, subsystem, and source
+levels progressively reveal detail while preserving stable positions and a
+deterministic primary story flow. Pronto lenses tint or annotate these
+districts and rails but never redefine the source-derived city.
+
+## Action catalog and behavior assurance
+
+The action catalog is a projection layer over Pronto's existing behavioral
+analysis. `.pronto/behavior-assurance.json` (`pronto-behavior-assurance/v2`)
+remains the canonical source for declared behaviors, invariants, scenarios,
+and change triggers. Quality Runner receipts remain authoritative for current,
+stale, failed, blocked, and unknown evidence. Telescope does not introduce a
+second behavior contract or infer verification from an action's label, source
+mapping, or authored prose.
+
+Repository authors may add `actions` to `.pronto/telescope-map.json` to explain
+useful operations in plain language and map them to buildings, rails, and
+flows. A `behaviorId` links that visual explanation to the canonical behavior
+contract; it does not copy or replace the contract. Declared behaviors without
+an authored action are projected automatically as `Review` actions so the
+catalog exposes behavioral coverage gaps instead of hiding them. Actions with
+no behavior link are explicitly `unprofiled` exploration aids, not behavioral
+proof. The projection reports authored, inferred, mapped, behavior-backed, and
+unprofiled counts separately.
+
+The desktop surface provides one action search across labels, explanations,
+behavior IDs, and source paths. Selecting an action focuses a simplified city
+view on its mapped architecture, opens the explanation in the same
+**What it does** / **How it's built** inspector, and shows the linked behavior
+state and scenario evidence without displaying runtime payload values. The
+selection is read-only; source opening, remediation, preparation, and release
+actions still hand off to their existing guarded surfaces.
+
 ## Desktop interaction model
 
 The repository detail drawer exposes Telescope alongside Overview. The
@@ -72,15 +142,16 @@ switcher separate from Telescope's entity navigator.
 
 The canvas supports pan, zoom, fit, reset, keyboard selection, compound group
 expansion, and level-of-detail clustering. Selecting a node, group,
-relationship, or flow synchronizes the navigator and inspector, highlights
-the relevant path, and dims unrelated architecture. The inspector separates
+relationship, flow, or catalog action synchronizes the navigator and inspector,
+highlights the relevant path, and dims unrelated architecture. The inspector separates
 **What it does** from **How it's built**. Directional tokens can be inspected
 or paused; reduced-motion mode presents a static token and preserves the same
 information.
 
-ELK layout runs in a web worker so graph layout does not block the renderer.
-The React Flow canvas uses custom SVG/CSS nodes and edges. Animation updates
-remain isolated from topology state to avoid full-canvas rerenders.
+Scene layout is deterministic and kept separate from the React Flow rendering
+path so interaction remains responsive as the measured graph grows. The React
+Flow canvas uses custom SVG/CSS nodes and typed rails. Animation updates remain
+isolated from topology state to avoid full-canvas rerenders.
 
 ## Workflow lenses
 
