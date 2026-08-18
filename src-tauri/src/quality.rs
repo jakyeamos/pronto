@@ -22,6 +22,8 @@ use std::time::{Duration as StdDuration, Instant};
 pub const MAX_EVIDENCE_AGE_DAYS: i64 = 7;
 pub const FINDING_DISPOSITIONS_SCHEMA: &str = "pronto-quality-finding-dispositions/v1";
 pub const FINDING_DISPOSITIONS_RELATIVE_PATH: &str = ".pronto/quality-finding-dispositions.json";
+pub const CI_GATE_PROFILE_SCHEMA: &str = "pronto-ci-gate-profile/v1";
+pub const CI_GATE_PROFILE_RELATIVE_PATH: &str = ".pronto/ci-gate-profile.json";
 pub const CANONICAL_MATURITY_FEED_RELATIVE_PATH: &str =
     ".quality-runner/fleet-audit/current/maturity.json";
 pub const CANONICAL_MATURITY_CHECKPOINT_RELATIVE_PATH: &str =
@@ -31,6 +33,7 @@ const MATURITY_FEED_SCHEMAS: [&str; 2] = [
     "quality-runner-maturity-feed/v1",
     "quality-runner-maturity-feed/v2",
 ];
+const CI_GATE_AUDIT_SCHEMA: &str = "quality-runner-ci-gate-candidates/v1";
 pub(crate) const FLEET_MATURITY_FINDING_SCHEMA_PREFIX: &str =
     "quality-runner-environment-legibility-finding-";
 const MATURITY_FEED_STATUS: [&str; 2] = ["completed", "complete_with_blockers"];
@@ -86,6 +89,17 @@ const CI_READINESS_CONDITIONAL_GATE_IDS: [&str; 4] = [
 ];
 const WEB_READINESS_SCHEMA: &str = "quality-runner-web-readiness/v1";
 const WEB_READINESS_RELATIVE_PATH: &str = ".quality-runner/web-readiness.json";
+pub const CI_STANDARD_GATE_IDS: [&str; 9] = [
+    "build",
+    "tests",
+    "runtime_smoke",
+    "lint",
+    "formatter",
+    "typecheck",
+    "dead_code",
+    "secrets_scan",
+    "dependency_audit",
+];
 const RECOMMENDATION_MATRIX_MARKDOWN: &str =
     include_str!("../../docs/quality-gate-recommendation-matrix.md");
 const RECOMMENDATION_MATRIX_GATE_COLUMNS: [(&str, usize); 9] = [
@@ -637,6 +651,90 @@ pub struct QualityRepositoryOutcome {
     pub next_step: Option<String>,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct CiGateAuditRepository {
+    pub name: String,
+    pub branch: Option<String>,
+    pub head_sha: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct CiGateAuditPolicy {
+    pub authority: String,
+    pub implementation_allowed: bool,
+    pub promotion_requirement: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct CiGateCandidateEvidence {
+    pub kind: Option<String>,
+    pub path: String,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct CiGateCheckContext {
+    pub context: String,
+    pub path: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct CiGateExistingCheck {
+    pub status: String,
+    pub contexts: Vec<CiGateCheckContext>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct CiGateSuggestedTrigger {
+    pub event: String,
+    pub paths: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct CiGateAdmission {
+    pub state: String,
+    pub blockers: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct CiGateCandidate {
+    pub id: String,
+    pub label: String,
+    pub recommendation: String,
+    pub confidence: String,
+    pub invariant: String,
+    pub failure_mode: String,
+    pub evidence: Vec<CiGateCandidateEvidence>,
+    pub suggested_trigger: CiGateSuggestedTrigger,
+    pub suggested_check_context: String,
+    pub existing_check: CiGateExistingCheck,
+    pub negative_controls: Vec<CiGateCandidateEvidence>,
+    pub admission: CiGateAdmission,
+    pub next_step: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct CiGateCandidateAudit {
+    pub schema: String,
+    pub status: String,
+    pub generated_at: String,
+    pub repository: CiGateAuditRepository,
+    pub policy: CiGateAuditPolicy,
+    pub candidate_count: usize,
+    pub candidates: Vec<CiGateCandidate>,
+    pub provenance_hash: String,
+    pub error: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AgentUsabilityLane {
     pub id: String,
@@ -744,6 +842,8 @@ pub struct QualityMaturity {
     pub repository_maturity: Option<RepositoryMaturityModel>,
     #[serde(default)]
     pub cache_design: Option<CacheDesignAssessment>,
+    #[serde(default)]
+    pub ci_gate_audit: Option<CiGateCandidateAudit>,
     pub audit_id: Option<String>,
     pub observed_at: Option<String>,
     #[serde(default)]
@@ -766,6 +866,7 @@ impl Default for QualityMaturity {
             agent_usability: None,
             repository_maturity: None,
             cache_design: None,
+            ci_gate_audit: None,
             audit_id: None,
             observed_at: None,
             scanned_commit: None,
@@ -801,6 +902,26 @@ pub struct QualityReadiness {
     pub stale_gate_ids: Vec<String>,
     pub failed_gate_ids: Vec<String>,
     pub blocked_gate_ids: Vec<String>,
+    #[serde(default = "default_ci_profile_source")]
+    pub profile_source: String,
+    #[serde(default)]
+    pub profile_contract_path: Option<String>,
+    #[serde(default)]
+    pub profile_reason: Option<String>,
+    #[serde(default)]
+    pub profile_error: Option<String>,
+    #[serde(default)]
+    pub optional_gate_ids: Vec<String>,
+    #[serde(default)]
+    pub not_applicable_gate_ids: Vec<String>,
+    #[serde(default)]
+    pub gate_labels: BTreeMap<String, String>,
+    #[serde(default)]
+    pub gate_reasons: BTreeMap<String, String>,
+}
+
+fn default_ci_profile_source() -> String {
+    "unavailable".to_string()
 }
 
 impl Default for QualityReadiness {
@@ -821,8 +942,70 @@ impl Default for QualityReadiness {
             stale_gate_ids: Vec::new(),
             failed_gate_ids: Vec::new(),
             blocked_gate_ids: Vec::new(),
+            profile_source: default_ci_profile_source(),
+            profile_contract_path: None,
+            profile_reason: None,
+            profile_error: None,
+            optional_gate_ids: Vec::new(),
+            not_applicable_gate_ids: Vec::new(),
+            gate_labels: BTreeMap::new(),
+            gate_reasons: BTreeMap::new(),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct CiGateProfile {
+    pub source: String,
+    pub contract_path: Option<String>,
+    pub reason: Option<String>,
+    pub error: Option<String>,
+    pub required_gate_ids: Vec<String>,
+    pub optional_gate_ids: Vec<String>,
+    pub not_applicable_gate_ids: Vec<String>,
+    pub gate_labels: BTreeMap<String, String>,
+    pub gate_reasons: BTreeMap<String, String>,
+}
+
+impl Default for CiGateProfile {
+    fn default() -> Self {
+        Self {
+            source: default_ci_profile_source(),
+            contract_path: None,
+            reason: None,
+            error: None,
+            required_gate_ids: Vec::new(),
+            optional_gate_ids: Vec::new(),
+            not_applicable_gate_ids: Vec::new(),
+            gate_labels: BTreeMap::new(),
+            gate_reasons: BTreeMap::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct RepositoryCiGateProfileContract {
+    schema_version: String,
+    reason: String,
+    gates: Vec<RepositoryCiGateDefinition>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct RepositoryCiGateDefinition {
+    id: String,
+    #[serde(default)]
+    label: Option<String>,
+    classification: CiGateClassification,
+    reason: String,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum CiGateClassification {
+    Required,
+    Optional,
+    NotApplicable,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -962,6 +1145,14 @@ pub struct QualityPortfolioSnapshot {
     #[serde(default)]
     pub ci_configuration_unscored_repository_count: usize,
     #[serde(default)]
+    pub ci_profile_repository_contract_count: usize,
+    #[serde(default)]
+    pub ci_profile_compatibility_count: usize,
+    #[serde(default)]
+    pub ci_profile_invalid_count: usize,
+    #[serde(default)]
+    pub ci_profile_unavailable_count: usize,
+    #[serde(default)]
     pub feed_schema: Option<String>,
     #[serde(default)]
     pub provenance_hash: Option<String>,
@@ -1070,6 +1261,10 @@ impl Default for QualityPortfolioSnapshot {
             ci_configuration_full_repository_count: 0,
             ci_configuration_repository_count: 0,
             ci_configuration_unscored_repository_count: 0,
+            ci_profile_repository_contract_count: 0,
+            ci_profile_compatibility_count: 0,
+            ci_profile_invalid_count: 0,
+            ci_profile_unavailable_count: 0,
             feed_schema: None,
             provenance_hash: None,
             quality_outcome_counts: BTreeMap::new(),
@@ -1829,6 +2024,7 @@ pub fn fleet_audit_import(
             agent_usability,
             repository_maturity: None,
             cache_design: None,
+            ci_gate_audit: None,
             audit_id: Some(run_id.clone()),
             observed_at: run_observed_at.clone(),
             scanned_commit: scanned_commit.clone(),
@@ -2075,23 +2271,197 @@ fn recommendation_matrix_profiles() -> Vec<(String, Vec<String>)> {
         .collect()
 }
 
-pub fn ideal_gate_ids_for_repository(repository: &RepositorySnapshot) -> Option<Vec<String>> {
+fn invalid_ci_gate_profile(message: impl Into<String>) -> CiGateProfile {
+    CiGateProfile {
+        source: "invalid_repository_contract".to_string(),
+        contract_path: Some(CI_GATE_PROFILE_RELATIVE_PATH.to_string()),
+        error: Some(message.into()),
+        ..CiGateProfile::default()
+    }
+}
+
+pub fn normalize_declared_gate_id(value: &str) -> Result<String, String> {
+    let declared = value.trim().to_ascii_lowercase();
+    if CI_STANDARD_GATE_IDS.contains(&declared.as_str()) {
+        return Ok(declared);
+    }
+    let Some(custom_value) = declared.strip_prefix("custom:") else {
+        return Err(format!(
+            "Unknown CI gate '{value}'. Use a standard gate id or an explicit custom:<snake_case_id>."
+        ));
+    };
+    let custom_slug = slug(custom_value);
+    if custom_slug.is_empty() {
+        return Err("A custom CI gate id must include a value after 'custom:'.".to_string());
+    }
+    let normalized = format!("custom:{custom_slug}");
+    if normalized != declared {
+        return Err(format!(
+            "Custom CI gate '{value}' must use its stable normalized id '{normalized}'."
+        ));
+    }
+    if CI_STANDARD_GATE_IDS.contains(&custom_slug.as_str()) {
+        return Err(format!(
+            "Custom CI gate '{value}' duplicates the standard '{custom_slug}' gate."
+        ));
+    }
+    Ok(normalized)
+}
+
+fn validate_repository_ci_gate_profile(
+    contract: RepositoryCiGateProfileContract,
+) -> Result<CiGateProfile, String> {
+    if contract.schema_version != CI_GATE_PROFILE_SCHEMA {
+        return Err(format!(
+            "Unsupported CI gate profile schema '{}'; expected '{}'.",
+            contract.schema_version, CI_GATE_PROFILE_SCHEMA
+        ));
+    }
+    let profile_reason = contract.reason.trim();
+    if profile_reason.is_empty() {
+        return Err("The CI gate profile must include a non-empty reason.".to_string());
+    }
+
+    let mut profile = CiGateProfile {
+        source: "repository_contract".to_string(),
+        contract_path: Some(CI_GATE_PROFILE_RELATIVE_PATH.to_string()),
+        reason: Some(profile_reason.to_string()),
+        ..CiGateProfile::default()
+    };
+    let mut seen = HashSet::new();
+
+    for gate in contract.gates {
+        let gate_id = normalize_declared_gate_id(&gate.id)?;
+        if !seen.insert(gate_id.clone()) {
+            return Err(format!("CI gate '{gate_id}' is declared more than once."));
+        }
+        let reason = gate.reason.trim();
+        if reason.is_empty() {
+            return Err(format!(
+                "CI gate '{gate_id}' must include a non-empty reason."
+            ));
+        }
+        let is_custom = gate_id.starts_with("custom:");
+        if is_custom && matches!(gate.classification, CiGateClassification::NotApplicable) {
+            return Err(format!(
+                "Custom CI gate '{gate_id}' cannot be not_applicable; omit it when it does not apply."
+            ));
+        }
+        let label = if is_custom {
+            gate.label
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .ok_or_else(|| format!("Custom CI gate '{gate_id}' must include a label."))?
+                .to_string()
+        } else {
+            gate.label
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
+                .unwrap_or_else(|| gate_label(&gate_id))
+        };
+        profile.gate_labels.insert(gate_id.clone(), label);
+        profile
+            .gate_reasons
+            .insert(gate_id.clone(), reason.to_string());
+        match gate.classification {
+            CiGateClassification::Required => profile.required_gate_ids.push(gate_id),
+            CiGateClassification::Optional => profile.optional_gate_ids.push(gate_id),
+            CiGateClassification::NotApplicable => profile.not_applicable_gate_ids.push(gate_id),
+        }
+    }
+
+    let missing_standard = CI_STANDARD_GATE_IDS
+        .iter()
+        .filter(|gate_id| !seen.contains(**gate_id))
+        .copied()
+        .collect::<Vec<_>>();
+    if !missing_standard.is_empty() {
+        return Err(format!(
+            "The CI gate profile must classify every standard gate; missing: {}.",
+            missing_standard.join(", ")
+        ));
+    }
+    profile.required_gate_ids.sort();
+    profile.optional_gate_ids.sort();
+    profile.not_applicable_gate_ids.sort();
+    Ok(profile)
+}
+
+pub fn ci_gate_profile_for_repository(repository: &RepositorySnapshot) -> CiGateProfile {
+    let contract_path = Path::new(&repository.path).join(CI_GATE_PROFILE_RELATIVE_PATH);
+    if contract_path.is_file() {
+        let contract = fs::read_to_string(&contract_path)
+            .map_err(|error| format!("Could not read the CI gate profile: {error}"))
+            .and_then(|contents| {
+                serde_json::from_str::<RepositoryCiGateProfileContract>(&contents)
+                    .map_err(|error| format!("Invalid CI gate profile JSON: {error}"))
+            })
+            .and_then(validate_repository_ci_gate_profile);
+        return contract.unwrap_or_else(invalid_ci_gate_profile);
+    }
+
     let key = normalize_repository_key(&repository.name);
     let matches = recommendation_matrix_profiles()
         .into_iter()
         .filter(|(project, _)| project == &key)
         .collect::<Vec<_>>();
-    let ideal_gate_ids = (matches.len() == 1)
-        .then(|| matches.into_iter().next().map(|(_, gates)| gates))
-        .flatten()
-        .filter(|gates| !gates.is_empty())
-        .unwrap_or_else(|| {
-            CI_READINESS_BASELINE_GATE_IDS
-                .iter()
-                .map(|gate_id| (*gate_id).to_string())
-                .collect()
-        });
-    Some(ideal_gate_ids)
+    if matches.len() != 1 {
+        return CiGateProfile {
+            error: Some(if matches.is_empty() {
+                format!(
+                    "No repository CI gate profile or unique compatibility-matrix row was found for '{}'.",
+                    repository.name
+                )
+            } else {
+                format!(
+                    "The compatibility matrix contains more than one row for '{}'.",
+                    repository.name
+                )
+            }),
+            ..CiGateProfile::default()
+        };
+    }
+    let required_gate_ids = matches
+        .into_iter()
+        .next()
+        .map(|(_, gates)| gates)
+        .unwrap_or_default();
+    if required_gate_ids.is_empty() {
+        return CiGateProfile {
+            error: Some(format!(
+                "The compatibility-matrix row for '{}' is pending or declares no applicable gates.",
+                repository.name
+            )),
+            ..CiGateProfile::default()
+        };
+    }
+    let required = required_gate_ids.iter().cloned().collect::<HashSet<_>>();
+    CiGateProfile {
+        source: "recommendation_matrix".to_string(),
+        reason: Some(
+            "Compatibility profile from docs/quality-gate-recommendation-matrix.md; add a repository contract to classify current standard and custom gates."
+                .to_string(),
+        ),
+        required_gate_ids,
+        not_applicable_gate_ids: CI_STANDARD_GATE_IDS
+            .iter()
+            .filter(|gate_id| !required.contains(**gate_id))
+            .map(|gate_id| (*gate_id).to_string())
+            .collect(),
+        gate_labels: CI_STANDARD_GATE_IDS
+            .iter()
+            .map(|gate_id| ((*gate_id).to_string(), gate_label(gate_id)))
+            .collect(),
+        ..CiGateProfile::default()
+    }
+}
+
+pub fn ideal_gate_ids_for_repository(repository: &RepositorySnapshot) -> Option<Vec<String>> {
+    let profile = ci_gate_profile_for_repository(repository);
+    (!profile.required_gate_ids.is_empty()).then_some(profile.required_gate_ids)
 }
 
 pub fn update_ci_readiness_summary(
@@ -2167,6 +2537,28 @@ pub fn update_ci_readiness_summary(
                 .unconfigured_gate_ids
                 .is_empty()
         })
+        .count();
+    portfolio.ci_profile_repository_contract_count = repositories
+        .iter()
+        .filter(|repository| {
+            repository.quality.ci_readiness.profile_source == "repository_contract"
+        })
+        .count();
+    portfolio.ci_profile_compatibility_count = repositories
+        .iter()
+        .filter(|repository| {
+            repository.quality.ci_readiness.profile_source == "recommendation_matrix"
+        })
+        .count();
+    portfolio.ci_profile_invalid_count = repositories
+        .iter()
+        .filter(|repository| {
+            repository.quality.ci_readiness.profile_source == "invalid_repository_contract"
+        })
+        .count();
+    portfolio.ci_profile_unavailable_count = repositories
+        .iter()
+        .filter(|repository| repository.quality.ci_readiness.profile_source == "unavailable")
         .count();
     portfolio.ci_readiness_open_gate_counts = BTreeMap::new();
     for repository in repositories {
@@ -3095,6 +3487,9 @@ fn format_quality_score(score: f64) -> String {
 }
 
 pub fn normalize_gate_id(value: &str) -> String {
+    if let Some(custom_value) = value.trim().to_ascii_lowercase().strip_prefix("custom:") {
+        return format!("custom:{}", slug(custom_value));
+    }
     let slug = slug(value);
     match slug.as_str() {
         "build" | "compile" | "bundle" => "build".to_string(),
@@ -3461,11 +3856,48 @@ fn import_web_readiness(
     (snapshot, Some(evidence))
 }
 
+fn ensure_profile_gates(gates: &mut Vec<QualityGate>, profile: &CiGateProfile) {
+    for gate_id in profile
+        .required_gate_ids
+        .iter()
+        .chain(profile.optional_gate_ids.iter())
+    {
+        let label = profile
+            .gate_labels
+            .get(gate_id)
+            .cloned()
+            .unwrap_or_else(|| gate_label(gate_id));
+        if let Some(gate) = gates.iter_mut().find(|gate| gate.id == *gate_id) {
+            gate.label = label;
+        } else {
+            gates.push(QualityGate {
+                id: gate_id.clone(),
+                label,
+                status: QualityGateStatus::NotConfigured,
+                freshness: QualityFreshness::Unknown,
+                evidence: Vec::new(),
+            });
+        }
+    }
+    gates.sort_by_key(|gate| gate_sort_key(&gate.id));
+}
+
+fn apply_ci_gate_profile(readiness: &mut QualityReadiness, profile: &CiGateProfile) {
+    readiness.profile_source = profile.source.clone();
+    readiness.profile_contract_path = profile.contract_path.clone();
+    readiness.profile_reason = profile.reason.clone();
+    readiness.profile_error = profile.error.clone();
+    readiness.optional_gate_ids = profile.optional_gate_ids.clone();
+    readiness.not_applicable_gate_ids = profile.not_applicable_gate_ids.clone();
+    readiness.gate_labels = profile.gate_labels.clone();
+    readiness.gate_reasons = profile.gate_reasons.clone();
+}
+
 pub fn ingest_repository_quality(
     repository: &RepositorySnapshot,
     remote: Option<&RemoteRepositorySnapshot>,
     maturity: Option<QualityMaturity>,
-    ideal_gate_ids: Option<&[String]>,
+    ci_gate_profile: Option<&CiGateProfile>,
 ) -> QualitySnapshot {
     let mut gates = default_quality_gates();
     let mut findings = QualityFindings::default();
@@ -3503,14 +3935,17 @@ pub fn ingest_repository_quality(
             last_ingested_at = web_readiness.observed_at.clone();
         }
     }
+    if let Some(profile) = ci_gate_profile {
+        ensure_profile_gates(&mut gates, profile);
+    }
 
     for gate in &mut gates {
         let (status, freshness) = aggregate_gate_status(&gate.evidence);
         gate.status = status;
         gate.freshness = freshness;
     }
-    let effective_ideal_gate_ids = ideal_gate_ids.map(|gate_ids| {
-        let mut gate_ids = gate_ids.to_vec();
+    let effective_required_gate_ids = ci_gate_profile.map(|profile| {
+        let mut gate_ids = profile.required_gate_ids.clone();
         if matches!(
             web_readiness.applicability.as_str(),
             "public_web" | "internal_web"
@@ -3520,8 +3955,9 @@ pub fn ingest_repository_quality(
         }
         gate_ids
     });
-    let ci_readiness = effective_ideal_gate_ids
+    let mut ci_readiness = effective_required_gate_ids
         .as_deref()
+        .filter(|gate_ids| !gate_ids.is_empty())
         .map(|gate_ids| {
             evaluate_ci_readiness_for_ideal_with_configuration(
                 &gates,
@@ -3530,6 +3966,9 @@ pub fn ingest_repository_quality(
             )
         })
         .unwrap_or_default();
+    if let Some(profile) = ci_gate_profile {
+        apply_ci_gate_profile(&mut ci_readiness, profile);
+    }
     let maturity_available = maturity.is_some();
     let installed_runtime = installed_runtime::evaluate(
         Path::new(&repository.path),
@@ -4307,6 +4746,7 @@ pub fn audit_import(root: Option<&Path>, repositories: &[RepositorySnapshot]) ->
                 agent_usability: None,
                 repository_maturity: None,
                 cache_design: None,
+                ci_gate_audit: None,
                 audit_id: run.audit_id.clone(),
                 observed_at: run.as_of.clone(),
                 scanned_commit: None,
@@ -4521,6 +4961,7 @@ pub fn maturity_feed_import(
                 .get("cache_design")
                 .filter(|value| value.is_object())
                 .and_then(|value| serde_json::from_value(value.clone()).ok()),
+            ci_gate_audit: parse_ci_gate_audit(projection),
             audit_id: audit_id.map(str::to_string),
             observed_at: as_of.map(str::to_string),
             scanned_commit: projection
@@ -4550,6 +4991,123 @@ pub fn maturity_feed_import(
         maturities: matches,
         behavior_assurance: behavior_assurance_matches,
     }
+}
+
+fn parse_ci_gate_audit(
+    projection: &serde_json::Map<String, Value>,
+) -> Option<CiGateCandidateAudit> {
+    let raw = projection.get("ci_gate_audit")?.as_object()?;
+    if raw.is_empty() {
+        return None;
+    }
+    let mut audit = serde_json::from_value::<CiGateCandidateAudit>(Value::Object(raw.clone()))
+        .unwrap_or_default();
+    let target_branch = projection.get("target_branch").and_then(Value::as_str);
+    let target_head = projection.get("target_head").and_then(Value::as_str);
+    if let Err(error) = validate_ci_gate_audit(raw, &audit, target_branch, target_head) {
+        audit.status = "invalid".to_string();
+        audit.error = Some(error);
+        audit.candidate_count = 0;
+        audit.candidates.clear();
+    }
+    Some(audit)
+}
+
+fn validate_ci_gate_audit(
+    raw: &serde_json::Map<String, Value>,
+    audit: &CiGateCandidateAudit,
+    target_branch: Option<&str>,
+    target_head: Option<&str>,
+) -> Result<(), String> {
+    if audit.schema != CI_GATE_AUDIT_SCHEMA {
+        return Err("Unsupported Quality Runner custom-gate audit schema.".to_string());
+    }
+    if !matches!(audit.status.as_str(), "complete" | "partial") {
+        return Err("Quality Runner custom-gate audit status is invalid.".to_string());
+    }
+    if audit.policy.authority != "recommendation_only" || audit.policy.implementation_allowed {
+        return Err(
+            "Custom-gate audit attempted to exceed recommendation-only authority.".to_string(),
+        );
+    }
+    if audit.repository.branch.as_deref() != target_branch
+        || audit.repository.head_sha.as_deref() != target_head
+    {
+        return Err(
+            "Custom-gate audit does not match the repository target branch and commit.".to_string(),
+        );
+    }
+    if audit.candidate_count != audit.candidates.len() || audit.candidates.len() > 16 {
+        return Err("Custom-gate audit candidate count is invalid.".to_string());
+    }
+    let Some(expected_hash) = raw.get("provenance_hash").and_then(Value::as_str) else {
+        return Err("Custom-gate audit provenance hash is missing.".to_string());
+    };
+    let mut hashable = raw.clone();
+    hashable.remove("provenance_hash");
+    let payload = serde_json::to_string(&Value::Object(hashable))
+        .map_err(|_| "Custom-gate audit provenance cannot be serialized.".to_string())?;
+    let actual_hash = format!("{:x}", Sha256::digest(payload.as_bytes()));
+    if expected_hash.len() != 64 || actual_hash != expected_hash {
+        return Err("Custom-gate audit provenance hash does not match its content.".to_string());
+    }
+    let mut ids = HashSet::new();
+    for candidate in &audit.candidates {
+        if !valid_custom_gate_id(&candidate.id) || !ids.insert(candidate.id.as_str()) {
+            return Err("Custom-gate audit contains an invalid or duplicate gate ID.".to_string());
+        }
+        if !matches!(
+            candidate.recommendation.as_str(),
+            "required_candidate" | "optional_candidate" | "review_required"
+        ) || !matches!(candidate.confidence.as_str(), "high" | "medium")
+            || !matches!(
+                candidate.admission.state.as_str(),
+                "proposal_only" | "implementation_detected"
+            )
+            || candidate.admission.blockers.is_empty()
+            || candidate.invariant.is_empty()
+            || candidate.failure_mode.is_empty()
+            || candidate.evidence.is_empty()
+        {
+            return Err("Custom-gate audit candidate semantics are incomplete.".to_string());
+        }
+        if candidate
+            .evidence
+            .iter()
+            .chain(candidate.negative_controls.iter())
+            .any(|evidence| !safe_ci_gate_evidence_path(&evidence.path))
+            || candidate
+                .existing_check
+                .contexts
+                .iter()
+                .any(|context| !safe_ci_gate_evidence_path(&context.path))
+        {
+            return Err("Custom-gate audit contains an unsafe evidence path.".to_string());
+        }
+    }
+    Ok(())
+}
+
+fn valid_custom_gate_id(value: &str) -> bool {
+    let Some(suffix) = value.strip_prefix("custom:") else {
+        return false;
+    };
+    let mut characters = suffix.chars();
+    characters
+        .next()
+        .is_some_and(|character| character.is_ascii_lowercase())
+        && characters.all(|character| {
+            character.is_ascii_lowercase() || character.is_ascii_digit() || character == '_'
+        })
+}
+
+fn safe_ci_gate_evidence_path(value: &str) -> bool {
+    let path = Path::new(value);
+    !value.is_empty()
+        && !path.is_absolute()
+        && path
+            .components()
+            .all(|component| matches!(component, Component::Normal(_)))
 }
 
 fn validate_maturity_feed(feed: &Value) -> bool {
@@ -6201,6 +6759,49 @@ mod tests {
                 "inventory_truncated": false
             }
         });
+        let mut ci_gate_audit = serde_json::json!({
+            "schema": CI_GATE_AUDIT_SCHEMA,
+            "status": "complete",
+            "generated_at": as_of,
+            "repository": {
+                "name": repository.name,
+                "branch": "dev",
+                "head_sha": "abc"
+            },
+            "policy": {
+                "authority": "recommendation_only",
+                "implementation_allowed": false,
+                "promotion_requirement": "Repository-owned profile acceptance is required."
+            },
+            "inventory": {"file_count": 10, "text_file_count": 5, "truncated": false},
+            "candidate_count": 1,
+            "candidates": [{
+                "id": "custom:migration_compatibility",
+                "label": "Migration compatibility",
+                "recommendation": "required_candidate",
+                "confidence": "high",
+                "invariant": "Schema changes remain rollback compatible.",
+                "failure_mode": "A migration can strand an older application.",
+                "evidence": [{
+                    "kind": "path",
+                    "path": "migrations/001.sql",
+                    "reason": "migration surface"
+                }],
+                "suggested_trigger": {"event": "pull_request", "paths": ["**/migrations/**"]},
+                "suggested_check_context": "custom / migration-compatibility",
+                "existing_check": {"status": "not_found", "contexts": []},
+                "negative_controls": [],
+                "admission": {
+                    "state": "proposal_only",
+                    "blockers": ["Repository-owned policy has not accepted this candidate."]
+                },
+                "next_step": "Add a negative control and explicitly accept or reject the gate."
+            }],
+            "provenance_hash": ""
+        });
+        ci_gate_audit["provenance_hash"] =
+            Value::String(maturity_feed_hash(&ci_gate_audit).expect("candidate audit should hash"));
+        feed["repositories"][0]["ci_gate_audit"] = ci_gate_audit;
         feed["provenance_hash"] =
             Value::String(maturity_feed_hash(&feed).expect("fixture feed should hash"));
         feed
@@ -6754,6 +7355,14 @@ mod tests {
         let imported = maturity_feed_import(Some(&feed_path), std::slice::from_ref(&repository));
 
         assert_eq!(imported.portfolio.audit_status, "Ready");
+        let agent_usability = imported.maturities[&repository.id]
+            .agent_usability
+            .as_ref()
+            .expect("feed should preserve agent-usability evidence");
+        assert_eq!(agent_usability.covered_lane_count, 3);
+        assert_eq!(agent_usability.lanes[0].id, "documentation_contract");
+        assert_eq!(agent_usability.growth_health.skill_count, 4);
+        assert_eq!(agent_usability.growth_health.family_count, 2);
         let model = imported.maturities[&repository.id]
             .repository_maturity
             .as_ref()
@@ -6770,6 +7379,54 @@ mod tests {
         assert_eq!(cache_design.totals.allocated_bytes, 1_048_576);
         assert_eq!(cache_design.categories["tool_cache"].file_count, 12);
         assert_eq!(cache_design.risk_flags, Vec::<String>::new());
+        let ci_gate_audit = imported.maturities[&repository.id]
+            .ci_gate_audit
+            .as_ref()
+            .expect("feed should preserve custom-gate recommendations");
+        assert_eq!(ci_gate_audit.status, "complete");
+        assert_eq!(ci_gate_audit.candidate_count, 1);
+        assert_eq!(
+            ci_gate_audit.candidates[0].id,
+            "custom:migration_compatibility"
+        );
+        assert_eq!(
+            imported.maturities[&repository.id].freshness,
+            QualityFreshness::Fresh
+        );
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn rejects_custom_gate_audit_with_mismatched_target_provenance() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root.join("repo"));
+        let feed_path = root.join("maturity.json");
+        let mut feed = fixture_maturity_feed(&repository, &Utc::now().to_rfc3339());
+        feed["repositories"][0]["ci_gate_audit"]["repository"]["head_sha"] =
+            Value::String("different-head".to_string());
+        let mut audit = feed["repositories"][0]["ci_gate_audit"].clone();
+        audit["provenance_hash"] =
+            Value::String(maturity_feed_hash(&audit).expect("candidate audit should rehash"));
+        feed["repositories"][0]["ci_gate_audit"] = audit;
+        feed["provenance_hash"] =
+            Value::String(maturity_feed_hash(&feed).expect("feed should rehash"));
+        fs::write(
+            &feed_path,
+            serde_json::to_string(&feed).expect("feed should serialize"),
+        )
+        .expect("feed should be writable");
+
+        let imported = maturity_feed_import(Some(&feed_path), std::slice::from_ref(&repository));
+        let audit = imported.maturities[&repository.id]
+            .ci_gate_audit
+            .as_ref()
+            .expect("invalid audit should remain visible");
+        assert_eq!(audit.status, "invalid");
+        assert_eq!(audit.candidate_count, 0);
+        assert!(audit
+            .error
+            .as_deref()
+            .is_some_and(|error| error.contains("target branch and commit")));
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
@@ -6852,6 +7509,16 @@ mod tests {
         assert_eq!(normalize_gate_id("verify_and_build"), "build");
         assert_eq!(normalize_gate_id("security scan"), "custom:security_scan");
         assert_eq!(
+            normalize_gate_id("custom:restore_drill"),
+            "custom:restore_drill"
+        );
+        assert_eq!(
+            normalize_declared_gate_id("custom:restore_drill"),
+            Ok("custom:restore_drill".to_string())
+        );
+        assert!(normalize_declared_gate_id("restore_drill").is_err());
+        assert!(normalize_declared_gate_id("custom:restore-drill").is_err());
+        assert_eq!(
             default_quality_gates()
                 .iter()
                 .map(|gate| gate.id.as_str())
@@ -6896,25 +7563,109 @@ mod tests {
         );
 
         repository.name = "Book-documents-github".to_string();
+        assert_eq!(ideal_gate_ids_for_repository(&repository), None);
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn repository_ci_gate_profile_classifies_standard_and_custom_gates() {
+        let root = fixture_root();
+        let contract_dir = root.join(".pronto");
+        fs::create_dir_all(&contract_dir).expect("profile directory should be writable");
+        fs::write(
+            contract_dir.join("ci-gate-profile.json"),
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema_version": CI_GATE_PROFILE_SCHEMA,
+                "reason": "This service must build and prove that production backups can be restored.",
+                "gates": [
+                    {"id": "build", "classification": "required", "reason": "The service ships a compiled artifact."},
+                    {"id": "tests", "classification": "optional", "reason": "Tests inform changes but are not yet a merge blocker."},
+                    {"id": "runtime_smoke", "classification": "not_applicable", "reason": "There is no independently runnable process."},
+                    {"id": "lint", "classification": "not_applicable", "reason": "No supported linter is used."},
+                    {"id": "formatter", "classification": "not_applicable", "reason": "Formatting is not enforced in CI."},
+                    {"id": "typecheck", "classification": "not_applicable", "reason": "The compiler provides the relevant type checks through build."},
+                    {"id": "dead_code", "classification": "not_applicable", "reason": "No supported dead-code analyzer is used."},
+                    {"id": "secrets_scan", "classification": "not_applicable", "reason": "Secret scanning is enforced outside this repository."},
+                    {"id": "dependency_audit", "classification": "not_applicable", "reason": "Dependency review is enforced outside this repository."},
+                    {"id": "custom:restore_drill", "label": "Restore drill", "classification": "required", "reason": "A backup is useful only when a current restore succeeds."},
+                    {"id": "custom:diagnostic_report", "label": "Diagnostic report", "classification": "optional", "reason": "The report helps operators but does not block a merge."}
+                ]
+            }))
+            .expect("profile fixture should encode"),
+        )
+        .expect("profile fixture should be writable");
+        let repository = fixture_repository(&root);
+
+        let profile = ci_gate_profile_for_repository(&repository);
+
+        assert_eq!(profile.source, "repository_contract");
         assert_eq!(
-            ideal_gate_ids_for_repository(&repository),
-            Some(
-                CI_READINESS_BASELINE_GATE_IDS
-                    .iter()
-                    .map(|gate_id| (*gate_id).to_string())
-                    .collect()
-            )
+            profile.required_gate_ids,
+            vec!["build".to_string(), "custom:restore_drill".to_string()]
         );
-        repository.name = "newly-registered-repository".to_string();
+        assert!(profile.optional_gate_ids.contains(&"tests".to_string()));
+        assert!(profile
+            .optional_gate_ids
+            .contains(&"custom:diagnostic_report".to_string()));
+        assert!(profile
+            .not_applicable_gate_ids
+            .contains(&"runtime_smoke".to_string()));
         assert_eq!(
-            ideal_gate_ids_for_repository(&repository),
-            Some(
-                CI_READINESS_BASELINE_GATE_IDS
-                    .iter()
-                    .map(|gate_id| (*gate_id).to_string())
-                    .collect()
-            )
+            profile
+                .gate_labels
+                .get("custom:restore_drill")
+                .map(String::as_str),
+            Some("Restore drill")
         );
+
+        let snapshot = ingest_repository_quality(&repository, None, None, Some(&profile));
+        assert_eq!(snapshot.ci_readiness.profile_source, "repository_contract");
+        assert_eq!(snapshot.ci_readiness.applicable_gate_ids.len(), 2);
+        assert_eq!(snapshot.ci_readiness.configuration_score, Some(0.0));
+        assert_eq!(
+            snapshot
+                .gates
+                .iter()
+                .find(|gate| gate.id == "custom:restore_drill")
+                .map(|gate| gate.label.as_str()),
+            Some("Restore drill")
+        );
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn invalid_repository_ci_gate_profile_is_unscored_with_a_descriptive_error() {
+        let root = fixture_root();
+        let contract_dir = root.join(".pronto");
+        fs::create_dir_all(&contract_dir).expect("profile directory should be writable");
+        fs::write(
+            contract_dir.join("ci-gate-profile.json"),
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema_version": CI_GATE_PROFILE_SCHEMA,
+                "reason": "Incomplete profile fixture.",
+                "gates": [
+                    {"id": "build", "classification": "required", "reason": "Build is required."}
+                ]
+            }))
+            .expect("profile fixture should encode"),
+        )
+        .expect("profile fixture should be writable");
+        let repository = fixture_repository(&root);
+
+        let profile = ci_gate_profile_for_repository(&repository);
+        let snapshot = ingest_repository_quality(&repository, None, None, Some(&profile));
+
+        assert_eq!(profile.source, "invalid_repository_contract");
+        assert!(profile
+            .error
+            .as_deref()
+            .is_some_and(|message| message.contains("missing: tests")));
+        assert_eq!(snapshot.ci_readiness.score, None);
+        assert_eq!(
+            snapshot.ci_readiness.profile_source,
+            "invalid_repository_contract"
+        );
+        assert!(snapshot.ci_readiness.profile_error.is_some());
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
@@ -7109,7 +7860,9 @@ mod tests {
         let root = fixture_root();
         let mut scored = fixture_repository(&root.join("scored"));
         scored.quality.ci_readiness.score = Some(2.0);
-        let unscored = fixture_repository(&root.join("unscored"));
+        scored.quality.ci_readiness.profile_source = "repository_contract".to_string();
+        let mut unscored = fixture_repository(&root.join("unscored"));
+        unscored.quality.ci_readiness.profile_source = "invalid_repository_contract".to_string();
         let repositories = vec![scored, unscored];
         let mut portfolio = QualityPortfolioSnapshot::default();
 
@@ -7118,6 +7871,10 @@ mod tests {
         assert_eq!(portfolio.ci_readiness_score, Some(2.0));
         assert_eq!(portfolio.ci_readiness_repository_count, 1);
         assert_eq!(portfolio.ci_readiness_unscored_repository_count, 1);
+        assert_eq!(portfolio.ci_profile_repository_contract_count, 1);
+        assert_eq!(portfolio.ci_profile_invalid_count, 1);
+        assert_eq!(portfolio.ci_profile_compatibility_count, 0);
+        assert_eq!(portfolio.ci_profile_unavailable_count, 0);
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
@@ -7708,12 +8465,8 @@ mod tests {
         )
         .expect("web-readiness fixture should be writable");
 
-        let snapshot = ingest_repository_quality(
-            &repository,
-            None,
-            None,
-            Some(&ideal_gate_ids_for_repository(&repository).expect("gate profile")),
-        );
+        let ci_gate_profile = ci_gate_profile_for_repository(&repository);
+        let snapshot = ingest_repository_quality(&repository, None, None, Some(&ci_gate_profile));
         assert_eq!(snapshot.web_readiness.status, "Warnings");
         assert_eq!(snapshot.web_readiness.applicability, "public_web");
         assert_eq!(

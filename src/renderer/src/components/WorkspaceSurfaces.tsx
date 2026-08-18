@@ -19,6 +19,7 @@ import { formatTime } from "./ConsolePrimitives";
 import {
   qualityConfigurationSummary,
   qualityEvidenceSummary,
+  qualityProfileSummary,
 } from "./QualityComponents";
 
 export function DeferredSurface({
@@ -293,7 +294,7 @@ function MaturityAuditCard({
           </strong>
           <small>
             {configuration.ideal === 0
-              ? "No matched recommendation profile"
+              ? qualityProfileSummary(quality)
               : `${configuration.fullRepositories}/${configuration.repositories} repositories at ideal configuration${
                   configuration.unscoredRepositories > 0
                     ? ` · ${configuration.unscoredRepositories} not scored`

@@ -286,6 +286,10 @@ export interface QualityPortfolioSnapshot {
   ci_configuration_full_repository_count?: number;
   ci_configuration_repository_count?: number;
   ci_configuration_unscored_repository_count?: number;
+  ci_profile_repository_contract_count?: number;
+  ci_profile_compatibility_count?: number;
+  ci_profile_invalid_count?: number;
+  ci_profile_unavailable_count?: number;
   feed_schema?: string;
   provenance_hash?: string;
   quality_outcome_counts?: Record<string, number>;

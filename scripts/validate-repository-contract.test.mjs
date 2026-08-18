@@ -21,6 +21,8 @@ const fixtureFiles = [
   "docs/implementation-examples.md",
   "docs/implementation-plan.md",
   "docs/agent-usability-maturity.md",
+  "docs/ci-gate-profiles.md",
+  "docs/quality-gate-recommendation-matrix.md",
   "docs/cache-design-maturity-gate.md",
   "docs/ci-tracker.md",
   "docs/mac-control-maturity-gate.md",
@@ -29,6 +31,8 @@ const fixtureFiles = [
   "docs/task-lane-custody.md",
   ".pronto/cache-lifecycle.json",
   "docs/runtime-resource-efficiency-maturity.md",
+  "src-tauri/src/quality.rs",
+  "src/renderer/src/components/QualityComponents.test.tsx",
   "scripts/validate-repository-contract.mjs",
 ];
 

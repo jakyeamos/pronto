@@ -2,6 +2,19 @@
 
 Last reviewed: 2026-08-16.
 
+## Repository CI gate profile
+
+CI applicability is repository-owned in `.pronto/ci-gate-profile.json` using
+`pronto-ci-gate-profile/v1`. Classify all nine standard gates and explain every
+classification. Use stable `custom:<snake_case_id>` values for
+repository-specific checks; discovery alone never makes a custom check
+required. See `docs/ci-gate-profiles.md`.
+
+After changing a profile, run a focused `pronto refresh <repository> --json`
+only when persistence is authorized, then inspect `repo <repository> --json`.
+An invalid profile must remain unscored with `profile_error`; do not replace it
+with the static matrix or a fixed gate-count fallback.
+
 ## Invocation
 
 Run the current checkout's CLI through `pnpm`; do not rely on an unverified

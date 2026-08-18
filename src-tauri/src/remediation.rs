@@ -625,11 +625,7 @@ fn is_github_only_label(value: &str) -> bool {
 fn normalized_gate_ids(values: &[String]) -> Result<Vec<String>, String> {
     let mut normalized = Vec::new();
     for value in values {
-        let gate_id = value.trim().to_ascii_lowercase();
-        if !ALL_GATE_IDS.contains(&gate_id.as_str()) {
-            return Err(format!("Unknown remediation gate '{value}'."));
-        }
-        normalized.push(gate_id);
+        normalized.push(quality::normalize_declared_gate_id(value)?);
     }
     normalized.sort();
     normalized.dedup();
@@ -746,7 +742,7 @@ fn inferred_goal_profile(
     profile
 }
 
-fn resolve_goal_profile(repository: &RepositorySnapshot) -> RemediationGoalProfile {
+fn resolve_goal_profile_base(repository: &RepositorySnapshot) -> RemediationGoalProfile {
     let contract_path = Path::new(&repository.path).join(REMEDIATION_GOAL_PATH);
     if !contract_path.is_file() {
         return inferred_goal_profile(repository, None);
@@ -827,6 +823,31 @@ fn resolve_goal_profile(repository: &RepositorySnapshot) -> RemediationGoalProfi
     profile.confidence = "High".to_string();
     profile.reason = contract.reason.trim().to_string();
     profile.remediation_phases = remediation_phases;
+    profile
+}
+
+fn resolve_goal_profile(repository: &RepositorySnapshot) -> RemediationGoalProfile {
+    let mut profile = resolve_goal_profile_base(repository);
+    if matches!(
+        profile.target_state.as_str(),
+        "public_release" | "deployed_product" | "active_maintained"
+    ) && repository.quality.ci_readiness.profile_source == "repository_contract"
+    {
+        profile.required_gate_ids.extend(
+            repository
+                .quality
+                .ci_readiness
+                .applicable_gate_ids
+                .iter()
+                .filter(|gate_id| gate_id.starts_with("custom:"))
+                .cloned(),
+        );
+        profile.required_gate_ids.sort();
+        profile.required_gate_ids.dedup();
+        profile
+            .optional_gate_ids
+            .retain(|gate_id| !profile.required_gate_ids.contains(gate_id));
+    }
     profile
 }
 
@@ -2142,7 +2163,11 @@ fn add_ci_ideal_seeds(
         } else {
             "Missing"
         };
-        let label = gate_id.replace('_', " ");
+        let label = readiness
+            .gate_labels
+            .get(&gate_id)
+            .cloned()
+            .unwrap_or_else(|| quality::gate_label(&gate_id));
         let gate_evidence = repository
             .quality
             .gates
@@ -5484,6 +5509,58 @@ mod tests {
             Some("quality_and_maturity")
         );
         fs::remove_dir_all(root).expect("goal fixture should be removable");
+    }
+
+    #[test]
+    fn remediation_goal_accepts_explicit_stable_custom_gate_ids() {
+        assert_eq!(
+            normalized_gate_ids(&["custom:restore_drill".to_string()]),
+            Ok(vec!["custom:restore_drill".to_string()])
+        );
+        assert!(normalized_gate_ids(&["restore_drill".to_string()]).is_err());
+        assert!(normalized_gate_ids(&["custom:restore-drill".to_string()]).is_err());
+    }
+
+    #[test]
+    fn repository_required_custom_ci_gates_enter_active_remediation() {
+        let mut repository = fixture_repository("custom-ci-gate");
+        repository.quality.ci_readiness.profile_source = "repository_contract".to_string();
+        repository.quality.ci_readiness.applicable_gate_ids =
+            vec!["build".to_string(), "custom:restore_drill".to_string()];
+        repository.quality.ci_readiness.unconfigured_gate_ids =
+            vec!["custom:restore_drill".to_string()];
+        repository.quality.ci_readiness.missing_gate_ids = vec!["custom:restore_drill".to_string()];
+        repository.quality.ci_readiness.gate_labels.insert(
+            "custom:restore_drill".to_string(),
+            "Restore drill".to_string(),
+        );
+
+        let goal = resolve_goal_profile(&repository);
+        let mut seeds = Vec::new();
+        add_ci_ideal_seeds(&repository, &goal, &mut seeds);
+
+        assert_eq!(goal.target_state, "active_maintained");
+        assert!(goal
+            .required_gate_ids
+            .contains(&"custom:restore_drill".to_string()));
+        assert!(seeds.iter().any(|seed| {
+            seed.stable_key == "ci_ideal:gate:custom:restore_drill"
+                && seed.title == "Bring the Restore drill gate to the ideal state"
+        }));
+    }
+
+    #[test]
+    fn discovered_custom_evidence_does_not_become_a_required_gate() {
+        let mut repository = fixture_repository("discovered-custom-gate");
+        repository.quality.ci_readiness.profile_source = "recommendation_matrix".to_string();
+        repository.quality.ci_readiness.applicable_gate_ids =
+            vec!["build".to_string(), "custom:restore_drill".to_string()];
+
+        let goal = resolve_goal_profile(&repository);
+
+        assert!(!goal
+            .required_gate_ids
+            .contains(&"custom:restore_drill".to_string()));
     }
 
     #[test]
