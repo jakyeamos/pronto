@@ -31,7 +31,6 @@ test("selects only the exact installed app process for termination", () => {
     [41, 42, 43, 44],
   );
 });
-
 function writeBundle(bundlePath, executableContents) {
   mkdirSync(join(bundlePath, "Contents", "MacOS"), { recursive: true });
   writeFileSync(

@@ -5176,6 +5176,13 @@ impl QrRun {
             .collect()
     }
 
+    // Compatibility accessor retained for consumers that expect one selected report;
+    // finding_reports is the authoritative fleet-aware aggregation path.
+    #[allow(dead_code)]
+    fn finding_report(&self) -> Option<(PathBuf, Value)> {
+        self.finding_reports().into_iter().next()
+    }
+
     fn configured_gate_ids(&self) -> Vec<String> {
         let mut configured_gate_ids = Vec::new();
         let mut seen_gate_ids = HashSet::new();

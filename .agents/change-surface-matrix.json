@@ -426,6 +426,23 @@
       "status": "applicable"
     },
     {
+      "id": "fleet-detector-refresh",
+      "scope": "external",
+      "path": "src-tauri/src/core.rs, src-tauri/src/quality.rs, Quality Runner fleet detector publication, repository-local QR runs, and Pronto quality import",
+      "owner": "Pronto and Quality Runner integration owners",
+      "condition": "Fleet detector command, producer schema, exact-target publication, per-repository status, or findings coverage behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::quality_detector_refresh",
+        "lifecycle-aware detector coverage regression excludes exact QR unsupported paths while retaining tracked totals",
+        "cargo test --manifest-path src-tauri/Cargo.toml quality::tests",
+        "fleet detector sibling-artifact regression selects inspect findings while retaining latest verify gate evidence and rejects unmarked similarly named runs",
+        "pnpm cli help",
+        "Run a source QR detector refresh against a disposable fixture and verify Pronto refreshes target refs, imports exact-target findings, and rejects any published result that is not selected."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "github-provider",
       "scope": "external",
       "path": "github.com/jakyeamos/pronto",
@@ -473,6 +490,7 @@
         "pnpm build:release (CI or release preparation)",
         "pnpm app:update",
         "pnpm app:check",
+        "node --test scripts/install-app.test.mjs",
         "Perform installed-app interaction smoke verification."
       ],
       "status": "applicable"
