@@ -8,6 +8,7 @@ import type { RemediationRun } from "./types/remediation";
 import type { ShowcasePortfolioSnapshot } from "./types/showcase";
 
 export * from "./types/quality";
+export * from "./types/cacheDesign";
 export * from "./types/remediation";
 export * from "./types/insights";
 export * from "./types/promotion";

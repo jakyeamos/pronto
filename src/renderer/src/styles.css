@@ -5177,6 +5177,33 @@ h1 {
   color: var(--faint);
   font-size: 8px;
 }
+.cache-design-summary {
+  display: grid;
+  gap: 3px;
+  margin-top: 4px;
+  padding: 6px;
+  border: 1px solid rgba(119, 168, 255, 0.16);
+  border-radius: 5px;
+  background: rgba(119, 168, 255, 0.04);
+}
+.cache-design-summary > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.cache-design-summary > div > strong {
+  color: #cbd9ec;
+  font-size: 9px;
+}
+.cache-design-summary > span,
+.cache-design-summary > small {
+  color: var(--faint);
+  font-size: 8px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
 .repository-maturity-pillars {
   display: grid;
   gap: 3px;

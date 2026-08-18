@@ -167,6 +167,10 @@ progress values to 0–4. Missing or invalid contracts contribute zero instead o
 disappearing from the fleet denominator; confidence remains evidence metadata
 and does not raise maturity by itself.
 
+The [cache-design maturity gate](cache-design-maturity-gate.md) imports QR's
+redacted lifecycle assessment under governance and sustainability. It can
+affect pilot maturity evidence, but it is not a release gate or critical cap.
+
 The [agent usability maturity contract](agent-usability-maturity.md) contributes
 four explicit documentation, skill-coverage, behavior, and freshness/portability
 lanes plus scored growth health to that aggregate. Repositories own the

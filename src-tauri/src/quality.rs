@@ -477,6 +477,41 @@ pub struct QualityMaturityGap {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
+pub struct CacheDesignTotals {
+    pub logical_bytes: u64,
+    pub allocated_bytes: u64,
+    pub exclusive_allocated_bytes: u64,
+    pub shared_allocated_bytes: u64,
+    pub file_count: u64,
+    pub shared_file_count: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct CacheDesignCategory {
+    pub logical_bytes: u64,
+    pub allocated_bytes: u64,
+    pub exclusive_allocated_bytes: u64,
+    pub shared_allocated_bytes: u64,
+    pub file_count: u64,
+    pub shared_file_count: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct CacheDesignAssessment {
+    pub schema: String,
+    pub status: String,
+    pub score: Option<u8>,
+    pub measurement_complete: bool,
+    pub totals: CacheDesignTotals,
+    pub categories: BTreeMap<String, CacheDesignCategory>,
+    pub risk_flags: Vec<String>,
+    pub growth: Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct RepositoryMaturityPillar {
     pub id: String,
     pub label: String,
@@ -701,6 +736,8 @@ pub struct QualityMaturity {
     pub agent_usability: Option<AgentUsabilityMaturity>,
     #[serde(default)]
     pub repository_maturity: Option<RepositoryMaturityModel>,
+    #[serde(default)]
+    pub cache_design: Option<CacheDesignAssessment>,
     pub audit_id: Option<String>,
     pub observed_at: Option<String>,
     #[serde(default)]
@@ -722,6 +759,7 @@ impl Default for QualityMaturity {
             quality_outcome: None,
             agent_usability: None,
             repository_maturity: None,
+            cache_design: None,
             audit_id: None,
             observed_at: None,
             scanned_commit: None,
@@ -1374,6 +1412,7 @@ pub fn fleet_audit_import(
                 .and_then(|value| serde_json::from_value(value.clone()).ok()),
             agent_usability,
             repository_maturity: None,
+            cache_design: None,
             audit_id: Some(run_id.clone()),
             observed_at: run_observed_at.clone(),
             scanned_commit: scanned_commit.clone(),
@@ -2433,6 +2472,7 @@ fn maturity_pillar_patterns(pillar: &str) -> &'static [&'static str] {
             "skill_contract_quality",
         ],
         "governance_sustainability" => &[
+            "cache_design",
             "contributor_",
             "definition_of_done",
             "governance",
@@ -2517,6 +2557,7 @@ fn maturity_pillar_capabilities(
             ("ownership_and_governance", &["ownership_", "governance"]),
             ("maintenance_continuity", &["maintained", "contributor_"]),
             ("license_and_contribution", &["license"]),
+            ("cache_lifecycle", &["cache_design"]),
             (
                 "completion_and_matrix_discipline",
                 &["definition_of_done", "matrix_maintenance"],
@@ -3826,6 +3867,7 @@ pub fn audit_import(root: Option<&Path>, repositories: &[RepositorySnapshot]) ->
                 quality_outcome: None,
                 agent_usability: None,
                 repository_maturity: None,
+                cache_design: None,
                 audit_id: run.audit_id.clone(),
                 observed_at: run.as_of.clone(),
                 scanned_commit: None,
@@ -4034,6 +4076,10 @@ pub fn maturity_feed_import(
                 .and_then(|value| serde_json::from_value(value.clone()).ok()),
             repository_maturity: projection
                 .get("repository_maturity")
+                .filter(|value| value.is_object())
+                .and_then(|value| serde_json::from_value(value.clone()).ok()),
+            cache_design: projection
+                .get("cache_design")
                 .filter(|value| value.is_object())
                 .and_then(|value| serde_json::from_value(value.clone()).ok()),
             audit_id: audit_id.map(str::to_string),
@@ -6006,6 +6052,7 @@ mod tests {
             Some("Applicable dimensions are maintained with current evidence.")
         );
         assert_eq!(imported.maturities[&repository.id].score, Some(3.5));
+        assert!(imported.maturities[&repository.id].cache_design.is_none());
         assert_eq!(
             imported.maturities[&repository.id]
                 .dimension_scores
@@ -6100,6 +6147,25 @@ mod tests {
             },
             "critical_cap": {"applied": false, "maximum_score": null, "reasons": []}
         });
+        feed["repositories"][0]["cache_design"] = serde_json::json!({
+            "schema": "quality-runner-cache-design-assessment-v1",
+            "status": "maintained",
+            "score": 4,
+            "measurement_complete": true,
+            "totals": {
+                "logical_bytes": 2097152,
+                "allocated_bytes": 1048576,
+                "exclusive_allocated_bytes": 1048576,
+                "shared_allocated_bytes": 0,
+                "file_count": 12,
+                "shared_file_count": 0
+            },
+            "categories": {
+                "tool_cache": {"allocated_bytes": 1048576, "file_count": 12}
+            },
+            "risk_flags": [],
+            "growth": {"snapshot_count": 2, "within_policy": true}
+        });
         feed["provenance_hash"] =
             Value::String(maturity_feed_hash(&feed).expect("v2 fixture feed should hash"));
         fs::write(
@@ -6118,6 +6184,15 @@ mod tests {
         assert_eq!(model.status, "provisional");
         assert_eq!(model.pillars.len(), 7);
         assert_eq!(model.evidence.evidence_coverage, 0.571);
+        let cache_design = imported.maturities[&repository.id]
+            .cache_design
+            .as_ref()
+            .expect("v2 feed should preserve cache-design evidence");
+        assert_eq!(cache_design.status, "maintained");
+        assert_eq!(cache_design.score, Some(4));
+        assert_eq!(cache_design.totals.allocated_bytes, 1_048_576);
+        assert_eq!(cache_design.categories["tool_cache"].file_count, 12);
+        assert_eq!(cache_design.risk_flags, Vec::<String>::new());
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 

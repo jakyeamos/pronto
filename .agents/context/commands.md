@@ -130,6 +130,12 @@ and inspect the resulting private `standard-report.json`. This one-standard
 snapshot is not the canonical Pronto maturity feed and must not be published
 as one; it reports every audited repository without manufacturing compliance.
 
+Use `--standard cache-design` for the read-only derived-storage audit. Pronto
+consumes `quality-runner-cache-design-assessment-v1` only from a replay-valid
+complete v2 feed. It preserves maintained, attention, unknown, stale, blocked,
+failed, missing, and not-applicable evidence; raw size and an absent projection
+are never interpreted as a pass.
+
 `matrix_maintenance` is nevertheless a canonical maturity dimension in a
 complete QR fleet audit. The full audit contributes it to repository and fleet
 `maturity_score`, `dimension_scores`, `dimension_gaps`, and the Pronto maturity

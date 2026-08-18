@@ -311,6 +311,8 @@
         "pnpm test -- --run src/renderer/src/components/QualityComponents.test.tsx",
         "pnpm cli quality \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm vitest run src/renderer/src/components/QualityComponents.test.tsx",
+        "cargo test --manifest-path src-tauri/Cargo.toml quality::tests::imports_holistic_v2_maturity_projection",
+        "Verify cache_design maintains explicit passing, attention, unknown, not_applicable, stale, blocked, failed, and missing states without exposing local paths.",
         "Confirm Project Compass and product-readiness values remain separate from repository maturity."
       ],
       "status": "applicable"
