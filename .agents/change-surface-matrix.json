@@ -538,6 +538,7 @@
         "src-tauri/src/core.rs::tests::qr_audit_runtime_arguments_apply_the_requested_timeout",
         "src-tauri/src/core.rs::tests::registering_new_repository_enters_the_normal_fleet_without_mutating_showcase",
         "src-tauri/src/showcase.rs::tests::unreviewed_repository_is_projected_without_mutating_showcase_contract",
+        "src-tauri/src/core.rs::tests::fold_preview_paginates_all_candidates_without_duplicates",
         "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract"
       ]
     },

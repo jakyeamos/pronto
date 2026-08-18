@@ -66,7 +66,7 @@ stale/unknown until it is refreshed from the exact target commit.
 | Agent routing envelope      | `route [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] [--limit <n>] [--fresh] --json`                                                  | `pronto-agent-route/v1`                                                                                          |
 | Freshness/storage gate      | `doctor [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] --json`                                                                         | `pronto-agent-doctor/v1`                                                                                         |
 | Daily orientation           | `next [<repository>] [--product <name> \| --group <name>] [--limit <n>] --json`                                                                                   | `pronto-agent-next/v1`                                                                                           |
-| Fold preparation            | `fold preview [<repository>] [--target <branch>] [--product <name> \| --group <name>] [--limit <n>] --json`                                                       | `pronto-agent-fold-preview/v1`                                                                                   |
+| Fold preparation            | `fold preview [<repository>] [--target <branch>] [--product <name> \| --group <name>] [--limit <n>] [--cursor <token>] --json`                                      | `pronto-agent-fold-preview/v2`                                                                                   |
 | Fleet orientation           | `summary [--product <name> \| --group <name>] --json`                                                                                                             | `pronto-agent-summary/v1`                                                                                        |
 | One repository and task-lane custody | `repo <absolute-repo-path> [--fresh] --json`                                                                                                                | `pronto-agent-repository/v1` with `pronto-task-lanes/v1`                                                         |
 | Repository target           | `repo set-target <repository> <branch> --json`                                                                                                                    | persisted target override                                                                                        |
@@ -122,6 +122,13 @@ blockers always force `do_not_release_yet`, unclassified commits force review,
 and a change-derived candidate without a passed configured rule remains
 `review_required`. The preview never tags, publishes, or otherwise authorizes a
 release.
+Direct `fold preview` is paginated. Each response reports `candidate_total`
+for the complete deterministic candidate set, `returned_count` for the
+current page, `has_more`, and an opaque `next_cursor` when another page is
+available. Pass that cursor back with the same scope, target, and snapshot
+boundary to continue; a stale or cross-scope cursor fails closed and requires
+starting a new preview. The route's embedded `fold_preview` remains bounded
+and does not accept a cursor.
 
 For a full inventory check of one repository standard, Quality Runner owns the
 static fleet scope. Run
