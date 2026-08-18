@@ -26,6 +26,7 @@ import type {
   ReleaseRuleConfig,
   CiCodexHandoffReceipt,
 } from "./types";
+import type { TelescopeProjection } from "./types/telescope";
 
 function isDesktopBridgeAvailable(): boolean {
   return "__TAURI_INTERNALS__" in window;
@@ -40,6 +41,39 @@ export async function getSnapshot(): Promise<PortfolioSnapshot> {
     return emptySnapshot;
   }
   return invoke<PortfolioSnapshot>("get_snapshot");
+}
+
+export async function getRepositoryTelescope(
+  repositoryId: string,
+): Promise<TelescopeProjection> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Telescope is available in the Pronto desktop app.");
+  }
+  return invoke<TelescopeProjection>("get_repository_telescope", {
+    repositoryId,
+  });
+}
+
+export async function refreshRepositoryTelescope(
+  repositoryId: string,
+): Promise<TelescopeProjection> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error(
+      "Telescope refresh is available in the Pronto desktop app.",
+    );
+  }
+  return invoke<TelescopeProjection>("refresh_repository_telescope", {
+    repositoryId,
+  });
+}
+
+export async function cancelRepositoryTelescopeRefresh(
+  repositoryId: string,
+): Promise<boolean> {
+  if (!isDesktopBridgeAvailable()) return false;
+  return invoke<boolean>("cancel_repository_telescope_refresh", {
+    repositoryId,
+  });
 }
 
 export async function refresh(): Promise<PortfolioSnapshot> {

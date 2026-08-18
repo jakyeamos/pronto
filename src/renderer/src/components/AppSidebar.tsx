@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ReactElement } from "react";
-import { ChevronRight, GitBranch, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, GitBranch, Search } from "lucide-react";
 import { qualityAttentionItems } from "./QualityComponents";
 import { navItems, type NavItem } from "../navigation";
 import type { RemediationRun, RepositorySnapshot } from "../types";
@@ -81,6 +81,7 @@ export function AppSidebar({
   onOpenRepository: (repository: RepositorySnapshot) => void;
 }): ReactElement {
   const [repositoryQuery, setRepositoryQuery] = useState("");
+  const [repositoryDrawerOpen, setRepositoryDrawerOpen] = useState(false);
   const remediationByRepositoryId = useMemo(
     () =>
       new Map(
@@ -122,99 +123,137 @@ export function AppSidebar({
       repository.name.toLowerCase().includes(normalizedQuery),
     );
   }, [eligibleRepositories, repositoryQuery]);
+  const navigationGroups: Array<{ label: string; items: NavItem[] }> = [
+    { label: "Portfolio", items: ["portfolio", "showcase", "groups"] },
+    { label: "Work", items: ["remediation", "promotions"] },
+    { label: "Evidence", items: ["analytics", "ci", "remote"] },
+    { label: "Intelligence", items: ["skills", "activity"] },
+    { label: "Configuration", items: ["settings"] },
+  ];
+  const navById = new Map(navItems.map((item) => [item.id, item] as const));
 
   return (
     <aside className="sidebar">
       <nav className="primary-nav" aria-label="Primary navigation">
-        {navItems.map(({ id, label, icon: Icon }) => (
-          <button
-            className={`nav-item ${activeNav === id ? "nav-item-active" : ""}`}
-            type="button"
-            key={id}
-            id={MAC_CONTROL_NAVIGATION_TARGET_IDS[id] ?? `nav-${id}`}
-            title={label}
-            aria-current={activeNav === id ? "page" : undefined}
-            onClick={() => onNavigate(id)}
-          >
-            <Icon size={17} />
-            <span>{label}</span>
-            {id === "portfolio" && activeConditionCount > 0 && (
-              <span className="nav-count">{activeConditionCount}</span>
-            )}
-          </button>
+        {navigationGroups.map((group) => (
+          <div className="nav-group" key={group.label}>
+            <span className="nav-group-label">{group.label}</span>
+            {group.items.map((id) => {
+              const item = navById.get(id);
+              if (!item) return null;
+              const Icon = item.icon;
+              return (
+                <button
+                  className={`nav-item ${activeNav === id ? "nav-item-active" : ""}`}
+                  type="button"
+                  key={id}
+                  id={MAC_CONTROL_NAVIGATION_TARGET_IDS[id] ?? `nav-${id}`}
+                  title={item.label}
+                  aria-current={activeNav === id ? "page" : undefined}
+                  onClick={() => onNavigate(id)}
+                >
+                  <Icon size={16} />
+                  <span>{item.label}</span>
+                  {id === "portfolio" && activeConditionCount > 0 && (
+                    <span className="nav-count">{activeConditionCount}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         ))}
       </nav>
       <section
-        className="sidebar-repositories"
+        className={`sidebar-repositories ${repositoryDrawerOpen ? "is-open" : ""}`}
         aria-labelledby="sidebar-repositories-title"
       >
-        <div className="sidebar-section-heading">
+        <button
+          className="sidebar-section-heading"
+          type="button"
+          aria-expanded={repositoryDrawerOpen}
+          onClick={() => setRepositoryDrawerOpen((open) => !open)}
+        >
           <div>
             <p className="eyebrow" id="sidebar-repositories-title">
               Repositories
             </p>
             <span>{eligibleRepositories.length} eligible local</span>
           </div>
-          <GitBranch size={14} />
-        </div>
-        <label className="sidebar-search">
-          <Search size={13} />
-          <input
-            aria-label="Filter repositories in sidebar"
-            placeholder="Find a repository"
-            value={repositoryQuery}
-            onChange={(event) => setRepositoryQuery(event.target.value)}
-          />
-        </label>
-        <div className="sidebar-repository-list">
-          {filteredRepositories.length === 0 ? (
-            <span className="sidebar-empty">
-              {eligibleRepositories.length === 0
-                ? repositories.length === 0
-                  ? "No local repositories"
-                  : "No eligible repositories"
-                : "No matching repositories"}
-            </span>
-          ) : (
-            filteredRepositories.map((repository, index) => {
-              const status = repositoryStatus(
-                repository,
-                remediationByRepositoryId.get(repository.id),
-              );
-              return (
-                <button
-                  className={`sidebar-repository ${
-                    selectedRepositoryId === repository.id
-                      ? "sidebar-repository-active"
-                      : ""
-                  }`}
-                  type="button"
-                  aria-label={`Open repository ${repository.name}, item ${index + 1}`}
-                  key={repository.id}
-                  onClick={() => onOpenRepository(repository)}
-                >
-                  <span
-                    className={`sidebar-repository-status sidebar-repository-status-${status}`}
-                    title={
-                      status === "attention"
-                        ? "Needs attention"
-                        : status === "stale"
-                          ? "Stale evidence only"
-                          : status === "opportunity"
-                            ? "Integration is the only remaining remediation"
-                            : status === "watch"
-                              ? "Workspace needs review"
-                              : "No active conditions"
-                    }
-                  />
-                  <span className="sidebar-repository-name">
-                    {repository.name}
-                  </span>
-                  <ChevronRight size={12} />
-                </button>
-              );
-            })
-          )}
+          <span className="sidebar-repository-toggle">
+            <GitBranch size={14} />
+            {repositoryDrawerOpen ? (
+              <ChevronDown size={13} />
+            ) : (
+              <ChevronRight size={13} />
+            )}
+          </span>
+        </button>
+        <div
+          className="sidebar-repository-drawer"
+          hidden={!repositoryDrawerOpen}
+        >
+          <label className="sidebar-search">
+            <Search size={13} />
+            <input
+              aria-label="Filter repositories in sidebar"
+              placeholder="Find a repository"
+              value={repositoryQuery}
+              onChange={(event) => setRepositoryQuery(event.target.value)}
+            />
+          </label>
+          <div className="sidebar-repository-list">
+            {filteredRepositories.length === 0 ? (
+              <span className="sidebar-empty">
+                {eligibleRepositories.length === 0
+                  ? repositories.length === 0
+                    ? "No local repositories"
+                    : "No eligible repositories"
+                  : "No matching repositories"}
+              </span>
+            ) : (
+              filteredRepositories.map((repository, index) => {
+                const status = repositoryStatus(
+                  repository,
+                  remediationByRepositoryId.get(repository.id),
+                );
+                return (
+                  <button
+                    className={`sidebar-repository ${
+                      selectedRepositoryId === repository.id
+                        ? "sidebar-repository-active"
+                        : ""
+                    }`}
+                    type="button"
+                    aria-label={`Open repository ${repository.name}, item ${index + 1}`}
+                    key={repository.id}
+                    onClick={() => {
+                      onOpenRepository(repository);
+                      setRepositoryDrawerOpen(false);
+                    }}
+                  >
+                    <span
+                      className={`sidebar-repository-status sidebar-repository-status-${status}`}
+                      title={
+                        status === "attention"
+                          ? "Needs attention"
+                          : status === "stale"
+                            ? "Stale evidence only"
+                            : status === "opportunity"
+                              ? "Integration is the only remaining remediation"
+                              : status === "watch"
+                                ? "Workspace needs review"
+                                : "No active conditions"
+                      }
+                    />
+                    <span className="sidebar-repository-name">
+                      {repository.name}
+                    </span>
+                    <ChevronRight size={12} />
+                  </button>
+                );
+              })
+            )}
+          </div>
         </div>
       </section>
     </aside>

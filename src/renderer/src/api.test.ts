@@ -3,9 +3,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { invoke } from "@tauri-apps/api/core";
 import {
+  cancelRepositoryTelescopeRefresh,
   createPapercut,
   emptySnapshot,
+  getRepositoryTelescope,
   refresh,
+  refreshRepositoryTelescope,
   refreshRepositoryTargetEvidence,
   setRepositoryTargetBranch,
   setPapercutStatus,
@@ -39,6 +42,32 @@ describe("refresh", () => {
       target: null,
       parallelism: null,
     });
+  });
+});
+
+describe("Telescope commands", () => {
+  it("uses repository-scoped get and refresh command contracts", async () => {
+    Object.defineProperty(window, "__TAURI_INTERNALS__", {
+      configurable: true,
+      value: {},
+    });
+    vi.mocked(invoke).mockResolvedValue({});
+
+    await getRepositoryTelescope("repo-1");
+    await refreshRepositoryTelescope("repo-1");
+    await cancelRepositoryTelescopeRefresh("repo-1");
+
+    expect(invoke).toHaveBeenNthCalledWith(1, "get_repository_telescope", {
+      repositoryId: "repo-1",
+    });
+    expect(invoke).toHaveBeenNthCalledWith(2, "refresh_repository_telescope", {
+      repositoryId: "repo-1",
+    });
+    expect(invoke).toHaveBeenNthCalledWith(
+      3,
+      "cancel_repository_telescope_refresh",
+      { repositoryId: "repo-1" },
+    );
   });
 });
 

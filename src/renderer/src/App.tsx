@@ -355,6 +355,8 @@ export function App(): ReactElement {
           {showingRepositoryDetail && selectedRepository ? (
             <RepositoryDetailSurface
               repository={selectedRepository}
+              remediation={snapshot.remediation}
+              events={snapshot.events}
               backLabel={
                 activeNav === "showcase"
                   ? "Back to AI showcase"

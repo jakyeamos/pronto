@@ -1,0 +1,276 @@
+// @vitest-environment happy-dom
+
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { RemediationRun } from "../types/remediation";
+import type { TelescopeProjection } from "../types/telescope";
+import { makeRepository } from "./QualityComponents.test-support";
+import { TelescopeSurface } from "./TelescopeSurface";
+
+vi.mock("./telescopeLayout", () => ({
+  layoutTelescope: vi.fn(async (projection: TelescopeProjection) => ({
+    nodes: projection.nodes.map((node, index) => ({
+      id: node.id,
+      type: "telescopeEntity",
+      position: { x: index * 220, y: 80 },
+      data: {
+        telescopeId: node.id,
+        label: node.label,
+        kind: node.kind,
+        technology: node.technology,
+        confidence: node.confidence,
+      },
+    })),
+    edges: projection.edges.map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      type: "telescopeFlow",
+      data: { telescopeId: edge.id, inferred: edge.inferred },
+    })),
+  })),
+}));
+
+const projection: TelescopeProjection = {
+  schema_version: "pronto-telescope/v1",
+  repository_id: "repo-1",
+  repository_name: "pronto",
+  binding: {
+    workspace_id: "workspace-1",
+    branch: "codex/telescope",
+    commit: "0123456789abcdef",
+    dirty: true,
+    dirty_state_fingerprint: "dirty-1",
+    workspace_fingerprint: "workspace-1",
+    generated_at: "2026-08-18T16:00:00Z",
+  },
+  freshness: { state: "fresh", cache: "miss", reason: "generated" },
+  coverage: {
+    discovered_source_files: 2,
+    examined_source_files: 2,
+    supported_source_files: 2,
+    partial_source_files: 0,
+    skipped_large_files: 0,
+    truncated: false,
+    resolved_relationships: 1,
+    inferred_relationships: 0,
+    confidence: "high",
+  },
+  groups: [
+    {
+      id: "group-app",
+      label: "Application",
+      kind: "subsystem",
+      summary: "Application modules",
+      confidence: "high",
+    },
+  ],
+  nodes: [
+    {
+      id: "node-api",
+      group_id: "group-app",
+      label: "API",
+      kind: "route",
+      technology: "TypeScript",
+      semantic_summary: "Receives repository requests.",
+      implementation_summary: "A typed Tauri bridge.",
+      summary_status: "derived",
+      confidence: "high",
+      provenance: ["static-source"],
+      source_anchors: [{ path: "src/api.ts", line: 12, provenance: "symbol" }],
+      symbols: ["getRepositoryTelescope"],
+      data_shapes: ["TelescopeProjection"],
+    },
+    {
+      id: "node-store",
+      group_id: "group-app",
+      label: "Store",
+      kind: "store",
+      technology: "Rust",
+      semantic_summary: "Stores local projections.",
+      implementation_summary: "SQLite cache keyed by fingerprint.",
+      summary_status: "derived",
+      confidence: "high",
+      provenance: ["static-source"],
+      source_anchors: [
+        { path: "src/store.rs", line: 30, provenance: "symbol" },
+      ],
+      symbols: ["cache_projection"],
+      data_shapes: ["TelescopeProjection"],
+    },
+  ],
+  edges: [
+    {
+      id: "edge-api-store",
+      source: "node-api",
+      target: "node-store",
+      kind: "import",
+      direction: "forward",
+      label: "persists",
+      confidence: "high",
+      provenance: "static-import",
+      inferred: false,
+    },
+  ],
+  flows: [
+    {
+      id: "flow-request",
+      label: "Repository request",
+      kind: "control",
+      node_ids: ["node-api", "node-store"],
+      edge_ids: ["edge-api-store"],
+      data_shape: "TelescopeProjection",
+      confidence: "high",
+      provenance: "static-route",
+    },
+  ],
+  warnings: [],
+  enrichment: {
+    enabled: false,
+    source_content_transmitted: false,
+    status: "disabled",
+  },
+};
+
+const remediation: RemediationRun = {
+  schema_version: "pronto-remediation/v3",
+  id: "run-1",
+  generated_at: "2026-08-18T16:00:00Z",
+  status: "ready",
+  eligible_repository_ids: ["repo-1"],
+  eligible_repository_paths: ["/tmp/pronto"],
+  refresh_steps: [],
+  excluded_repositories: [],
+  closures: [],
+  plans: [],
+};
+
+beforeEach(() => {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: vi.fn().mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }),
+  });
+});
+
+afterEach(cleanup);
+
+describe("TelescopeSurface", () => {
+  it("synchronizes navigator selection with semantic and implementation inspection", async () => {
+    render(
+      <TelescopeSurface
+        repository={makeRepository()}
+        remediation={remediation}
+        events={[]}
+        initialProjection={projection}
+        onOpenWorkspace={async () => undefined}
+      />,
+    );
+
+    const navigatorEntity = screen.getByRole("button", { name: /API route/i });
+    fireEvent.click(navigatorEntity);
+    expect(screen.getByText("Receives repository requests.")).toBeTruthy();
+    expect(navigatorEntity.className).toContain("active");
+
+    fireEvent.click(screen.getByRole("button", { name: "How it’s built" }));
+    expect(screen.getByText("A typed Tauri bridge.")).toBeTruthy();
+    expect(screen.getByText("src/api.ts:12")).toBeTruthy();
+
+    await waitFor(() => expect(navigatorEntity.className).toContain("active"));
+  });
+
+  it("keeps workflow lenses independent and inspects flow data without runtime values", () => {
+    render(
+      <TelescopeSurface
+        repository={makeRepository()}
+        remediation={remediation}
+        events={[]}
+        initialProjection={projection}
+        onOpenWorkspace={async () => undefined}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Quality" }));
+    expect(screen.getByText(/actionable findings/i)).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: /Repository request/i }),
+    );
+    expect(screen.getByText("TelescopeProjection")).toBeTruthy();
+    expect(
+      screen.getByText(/no runtime payload values are captured/i),
+    ).toBeTruthy();
+  });
+
+  it("respects reduced motion while preserving a static inspectable token and keyboard selection", async () => {
+    vi.mocked(window.matchMedia).mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList);
+    render(
+      <TelescopeSurface
+        repository={makeRepository()}
+        remediation={remediation}
+        events={[]}
+        initialProjection={projection}
+        onOpenWorkspace={async () => undefined}
+      />,
+    );
+
+    expect(screen.getByText(/Flow motion is reduced/i)).toBeTruthy();
+    fireEvent.keyDown(screen.getByLabelText("pronto Telescope"), {
+      key: "ArrowRight",
+    });
+    expect(screen.getByText("Receives repository requests.")).toBeTruthy();
+  });
+
+  it("can focus the remediation lens on source-matched architecture", async () => {
+    const remediationWithAction = {
+      ...remediation,
+      plans: [
+        {
+          repository_id: "repo-1",
+          progress: { percentage: 10 },
+          actions: [
+            {
+              title: "Repair API route",
+              summary: "Update src/api.ts request handling",
+              status: "open",
+            },
+          ],
+        },
+      ],
+    } as RemediationRun;
+    render(
+      <TelescopeSurface
+        repository={makeRepository()}
+        remediation={remediationWithAction}
+        events={[]}
+        initialProjection={projection}
+        onOpenWorkspace={async () => undefined}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Remediation" }));
+    const focus = screen.getByRole("button", { name: "Show affected only" });
+    expect(focus).not.toHaveProperty("disabled", true);
+    fireEvent.click(focus);
+    expect(focus.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("1 affected entity shown")).toBeTruthy();
+    await waitFor(() => {
+      const unrelated = document.querySelector<HTMLElement>(
+        '.react-flow__node[data-id="node-store"]',
+      );
+      expect(unrelated).toBeNull();
+    });
+  });
+});

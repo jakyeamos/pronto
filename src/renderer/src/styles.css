@@ -6529,6 +6529,778 @@ h1 {
   }
 }
 
+/* Open workspace shell and repository Telescope. The global rail stays compact;
+   repository topology uses its own synchronized navigator. */
+.sidebar {
+  width: 204px;
+  flex-basis: 204px;
+  padding: 16px 12px 12px;
+  background: rgba(10, 20, 34, 0.94);
+}
+.primary-nav {
+  gap: 12px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.primary-nav::-webkit-scrollbar {
+  display: none;
+}
+.nav-group {
+  display: grid;
+  gap: 2px;
+}
+.nav-group-label {
+  padding: 0 8px 3px;
+  color: #53657d;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.nav-item {
+  min-height: 30px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+.nav-item-active {
+  background: rgba(119, 168, 255, 0.11);
+  box-shadow: inset 2px 0 0 #77a8ff;
+}
+.sidebar-repositories {
+  position: relative;
+  flex: 0 0 auto;
+  margin: 12px 0 0;
+  gap: 8px;
+}
+.sidebar-repositories.is-open {
+  min-height: 0;
+  flex: 1 1 42%;
+}
+.sidebar-repository-drawer {
+  min-height: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+}
+.sidebar-repository-drawer[hidden] {
+  display: none;
+}
+.sidebar-section-heading {
+  width: 100%;
+  min-height: 44px;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: inherit;
+  background: rgba(17, 31, 51, 0.52);
+  cursor: pointer;
+  text-align: left;
+}
+.sidebar-section-heading:hover {
+  border-color: var(--border-strong);
+  background: rgba(22, 39, 62, 0.72);
+}
+.sidebar-repository-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #71849e;
+}
+.topbar {
+  height: 56px;
+  padding: 0 24px;
+  background: rgba(9, 17, 30, 0.74);
+}
+.content-scroll {
+  padding-top: 24px;
+}
+.page-intro {
+  margin-bottom: 24px;
+}
+.page-intro h1 {
+  max-width: 760px;
+  font-size: clamp(25px, 3vw, 38px);
+}
+.intro-copy {
+  max-width: 670px;
+}
+.repository-detail-view-switch {
+  display: inline-flex;
+  justify-self: start;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(10, 20, 34, 0.62);
+}
+.repository-detail-view-switch button {
+  min-height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 680;
+}
+.repository-detail-view-switch button.active {
+  color: var(--text);
+  background: rgba(119, 168, 255, 0.14);
+}
+.repository-detail-surface:has(.telescope-workspace) {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  padding-bottom: 0;
+}
+
+.telescope-workspace {
+  --telescope-bg: #f5f7fa;
+  --telescope-panel: rgba(255, 255, 255, 0.9);
+  --telescope-line: #dfe5ec;
+  --telescope-text: #17212f;
+  --telescope-muted: #68778a;
+  --telescope-blue: #3778f6;
+  position: relative;
+  min-width: 0;
+  min-height: 670px;
+  height: min(780px, calc(100vh - 168px));
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid #d7dee7;
+  border-radius: 17px;
+  color: var(--telescope-text);
+  background: var(--telescope-bg);
+  box-shadow: 0 20px 60px rgba(1, 13, 30, 0.2);
+}
+.telescope-workspace button,
+.telescope-workspace input {
+  color: inherit;
+}
+.telescope-strip {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 15px;
+  border-bottom: 1px solid var(--telescope-line);
+  background: rgba(255, 255, 255, 0.82);
+}
+.telescope-strip > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.telescope-strip > div:last-child {
+  justify-content: flex-end;
+}
+.telescope-strip strong {
+  font-size: 12px;
+}
+.telescope-strip span,
+.telescope-strip code,
+.telescope-strip em {
+  color: var(--telescope-muted);
+  font-size: 9px;
+  font-style: normal;
+}
+.telescope-strip code,
+.telescope-strip em {
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: #eef2f7;
+}
+.telescope-strip em {
+  color: #a95d12;
+  background: #fff0db;
+}
+.telescope-refresh.button {
+  min-height: 26px;
+  padding: 0 7px;
+  color: #526278;
+}
+.telescope-lenses {
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--telescope-line);
+  background: rgba(249, 250, 252, 0.94);
+}
+.telescope-lenses button,
+.telescope-canvas-actions button,
+.telescope-flow-picker button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 27px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #68788d;
+  background: transparent;
+  cursor: pointer;
+  font-size: 9px;
+}
+.telescope-lenses button:hover,
+.telescope-lenses button.active {
+  color: #205fcf;
+  border-color: #cbdcf9;
+  background: #eaf2ff;
+}
+.telescope-lens-state {
+  margin-left: auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: #607085;
+  background: #edf1f5;
+  font-size: 9px;
+  white-space: nowrap;
+}
+.telescope-lens-state.tone-blue {
+  color: #245fc7;
+  background: #e7f0ff;
+}
+.telescope-lens-state.tone-mint {
+  color: #237456;
+  background: #e5f6ee;
+}
+.telescope-lens-state.tone-amber {
+  color: #935413;
+  background: #fff0d9;
+}
+.telescope-lens-state.tone-coral {
+  color: #9f3f42;
+  background: #ffe9e9;
+}
+.telescope-frame {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 218px minmax(360px, 1fr) 276px;
+}
+.telescope-navigator,
+.telescope-inspector {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--telescope-panel);
+}
+.telescope-navigator {
+  padding: 11px;
+  border-right: 1px solid var(--telescope-line);
+}
+.telescope-navigator > label {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  border: 1px solid var(--telescope-line);
+  border-radius: 8px;
+  color: #8290a1;
+  background: #f7f9fb;
+}
+.telescope-navigator input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: var(--telescope-text);
+  background: transparent;
+  font-size: 10px;
+}
+.telescope-navigator > div {
+  display: grid;
+  gap: 7px;
+  margin-top: 11px;
+}
+.telescope-navigator section > button,
+.telescope-navigator li button {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 7px;
+  border: 0;
+  border-radius: 7px;
+  color: #536275;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 10px;
+}
+.telescope-navigator section > button:hover,
+.telescope-navigator li button:hover,
+.telescope-navigator button.active {
+  color: #1f60cf;
+  background: #eaf2ff;
+}
+.telescope-navigator section > button strong {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.telescope-navigator ul {
+  display: grid;
+  gap: 2px;
+  margin: 2px 0 0 13px;
+  padding: 0 0 0 7px;
+  border-left: 1px solid #e1e7ee;
+  list-style: none;
+}
+.telescope-navigator li button > span {
+  min-width: 0;
+  display: grid;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.telescope-navigator li small {
+  color: #98a3b1;
+  font-size: 8px;
+}
+.telescope-navigator i {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 2px;
+  background: #8eb6fa;
+}
+.telescope-canvas {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at 50% 35%,
+      rgba(255, 255, 255, 0.92),
+      transparent 44%
+    ),
+    #f4f6f9;
+}
+.telescope-canvas .react-flow__controls {
+  overflow: hidden;
+  border: 1px solid #dbe2ea;
+  border-radius: 9px;
+  box-shadow: 0 5px 16px rgba(34, 51, 72, 0.1);
+}
+.telescope-canvas .react-flow__controls-button {
+  color: #53657a;
+  border-color: #e7ebf0;
+  background: white;
+  fill: currentColor;
+}
+.telescope-minimap {
+  overflow: hidden;
+  border: 1px solid #dbe2ea;
+  border-radius: 8px;
+  background: white;
+}
+.telescope-canvas-actions,
+.telescope-flow-picker {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #dbe2ea;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 5px 18px rgba(42, 55, 72, 0.09);
+}
+.telescope-canvas-actions {
+  top: 10px;
+  left: 10px;
+}
+.telescope-flow-picker {
+  right: 10px;
+  bottom: 10px;
+  max-width: calc(100% - 130px);
+  overflow-x: auto;
+}
+.telescope-canvas-actions button:hover,
+.telescope-flow-picker button:hover,
+.telescope-flow-picker button.active {
+  color: #245fc7;
+  background: #eaf2ff;
+}
+.telescope-flow-picker button span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--telescope-blue);
+}
+.telescope-inspector {
+  display: flex;
+  flex-direction: column;
+  padding: 11px;
+  border-left: 1px solid var(--telescope-line);
+}
+.telescope-inspector-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--telescope-line);
+  border-radius: 8px;
+  background: #f2f5f8;
+}
+.telescope-inspector-tabs button {
+  min-height: 26px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 6px;
+  color: #748397;
+  background: transparent;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 680;
+}
+.telescope-inspector-tabs button.active {
+  color: #245fc7;
+  background: white;
+  box-shadow: 0 1px 5px rgba(41, 58, 78, 0.1);
+}
+.telescope-inspector-content {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  padding: 16px 3px;
+}
+.telescope-inspector-content h2 {
+  margin: 0;
+  color: var(--telescope-text);
+  font-size: 18px;
+  letter-spacing: -0.025em;
+}
+.telescope-inspector-content p {
+  margin: 0;
+  color: #596a7f;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.telescope-inspector-content .eyebrow,
+.telescope-lens-inspector > span {
+  color: #8491a1;
+}
+.telescope-inspector-content small,
+.telescope-lens-inspector small {
+  color: #8592a2;
+  font-size: 8px;
+  line-height: 1.5;
+}
+.telescope-inspector-empty {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  padding: 48px 12px;
+  color: #8a97a7;
+  text-align: center;
+}
+.telescope-inspector-empty strong {
+  color: #405067;
+  font-size: 11px;
+}
+.telescope-inspector-empty p {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.45;
+}
+.telescope-inspector-list {
+  display: grid;
+  gap: 4px;
+}
+.telescope-inspector-list > span {
+  color: #8190a2;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.telescope-inspector-list code {
+  overflow: hidden;
+  padding: 5px 6px;
+  border-radius: 5px;
+  color: #3c536f;
+  background: #f0f3f7;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.telescope-lens-inspector {
+  display: grid;
+  gap: 5px;
+  margin-top: auto;
+  padding: 11px;
+  border: 1px solid #e0e6ed;
+  border-radius: 9px;
+  background: #f8fafc;
+}
+.telescope-lens-inspector span {
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.telescope-lens-inspector strong {
+  font-size: 10px;
+}
+.telescope-lens-inspector p {
+  margin: 0;
+  color: #637286;
+  font-size: 9px;
+  line-height: 1.45;
+}
+.telescope-source-handoff.button {
+  min-height: 30px;
+  margin-top: 9px;
+  border-color: #d7e0ea;
+  color: #38516f;
+  background: white;
+}
+.telescope-group-node {
+  width: 100%;
+  height: 100%;
+  padding: 12px 16px;
+  border: 1px solid rgba(122, 145, 174, 0.32);
+  border-radius: 16px;
+  color: #52647a;
+  background: rgba(233, 238, 245, 0.38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+.telescope-group-node strong,
+.telescope-group-node small {
+  display: block;
+}
+.telescope-group-node strong {
+  font-size: 11px;
+}
+.telescope-group-node small {
+  margin-top: 2px;
+  color: #93a0af;
+  font-size: 8px;
+}
+.telescope-entity {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 13px;
+  border: 1px solid #d3dce7;
+  border-radius: 9px;
+  color: #35485f;
+  background: linear-gradient(145deg, #fff, #f4f7fa);
+  box-shadow:
+    7px 8px 0 #dfe6ee,
+    0 10px 22px rgba(53, 75, 103, 0.11);
+  transform: translate(-4px, -5px) skewY(-1.5deg);
+  transition:
+    opacity 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+.telescope-entity > * {
+  transform: skewY(1.5deg);
+}
+.telescope-entity > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.telescope-entity strong {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.telescope-entity small {
+  overflow: hidden;
+  color: #8492a3;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.telescope-entity i {
+  margin-left: auto;
+  color: #a56c1d;
+}
+.telescope-entity-icon {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: #3d72ca;
+  background: #e8f0ff;
+}
+.telescope-entity.is-selected,
+.telescope-group-node.is-selected {
+  border-color: var(--telescope-blue);
+  box-shadow:
+    7px 8px 0 #c9daf8,
+    0 0 0 3px rgba(55, 120, 246, 0.13),
+    0 12px 26px rgba(35, 84, 167, 0.18);
+}
+.telescope-entity.is-dimmed,
+.telescope-group-node.is-dimmed,
+.telescope-edge.is-dimmed {
+  opacity: 0.18;
+}
+
+.telescope-entity.is-filtered,
+.telescope-group-node.is-filtered {
+  display: none;
+}
+.telescope-tone-blue {
+  border-color: #85adf2;
+}
+.telescope-tone-mint {
+  border-color: #8ccbb6;
+}
+.telescope-tone-amber {
+  border-color: #e6bd7d;
+}
+.telescope-tone-coral {
+  border-color: #e89b9d;
+}
+.react-flow__edge-path.telescope-edge {
+  stroke: #9aaabc;
+  stroke-width: 1.45;
+  transition:
+    opacity 140ms ease,
+    stroke 140ms ease,
+    stroke-width 140ms ease;
+}
+.react-flow__edge-path.telescope-edge.is-inferred {
+  stroke-dasharray: 5 5;
+}
+.react-flow__edge-path.telescope-edge.is-selected {
+  stroke: var(--telescope-blue);
+  stroke-width: 2.4;
+}
+.telescope-flow-token {
+  cursor: pointer;
+  fill: var(--telescope-blue);
+  stroke: white;
+  stroke-width: 2;
+  filter: drop-shadow(0 2px 3px rgba(31, 86, 183, 0.28));
+}
+.telescope-flow-token.is-paused {
+  fill: #7c8a9c;
+}
+.telescope-warnings {
+  display: flex;
+  gap: 12px;
+  padding: 7px 12px;
+  overflow-x: auto;
+  border-top: 1px solid #ebd6b4;
+  color: #84591d;
+  background: #fff8eb;
+  font-size: 8px;
+  white-space: nowrap;
+}
+.telescope-loading {
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+  gap: 9px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--muted);
+  background: var(--panel);
+}
+.telescope-loading > div {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+}
+.telescope-error {
+  color: var(--coral);
+}
+
+@media (max-width: 1180px) {
+  .telescope-frame {
+    grid-template-columns: 190px minmax(340px, 1fr) 238px;
+  }
+  .telescope-strip > div:last-child span:nth-child(-n + 2) {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .sidebar {
+    width: 188px;
+    flex-basis: 188px;
+  }
+  .telescope-workspace {
+    height: auto;
+    min-height: 760px;
+  }
+  .telescope-frame {
+    grid-template-columns: 170px minmax(360px, 1fr);
+  }
+  .telescope-inspector {
+    grid-column: 1 / -1;
+    min-height: 220px;
+    border-top: 1px solid var(--telescope-line);
+    border-left: 0;
+  }
+}
+@media (max-width: 700px) {
+  .sidebar {
+    width: 168px;
+    flex-basis: 168px;
+  }
+  .nav-group-label {
+    display: none;
+  }
+  .primary-nav {
+    gap: 3px;
+  }
+  .telescope-strip {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+    padding-block: 8px;
+  }
+  .telescope-strip > div:last-child span {
+    display: none;
+  }
+  .telescope-frame {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .telescope-navigator {
+    max-height: 190px;
+    border-right: 0;
+    border-bottom: 1px solid var(--telescope-line);
+  }
+  .telescope-canvas {
+    min-height: 440px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .telescope-entity,
+  .react-flow__edge-path.telescope-edge {
+    transition: none;
+  }
+}
+
 .skills-surface {
   display: flex;
   flex-direction: column;
