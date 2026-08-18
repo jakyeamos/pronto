@@ -4,6 +4,7 @@ import type {
   TelescopeAction,
   TelescopeActionCoverage,
 } from "../types/telescope";
+import { routeTelescopeActions } from "./telescopeActionRouting";
 
 export function TelescopeActionPalette({
   actions,
@@ -22,26 +23,10 @@ export function TelescopeActionPalette({
   onSelect: (actionId: string) => void;
   onClear: () => void;
 }): ReactElement {
-  const normalized = query.trim().toLowerCase();
-  const visibleActions = actions
-    .filter((action) => {
-      if (!normalized) return true;
-      return [
-        action.label,
-        action.verb,
-        action.category,
-        action.what_it_does,
-        action.how_its_built,
-        action.behavior_id ?? "",
-        ...action.source_anchors.map((anchor) => anchor.path),
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalized);
-    })
-    .slice(0, 10);
+  const visibleMatches = routeTelescopeActions(query, actions);
   const behaviorBacked = coverage.behavior_backed ?? 0;
   const unprofiled = coverage.unprofiled ?? 0;
+  const hasQuery = query.trim().length > 0;
 
   return (
     <div className="telescope-actions" aria-label="Telescope action catalog">
@@ -61,7 +46,13 @@ export function TelescopeActionPalette({
           id="telescope-action-search-input"
           value={query}
           onChange={(event) => onQuery(event.target.value)}
-          placeholder="Search actions, behavior IDs, or source paths"
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && visibleMatches[0]) {
+              event.preventDefault();
+              onSelect(visibleMatches[0].action.id);
+            }
+          }}
+          placeholder="Ask how a workflow works…"
           aria-label="Find a Telescope action"
         />
         {query && (
@@ -74,19 +65,34 @@ export function TelescopeActionPalette({
           </button>
         )}
       </div>
+      <div className="telescope-action-route" aria-live="polite">
+        {hasQuery
+          ? visibleMatches.length > 0
+            ? `${visibleMatches.length} related action${visibleMatches.length === 1 ? "" : "s"} · press Enter to focus the top neighborhood`
+            : `No related action for “${query}”. Try a noun like search, release, quality, or workspace.`
+          : "Ask a question in plain language, then choose a related action to focus its neighborhood."}
+      </div>
       <div className="telescope-action-results" aria-label="Available actions">
-        {visibleActions.length ? (
-          visibleActions.map((action) => (
+        {visibleMatches.length ? (
+          visibleMatches.map((match) => (
             <button
-              className={selectedActionId === action.id ? "active" : ""}
+              className={selectedActionId === match.action.id ? "active" : ""}
               type="button"
-              key={action.id}
-              aria-pressed={selectedActionId === action.id}
-              onClick={() => onSelect(action.id)}
+              key={match.action.id}
+              aria-pressed={selectedActionId === match.action.id}
+              onClick={() => onSelect(match.action.id)}
             >
-              <span>{action.verb}</span>
-              <strong>{action.label}</strong>
-              {action.behavior_id ? (
+              <span>{match.action.verb}</span>
+              <strong>{match.action.label}</strong>
+              <small>
+                {match.relationship === "direct"
+                  ? "direct match"
+                  : "related match"}
+              </small>
+              <small className="telescope-action-match">
+                {match.explanation}
+              </small>
+              {match.action.behavior_id ? (
                 <small>behavior-backed</small>
               ) : (
                 <small>explore</small>

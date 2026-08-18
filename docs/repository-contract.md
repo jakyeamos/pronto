@@ -35,7 +35,10 @@ unavailable until it is regenerated from the exact `dev` commit.
   its base topology. Telescope actions are a read-only visual projection over
   the canonical `.pronto/behavior-assurance.json` v2 contract and Quality
   Runner receipts; `behaviorId` links and coverage counts must not become a
-  duplicate behavioral contract or a second verification path.
+  duplicate behavioral contract or a second verification path. Natural-language
+  action questions are routed locally against those same projected fields;
+  direct and related matches focus the city but never create or execute an
+  action.
 - `workspace-policy generate` owns the explicit per-repository
   `.agents/workspace-policy.json` projection from the reviewed fleet role map.
   It defaults to a no-write plan and only `--write` may create files; it never

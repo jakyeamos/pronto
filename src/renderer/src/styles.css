@@ -6827,6 +6827,13 @@ h1 {
   margin-left: auto;
   white-space: nowrap;
 }
+.telescope-action-route {
+  grid-column: 1 / -1;
+  min-height: 11px;
+  color: #5f7693;
+  font-size: 8px;
+  line-height: 1.35;
+}
 .telescope-action-search {
   min-width: 0;
   min-height: 30px;
@@ -6913,6 +6920,13 @@ h1 {
 }
 .telescope-action-results > button.active > small {
   color: #3778f6;
+}
+.telescope-action-results > button > .telescope-action-match {
+  max-width: 190px;
+  overflow: hidden;
+  color: #58708c;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .telescope-action-reset {
   min-width: auto !important;

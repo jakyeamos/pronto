@@ -295,7 +295,11 @@ entries may link a `behaviorId` and inherit its scenarios; declared behaviors
 without a visual mapping appear as review actions, while unlinked flow and
 entrypoint actions remain explicitly unprofiled. Use `action_coverage` and the
 linked behavior state/evidence fields to distinguish visual explanation from
-verified behavior. Selecting an action only focuses the read-only city and
+verified behavior. The action search accepts natural-language questions by
+tokenizing the query, discarding conversational filler, and ranking the same
+projected labels, explanations, evidence, and source anchors. Direct and
+related matches remain explicit; the router never creates a new action or
+behavior. Selecting an action only focuses the read-only city neighborhood and
 inspector; it does not execute the action or bypass Pronto's existing guarded
 handoff surfaces.
 

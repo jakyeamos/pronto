@@ -247,7 +247,7 @@
         "Verify the visual model renders distinct building archetypes, district plates, typed rails, uncertain-path styling, labeled payload tokens, primary-flow framing, collision-free deterministic layout, and overview-to-source coverage.",
         "Verify cached and CLI JSON contains no source bodies, uncommitted diffs, runtime payload values, credentials, or absolute personal paths.",
         "Verify synchronized map/navigator selection, What it does and How it's built inspector modes, lens isolation, flow inspection and pause, keyboard navigation, and reduced motion.",
-        "Exercise action search, action-specific city focus, behavior evidence states, scenario/source handoffs, and the read-only boundary without executing catalog actions.",
+        "Exercise natural-language action routing (including a question such as how does search work), direct and related matches, action-specific city focus, behavior evidence states, scenario/source handoffs, and the read-only boundary without executing catalog actions.",
         "Exercise the packaged Tauri surface at desktop and compact widths, including cooperative refresh cancellation; source tests and builds do not substitute for visible behavior verification.",
         "Verify Compass and ICM remain optional lenses and AI enrichment is disabled by default with explicit provenance when enabled."
       ],

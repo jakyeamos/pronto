@@ -125,12 +125,16 @@ proof. The projection reports authored, inferred, mapped, behavior-backed, and
 unprofiled counts separately.
 
 The desktop surface provides one action search across labels, explanations,
-behavior IDs, and source paths. Selecting an action focuses a simplified city
-view on its mapped architecture, opens the explanation in the same
-**What it does** / **How it's built** inspector, and shows the linked behavior
-state and scenario evidence without displaying runtime payload values. The
-selection is read-only; source opening, remediation, preparation, and release
-actions still hand off to their existing guarded surfaces.
+behavior IDs, and source paths. It accepts conversational questions such as
+“how does search work?”: the renderer removes conversational filler, ranks the
+same projected action metadata, and presents direct and related matches. It
+does not invent a behavior or transmit the query. Pressing Enter or selecting
+a result focuses the top action's simplified city neighborhood, opens the
+explanation in the same **What it does** / **How it's built** inspector, and
+shows linked behavior state and scenario evidence without displaying runtime
+payload values. The selection is read-only; source opening, remediation,
+preparation, and release actions still hand off to their existing guarded
+surfaces.
 
 ## Desktop interaction model
 

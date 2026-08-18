@@ -258,10 +258,13 @@ describe("TelescopeSurface", () => {
     const search = screen.getByRole("textbox", {
       name: "Find a Telescope action",
     });
-    fireEvent.change(search, { target: { value: "repository request" } });
-    fireEvent.click(
-      screen.getByRole("button", { name: /Inspect the repository request/ }),
-    );
+    fireEvent.change(search, {
+      target: { value: "how does the repository request work" },
+    });
+    expect(
+      screen.getByText(/Direct match on repository, request/i),
+    ).toBeTruthy();
+    fireEvent.keyDown(search, { key: "Enter" });
 
     expect(
       screen.getByText("Focuses the city on the request path."),
