@@ -51,6 +51,10 @@ unavailable until it is regenerated from the exact `dev` commit.
   `.agents/change-surface-matrix.json` are governed contracts. Update the
   affected projection, consumer, documentation, and machine-readable evidence
   together.
+- The CI tracker is an additive GitHub projection. `docs/ci-tracker.md` owns
+  its operator contract: GitHub remains authoritative, prompt artifacts are
+  bounded and untrusted evidence, fork failures are diagnosis-only, and the
+  Codex button starts only a read-only task at a registered local checkout.
 
 AI Showcase readiness is governed by one fleet-level
 `.pronto/showcase-goal.json`; see `docs/showcase-contract.md`. Public

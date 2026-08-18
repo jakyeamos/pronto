@@ -5915,6 +5915,7 @@ mod tests {
                 ci_checks: Vec::new(),
                 ci_branch: None,
                 ci_commit: None,
+                ci_runs: Vec::new(),
             },
             RemoteRepositorySnapshot {
                 id: "github:43".to_string(),
@@ -5933,6 +5934,7 @@ mod tests {
                 ci_checks: Vec::new(),
                 ci_branch: None,
                 ci_commit: None,
+                ci_runs: Vec::new(),
             },
         ];
 

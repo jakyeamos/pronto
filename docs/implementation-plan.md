@@ -61,6 +61,10 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 - Continue the versioned SQLite contract while preserving the domain contracts and CLI/renderer snapshot shapes; the initial JSON store has already been imported non-destructively.
 - Add GitHub identities, explicit per-repository mapping, refresh freshness,
   GitHub-only candidate quantification, and clone preflight.
+- Add the read-only CI tracker projection: recent workflow runs, bounded
+  failed-job context, prompt-artifact availability, and a user-controlled
+  handoff to the existing `ci-incident-router` bridge. The bridge never checks
+  out failed PR code and the handoff starts Codex with read-only sandboxing.
 - Add process/terminal metadata adapters and structured agent manifests.
 - Extend the read-only action contract into authorized bounded workspace actions only after permission, target, failure, and review semantics are explicit; destructive/history-rewriting Git operations remain prohibited.
 
@@ -124,7 +128,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 - The agent operating route is provider-neutral: the global home contract routes portfolio, workspace, branch, quality, and release triage to the `$pronto` skill; this repository's `.agents/context/` packet supplies the live CLI contract.
 - `$pronto` is an evidence and preflight surface, not an autonomous Git operator. `fold preview` supplies persisted branch/worktree candidates, while the reviewed `fold-feature-branches` workflow owns live ref classification, integration, and pruning authorization.
 - The repository-owned `.pronto/behavior-assurance.json` contract inventories critical behavior; immutable receipts preserve target, producer, oracle result, verification level, and evidence. `docs/pronto-behavior-spec.xlsx` is historical inventory only and cannot establish release readiness.
-- Tauri interaction verification is performed when the local desktop runtime can launch; provider and release scenarios remain explicitly blocked rather than receiving a passing receipt from static code.
+- Tauri interaction verification is performed when the local desktop runtime can launch; provider and release scenarios remain explicitly blocked rather than receiving a passing receipt from static code. The CI tracker additionally requires a failed-run fixture or live GitHub snapshot before its interaction claim is complete.
 
 ## Complexity and safety gate
 
@@ -134,4 +138,8 @@ Every change must keep Git execution structured (`spawnFile` with argument array
 
 Implemented or substantially exercised: FR-001–004, FR-006, FR-016–022, FR-027–039, FR-040–043, FR-048–055 (local evidence subset), FR-064–070 (read-only action subset), FR-102/104/106/107 (privacy boundary), FR-109–112, and FR-113/115/116 (read-only CLI subset).
 
-Explicitly deferred or environment-blocked: GitHub accounts and provider refresh, remote-only import/clone, pull requests, merge actions, release preparation, process inspection, coordinated products/releases, credential-store integration, and packaging/signing.
+Explicitly deferred or environment-blocked: automatic Codex wake-up, remote-only
+import/clone, pull requests, merge actions, release preparation, process
+inspection, coordinated products/releases, credential-store integration, and
+packaging/signing. GitHub provider refresh and the read-only CI tracker are
+implemented; live consumer evidence remains a separate pilot gate.

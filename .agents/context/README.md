@@ -30,6 +30,9 @@ Read the deeper file only when the task matches it:
 - [Implementation plan](../../docs/implementation-plan.md) — product
   boundaries and the source-of-truth relationship between the desktop app and
   CLI.
+- [CI tracker](../../docs/ci-tracker.md) — GitHub Actions failure projection,
+  prompt-artifact availability, and the user-controlled read-only Codex
+  handoff.
 - [Branch-sensitive quality verification](branch-sensitive-quality-verification.md)
   — required when a branch or commit selector is adjacent to displayed quality
   or tenure statistics.

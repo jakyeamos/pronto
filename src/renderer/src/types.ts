@@ -4,11 +4,13 @@ import type {
   ReleaseRecipeConfig,
   ReleaseRuleConfig,
 } from "./types/quality";
+import type { CiRunSnapshot } from "./types/ci";
 import type { RemediationRun } from "./types/remediation";
 import type { ShowcasePortfolioSnapshot } from "./types/showcase";
 
 export * from "./types/quality";
 export * from "./types/cacheDesign";
+export * from "./types/ci";
 export * from "./types/remediation";
 export * from "./types/insights";
 export * from "./types/promotion";
@@ -69,6 +71,7 @@ export interface RemoteRepositorySnapshot {
   ci_checks: CheckSnapshot[];
   ci_branch?: string;
   ci_commit?: string;
+  ci_runs: CiRunSnapshot[];
 }
 
 interface CheckSnapshot {

@@ -435,7 +435,24 @@
       "validation": [
         "gh auth status --hostname github.com",
         "pnpm cli refresh-github \"$(git rev-parse --show-toplevel)\" --json",
-        "pnpm cli repo \"$(git rev-parse --show-toplevel)\" --json"
+        "pnpm cli repo \"$(git rev-parse --show-toplevel)\" --json",
+        "Verify workflow-run, job, and prompt-artifact evidence remains bounded and provider-unavailable states stay explicit."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "ci-tracker",
+      "scope": "local",
+      "path": "src-tauri/src/core.rs, src/renderer/src/components/CiTrackerSurface.tsx, docs/ci-tracker.md",
+      "owner": "Pronto repository maintainers and ci-incident-router maintainers",
+      "condition": "GitHub Actions workflow-run projection, failed-job explanation, prompt-artifact availability, or the user-controlled Codex diagnosis handoff changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::parses_ci_runs_with_failure_context_forks_artifacts_and_stable_signatures",
+        "pnpm typecheck",
+        "pnpm build:web",
+        "Verify successful runs and missing artifacts stay non-actionable, fork runs remain diagnosis-only, and the handoff requires a registered local checkout.",
+        "Exercise the source desktop surface with a failed-run fixture or live GitHub snapshot before claiming behavior verification."
       ],
       "status": "applicable"
     },
