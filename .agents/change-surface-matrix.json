@@ -35,7 +35,7 @@
       "scope": "local",
       "path": "src-tauri/src/",
       "owner": "Pronto repository maintainers",
-      "condition": "Repository evidence, persistence, routing, provider, quality, remediation, or command contracts change.",
+      "condition": "Repository evidence, persistence, routing, provider, quality, remediation, command contracts, workspace provenance, missing-path classification, or transactional cleanup changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml",
@@ -43,6 +43,8 @@
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::fresh_route_timeout_names_the_cached_fallback",
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::release_recommendation_is_advisory_and_fail_closed",
         "pnpm cli route --fresh --json against the imported full fleet detector corpus",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::temporary_worktree_cleanup_requires_fresh_clean_status_and_postconditions",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::doctor_ --no-fail-fast",
         "pnpm typecheck",
         "For maturity changes, verify pillar weighting, applicability, assessed versus applicable dimensions, evidence coverage, and critical caps in src-tauri/src/quality.rs tests.",
         "For detector evidence changes, verify blocked or refresh-required receipts never become zero findings and preserve prior raw evidence without a current delta.",
@@ -79,7 +81,7 @@
       "scope": "local",
       "path": "src/renderer/src/",
       "owner": "Pronto repository maintainers",
-      "condition": "A projected field, state label, navigation surface, or user-visible remediation behavior changes.",
+      "condition": "A projected field, workspace provenance label, state label, navigation surface, or user-visible remediation behavior changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm vitest run",
@@ -168,7 +170,7 @@
       "scope": "local",
       "path": "bin/pronto.mjs",
       "owner": "Pronto repository maintainers",
-      "condition": "The native CLI binary, command syntax, JSON schema, or prerequisite resolution changes.",
+      "condition": "The native CLI binary, command syntax, JSON schema, workspace cleanup contract, or prerequisite resolution changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm cli help",
@@ -184,7 +186,7 @@
       "scope": "local",
       "path": ".agents/context/ and .agents/agent-usability.json",
       "owner": "Pronto repository maintainers",
-      "condition": "Agent-visible commands, documentation and skill relationships, freshness semantics, authorization boundaries, or routing behavior changes.",
+      "condition": "Agent-visible commands, workspace lifecycle classification, documentation and skill relationships, freshness semantics, authorization boundaries, or routing behavior changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "Validate every documented command against pnpm cli help.",
@@ -203,12 +205,13 @@
       "scope": "external",
       "path": "~/.agents/skills/pronto/ and ~/.agents/skills/pronto/references/cli-contract.md",
       "owner": "Pronto repository maintainers and Codex skill routing",
-      "condition": "The Pronto CLI command surface or its agent operating boundary changes.",
+      "condition": "The Pronto CLI command surface, workspace cleanup contract, or its agent operating boundary changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "Verify the skill documents refresh-batch parallel scan, serialized merge, and conflict retry semantics.",
         "Verify the skill documents pronto-agent-release/v2 recommendation and fail-closed release semantics.",
         "Verify the skill documents workspace-policy generation, its dry-run/write/replace boundary, and repository-only mutation scope.",
+        "Verify the skill documents read-only route, scoped stale-record refresh, provenance classification, and transactional cleanup postconditions.",
         "Run pnpm cli help and confirm the documented command is exposed.",
         "Verify repo and route remain the only command entry points for task-lane custody; no competing worktree mutator is introduced."
       ],
@@ -219,7 +222,7 @@
       "scope": "local",
       "path": "docs/",
       "owner": "Pronto repository maintainers",
-      "condition": "Product boundaries, architecture, remediation order, quality gates, release behavior, or operator workflow changes.",
+      "condition": "Product boundaries, workspace lifecycle, architecture, remediation order, quality gates, release behavior, or operator workflow changes.",
       "operations": ["add", "change", "remove"],
       "validation": [
         "pnpm format:check",

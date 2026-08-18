@@ -52,6 +52,15 @@ explicit path for live merge checks. A blocked route
 intentionally withholds follow-up projections and exits non-zero; use its
 `next_safe_step` before refreshing or repairing evidence.
 
+Workspace projections carry `provenance` with a bounded kind (`canonical`,
+`linked`, `temporary`, or `unknown`), owner and lease when known, the
+canonical repository, recorded HEAD, preservation evidence, and cleanup state.
+Treat those fields as lifecycle evidence, not permission to remove a path.
+Cleanup receipts are transactional: a nonzero temporary-worktree cleanup
+result is blocked and must retain the exact path, dirty files, owner, and
+preservation action; it can never be reported as pruned, completed, or having
+`next_action: none`.
+
 ## Target branch policy
 
 The fleet integration and maturity target is an explicit repository-level
@@ -474,6 +483,18 @@ snapshot; the path must be a valid Git repository. An explicit path is allowed
 to override that root's automatic discovery exclusion for this refresh without
 changing the root configuration.
 
+Doctor classifies missing paths instead of treating them uniformly. A missing
+canonical repository or root blocks. A missing workspace whose last status was
+dirty or unavailable blocks and preserves the record with its owner and
+preservation evidence. A missing temporary workspace is warning-only only when
+its last status was clean, its completed lease and recorded HEAD are present,
+the path is absent from live Git worktree metadata, and that HEAD remains
+reachable from a branch, remote, or tag. The warning names the exact path and
+the scoped `pronto refresh <repository> --json` instruction. `route` remains
+read-only; it does not remove stale records. The explicit scoped refresh
+reconstructs workspaces from live Git metadata and is the state-changing step
+that removes a safely classified stale record.
+
 Run `route --json` before routing across repositories. For repository-local
 work, pass the resolved repository path; this prevents unrelated fleet rows
 from blocking the task. A non-zero exit or `ready: false` is a hard stop for
@@ -519,6 +540,15 @@ checks active or ambiguous ownership and unavailable workspace paths, and keeps
 closure status separate. The handoff check exits non-zero when the selected
 workspace has ambiguous ownership, is dirty, has an interrupted operation, has
 stale dirty evidence, or cannot be checked.
+
+Temporary-worktree removal requires a fresh clean-status check immediately
+before removal and uses ordinary `git worktree remove`; force removal is not a
+routine cleanup path. A successful cleanup must prove that the path is absent,
+live Git no longer lists it, the recorded HEAD/ref remains reachable, the
+scoped Pronto refresh succeeds, and the scoped route no longer reports the
+workspace. If any check fails, keep the receipt blocked, preserve the
+worktree when it still exists or retain the relevant Git evidence, and report
+the exact failure rather than claiming completion.
 
 Use `refresh-github <repository|group|product> --json` when live provider
 evidence is needed for a bounded scope. Omitting the target refreshes the whole

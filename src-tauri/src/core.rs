@@ -471,6 +471,46 @@ fn default_status_available() -> bool {
     true
 }
 
+fn default_workspace_provenance_kind() -> String {
+    "unknown".to_string()
+}
+
+fn default_workspace_cleanup_state() -> String {
+    "unknown".to_string()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkspaceProvenance {
+    #[serde(default = "default_workspace_provenance_kind")]
+    pub kind: String,
+    #[serde(default)]
+    pub owner: Option<String>,
+    #[serde(default)]
+    pub lease: Option<String>,
+    #[serde(default)]
+    pub canonical_repository: String,
+    #[serde(default)]
+    pub head: Option<String>,
+    #[serde(default)]
+    pub preservation_evidence: Option<String>,
+    #[serde(default = "default_workspace_cleanup_state")]
+    pub cleanup_state: String,
+}
+
+impl Default for WorkspaceProvenance {
+    fn default() -> Self {
+        Self {
+            kind: default_workspace_provenance_kind(),
+            owner: None,
+            lease: None,
+            canonical_repository: String::new(),
+            head: None,
+            preservation_evidence: None,
+            cleanup_state: default_workspace_cleanup_state(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceSummary {
     pub id: String,
@@ -501,6 +541,8 @@ pub struct WorkspaceSummary {
     pub role_confidence: String,
     #[serde(default)]
     pub activity: WorkspaceActivity,
+    #[serde(default)]
+    pub provenance: WorkspaceProvenance,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sync_detail: Option<WorkspaceSyncDetail>,
 }
@@ -1142,6 +1184,8 @@ pub struct AgentWorkspaceSummary {
     pub last_commit: Option<String>,
     pub last_commit_at: Option<String>,
     pub last_activity_at: Option<String>,
+    #[serde(default)]
+    pub provenance: WorkspaceProvenance,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sync_detail: Option<WorkspaceSyncDetail>,
 }
@@ -1393,6 +1437,8 @@ pub struct AgentDoctorReport {
     pub stale_repository_ids: Vec<String>,
     pub invalid_scan_repository_ids: Vec<String>,
     pub unavailable_paths: Vec<String>,
+    #[serde(default)]
+    pub workspace_warnings: Vec<String>,
     pub checks: Vec<AgentDoctorCheck>,
     pub next_safe_step: String,
     pub authorization: String,
@@ -7288,6 +7334,90 @@ fn canonical_repository_path(path: &Path) -> Option<PathBuf> {
     }
 }
 
+fn workspace_path_is_temporary(path: &Path) -> bool {
+    let candidate = canonical_path(path).unwrap_or_else(|| path.to_path_buf());
+    let mut temporary_roots = vec![PathBuf::from("/tmp"), PathBuf::from("/private/tmp")];
+    if let Ok(root) = std::env::var("TMPDIR") {
+        temporary_roots.push(PathBuf::from(root));
+    }
+    temporary_roots.push(std::env::temp_dir());
+
+    temporary_roots.into_iter().any(|root| {
+        let root = canonical_path(&root).unwrap_or(root);
+        candidate == root || candidate.starts_with(&root)
+    }) || candidate
+        .components()
+        .collect::<Vec<_>>()
+        .windows(2)
+        .any(|pair| {
+            pair[0].as_os_str() == OsStr::new(".codex")
+                && pair[1].as_os_str() == OsStr::new("worktrees")
+        })
+}
+
+fn workspace_provenance(
+    path: &Path,
+    is_primary: bool,
+    head: Option<String>,
+    activity: &WorkspaceActivity,
+) -> WorkspaceProvenance {
+    let kind = if is_primary {
+        "canonical"
+    } else if workspace_path_is_temporary(path) {
+        "temporary"
+    } else {
+        "linked"
+    };
+    let manifest = activity.manifest.as_ref();
+    let canonical_repository = canonical_repository_path(path)
+        .or_else(|| is_primary.then(|| canonical_path(path)).flatten())
+        .map(|repository| repository.to_string_lossy().to_string())
+        .unwrap_or_default();
+
+    WorkspaceProvenance {
+        kind: kind.to_string(),
+        owner: manifest.and_then(|manifest| {
+            manifest
+                .task_id
+                .clone()
+                .or_else(|| manifest.source_session_id.clone())
+        }),
+        lease: manifest.and_then(|manifest| manifest.status.clone()),
+        canonical_repository,
+        head,
+        preservation_evidence: None,
+        cleanup_state: if kind == "temporary" {
+            "present".to_string()
+        } else {
+            "not_applicable".to_string()
+        },
+    }
+}
+
+fn merge_workspace_provenance(observed: &mut WorkspaceProvenance, existing: &WorkspaceProvenance) {
+    if observed.kind == "unknown" {
+        observed.kind = existing.kind.clone();
+    }
+    if observed.owner.is_none() {
+        observed.owner = existing.owner.clone();
+    }
+    if observed.lease.is_none() {
+        observed.lease = existing.lease.clone();
+    }
+    if observed.canonical_repository.is_empty() {
+        observed.canonical_repository = existing.canonical_repository.clone();
+    }
+    if observed.head.is_none() {
+        observed.head = existing.head.clone();
+    }
+    if observed.preservation_evidence.is_none() {
+        observed.preservation_evidence = existing.preservation_evidence.clone();
+    }
+    if observed.cleanup_state == "unknown" {
+        observed.cleanup_state = existing.cleanup_state.clone();
+    }
+}
+
 fn has_git_metadata(path: &Path) -> bool {
     path.join(".git").exists()
 }
@@ -7612,26 +7742,171 @@ fn workspace_status(
     )
 }
 
-fn parse_worktrees(path: &Path) -> Vec<WorktreeRecord> {
-    let output = git_static(path, &["worktree", "list", "--porcelain"]).unwrap_or_default();
+fn live_worktree_paths(path: &Path) -> Option<Vec<PathBuf>> {
+    let result = run_git(path, ["worktree", "list", "--porcelain"].iter()).ok()?;
+    if !result.success {
+        return None;
+    }
+
     let mut records = Vec::new();
-    for block in output.split("\n\n") {
+    for block in result.stdout.split("\n\n") {
         let mut worktree_path = None;
         for line in block.lines() {
             if let Some(value) = line.strip_prefix("worktree ") {
-                worktree_path = Some(PathBuf::from(value));
+                let candidate = PathBuf::from(value);
+                worktree_path = Some(if candidate.is_absolute() {
+                    candidate
+                } else {
+                    path.join(candidate)
+                });
             }
         }
         if let Some(path) = worktree_path {
-            records.push(WorktreeRecord { path });
+            records.push(path);
         }
     }
+    Some(records)
+}
+
+fn parse_worktrees(path: &Path) -> Vec<WorktreeRecord> {
+    let mut records = live_worktree_paths(path)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|path| WorktreeRecord { path })
+        .collect::<Vec<_>>();
     if records.is_empty() {
         records.push(WorktreeRecord {
             path: path.to_path_buf(),
         });
     }
     records
+}
+
+fn comparable_path(path: &Path) -> PathBuf {
+    if let Some(path) = canonical_path(path) {
+        return path;
+    }
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join(path)
+    }
+}
+
+fn live_worktree_contains(repository_path: &Path, workspace_path: &Path) -> Option<bool> {
+    let workspace_path = comparable_path(workspace_path);
+    Some(
+        live_worktree_paths(repository_path)?
+            .iter()
+            .map(|path| comparable_path(path))
+            .any(|path| path == workspace_path),
+    )
+}
+
+fn git_head_reachable(repository_path: &Path, head: &str) -> Option<bool> {
+    let arguments = vec![
+        "for-each-ref".to_string(),
+        "--contains".to_string(),
+        head.to_string(),
+        "--format=%(refname)".to_string(),
+        "refs/heads".to_string(),
+        "refs/remotes".to_string(),
+        "refs/tags".to_string(),
+    ];
+    let result = run_git(repository_path, arguments.iter()).ok()?;
+    if !result.success {
+        return None;
+    }
+    Some(result.stdout.lines().any(|line| !line.trim().is_empty()))
+}
+
+fn fresh_clean_status_for_worktree(path: &Path) -> Result<Vec<String>, String> {
+    let result = run_git(
+        path,
+        ["status", "--porcelain=v2", "--untracked-files=all"].iter(),
+    )?;
+    if !result.success {
+        return Err(format!(
+            "Git clean-status failed for {}: {}",
+            path.display(),
+            concise_target_command_error(&result.stderr)
+        ));
+    }
+
+    Ok(result
+        .stdout
+        .lines()
+        .filter(|line| !line.trim().is_empty() && !line.starts_with('#'))
+        .map(|line| {
+            let record_type = line.as_bytes().first().copied();
+            let fields = match record_type {
+                Some(b'1') => line.splitn(9, ' ').nth(8),
+                Some(b'2') => line.splitn(10, ' ').nth(9),
+                Some(b'u') => line.splitn(11, ' ').nth(10),
+                Some(b'?') | Some(b'!') => line.split_once(' ').map(|(_, path)| path),
+                _ => None,
+            };
+            fields
+                .map(|path| path.split_once('\t').map_or(path, |(path, _)| path))
+                .map_or_else(|| line.to_string(), ToString::to_string)
+        })
+        .collect())
+}
+
+fn remove_temporary_worktree_transactionally(
+    repository_path: &Path,
+    worktree_path: &Path,
+    head: &str,
+) -> Result<(), String> {
+    let dirty_paths = fresh_clean_status_for_worktree(worktree_path)?;
+    if !dirty_paths.is_empty() {
+        return Err(format!(
+            "Temporary worktree cleanup blocked for '{}': fresh clean-status found dirty files [{}]. Preserve the worktree and inspect it before retrying.",
+            worktree_path.display(),
+            dirty_paths.join(", ")
+        ));
+    }
+
+    let cleanup = run_git(
+        repository_path,
+        [
+            "worktree",
+            "remove",
+            worktree_path.to_string_lossy().as_ref(),
+        ]
+        .iter(),
+    )?;
+    if !cleanup.success {
+        return Err(format!(
+            "Temporary worktree cleanup blocked for '{}': Git removal failed: {}. Preserve the worktree and inspect it before retrying.",
+            worktree_path.display(),
+            concise_target_command_error(&cleanup.stderr)
+        ));
+    }
+
+    if worktree_path.exists() {
+        return Err(format!(
+            "Temporary worktree cleanup blocked for '{}': the path still exists after removal. Preserve it and inspect the incomplete cleanup.",
+            worktree_path.display()
+        ));
+    }
+    if live_worktree_contains(repository_path, worktree_path) != Some(false) {
+        return Err(format!(
+            "Temporary worktree cleanup blocked for '{}': live Git metadata still contains the worktree or could not be read. Preserve the cleanup receipt and inspect Git metadata.",
+            worktree_path.display()
+        ));
+    }
+    if git_head_reachable(repository_path, head) != Some(true) {
+        return Err(format!(
+            "Temporary worktree cleanup blocked for '{}': HEAD {} is not reachable from a live branch, remote, or tag. Preserve the cleanup receipt and inspect refs.",
+            worktree_path.display(),
+            head
+        ));
+    }
+
+    Ok(())
 }
 
 fn parse_branches(path: &Path) -> Vec<BranchRecord> {
@@ -10217,6 +10492,7 @@ fn scan_workspace(
     } else {
         "Unknown".to_string()
     };
+    let provenance = workspace_provenance(path, is_primary, last_commit.clone(), &activity);
     let mut workspace = WorkspaceSummary {
         id: path_id("workspace", path),
         path: path.to_string_lossy().to_string(),
@@ -10243,6 +10519,7 @@ fn scan_workspace(
         role,
         role_confidence,
         activity,
+        provenance,
         sync_detail: None,
     };
     if workspace.status_available {
@@ -10672,6 +10949,7 @@ fn scan_repository(
             if workspace.last_activity_at.is_none() {
                 workspace.last_activity_at = existing_workspace.last_activity_at.clone();
             }
+            merge_workspace_provenance(&mut workspace.provenance, &existing_workspace.provenance);
         }
         workspaces.push(workspace);
     }
@@ -12020,22 +12298,13 @@ fn refresh_repository_target_evidence_at_with_lock_timeout(
         )),
     }
 
-    let cleanup = run_git(
-        repository_path,
-        vec![
-            "worktree".to_string(),
-            "remove".to_string(),
-            "--force".to_string(),
-            target_worktree.to_string_lossy().to_string(),
-        ],
-    )?;
-    if !cleanup.success {
-        return Err(format!(
-            "Target evidence refresh could not remove its temporary worktree {}: {}",
-            target_worktree.display(),
-            concise_target_command_error(&cleanup.stderr)
-        ));
-    }
+    remove_temporary_worktree_transactionally(repository_path, &target_worktree, &target_head)
+        .map_err(|error| {
+            format!(
+                "Target evidence refresh could not complete transactional cleanup for {}: {error}",
+                target_worktree.display()
+            )
+        })?;
 
     if fleet_root.is_none() {
         let _ = fs::remove_dir_all(&fleet_output_base);
@@ -13407,6 +13676,7 @@ fn agent_workspace_summary(workspace: &WorkspaceSummary) -> AgentWorkspaceSummar
         last_commit: workspace.last_commit.clone(),
         last_commit_at: workspace.last_commit_at.clone(),
         last_activity_at: workspace.last_activity_at.clone(),
+        provenance: workspace.provenance.clone(),
         sync_detail: workspace.sync_detail.clone(),
     }
 }
@@ -14394,6 +14664,134 @@ fn agent_doctor_relevant_roots<'a>(
         .collect()
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum MissingWorkspaceClassification {
+    Blocked(String),
+    Warning(String),
+}
+
+fn workspace_owner(workspace: &WorkspaceSummary) -> String {
+    workspace
+        .provenance
+        .owner
+        .clone()
+        .or_else(|| {
+            workspace
+                .activity
+                .manifest
+                .as_ref()
+                .and_then(|manifest| manifest.task_id.clone())
+        })
+        .unwrap_or_else(|| "unknown owner".to_string())
+}
+
+fn workspace_lease_is_complete(workspace: &WorkspaceSummary) -> bool {
+    workspace.provenance.lease.as_deref().is_some_and(|lease| {
+        matches!(
+            lease.trim().to_ascii_lowercase().as_str(),
+            "complete" | "completed" | "closed" | "released"
+        )
+    })
+}
+
+fn classify_missing_workspace(
+    repository_path: &Path,
+    workspace: &WorkspaceSummary,
+) -> MissingWorkspaceClassification {
+    let path = workspace.path.clone();
+    let owner = workspace_owner(workspace);
+    let preservation_evidence = workspace
+        .provenance
+        .preservation_evidence
+        .clone()
+        .unwrap_or_else(|| "No preservation evidence was recorded.".to_string());
+    let blocked = |reason: String| {
+        MissingWorkspaceClassification::Blocked(format!(
+            "Workspace '{path}' is unavailable: {reason} Owner: {owner}. Preservation action: retain the record and inspect ownership before any scoped refresh. {preservation_evidence}"
+        ))
+    };
+
+    if workspace.provenance.kind != "temporary" {
+        return blocked(format!(
+            "recorded provenance is '{}', not a completed temporary workspace cleanup",
+            workspace.provenance.kind
+        ));
+    }
+    if !workspace.status_available {
+        return blocked(
+            "the last Git status was unknown, so cleanliness cannot be established".to_string(),
+        );
+    }
+    if workspace.dirty {
+        return blocked(
+            "the last Git status was dirty; the legacy snapshot does not contain an exact dirty-file list"
+                .to_string(),
+        );
+    }
+    if let Some(operation) = workspace.operation.as_ref() {
+        return blocked(format!(
+            "the last snapshot recorded an interrupted operation: {operation}"
+        ));
+    }
+    if owner == "unknown owner" {
+        return blocked("the workspace owner is unknown".to_string());
+    }
+    if !workspace_lease_is_complete(workspace) {
+        return blocked(format!(
+            "the lease is not recorded as completed (observed {:?})",
+            workspace.provenance.lease
+        ));
+    }
+
+    match live_worktree_contains(repository_path, Path::new(&path)) {
+        Some(false) => {}
+        Some(true) => {
+            return blocked(
+                "live Git still registers the path, so the persisted record cannot be classified as stale"
+                    .to_string(),
+            )
+        }
+        None => {
+            return blocked(
+                "live Git worktree metadata could not be read, so absence cannot be proven"
+                    .to_string(),
+            )
+        }
+    }
+
+    let Some(head) = workspace
+        .provenance
+        .head
+        .as_deref()
+        .or(workspace.last_commit.as_deref())
+    else {
+        return blocked("the workspace HEAD was not recorded".to_string());
+    };
+    match git_head_reachable(repository_path, head) {
+        Some(true) => {}
+        Some(false) => {
+            return blocked(format!(
+                "recorded HEAD {head} is not reachable from the repository's live refs"
+            ))
+        }
+        None => {
+            return blocked(format!(
+                "reachability for recorded HEAD {head} could not be verified"
+            ))
+        }
+    }
+
+    MissingWorkspaceClassification::Warning(format!(
+        "Temporary workspace '{path}' was last clean, is absent from live Git worktree metadata, and recorded HEAD {head} remains reachable. Owner: {owner}; lease: {}. The stale record is retained because route is read-only; run scoped `pronto refresh '{}' --json` to reconstruct workspaces from live Git metadata.",
+        workspace
+            .provenance
+            .lease
+            .as_deref()
+            .unwrap_or("completed"),
+        repository_path.display()
+    ))
+}
+
 fn agent_doctor_report(
     snapshot: &PortfolioSnapshot,
     storage_path: &Path,
@@ -14405,6 +14803,8 @@ fn agent_doctor_report(
     let relevant_roots = agent_doctor_relevant_roots(snapshot, scope);
     let mut missing_root_paths = Vec::new();
     let mut unavailable_paths = BTreeSet::new();
+    let mut workspace_blockers = Vec::new();
+    let mut workspace_warnings = Vec::new();
     for root in &relevant_roots {
         if !Path::new(&root.path).is_dir() {
             missing_root_paths.push(root.path.clone());
@@ -14412,12 +14812,22 @@ fn agent_doctor_report(
         }
     }
     for repository in &snapshot.repositories {
-        if !Path::new(&repository.path).is_dir() {
+        let repository_path = Path::new(&repository.path);
+        if !repository_path.is_dir() {
             unavailable_paths.insert(repository.path.clone());
+            continue;
         }
         for workspace in &repository.workspaces {
             if !Path::new(&workspace.path).is_dir() {
-                unavailable_paths.insert(workspace.path.clone());
+                match classify_missing_workspace(repository_path, workspace) {
+                    MissingWorkspaceClassification::Blocked(reason) => {
+                        unavailable_paths.insert(workspace.path.clone());
+                        workspace_blockers.push(reason);
+                    }
+                    MissingWorkspaceClassification::Warning(warning) => {
+                        workspace_warnings.push(warning);
+                    }
+                }
             }
         }
     }
@@ -14548,7 +14958,7 @@ fn agent_doctor_report(
     }
 
     let unavailable_paths = unavailable_paths.into_iter().collect::<Vec<_>>();
-    if unavailable_paths.is_empty() {
+    if unavailable_paths.is_empty() && workspace_warnings.is_empty() {
         checks.push(agent_doctor_check(
             "paths",
             "Passed",
@@ -14564,7 +14974,9 @@ fn agent_doctor_report(
             Vec::new(),
             "Treat the persisted paths as local evidence and still recheck live state before mutation.".to_string(),
         ));
-    } else {
+    } else if !unavailable_paths.is_empty() {
+        let mut evidence = unavailable_paths.clone();
+        evidence.extend(workspace_blockers.clone());
         checks.push(agent_doctor_check(
             "paths",
             "Blocked",
@@ -14572,8 +14984,19 @@ fn agent_doctor_report(
                 "{} registered repository or workspace path(s) are unavailable.",
                 unavailable_paths.len()
             ),
-            unavailable_paths.clone(),
+            evidence,
             "Preserve the affected work and inspect path ownership before refreshing or folding anything.".to_string(),
+        ));
+    } else {
+        checks.push(agent_doctor_check(
+            "paths",
+            "Warning",
+            format!(
+                "{} missing temporary workspace record(s) are eligible for scoped stale-record refresh.",
+                workspace_warnings.len()
+            ),
+            workspace_warnings.clone(),
+            "Run `pronto refresh <repository> --json` for each warning, then rerun the same scoped route; do not use a fleet-wide refresh just to remove stale records.".to_string(),
         ));
     }
 
@@ -14640,6 +15063,7 @@ fn agent_doctor_report(
         stale_repository_ids,
         invalid_scan_repository_ids,
         unavailable_paths,
+        workspace_warnings,
         checks,
         next_safe_step,
         authorization: "Inspection only; doctor does not refresh, write Pronto state, modify Git, access provider state, or authorize repository mutations.".to_string(),
@@ -14677,6 +15101,7 @@ fn agent_doctor_error_report(
         stale_repository_ids: Vec::new(),
         invalid_scan_repository_ids: Vec::new(),
         unavailable_paths: Vec::new(),
+        workspace_warnings: Vec::new(),
         checks: vec![agent_doctor_check(
             check_id,
             "Blocked",
@@ -18839,6 +19264,50 @@ mod tests {
     }
 
     #[test]
+    fn temporary_worktree_cleanup_requires_fresh_clean_status_and_postconditions() {
+        let root = fixture_root();
+        let repository = fixture_repository(&root);
+        let worktree = root.join("temporary-worktree");
+        let head = String::from_utf8_lossy(&git(&repository, &["rev-parse", "HEAD"]).stdout)
+            .trim()
+            .to_string();
+        git(
+            &repository,
+            &[
+                "worktree",
+                "add",
+                "-b",
+                "temporary-cleanup",
+                worktree.to_str().expect("worktree path should be UTF-8"),
+                "HEAD",
+            ],
+        );
+        fs::write(worktree.join("dirty.txt"), "preserve me\n")
+            .expect("temporary worktree should accept a dirty file");
+        fs::write(worktree.join("tracked.txt"), "modified tracked content\n")
+            .expect("temporary worktree should accept a tracked-file modification");
+
+        let blocked = remove_temporary_worktree_transactionally(&repository, &worktree, &head)
+            .expect_err("dirty temporary worktree cleanup should be blocked");
+        assert!(blocked.contains(&worktree.to_string_lossy().to_string()));
+        assert!(blocked.contains("dirty.txt"));
+        assert!(blocked.contains("tracked.txt"));
+        assert!(worktree.exists());
+        assert_eq!(live_worktree_contains(&repository, &worktree), Some(true));
+
+        fs::remove_file(worktree.join("dirty.txt")).expect("dirty fixture should be removable");
+        fs::write(worktree.join("tracked.txt"), "one\n")
+            .expect("tracked fixture should be restored before cleanup");
+        remove_temporary_worktree_transactionally(&repository, &worktree, &head)
+            .expect("clean temporary worktree cleanup should pass");
+        assert!(!worktree.exists());
+        assert_eq!(live_worktree_contains(&repository, &worktree), Some(false));
+        assert_eq!(git_head_reachable(&repository, &head), Some(true));
+
+        fs::remove_dir_all(root).expect("transactional cleanup fixture should be removable");
+    }
+
+    #[test]
     fn target_qr_detached_head_provenance_is_rewritten_to_selected_branch() {
         let root = fixture_root();
         let run = root.join("run");
@@ -20667,6 +21136,192 @@ mod tests {
     }
 
     #[test]
+    fn doctor_warns_for_missing_clean_temporary_workspace_until_scoped_refresh() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let store = root.join("registry.db");
+        let initial = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        let repository_id = initial.repositories[0].id.clone();
+        let canonical_workspace = initial.repositories[0].workspace.clone();
+        let missing_path = root.join("missing-temporary-workspace");
+        assert!(!missing_path.exists());
+
+        let mut state = load_store(&store).expect("fixture store should reload");
+        let repository = state
+            .repositories
+            .iter_mut()
+            .find(|repository| repository.id == repository_id)
+            .expect("fixture repository should be persisted");
+        let mut stale_workspace = canonical_workspace.clone();
+        stale_workspace.id = path_id("workspace", &missing_path);
+        stale_workspace.path = missing_path.to_string_lossy().to_string();
+        stale_workspace.is_primary = false;
+        stale_workspace.provenance = WorkspaceProvenance {
+            kind: "temporary".to_string(),
+            owner: Some("task-incident".to_string()),
+            lease: Some("completed".to_string()),
+            canonical_repository: repository.path.clone(),
+            head: canonical_workspace.last_commit.clone(),
+            preservation_evidence: Some(
+                "Temporary workspace was inspected before its directory disappeared.".to_string(),
+            ),
+            cleanup_state: "completed".to_string(),
+        };
+        repository.workspaces.push(stale_workspace.clone());
+        save_store(&store, &state).expect("stale workspace should be persisted");
+
+        let persisted = load_store(&store).expect("stale store should reload");
+        let snapshot = snapshot_from_store(&store, &persisted);
+        let report = agent_doctor_report(&snapshot, &store, 60, "repository:fixture");
+
+        assert!(report.ready);
+        assert_eq!(report.status, "Ready with warnings");
+        assert!(report.unavailable_paths.is_empty());
+        assert_eq!(report.workspace_warnings.len(), 1);
+        assert!(report.workspace_warnings[0].contains(missing_path.to_string_lossy().as_ref()));
+        assert!(report.workspace_warnings[0].contains("HEAD"));
+        assert!(report.workspace_warnings[0].contains("task-incident"));
+        assert!(report.workspace_warnings[0].contains("pronto refresh"));
+        assert!(report
+            .checks
+            .iter()
+            .any(|check| check.id == "paths" && check.status == "Warning"));
+
+        let repository_query = repository_path.to_string_lossy().to_string();
+        let route_before_refresh = agent_route_report(
+            &snapshot,
+            &store,
+            60,
+            &format!("repository:{repository_query}"),
+            Some(&repository_query),
+            3,
+        )
+        .expect("scoped route should inspect the retained stale record");
+        assert!(route_before_refresh.ready);
+        let retained = load_store(&store).expect("route should leave the store readable");
+        assert!(retained
+            .repositories
+            .iter()
+            .find(|repository| repository.id == repository_id)
+            .is_some_and(|repository| repository
+                .workspaces
+                .iter()
+                .any(|workspace| workspace.path == stale_workspace.path)));
+
+        let mut state = load_store(&store).expect("stale store should be available to refresh");
+        let refreshed = audited_scan_and_persist_repository_path(
+            &store,
+            &mut state,
+            Path::new(&repository_path),
+        )
+        .expect("scoped refresh should reconstruct workspaces from live Git");
+        let refreshed_repository = refreshed
+            .repositories
+            .iter()
+            .find(|repository| repository.id == repository_id)
+            .expect("refreshed repository should remain registered");
+        assert!(!refreshed_repository
+            .workspaces
+            .iter()
+            .any(|workspace| workspace.path == stale_workspace.path));
+        let route = agent_route_report(
+            &refreshed,
+            &store,
+            60,
+            &format!("repository:{repository_query}"),
+            Some(&repository_query),
+            3,
+        )
+        .expect("scoped route should read the refreshed snapshot");
+        assert!(route.ready);
+        assert!(route.repository.as_ref().is_some_and(|detail| !detail
+            .repository
+            .workspaces
+            .iter()
+            .any(|workspace| workspace.path == stale_workspace.path)));
+
+        fs::remove_dir_all(root).expect("doctor fixture should be removable");
+    }
+
+    #[test]
+    fn doctor_blocks_missing_temporary_workspace_with_dirty_or_unknown_last_state() {
+        let root = fixture_root();
+        fixture_repository(&root);
+        let store = root.join("registry.db");
+        let initial = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        let repository_id = initial.repositories[0].id.clone();
+        let canonical_workspace = initial.repositories[0].workspace.clone();
+        let mut state = load_store(&store).expect("fixture store should reload");
+        let repository = state
+            .repositories
+            .iter_mut()
+            .find(|repository| repository.id == repository_id)
+            .expect("fixture repository should be persisted");
+
+        for (name, status_available, dirty) in [
+            ("missing-dirty-temporary", true, true),
+            ("missing-unknown-temporary", false, false),
+        ] {
+            let missing_path = root.join(name);
+            let mut stale_workspace = canonical_workspace.clone();
+            stale_workspace.id = path_id("workspace", &missing_path);
+            stale_workspace.path = missing_path.to_string_lossy().to_string();
+            stale_workspace.is_primary = false;
+            stale_workspace.status_available = status_available;
+            stale_workspace.status_error = (!status_available)
+                .then(|| "Git status was unavailable before the workspace disappeared".to_string());
+            stale_workspace.dirty = dirty;
+            stale_workspace.provenance = WorkspaceProvenance {
+                kind: "temporary".to_string(),
+                owner: Some("task-preserve".to_string()),
+                lease: Some("completed".to_string()),
+                canonical_repository: repository.path.clone(),
+                head: canonical_workspace.last_commit.clone(),
+                preservation_evidence: Some(
+                    "Preserve until the owner confirms recovery.".to_string(),
+                ),
+                cleanup_state: "blocked".to_string(),
+            };
+            repository.workspaces.push(stale_workspace);
+        }
+        save_store(&store, &state).expect("blocked stale workspaces should be persisted");
+
+        let persisted = load_store(&store).expect("blocked store should reload");
+        let snapshot = snapshot_from_store(&store, &persisted);
+        let report = agent_doctor_report(&snapshot, &store, 60, "repository:fixture");
+
+        assert!(!report.ready);
+        assert_eq!(report.status, "Blocked");
+        assert!(report.workspace_warnings.is_empty());
+        assert!(report
+            .unavailable_paths
+            .iter()
+            .any(|path| path.ends_with("missing-dirty-temporary")));
+        assert!(report
+            .unavailable_paths
+            .iter()
+            .any(|path| path.ends_with("missing-unknown-temporary")));
+        let paths_check = report
+            .checks
+            .iter()
+            .find(|check| check.id == "paths")
+            .expect("paths check should be present");
+        assert_eq!(paths_check.status, "Blocked");
+        assert!(paths_check
+            .evidence
+            .iter()
+            .any(|evidence| evidence.contains("task-preserve")));
+        assert!(paths_check
+            .evidence
+            .iter()
+            .any(|evidence| evidence.contains("Preserve until the owner confirms recovery")));
+
+        fs::remove_dir_all(root).expect("doctor fixture should be removable");
+    }
+
+    #[test]
     fn doctor_default_freshness_window_is_two_days() {
         let root = fixture_root();
         fixture_repository(&root);
@@ -20971,6 +21626,16 @@ mod tests {
                 .and_then(|manifest| manifest.task_id.as_deref()),
             Some("task-42")
         );
+        assert_eq!(workspace.provenance.kind, "canonical");
+        assert_eq!(workspace.provenance.owner.as_deref(), Some("task-42"));
+        assert_eq!(workspace.provenance.lease.as_deref(), Some("active"));
+        assert_eq!(
+            workspace.provenance.canonical_repository,
+            canonical_path(&repository)
+                .expect("repository should canonicalize")
+                .to_string_lossy()
+        );
+        assert_eq!(workspace.provenance.cleanup_state, "not_applicable");
         assert_eq!(workspace.target_branch.as_deref(), Some("main"));
         assert_eq!(workspace.target_confidence, "High");
         assert_eq!(workspace.role, "Agent task");

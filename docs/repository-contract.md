@@ -55,6 +55,12 @@ unavailable until it is regenerated from the exact `dev` commit.
   its operator contract: GitHub remains authoritative, prompt artifacts are
   bounded and untrusted evidence, fork failures are diagnosis-only, and the
   Codex button starts only a read-only task at a registered local checkout.
+- Workspace lifecycle evidence is explicit. Each workspace records whether it
+  is `canonical`, `linked`, `temporary`, or `unknown`, plus owner/lease,
+  canonical repository, HEAD, preservation evidence, and cleanup state. Missing
+  workspace classification is fail-closed for canonical roots and for dirty or
+  unknown temporary state; only a clean, completed, reachable, Git-unregistered
+  temporary workspace may produce a warning pending scoped refresh.
 
 AI Showcase readiness is governed by one fleet-level
 `.pronto/showcase-goal.json`; see `docs/showcase-contract.md`. Public
@@ -217,6 +223,8 @@ The full state model, incomplete-work fold gate, and failure behavior are in
 | --------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `route` is blocked or the snapshot is stale                     | Pronto evidence, not repository truth                                 | Follow `next_safe_step`, refresh only the named scope with authorization, then rerun the same focused route.                                                                                                                                                                                                                                 |
 | Workspace is ahead, behind, diverged, dirty, or has no upstream | Local branch versus its configured upstream                           | Inspect live Git state, preserve unpublished work, fetch, and classify the branch before any integration or pruning.                                                                                                                                                                                                                         |
+| Workspace path is absent from the snapshot's filesystem         | Workspace provenance, last clean-status evidence, lease, or live Git metadata | Block and preserve canonical, dirty, unknown, or incomplete-lease workspaces. For a clean temporary workspace with reachable HEAD and no live Git registration, keep the warning in `doctor` and run only the named scoped refresh; `route` remains read-only. |
+| Temporary-worktree cleanup returns a nonzero result             | Cleanup receipt and preservation boundary                             | Keep the receipt blocked with the exact path, dirty files, owner, lease, and preservation action. Never report `pruned`, `completed`, or `next_action: none`; inspect and retry only after a fresh clean-status check. |
 | GitHub evidence is unavailable                                  | `gh` path, version, login, repository identity, or provider freshness | Verify each prerequisite in a fresh shell, run the bounded provider refresh, and confirm the imported commit. Do not substitute SSH success for API evidence.                                                                                                                                                                                |
 | Compass is missing, invalid, blocked, or drifting               | `.project-compass` product evidence                                   | Run Compass validation and scoring, reconcile only observed evidence, then checkpoint. Do not manufacture maturity.                                                                                                                                                                                                                          |
 | Maturity is missing or stale                                    | Stable Quality Runner feed or repository identity                     | Run a protected audit, replay it, publish the selected audit to the stable feed, and refresh Pronto. Keep static and dynamic evidence distinct.                                                                                                                                                                                              |
@@ -239,9 +247,14 @@ A change is done only when all applicable conditions hold:
 5. Documentation, implementation examples, and the change-surface matrix are
    updated when their contract changes.
 6. Every validation failure has a fix or an exact blocker and disposition.
-7. Destructive cleanup occurs only after preservation, integration proof,
-   publication verification, and separate authorization.
-8. `pnpm contract:check` validates the cache lifecycle contract, including
+7. Destructive cleanup is transactional and separately authorized: a fresh
+   clean-status check precedes ordinary worktree removal, force removal is not
+   routine, and completion proves path absence, live Git absence, reachable
+   HEAD/ref, successful scoped refresh, and a route that no longer reports the
+   workspace.
+8. A failed cleanup preserves the exact path, dirty files, owner, lease, and
+   preservation action; it cannot be represented as a completed prune.
+9. `pnpm contract:check` validates the cache lifecycle contract, including
    safe relative paths, worktree scoping, rebuild commands, and matching ignore
    evidence.
 
