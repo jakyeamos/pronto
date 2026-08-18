@@ -1,0 +1,1 @@
+Participant Deduplication turns a messy roster into an explainable review queue. A synthetic workbook demonstrates exact, fuzzy, negative, and ambiguous matches, with field-level reasoning and explicit human outcomes; live Google Sheets UAT and any mutation remain unproven and are never implied by this local case.

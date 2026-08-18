@@ -104,7 +104,7 @@ test("Dsci-proj DS-0 defines a reusable contract without claiming generalized im
   assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 5);
   assert.equal(
     readinessProject?.rehearsal_disposition,
-    "implementation_adapter_required",
+    "local_material_package_complete_implementation_adapter_required",
   );
   assert.match(route, /DS-0 closure/);
   assert.match(route, /decision-contract\.json/);
@@ -170,7 +170,7 @@ test("Dsci-proj exposes a labeled synthetic contract preview without overclaimin
   assert.match(project?.demo_materials?.evidence ?? "", /shareable/i);
   assert.match(
     project?.missing_materials?.join(" | ") ?? "",
-    /interactive product walkthrough/i,
+    /hosted no-auth case URL/i,
   );
   assert.equal(readinessProject?.first_required_closure, "DS-1");
   assert.match(route, /synthetic-preview\.html/);

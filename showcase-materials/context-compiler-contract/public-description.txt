@@ -1,0 +1,1 @@
+Context Compiler Contract makes agent context fail before it becomes agent behavior. A real AIOS compile result is compared with two labeled synthetic mutations, the exact validator failures are shown, and the corrected bounded artifact is restored. Runtime execution remains outside this package.

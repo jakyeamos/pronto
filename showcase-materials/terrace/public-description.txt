@@ -1,0 +1,1 @@
+Terrace makes a failed agent workflow inspectable and resumable: it preserves completed work, stops at an unsafe stage, records the named correction, and retries only the stage that owns the failure. The local case is a reviewed static artifact; post-integration capture and hosted publication remain separate gates.

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Participant Deduplication synthetic review queue</title>
+  <desc id="desc">A labeled synthetic workbook produces exact, fuzzy, negative, and ambiguous review outcomes without mutating participant data.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#142238"/><stop offset="1" stop-color="#0a0f19"/>
+    </linearGradient>
+    <style>
+      .eyebrow { fill: #83e1c0; font: 700 22px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 3px; }
+      .title { fill: #f5f7fb; font: 700 64px ui-sans-serif, system-ui, sans-serif; letter-spacing: -3px; }
+      .lede { fill: #aab4c7; font: 400 25px ui-sans-serif, system-ui, sans-serif; }
+      .card { fill: #121a29; stroke: #263247; stroke-width: 2; }
+      .cardTitle { fill: #f5f7fb; font: 700 25px ui-sans-serif, system-ui, sans-serif; }
+      .copy { fill: #aab4c7; font: 400 19px ui-sans-serif, system-ui, sans-serif; }
+      .status { fill: #83e1c0; font: 700 17px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 1px; }
+      .warn { fill: #f2c47d; font: 700 17px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 1px; }
+      .line { stroke: #263247; stroke-width: 2; }
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <text class="eyebrow" x="96" y="92">PARTICIPANT DEDUPLICATION · SYNTHETIC CASE</text>
+  <text class="title" x="96" y="176">Review likely duplicates</text>
+  <text class="title" x="96" y="246">without hiding the judgment.</text>
+  <text class="lede" x="96" y="308">Four bounded cases. Field-level reasoning. Human outcomes.</text>
+  <rect x="96" y="346" width="1408" height="64" rx="14" fill="#182338" stroke="#263247" stroke-width="2"/>
+  <text class="warn" x="128" y="386">SYNTHETIC SHOWCASE FIXTURE · NO PARTICIPANT DATA · NO LIVE SHEET MUTATION</text>
+  <g transform="translate(96 470)">
+    <rect class="card" width="328" height="230" rx="18"/>
+    <text class="status" x="28" y="45">EXACT</text>
+    <text class="cardTitle" x="28" y="86">Approve pair</text>
+    <line class="line" x1="28" y1="108" x2="300" y2="108"/>
+    <text class="copy" x="28" y="147">same contact, stable identity</text>
+    <text class="copy" x="28" y="180">review outcome: SELECT_RECORDS</text>
+  </g>
+  <g transform="translate(452 470)">
+    <rect class="card" width="328" height="230" rx="18"/>
+    <text class="status" x="28" y="45">FUZZY</text>
+    <text class="cardTitle" x="28" y="86">Approve pair</text>
+    <line class="line" x1="28" y1="108" x2="300" y2="108"/>
+    <text class="copy" x="28" y="147">normalized name + email match</text>
+    <text class="copy" x="28" y="180">review outcome: SELECT_RECORDS</text>
+  </g>
+  <g transform="translate(808 470)">
+    <rect class="card" width="328" height="230" rx="18"/>
+    <text class="warn" x="28" y="45">NEGATIVE</text>
+    <text class="cardTitle" x="28" y="86">Keep both records</text>
+    <line class="line" x1="28" y1="108" x2="300" y2="108"/>
+    <text class="copy" x="28" y="147">shared contact is not identity</text>
+    <text class="copy" x="28" y="180">review outcome: KEEP_ALL</text>
+  </g>
+  <g transform="translate(1164 470)">
+    <rect class="card" width="340" height="230" rx="18"/>
+    <text class="warn" x="28" y="45">AMBIGUOUS</text>
+    <text class="cardTitle" x="28" y="86">Leave unresolved</text>
+    <line class="line" x1="28" y1="108" x2="312" y2="108"/>
+    <text class="copy" x="28" y="147">insufficient evidence to merge</text>
+    <text class="copy" x="28" y="180">review outcome: UNRESOLVED</text>
+  </g>
+  <text class="copy" x="96" y="800">Local material packet · authenticated live-sheet UAT remains a separate owner-authorized gate.</text>
+</svg>

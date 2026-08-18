@@ -90,7 +90,7 @@ test("Agent Router AR-1 binds a labeled replay case to a native typed graph prob
   assert.equal(project?.next_step_category, "product");
   assert.match(project?.next_step ?? "", /AR-5/);
   assert.equal(readinessProject?.first_required_closure, "AR-5");
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 3);
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 2);
 });
 
 test("Agent Router AR-2 and AR-3 preserve candidate alternatives and selection traceability", async () => {
@@ -164,10 +164,10 @@ test("Agent Router AR-2 and AR-3 preserve candidate alternatives and selection t
   const readinessProject = readiness.projects.find(
     (candidate) => candidate.repository_name === "agent-router",
   );
-  assert.equal(project?.demo_materials?.score, 2.8);
+  assert.equal(project?.demo_materials?.score, 3.2);
   assert.match(project?.next_step ?? "", /AR-5/);
   assert.equal(readinessProject?.first_required_closure, "AR-5");
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 3);
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 2);
 });
 
 test("Agent Router AR-4 closes only the explicitly labeled bounded execution replay", async () => {
@@ -229,10 +229,10 @@ test("Agent Router AR-4 closes only the explicitly labeled bounded execution rep
   const readinessProject = readiness.projects.find(
     (candidate) => candidate.repository_name === "agent-router",
   );
-  assert.equal(project?.demo_materials?.score, 2.8);
+  assert.equal(project?.demo_materials?.score, 3.2);
   assert.match(project?.next_step ?? "", /AR-5/);
   assert.equal(readinessProject?.first_required_closure, "AR-5");
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 3);
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 2);
 });
 
 test("Agent Router AR-5 records the native conflict boundary without overclaiming confidence or fallback", async () => {
@@ -290,7 +290,7 @@ test("Agent Router AR-5 records the native conflict boundary without overclaimin
   assert.equal(readinessProject?.first_required_closure, "AR-5");
   assert.equal(
     readinessProject?.rehearsal_disposition,
-    "blocked_native_synthesis_output_contract",
+    "local_candidate_package_complete; blocked_native_synthesis_output_contract",
   );
 });
 
@@ -438,7 +438,7 @@ test("Codex Browser Control CB-1 binds a synthetic page to the source target con
   assert.equal(project?.next_step_category, "demo_integration");
   assert.match(project?.next_step ?? "", /CB-2\/CB-3/);
   assert.equal(readinessProject?.first_required_closure, "CB-2");
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 6);
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 5);
 });
 
 test("Codex Browser Control CB-2 records the installed version and protocol blocker", async () => {
@@ -495,7 +495,7 @@ test("Codex Browser Control CB-2 records the installed version and protocol bloc
   assert.match(project?.next_step ?? "", /Park CB-2\/CB-3/);
   assert.equal(
     readinessProject?.rehearsal_disposition,
-    "blocked_installed_version_and_protocol_mismatch",
+    "local_candidate_package_complete; blocked_installed_version_and_protocol_mismatch",
   );
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 6);
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 5);
 });

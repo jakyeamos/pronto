@@ -1,7 +1,7 @@
 {
   "schema_version": "pronto-showcase-rehearsal-readiness/v1",
   "reviewed_at": "2026-08-13T21:52:51Z",
-  "scope": "38 durable projects; 34 showcase-eligible, 1 supporting component contributing to a separate combined story, 2 excluded by client or owner disposition, and 1 deferred by product direction",
+  "scope": "38 durable projects; 32 showcase-eligible, 1 supporting component contributing to a separate combined story, 4 excluded by client or owner disposition, and 1 deferred by product direction",
   "reference_project": "quality-runner",
   "publication_gate": false,
   "purpose": "optional_video_enhancement_tracking",
@@ -28,12 +28,12 @@
   },
   "summary": {
     "project_count": 38,
-    "showcase_eligible_count": 34,
-    "excluded_count": 2,
+    "showcase_eligible_count": 32,
+    "excluded_count": 4,
     "supporting_component_count": 1,
     "deferred_count": 1,
     "rehearsal_passed_count": 0,
-    "gap_closure_required_count": 32
+    "gap_closure_required_count": 30
   },
   "combined_stories": [
     {
@@ -48,8 +48,8 @@
       "current_stage": "gap_closure",
       "rehearsal_status": "blocked",
       "first_required_closure": "QS-0",
-      "remaining_gap_count_before_rehearsal": 6,
-      "rehearsal_disposition": "cross_layer_contract_required",
+      "remaining_gap_count_before_rehearsal": 5,
+      "rehearsal_disposition": "local_candidate_package_complete; cross_layer_contract_required",
       "does_not_replace_project_routes": true
     }
   ],
@@ -107,9 +107,9 @@
       "work_disposition": "targeted_gap_closure",
       "current_stage": "gap_closure",
       "rehearsal_status": "not_ready",
-      "first_required_closure": "RDW-0",
-      "remaining_gap_count_before_rehearsal": 3,
-      "rehearsal_disposition": "release_editorial_and_hosting_gates_parked_video_optional"
+      "first_required_closure": "RDW-5",
+      "remaining_gap_count_before_rehearsal": 1,
+      "rehearsal_disposition": "local_material_package_complete_source_attested_editorially_approved_hosting_gate_parked_video_optional"
     },
     {
       "repository_name": "soundscape-app",
@@ -191,30 +191,34 @@
       "current_stage": "gap_closure",
       "rehearsal_status": "not_ready",
       "first_required_closure": "PW-4",
-      "remaining_gap_count_before_rehearsal": 1,
-      "rehearsal_disposition": "install_contract_and_recovery_package_reviewed_runtime_equivalence_blocked_by_host_policy"
+      "remaining_gap_count_before_rehearsal": 2,
+      "rehearsal_disposition": "local_candidate_package_complete; runtime_equivalence_blocked_by_host_policy"
     },
     {
       "repository_name": "ai-workflow-leverage",
       "display_name": "AI Workflow Leverage",
       "route": "ai-workflow-leverage/route-plan.md",
-      "work_disposition": "material_build_or_restoration",
-      "current_stage": "gap_closure",
-      "rehearsal_status": "not_ready",
-      "first_required_closure": "AL-2",
-      "remaining_gap_count_before_rehearsal": 5,
-      "rehearsal_disposition": "measurement_owner_boundary_blocked_pending_agent_eval_runtime_event_contract"
+      "showcase_eligible": false,
+      "exclusion_reason": "owner_decision",
+      "work_disposition": "excluded",
+      "current_stage": "excluded",
+      "rehearsal_status": "excluded",
+      "first_required_closure": null,
+      "remaining_gap_count_before_rehearsal": 0,
+      "rehearsal_disposition": "supporting_packet_retained_outside_current_ai_showcase_queue"
     },
     {
       "repository_name": "marketing-autoresearch",
       "display_name": "Marketing Autoresearch",
       "route": "marketing-autoresearch/route-plan.md",
-      "work_disposition": "targeted_gap_closure",
-      "current_stage": "gap_closure",
-      "rehearsal_status": "blocked",
-      "first_required_closure": "MA-2",
-      "remaining_gap_count_before_rehearsal": 5,
-      "rehearsal_disposition": "shadow_run_owner_contract_blocked_pending_brief_source_claim_receipt"
+      "showcase_eligible": false,
+      "exclusion_reason": "owner_decision",
+      "work_disposition": "excluded",
+      "current_stage": "excluded",
+      "rehearsal_status": "excluded",
+      "first_required_closure": null,
+      "remaining_gap_count_before_rehearsal": 0,
+      "rehearsal_disposition": "supporting_packet_retained_outside_current_ai_showcase_queue"
     },
     {
       "repository_name": "remodelvision",
@@ -223,9 +227,9 @@
       "work_disposition": "material_build_or_restoration",
       "current_stage": "gap_closure",
       "rehearsal_status": "not_ready",
-      "first_required_closure": "RV-1",
-      "remaining_gap_count_before_rehearsal": 5,
-      "rehearsal_disposition": "blocked_attribution_and_runtime_owner_boundary"
+      "first_required_closure": "RV-3",
+      "remaining_gap_count_before_rehearsal": 4,
+      "rehearsal_disposition": "local_material_package_complete_scoped_owner_attribution_approved_runtime_owner_boundary_remains"
     },
     {
       "repository_name": "Dsci-proj",
@@ -236,7 +240,7 @@
       "rehearsal_status": "not_ready",
       "first_required_closure": "DS-1",
       "remaining_gap_count_before_rehearsal": 5,
-      "rehearsal_disposition": "implementation_adapter_required"
+      "rehearsal_disposition": "local_material_package_complete_implementation_adapter_required"
     },
     {
       "repository_name": "Book",
@@ -257,8 +261,8 @@
       "current_stage": "gap_closure",
       "rehearsal_status": "not_ready",
       "first_required_closure": "AR-5",
-      "remaining_gap_count_before_rehearsal": 3,
-      "rehearsal_disposition": "blocked_native_synthesis_output_contract"
+      "remaining_gap_count_before_rehearsal": 2,
+      "rehearsal_disposition": "local_candidate_package_complete; blocked_native_synthesis_output_contract"
     },
     {
       "repository_name": "browser-control",
@@ -268,8 +272,8 @@
       "current_stage": "gap_closure",
       "rehearsal_status": "not_ready",
       "first_required_closure": "CB-2",
-      "remaining_gap_count_before_rehearsal": 6,
-      "rehearsal_disposition": "blocked_installed_version_and_protocol_mismatch"
+      "remaining_gap_count_before_rehearsal": 5,
+      "rehearsal_disposition": "local_candidate_package_complete; blocked_installed_version_and_protocol_mismatch"
     },
     {
       "repository_name": "participant-dedup",
@@ -454,9 +458,9 @@
       "work_disposition": "targeted_gap_closure",
       "current_stage": "gap_closure",
       "rehearsal_status": "not_ready",
-      "first_required_closure": "DPW-0",
+      "first_required_closure": "DPW-1",
       "remaining_gap_count_before_rehearsal": 1,
-      "rehearsal_disposition": "bounded_deletion_and_recovery_proof_required"
+      "rehearsal_disposition": "bounded_deletion_and_recovery_proof_required; current_dev_checkpoint_and_binary_preview_verified"
     },
     {
       "repository_name": "readiness-inspector",
@@ -467,7 +471,7 @@
       "rehearsal_status": "not_ready",
       "first_required_closure": "RI-0",
       "remaining_gap_count_before_rehearsal": 1,
-      "rehearsal_disposition": "candidate_packet_complete_upstream_projection_and_continuity_required"
+      "rehearsal_disposition": "candidate_packet_complete_current_dev_and_binary_preview_verified_upstream_projection_and_continuity_required"
     },
     {
       "repository_name": "fleet-radar",
@@ -478,7 +482,7 @@
       "rehearsal_status": "not_ready",
       "first_required_closure": "FR-0",
       "remaining_gap_count_before_rehearsal": 1,
-      "rehearsal_disposition": "candidate_packet_complete_binary_preview_verified_owner_only_host_saved_real_producer_readback_direct_navigation_and_public_access_required"
+      "rehearsal_disposition": "candidate_packet_complete_current_dev_and_binary_preview_verified_owner_only_host_saved_real_producer_readback_direct_navigation_and_public_access_required"
     }
   ]
 }

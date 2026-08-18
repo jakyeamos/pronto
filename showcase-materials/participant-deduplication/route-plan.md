@@ -1,10 +1,11 @@
 # Participant Deduplication route plan
 
 Status: PD-1 through PD-5 are closed for the synthetic material and the
-repository's deterministic local behavior probes. PD-6 is parked at the
-authenticated live-sheet boundary. PD-7 is closed as a local, no-auth static
-case built only from the labeled synthetic and local receipts; hosting and
-live-provider proof remain open.
+repository's deterministic local behavior probes. The fixture is now available
+as both a reviewable CSV sheet and a no-auth HTML sheet preview. PD-6 is parked
+at the authenticated live-sheet boundary. PD-7 is closed as a local, no-auth
+static case built only from the labeled synthetic and local receipts; hosting
+and live-provider proof remain open.
 
 The [canonical target](../ideal-demo-targets.md#participant-deduplication) owns
 the durable promise and proof gate.
@@ -53,7 +54,7 @@ demo_integration — PD-6; packaging — PD-7.
 
 | ID   | Gap to close                           | Observable acceptance condition                                                                                                                                          | Owner                  | Required proof                                                                                                           |
 | ---- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| PD-1 | Author the synthetic workbook          | **Closed:** fixture covers exact, fuzzy, shared-contact, and ambiguous non-duplicate cases with expected reviewer outcomes; source matcher probe and privacy review pass | Data/product owner     | `synthetic-fixture.json` and `evidence/pd-1-fixture-receipt.json`                                                        |
+| PD-1 | Author the synthetic workbook          | **Closed:** fixture covers exact, fuzzy, shared-contact, and ambiguous non-duplicate cases with expected reviewer outcomes; source matcher probe and privacy review pass; CSV and HTML sheet views are labeled synthetic | Data/product owner     | `synthetic-fixture.json`, `synthetic-sheet.csv`, `synthetic-sheet.html`, and `evidence/pd-1-fixture-receipt.json`          |
 | PD-2 | Make candidate reasoning legible       | **Closed:** each proposed pair shows native field contributions, conflicts, confidence limits, and the bounded reviewer action; no mutating action is exposed            | Matching/product owner | `candidate-reasoning.json` and `evidence/pd-2-explanation-review.json`                                                   |
 | PD-3 | Prove reviewer-controlled atomic apply | **Closed locally:** only approved candidates change, rejected/ambiguous rows do not, and the deterministic apply path writes a coherent audit batch                      | Workflow owner         | [`evidence/pd-3-atomic-apply-receipt.json`](evidence/pd-3-atomic-apply-receipt.json)                                     |
 | PD-4 | Prove stale-state refusal              | **Closed locally:** editing a candidate row after scan invalidates apply before any deletion                                                                             | Safety owner           | [`evidence/pd-4-stale-state-receipt.json`](evidence/pd-4-stale-state-receipt.json)                                       |
@@ -70,6 +71,12 @@ demo_integration — PD-6; packaging — PD-7.
 `synthetic-fixture.json` is the labeled primary fixture until an owner can run
 the same story against an authenticated Google Sheets copy. It contains eight
 invented rows and four deliberate pair types:
+
+The same rows are exposed in [`synthetic-sheet.csv`](synthetic-sheet.csv) for
+spreadsheet review and [`synthetic-sheet.html`](synthetic-sheet.html) for a
+no-auth browser preview. Both are disposable showcase fixtures, carry the
+`Synthetic showcase fixture · no participant data` label, and must never be
+treated as an apply target.
 
 - exact duplicate: approve one retained row and one deletion;
 - fuzzy given-name typo: approve only after the reviewer inspects the evidence;

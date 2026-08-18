@@ -1,0 +1,1955 @@
+{
+  "schema_version": "pronto-showcase-postability/v1",
+  "reviewed_at": "2026-08-14T17:22:07.735Z",
+  "purpose": "Track whether each public Showcase project has a locally postable packet without confusing local materials, live proof, authority, hosting, or external publication.",
+  "publication_policy": "This ledger never authorizes external posting. A project is not posted until a fresh destination receipt and readback are recorded.",
+  "state_definitions": {
+    "local_packet_ready": "Story, evidence, no-auth source, preview, short copy, and role/claim boundary are present locally; any optional or external follow-up stays explicit.",
+    "local_packet_ready_with_open_gate": "The local packet is present, but one or more required product, evidence, authority, hosting, or destination gates remain open.",
+    "local_package_incomplete": "A safe local packet artifact is still missing; do not substitute a generated or aspirational proof.",
+    "blocked_by_gate": "A named provenance, rights, owner, or product boundary prevents honest packet completion.",
+    "deferred_by_decision": "The owner or a required provider contract has intentionally deferred the next closure."
+  },
+  "summary": {
+    "public_project_count": 32,
+    "local_packet_ready_count": 30,
+    "local_package_incomplete_count": 2,
+    "local_fix_complete_count": 30,
+    "local_fix_partial_count": 2,
+    "deferred_or_blocked_count": 31,
+    "externally_postable_count": 0,
+    "publication_receipts_recorded": 0
+  },
+  "projects": [
+    {
+      "repository_name": "mac-control",
+      "display_name": "Mac Control",
+      "package_path": "showcase-materials/mac-control",
+      "release_state": "gated",
+      "postability_state": "local_package_incomplete",
+      "local_package_complete": null,
+      "local_fix": {
+        "state": "partial",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [
+          "preview"
+        ],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": null,
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "crop-safe 16:9 Handshake preview",
+        "public no-auth demo or case-study page",
+        "redacted authorization receipt and outcome proof"
+      ],
+      "active_gate": "MC-2: prove the bounded document-open and layout routes through installed live progress, safe partial failure, and a structured result receipt.",
+      "next_step": "Close MC-2 from showcase-materials/mac-control/route-plan.md: prove the bounded document-open and layout routes through installed live progress, safe partial failure, and a structured result receipt.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "MC-2"
+      },
+      "deferral": {
+        "type": "installed_live_evidence",
+        "reason": "The packet has a case page and short copy, but the real 16:9 capture and redacted authorization/outcome receipt require an installed external macOS session and the bounded MC-2 route.",
+        "reentry": "Return to MC-2 after the installed document-open/layout proof and structured receipt are available."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "quality-runner",
+      "display_name": "Quality Runner",
+      "package_path": "showcase-materials/quality-runner",
+      "release_state": "in_progress",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/quality-runner/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "crop-safe 16:9 Handshake preview",
+        "verified Handshake description (500 characters or fewer)",
+        "public no-auth demo or case-study page",
+        "owner-approved public copy and linked proof"
+      ],
+      "active_gate": "QR-8: refresh the corrected Tenure public page, preview, short description, linked proof, and hosted verification.",
+      "next_step": "Close QR-8 from showcase-materials/quality-runner/route-plan.md: refresh the corrected Tenure public page, preview, short description, linked proof, and hosted verification; video rehearsal is optional.",
+      "readiness": {
+        "current_stage": "final_materials",
+        "rehearsal_status": "optional",
+        "first_required_closure": "QR-8"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close QR-8 from showcase-materials/quality-runner/route-plan.md: refresh the corrected Tenure public page, preview, short description, linked proof, and hosted verification; video rehearsal is optional.",
+        "reentry": "Close QR-8 from showcase-materials/quality-runner/route-plan.md: refresh the corrected Tenure public page, preview, short description, linked proof, and hosted verification; video rehearsal is optional."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "chirons-forge",
+      "display_name": "Chiron's Forge",
+      "package_path": "showcase-materials/chirons-forge",
+      "release_state": "blocked",
+      "postability_state": "blocked_owner_provenance",
+      "local_package_complete": false,
+      "local_fix": {
+        "state": "partial",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "role_review"
+        ],
+        "remaining": [
+          "public_case",
+          "preview",
+          "short_copy"
+        ],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": false,
+        "preview": null,
+        "short_copy": false,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "registered backing repository and deployed-revision provenance",
+        "real before-and-after case study",
+        "independent judge scorecard and refinement trace",
+        "public-safe output excerpt",
+        "privacy and deletion evidence"
+      ],
+      "active_gate": "CF-0: supply an owner-visible backing repository and exact deployed revision before public proof is treated as release evidence.",
+      "next_step": "Park CF-0 from showcase-materials/chirons-forge/route-plan.md with evidence/cf-0-blocker.json and continue the queue; return when the owner supplies the backing repository and exact deployed revision.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "CF-0"
+      },
+      "deferral": {
+        "type": "owner_provenance",
+        "reason": "No owner-visible backing repository or exact deployed revision is available, so a real case, judge trace, output, or deletion proof would be fabricated.",
+        "reentry": "Resume at CF-0 when the owner supplies the backing repository and immutable deployed revision."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "research-domain-writing",
+      "display_name": "Research Domain Writing",
+      "package_path": "showcase-materials/research-domain-writing",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/research-domain-writing/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "no-auth hosted verification"
+      ],
+      "active_gate": "RDW-0: bind the installed artifact to the intended source revision and complete editorial approval.",
+      "next_step": "Complete RDW-5 from showcase-materials/research-domain-writing/route-plan.md: host the no-auth case, verify the hosted page on desktop and mobile, and record destination readbacks; source attestation and editorial approval are closed locally.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "RDW-5"
+      },
+      "deferral": {
+        "type": "rights_or_editorial_authority",
+        "reason": "Complete RDW-5 from showcase-materials/research-domain-writing/route-plan.md: host the no-auth case, verify the hosted page on desktop and mobile, and record destination readbacks; source attestation and editorial approval are closed locally.",
+        "reentry": "Complete RDW-5 from showcase-materials/research-domain-writing/route-plan.md: host the no-auth case, verify the hosted page on desktop and mobile, and record destination readbacks; source attestation and editorial approval are closed locally."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "pre-cr-suite-lsp",
+      "display_name": "Pre-CR Suite",
+      "package_path": "showcase-materials/pre-cr-suite",
+      "release_state": "in_progress",
+      "postability_state": "local_packet_ready",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/pre-cr-suite/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [],
+      "active_gate": "PCR-4 is locally closed; owner copy review, marketplace proof, and optional video remain separate follow-ons.",
+      "next_step": "PCR-4 in showcase-materials/pre-cr-suite/route-plan.md is closed with a locally reviewed static package; owner copy review, marketplace proof, and video remain optional follow-ons.",
+      "readiness": {
+        "current_stage": "reviewed",
+        "rehearsal_status": "optional",
+        "first_required_closure": "PCR-4"
+      },
+      "deferral": null,
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "Terrace",
+      "display_name": "Terrace",
+      "package_path": "showcase-materials/terrace",
+      "release_state": "in_progress",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/terrace/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "post-integration TR-6 static preview capture (browser file:// policy blocker)"
+      ],
+      "active_gate": "Refresh the post-integration TR-6 visual capture when a permitted browser surface can render the file; keep hosted publication separate.",
+      "next_step": "Refresh the TR-6 local visual capture when a permitted browser surface can render file://; then keep hosted publication and video optional. See showcase-materials/terrace/route-plan.md.",
+      "readiness": {
+        "current_stage": "reviewed",
+        "rehearsal_status": "optional",
+        "first_required_closure": "TR-6"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Refresh the TR-6 local visual capture when a permitted browser surface can render file://; then keep hosted publication and video optional. See showcase-materials/terrace/route-plan.md.",
+        "reentry": "Refresh the TR-6 local visual capture when a permitted browser surface can render file://; then keep hosted publication and video optional. See showcase-materials/terrace/route-plan.md."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "context-compiler-contract",
+      "display_name": "Context Compiler Contract",
+      "package_path": "showcase-materials/context-compiler-contract",
+      "release_state": "in_progress",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/context-compiler-contract/preview.svg",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "browser-rendered thumbnail (optional)"
+      ],
+      "active_gate": "CC-6 is optional browser capture; hosted publication and video remain separate from the local proof package.",
+      "next_step": "Optional CC-6 from showcase-materials/context-compiler-contract/route-plan.md: render the static comparison in a permitted browser surface when one is available; keep hosted publication and video separate.",
+      "readiness": {
+        "current_stage": "reviewed",
+        "rehearsal_status": "optional",
+        "first_required_closure": "CC-6"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Optional CC-6 from showcase-materials/context-compiler-contract/route-plan.md: render the static comparison in a permitted browser surface when one is available; keep hosted publication and video separate.",
+        "reentry": "Optional CC-6 from showcase-materials/context-compiler-contract/route-plan.md: render the static comparison in a permitted browser surface when one is available; keep hosted publication and video separate."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "jakyeamos-agent-skills",
+      "display_name": "Portable Agentic Workbench",
+      "package_path": "showcase-materials/portable-agentic-workbench",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/portable-agentic-workbench/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "permitted host-runtime equivalence proof",
+        "hosted no-auth case URL and external destination readbacks"
+      ],
+      "active_gate": "PW-4: resolve the host-runtime equivalence boundary without violating the repository's provider and privacy contract.",
+      "next_step": "Park PW-4 from showcase-materials/portable-agentic-workbench/route-plan.md with its reason-coded runtime receipt; the local material package is complete, so continue the queue and return after a permitted host-runtime equivalence path is available, then verify hosting and destination readbacks.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "PW-4"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Park PW-4 from showcase-materials/portable-agentic-workbench/route-plan.md with its reason-coded runtime receipt; the local material package is complete, so continue the queue and return after a permitted host-runtime equivalence path is available, then verify hosting and destination readbacks.",
+        "reentry": "Park PW-4 from showcase-materials/portable-agentic-workbench/route-plan.md with its reason-coded runtime receipt; the local material package is complete, so continue the queue and return after a permitted host-runtime equivalence path is available, then verify hosting and destination readbacks."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "remodelvision",
+      "display_name": "RemodelVision",
+      "package_path": "showcase-materials/remodelvision",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/remodelvision/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "current runnable proof",
+        "constraint adherence proof",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "RV-1: complete the contribution ledger and explicit owner/collaborator approval record.",
+      "next_step": "Resolve RV-3 from showcase-materials/remodelvision/route-plan.md with current runtime and direct-surface proof; the scoped RV-1 owner approval and RV-6 local candidate package are complete.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "RV-3"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Resolve RV-3 from showcase-materials/remodelvision/route-plan.md with current runtime and direct-surface proof; the scoped RV-1 owner approval and RV-6 local candidate package are complete.",
+        "reentry": "Resolve RV-3 from showcase-materials/remodelvision/route-plan.md with current runtime and direct-surface proof; the scoped RV-1 owner approval and RV-6 local candidate package are complete."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "Dsci-proj",
+      "display_name": "Dsci-proj",
+      "package_path": "showcase-materials/dsci-proj",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/dsci-proj/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "second backlog adapter",
+        "scenario proof",
+        "current runnable proof",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "DS-1: map two backlog schemas into the decision contract without source-specific engine changes.",
+      "next_step": "Implement DS-1 from showcase-materials/dsci-proj/route-plan.md: map two backlog schemas into the decision contract without source-specific engine changes; the DS-5 local candidate package is complete while scenario proof remains separate.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "DS-1"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Implement DS-1 from showcase-materials/dsci-proj/route-plan.md: map two backlog schemas into the decision contract without source-specific engine changes; the DS-5 local candidate package is complete while scenario proof remains separate.",
+        "reentry": "Implement DS-1 from showcase-materials/dsci-proj/route-plan.md: map two backlog schemas into the decision contract without source-specific engine changes; the DS-5 local candidate package is complete while scenario proof remains separate."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "Book",
+      "display_name": "Book",
+      "package_path": "showcase-materials/book",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/book/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "fresh direct reader proof",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "BK-2: author the full transformation arc for the owner-approved synthetic case, then prove the direct reader surface before hosting.",
+      "next_step": "Continue at BK-2 in showcase-materials/book/route-plan.md: author the full transformation arc for the selected synthetic case, then prove the direct reader surface before hosting.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "BK-2"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Continue at BK-2 in showcase-materials/book/route-plan.md: author the full transformation arc for the selected synthetic case, then prove the direct reader surface before hosting.",
+        "reentry": "Continue at BK-2 in showcase-materials/book/route-plan.md: author the full transformation arc for the selected synthetic case, then prove the direct reader surface before hosting."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "agent-router",
+      "display_name": "Agent Router",
+      "package_path": "showcase-materials/agent-router",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/agent-router/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "verified comparison outcome",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "AR-5: add or approve the confidence/fallback output contract and preserve the native conflict receipt.",
+      "next_step": "Park AR-5 from showcase-materials/agent-router/route-plan.md with its native conflict receipt; the local AR-7 material package is complete, so continue the queue and return after the owner adds or approves the confidence/fallback output contract, then verify comparison, hosting, and destination readbacks.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "AR-5"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Park AR-5 from showcase-materials/agent-router/route-plan.md with its native conflict receipt; the local AR-7 material package is complete, so continue the queue and return after the owner adds or approves the confidence/fallback output contract, then verify comparison, hosting, and destination readbacks.",
+        "reentry": "Park AR-5 from showcase-materials/agent-router/route-plan.md with its native conflict receipt; the local AR-7 material package is complete, so continue the queue and return after the owner adds or approves the confidence/fallback output contract, then verify comparison, hosting, and destination readbacks."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "browser-control",
+      "display_name": "Codex Browser Control",
+      "package_path": "showcase-materials/codex-browser-control",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/codex-browser-control/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "installed side-panel plan, apply, verify, and stale-refusal receipts",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "CB-2/CB-3: reload the current extension/native-host pair together and capture the installed round trip before claiming observe-to-plan behavior.",
+      "next_step": "Park CB-2/CB-3 from showcase-materials/codex-browser-control/route-plan.md with its installed-round-trip receipt; the local CB-7 material package is complete, so continue the queue and return after explicit deployment approval reloads the current extension/native-host pair, then capture CB-4/CB-5 and verify hosting/readbacks.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "CB-2"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Park CB-2/CB-3 from showcase-materials/codex-browser-control/route-plan.md with its installed-round-trip receipt; the local CB-7 material package is complete, so continue the queue and return after explicit deployment approval reloads the current extension/native-host pair, then capture CB-4/CB-5 and verify hosting/readbacks.",
+        "reentry": "Park CB-2/CB-3 from showcase-materials/codex-browser-control/route-plan.md with its installed-round-trip receipt; the local CB-7 material package is complete, so continue the queue and return after explicit deployment approval reloads the current extension/native-host pair, then capture CB-4/CB-5 and verify hosting/readbacks."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "participant-dedup",
+      "display_name": "Participant Deduplication",
+      "package_path": "showcase-materials/participant-deduplication",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_live_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/participant-deduplication/assets/preview.svg",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "authenticated live-sheet UAT receipt",
+        "hosted no-auth case URL and responsive readback"
+      ],
+      "active_gate": "PD-6: complete authenticated live-sheet UAT and hosted no-auth case publication without exposing participant data.",
+      "next_step": "Return to PD-6 in showcase-materials/participant-deduplication/route-plan.md when an authenticated live-sheet UAT path is available; PD-7 is closed locally and does not imply live-provider proof.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "PD-6"
+      },
+      "deferral": {
+        "type": "owner_authenticated_uat",
+        "reason": "The local synthetic packet is complete, but live Google Sheets UAT requires an owner-authenticated path and must not touch participant data from this thread.",
+        "reentry": "Resume at PD-6 when an owner-authenticated, privacy-safe UAT path is explicitly available."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "quality-lens",
+      "display_name": "Quality Lens",
+      "package_path": "showcase-materials/quality-lens",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/quality-lens/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "direct VS Code finding/disposition proof",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Directly exercise the current dev checkout's smallest IDE finding inspection and action workflow in docs/PRD.md; the local 1600×900 preview is verified, then promote the packet to QL-3 hosting/readback.",
+      "next_step": "Close QL-1 from showcase-materials/quality-lens/route-plan.md with the exact task-owned VS Code Problems-panel proof, then promote the packet to QL-3 hosting/readback.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "QL-1"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close QL-1 from showcase-materials/quality-lens/route-plan.md with the exact task-owned VS Code Problems-panel proof, then promote the packet to QL-3 hosting/readback.",
+        "reentry": "Close QL-1 from showcase-materials/quality-lens/route-plan.md with the exact task-owned VS Code Problems-panel proof, then promote the packet to QL-3 hosting/readback."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "debug-trail",
+      "display_name": "Debug Trail",
+      "package_path": "showcase-materials/debug-trail",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/debug-trail/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "direct VS Code trail/receipt continuity proof",
+        "stale/failed/cancelled scenario captures",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Directly exercise the current dev checkout's target-bound hypothesis, experiment, evidence, and continuation-receipt workflow in docs/PRD.md; the local 1600×900 preview is verified, then promote the packet to DT-3 hosting/readback.",
+      "next_step": "Close DT-1 from showcase-materials/debug-trail/route-plan.md with the exact task-owned VS Code continuity proof, add the remaining scenario matrix, then promote the packet to DT-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "DT-1"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close DT-1 from showcase-materials/debug-trail/route-plan.md with the exact task-owned VS Code continuity proof, add the remaining scenario matrix, then promote the packet to DT-3.",
+        "reentry": "Close DT-1 from showcase-materials/debug-trail/route-plan.md with the exact task-owned VS Code continuity proof, add the remaining scenario matrix, then promote the packet to DT-3."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "quality-setup",
+      "display_name": "Quality Setup",
+      "package_path": "showcase-materials/quality-setup",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/quality-setup/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "real quality-command smoke boundary",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Current dev setup case and local preview are verified; close the real quality-command smoke boundary, then promote the candidate packet to QS-3 hosting/readback.",
+      "next_step": "Close the real quality-command smoke boundary from showcase-materials/quality-setup/route-plan.md, then promote the locally packaged packet to QS-3 hosting/readback.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "QS-3"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close the real quality-command smoke boundary from showcase-materials/quality-setup/route-plan.md, then promote the locally packaged packet to QS-3 hosting/readback.",
+        "reentry": "Close the real quality-command smoke boundary from showcase-materials/quality-setup/route-plan.md, then promote the locally packaged packet to QS-3 hosting/readback."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "rule-lab",
+      "display_name": "Rule Lab",
+      "package_path": "showcase-materials/rule-lab",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/rule-lab/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "cross-producer receipt handoff",
+        "direct VS Code parity proof",
+        "pyright typecheck disposition",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Current headless receipt and local preview are verified; prove the Rule Lab receipt handoff, direct IDE parity, and typecheck disposition before RL-3 packaging.",
+      "next_step": "Close RL-0 and RL-1 from showcase-materials/rule-lab/route-plan.md, record the pyright disposition, then promote the candidate packet to RL-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "RL-0"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close RL-0 and RL-1 from showcase-materials/rule-lab/route-plan.md, record the pyright disposition, then promote the candidate packet to RL-3.",
+        "reentry": "Close RL-0 and RL-1 from showcase-materials/rule-lab/route-plan.md, record the pyright disposition, then promote the candidate packet to RL-3."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "evidence-replay",
+      "display_name": "Evidence Replay",
+      "package_path": "showcase-materials/evidence-replay",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/evidence-replay/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "complete producer/state receipt matrix",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Consume current Rule Lab and Debug Trail receipts, close the stale/unknown/cancelled matrix, and promote the candidate local packet to ER-3 packaging.",
+      "next_step": "Close ER-0 and ER-1 from showcase-materials/evidence-replay/route-plan.md: consume current Rule Lab/Debug Trail receipts, expand stale/unknown/cancelled coverage, and prove inspect-only behavior before promoting the packet to ER-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "ER-0"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close ER-0 and ER-1 from showcase-materials/evidence-replay/route-plan.md: consume current Rule Lab/Debug Trail receipts, expand stale/unknown/cancelled coverage, and prove inspect-only behavior before promoting the packet to ER-3.",
+        "reentry": "Close ER-0 and ER-1 from showcase-materials/evidence-replay/route-plan.md: consume current Rule Lab/Debug Trail receipts, expand stale/unknown/cancelled coverage, and prove inspect-only behavior before promoting the packet to ER-3."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "workflow-gateboard",
+      "display_name": "Workflow Gateboard",
+      "package_path": "showcase-materials/workflow-gateboard",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/workflow-gateboard/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "Automation Flight Recorder trace handoff",
+        "prerequisite-state persistence across CLI invocations",
+        "stale/failed/not-run state matrix",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Connect one declared gate to Automation Flight Recorder, persist prerequisite state across CLI invocations, prove the no-mutation boundary, and promote the candidate local packet to WG-3 packaging.",
+      "next_step": "Close WG-0 and WG-1 from showcase-materials/workflow-gateboard/route-plan.md: connect one declared gate to Automation Flight Recorder and prove the repository/ref no-mutation boundary before promoting the packet to WG-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "WG-0"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close WG-0 and WG-1 from showcase-materials/workflow-gateboard/route-plan.md: connect one declared gate to Automation Flight Recorder and prove the repository/ref no-mutation boundary before promoting the packet to WG-3.",
+        "reentry": "Close WG-0 and WG-1 from showcase-materials/workflow-gateboard/route-plan.md: connect one declared gate to Automation Flight Recorder and prove the repository/ref no-mutation boundary before promoting the packet to WG-3."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "failure-capsule",
+      "display_name": "Failure Capsule",
+      "package_path": "showcase-materials/failure-capsule",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/failure-capsule/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "Evidence Replay capsule handoff",
+        "cancellation/recovery scenario receipts",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Connect the current redacted failure capsule to Evidence Replay, verify cancellation and recovery behavior, then promote the candidate local packet to FC-3 packaging.",
+      "next_step": "Close FC-0 and FC-2 from showcase-materials/failure-capsule/route-plan.md: connect the redacted failure to Evidence Replay and expand cancellation/recovery proof before promoting the candidate packet to FC-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "FC-0"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close FC-0 and FC-2 from showcase-materials/failure-capsule/route-plan.md: connect the redacted failure to Evidence Replay and expand cancellation/recovery proof before promoting the candidate packet to FC-3.",
+        "reentry": "Close FC-0 and FC-2 from showcase-materials/failure-capsule/route-plan.md: connect the redacted failure to Evidence Replay and expand cancellation/recovery proof before promoting the candidate packet to FC-3."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "change-radius",
+      "display_name": "Change Radius",
+      "package_path": "showcase-materials/change-radius",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/change-radius/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "Deletion Proof/Contract Watch parity receipt",
+        "generated/reflective/external negative fixture matrix",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Preserve the current TypeScript fixture unknown boundary through Deletion Proof and Contract Watch, then promote the candidate local packet to CR-3 packaging.",
+      "next_step": "Close CR-1 and CR-2 from showcase-materials/change-radius/route-plan.md: prove Deletion Proof/Contract Watch parity and expand generated/reflective/external negative coverage before promoting the candidate packet to CR-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "CR-1"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close CR-1 and CR-2 from showcase-materials/change-radius/route-plan.md: prove Deletion Proof/Contract Watch parity and expand generated/reflective/external negative coverage before promoting the candidate packet to CR-3.",
+        "reentry": "Close CR-1 and CR-2 from showcase-materials/change-radius/route-plan.md: prove Deletion Proof/Contract Watch parity and expand generated/reflective/external negative coverage before promoting the candidate packet to CR-3."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "behavior-coverage-atlas",
+      "display_name": "Behavior Coverage Atlas",
+      "package_path": "showcase-materials/behavior-coverage-atlas",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/behavior-coverage-atlas/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "Review Attention Map source/freshness handoff",
+        "parameterized/deleted-test negative fixture receipts",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Feed the current behavior evidence and freshness signal into Review Attention Map, then promote the candidate local packet to BC-3 packaging.",
+      "next_step": "Close BC-1 and BC-2 from showcase-materials/behavior-coverage-atlas/route-plan.md: feed one behavior signal into Review Attention Map and expand negative fixture proof before promoting the candidate packet to BC-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "BC-1"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close BC-1 and BC-2 from showcase-materials/behavior-coverage-atlas/route-plan.md: feed one behavior signal into Review Attention Map and expand negative fixture proof before promoting the candidate packet to BC-3.",
+        "reentry": "Close BC-1 and BC-2 from showcase-materials/behavior-coverage-atlas/route-plan.md: feed one behavior signal into Review Attention Map and expand negative fixture proof before promoting the candidate packet to BC-3."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "automation-flight-recorder",
+      "display_name": "Automation Flight Recorder",
+      "package_path": "showcase-materials/automation-flight-recorder",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/automation-flight-recorder/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "Workflow Gateboard parent-identity handoff",
+        "cancellation/missing-artifact/stale-rerun scenario receipts",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Trace a Gateboard action end-to-end, prove parent/child causality and safe rerun, then promote the candidate local packet to AFR-3 packaging.",
+      "next_step": "Close AFR-0 through AFR-2 from showcase-materials/automation-flight-recorder/route-plan.md: connect one Gateboard action, expand failure/recovery coverage, and bound rerun authority before promoting the candidate packet to AFR-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "AFR-0"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close AFR-0 through AFR-2 from showcase-materials/automation-flight-recorder/route-plan.md: connect one Gateboard action, expand failure/recovery coverage, and bound rerun authority before promoting the candidate packet to AFR-3.",
+        "reentry": "Close AFR-0 through AFR-2 from showcase-materials/automation-flight-recorder/route-plan.md: connect one Gateboard action, expand failure/recovery coverage, and bound rerun authority before promoting the candidate packet to AFR-3."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "remediation-canvas",
+      "display_name": "Remediation Canvas",
+      "package_path": "showcase-materials/remediation-canvas",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/remediation-canvas/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "Quality Lens source-authority parity receipt",
+        "Review Attention Map handoff",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Complete one disposition-and-refresh handoff with partial work preserved, then promote the candidate local packet to RC-3 packaging.",
+      "next_step": "Close RC-0 through RC-2 from showcase-materials/remediation-canvas/route-plan.md: complete one verification/authority handoff, connect downstream review without copying findings, and prove stale partial-work preservation before promoting the candidate packet to RC-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "RC-0"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close RC-0 through RC-2 from showcase-materials/remediation-canvas/route-plan.md: complete one verification/authority handoff, connect downstream review without copying findings, and prove stale partial-work preservation before promoting the candidate packet to RC-3.",
+        "reentry": "Close RC-0 through RC-2 from showcase-materials/remediation-canvas/route-plan.md: complete one verification/authority handoff, connect downstream review without copying findings, and prove stale partial-work preservation before promoting the candidate packet to RC-3."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "contract-watch",
+      "display_name": "Contract Watch",
+      "package_path": "showcase-materials/contract-watch",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/contract-watch/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "Review Attention Map/Deletion Proof source-identity handoff",
+        "undocumented-consumer and stale-baseline fixture matrix",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Feed one contract change into Review Attention Map and Deletion Proof without copying authority, then promote the candidate local packet to CW-3 packaging.",
+      "next_step": "Close CW-0 through CW-2 from showcase-materials/contract-watch/route-plan.md: hand one semantic change to downstream review tools, preserve certainty/policy separation, and expand unknown-consumer/stale coverage before promoting the candidate packet to CW-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "CW-0"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close CW-0 through CW-2 from showcase-materials/contract-watch/route-plan.md: hand one semantic change to downstream review tools, preserve certainty/policy separation, and expand unknown-consumer/stale coverage before promoting the candidate packet to CW-3.",
+        "reentry": "Close CW-0 through CW-2 from showcase-materials/contract-watch/route-plan.md: hand one semantic change to downstream review tools, preserve certainty/policy separation, and expand unknown-consumer/stale coverage before promoting the candidate packet to CW-3."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "review-attention-map",
+      "display_name": "Review Attention Map",
+      "package_path": "showcase-materials/review-attention-map",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/review-attention-map/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "current producer/source-freshness readback",
+        "stale/unmatched/reviewed negative scenario matrix",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Prove two-source overlay and direct navigation to originating evidence, then promote the candidate local packet to RAM-3 packaging.",
+      "next_step": "Close RAM-0 through RAM-2 from showcase-materials/review-attention-map/route-plan.md: bind current producer receipts, preserve stale/unmatched/reviewed states, and complete direct evidence navigation before promoting the candidate packet to RAM-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "RAM-0"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close RAM-0 through RAM-2 from showcase-materials/review-attention-map/route-plan.md: bind current producer receipts, preserve stale/unmatched/reviewed states, and complete direct evidence navigation before promoting the candidate packet to RAM-3.",
+        "reentry": "Close RAM-0 through RAM-2 from showcase-materials/review-attention-map/route-plan.md: bind current producer receipts, preserve stale/unmatched/reviewed states, and complete direct evidence navigation before promoting the candidate packet to RAM-3."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "review-sandbox",
+      "display_name": "Review Sandbox",
+      "package_path": "showcase-materials/review-sandbox",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/review-sandbox/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "distinct cancellation and process/port ownership receipts",
+        "primary-checkout unrelated-dirty before/after proof",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Exercise clean, conflict, failed-gate, cancellation, and retained-dirty scenarios with cleanup proof, then promote the candidate local packet to RS-3 packaging.",
+      "next_step": "Close RS-0 through RS-2 from showcase-materials/review-sandbox/route-plan.md: add distinct cancellation/process proof, verify primary-checkout safety, and preserve cleanup authority before promoting the candidate packet to RS-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "RS-0"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close RS-0 through RS-2 from showcase-materials/review-sandbox/route-plan.md: add distinct cancellation/process proof, verify primary-checkout safety, and preserve cleanup authority before promoting the candidate packet to RS-3.",
+        "reentry": "Close RS-0 through RS-2 from showcase-materials/review-sandbox/route-plan.md: add distinct cancellation/process proof, verify primary-checkout safety, and preserve cleanup authority before promoting the candidate packet to RS-3."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "change-integration-simulator",
+      "display_name": "Change Integration Simulator",
+      "package_path": "showcase-materials/change-integration-simulator",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/change-integration-simulator/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "Workflow Gateboard gate receipt bound to simulated state",
+        "stale/cancellation/retained-workspace negative matrix",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Run clean and conflict simulations plus one Workflow Gateboard gate, then promote the candidate local packet to CIS-3 packaging.",
+      "next_step": "Close CIS-0 through CIS-2 from showcase-materials/change-integration-simulator/route-plan.md: bind a real Gateboard receipt, preserve stale/cancellation/dirty boundaries, and prove clean/conflict safety before promoting the candidate packet to CIS-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "CIS-0"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close CIS-0 through CIS-2 from showcase-materials/change-integration-simulator/route-plan.md: bind a real Gateboard receipt, preserve stale/cancellation/dirty boundaries, and prove clean/conflict safety before promoting the candidate packet to CIS-3.",
+        "reentry": "Close CIS-0 through CIS-2 from showcase-materials/change-integration-simulator/route-plan.md: bind a real Gateboard receipt, preserve stale/cancellation/dirty boundaries, and prove clean/conflict safety before promoting the candidate packet to CIS-3."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "deletion-proof-workbench",
+      "display_name": "Deletion Proof Workbench",
+      "package_path": "showcase-materials/deletion-proof-workbench",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/deletion-proof-workbench/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "stale-candidate/generated/reflective/failing-test negative matrix",
+        "Change Radius/Contract Watch source-identity handoff",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Current-dev bounded deletion/refusal/recovery and binary preview are verified; close stale/negative breadth and downstream parity, then promote the candidate local packet to DPW-3 packaging.",
+      "next_step": "Close DPW-1 through DPW-3 from showcase-materials/deletion-proof-workbench/route-plan.md: expand negative fixtures, bind Change Radius/Contract Watch without copying authority, then verify the no-auth case and destination readbacks.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "DPW-1"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close DPW-1 through DPW-3 from showcase-materials/deletion-proof-workbench/route-plan.md: expand negative fixtures, bind Change Radius/Contract Watch without copying authority, then verify the no-auth case and destination readbacks.",
+        "reentry": "Close DPW-1 through DPW-3 from showcase-materials/deletion-proof-workbench/route-plan.md: expand negative fixtures, bind Change Radius/Contract Watch without copying authority, then verify the no-auth case and destination readbacks."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "readiness-inspector",
+      "display_name": "Readiness Inspector",
+      "package_path": "showcase-materials/readiness-inspector",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/readiness-inspector/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "Quality Setup/Evidence Replay owner-bound projection",
+        "stale/contradictory/not-applicable and profile-specific failed state matrix",
+        "native follow-up navigation readback",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Current-dev individual receipts and binary preview are verified; consume upstream Quality Setup and Evidence Replay receipts, close the individual-check projection, and promote RI-3 packaging.",
+      "next_step": "Close RI-0 through RI-3 from showcase-materials/readiness-inspector/route-plan.md: project upstream receipts, preserve the full individual-state matrix, prove native follow-up, and verify the no-auth case/readbacks.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "RI-0"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close RI-0 through RI-3 from showcase-materials/readiness-inspector/route-plan.md: project upstream receipts, preserve the full individual-state matrix, prove native follow-up, and verify the no-auth case/readbacks.",
+        "reentry": "Close RI-0 through RI-3 from showcase-materials/readiness-inspector/route-plan.md: project upstream receipts, preserve the full individual-state matrix, prove native follow-up, and verify the no-auth case/readbacks."
+      },
+      "external_posting_proof": false
+    },
+    {
+      "repository_name": "fleet-radar",
+      "display_name": "Fleet Radar",
+      "package_path": "showcase-materials/fleet-radar",
+      "release_state": "gated",
+      "postability_state": "local_packet_ready_with_open_gate",
+      "local_package_complete": true,
+      "local_fix": {
+        "state": "complete",
+        "required": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "applied": [
+          "story_route",
+          "evidence",
+          "public_case",
+          "preview",
+          "short_copy",
+          "role_review"
+        ],
+        "remaining": [],
+        "boundary": "This is a local material fix receipt. It does not close live product, installed-surface, authority, hosting, or destination-readback gates."
+      },
+      "artifacts": {
+        "story_route": true,
+        "evidence": true,
+        "public_case": true,
+        "preview": "showcase-materials/fleet-radar/assets/preview-16x9.png",
+        "short_copy": true,
+        "role_review": true
+      },
+      "required_channels": [
+        "github",
+        "portfolio",
+        "handshake"
+      ],
+      "open_materials": [
+        "real producer receipt matrix",
+        "native blocker deep-link readback",
+        "hosted no-auth case URL",
+        "external destination readbacks"
+      ],
+      "active_gate": "Local contract, failure coverage, and the 16:9 binary preview are verified; read two real producer receipts and capture direct native blocker navigation, then confirm public access and credentialless case-page readback before FR-3 packaging.",
+      "next_step": "Close FR-0 and FR-1 from showcase-materials/fleet-radar/route-plan.md: read two real producer receipts and prove direct native blocker navigation, then confirm public access, deploy the saved case, and capture credentialless/external readbacks for FR-3.",
+      "readiness": {
+        "current_stage": "gap_closure",
+        "rehearsal_status": "not_ready",
+        "first_required_closure": "FR-0"
+      },
+      "deferral": {
+        "type": "hosting_or_external_readback",
+        "reason": "Close FR-0 and FR-1 from showcase-materials/fleet-radar/route-plan.md: read two real producer receipts and prove direct native blocker navigation, then confirm public access, deploy the saved case, and capture credentialless/external readbacks for FR-3.",
+        "reentry": "Close FR-0 and FR-1 from showcase-materials/fleet-radar/route-plan.md: read two real producer receipts and prove direct native blocker navigation, then confirm public access, deploy the saved case, and capture credentialless/external readbacks for FR-3."
+      },
+      "external_posting_proof": false
+    }
+  ]
+}

@@ -53,11 +53,18 @@ test("RDW's real case preserves the semantic and deterministic gate boundary", a
   assert.match(unsafeStop.forbidden_inference, /independently inferred/i);
 });
 
-test("RDW's publication candidate keeps release and deployment claims gated", async () => {
-  const [manifest, provenance, page, description] = await Promise.all([
+test("RDW's publication candidate keeps hosting and deployment claims gated", async () => {
+  const [manifest, approval, provenance, page, description, checkpoint, preview] = await Promise.all([
     readFile(
       new URL(
         "showcase-materials/research-domain-writing/final-package.json",
+        root,
+      ),
+      "utf8",
+      ).then(JSON.parse),
+    readFile(
+      new URL(
+        "showcase-materials/research-domain-writing/evidence/editorial-approval.json",
         root,
       ),
       "utf8",
@@ -83,10 +90,21 @@ test("RDW's publication candidate keeps release and deployment claims gated", as
       ),
       "utf8",
     ),
+    readFile(
+      new URL(
+        "showcase-materials/research-domain-writing/evidence/rdw-6-material-checkpoint.json",
+        root,
+      ),
+      "utf8",
+    ).then(JSON.parse),
+    readFile(
+      new URL("showcase-materials/research-domain-writing/preview.html", root),
+      "utf8",
+    ),
   ]);
 
-  assert.equal(manifest.status, "publication_candidate_provenance_gated");
-  assert.equal(manifest.checks.release_provenance_claim_allowed, false);
+  assert.equal(manifest.status, "publication_candidate_hosting_gated");
+  assert.equal(manifest.checks.release_provenance_claim_allowed, true);
   assert.equal(manifest.checks.deployment_claim_allowed, false);
   assert.equal(description.trim().length <= 500, true);
   assert.equal(
@@ -99,11 +117,22 @@ test("RDW's publication candidate keeps release and deployment claims gated", as
   );
   assert.equal(
     provenance.disposition.release_artifact_to_source_revision,
-    "not_verified",
+    "verified_attested",
   );
+  assert.equal(provenance.disposition.rdw_0_status, "closed_by_owner_attestation");
+  assert.equal(provenance.asset_manifest.all_installed_assets_match, true);
+  assert.equal(approval.approver, "Jakye Amos");
+  assert.equal(approval.review.human_publication_boundary_preserved, true);
   assert.match(page, /Plausible is not proven/);
   assert.match(page, /Human decision required/);
-  assert.match(page, /release provenance and deployment not\s+yet verified/i);
+  assert.match(page, /hosting and deployment not\s+yet\s+verified/i);
+  assert.equal(checkpoint.status, "candidate_local");
+  assert.equal(checkpoint.checks.preview_visual_review, "pass");
+  assert.equal(
+    checkpoint.artifacts.find((artifact) => artifact.path.endsWith("preview-16x9.png"))?.dimensions,
+    "1600x900",
+  );
+  assert.match(preview, /data-material-status="candidate-local"/);
 });
 
 test("the AI Code Quality Stack concept keeps layer ownership and proof state explicit", async () => {

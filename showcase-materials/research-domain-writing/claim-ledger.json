@@ -41,12 +41,13 @@
     },
     {
       "id": "pack_maturity",
-      "status": "installed_behavior_verified_release_provenance_blocked",
-      "allowed_claim": "The installed RDW 0.2.0 CLI validates its basketball pack as specialized/production, and the installed contract is byte-identical to repository revision aa46b36.",
-      "forbidden_inference": "The current source checkout and installed wheel represent one verified release revision.",
+      "status": "installed_behavior_and_release_provenance_attested",
+      "allowed_claim": "The installed RDW 0.2.0 CLI validates its basketball pack as specialized/production, and its seven basketball assets match repository revision aa46b36 byte-for-byte under the recorded owner attestation.",
+      "forbidden_inference": "The active source checkout is the same revision as the installed artifact; it is explicitly recorded as different.",
       "evidence_refs": [
         "rdw-run/validation-record.json",
-        "rdw-0-provenance.json"
+        "rdw-0-provenance.json",
+        "evidence/editorial-approval.json"
       ]
     },
     {

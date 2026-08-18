@@ -286,6 +286,7 @@ test("public release targets cover exactly the eligible Showcase projects", asyn
     .map((project) => project.repository_name)
     .sort();
   const targetNames = targets.project_targets
+    .filter((project) => project.release_state !== "not_applicable")
     .map((project) => project.repository_name)
     .sort();
   assert.deepEqual(
@@ -309,9 +310,12 @@ test("public release targets cover exactly the eligible Showcase projects", asyn
     "gated",
     "deferred",
     "blocked",
+    "not_applicable",
   ]);
 
-  for (const project of targets.project_targets) {
+  for (const project of targets.project_targets.filter(
+    (candidate) => candidate.release_state !== "not_applicable",
+  )) {
     assert.ok(
       project.active_gate?.trim(),
       `${project.repository_name} needs an active gate`,
@@ -384,12 +388,19 @@ test("release material inventory joins every public project and destination row"
     (total, project) => total + project.missing_materials.length,
     0,
   );
-  const targetRowCount = targets.project_targets.reduce(
-    (total, project) => total + project.targets.length,
-    0,
-  );
+  const targetRowCount = targets.project_targets
+    .filter((project) => project.release_state !== "not_applicable")
+    .reduce(
+      (total, project) => total + project.targets.length,
+      0,
+    );
 
-  assert.equal(publicProjects.length, targets.project_targets.length);
+  assert.equal(
+    publicProjects.length,
+    targets.project_targets.filter(
+      (project) => project.release_state !== "not_applicable",
+    ).length,
+  );
   assert.match(
     inventory,
     new RegExp(`\\*\\*${publicProjects.length}\\*\\* active`),

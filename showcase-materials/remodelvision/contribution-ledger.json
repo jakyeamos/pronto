@@ -3,7 +3,7 @@
   "project": "remodelvision",
   "gap": "RV-1",
   "observed_at": "2026-08-13T17:24:41Z",
-  "status": "review_required",
+  "status": "owner_approved_scoped",
   "source": {
     "repository": "github.com/alec-angello/remodelvision",
     "checkout_commit": "8c2e3bb375587389204165fc290cd6599c2fa416",
@@ -61,16 +61,17 @@
     }
   },
   "boundary_status": {
-    "personal_contribution_role": "unknown_pending_owner_review",
-    "collaborator_approval_for_public_showcase": "unknown_pending_collaborator_review",
-    "third_party_asset_rights": "unknown_pending_asset_manifest",
-    "model_generated_output_rights": "unknown_pending_provider_and_asset_review",
-    "public_attribution_decision": "blocked_pending_human_review"
+    "personal_contribution_role": "owner_approved_majority_implementation",
+    "collaborator_approval_for_public_showcase": "not_required_for_scoped_personal_claim_no_collaborator_claims",
+    "third_party_asset_rights": "not_applicable_synthetic_fixture_only",
+    "model_generated_output_rights": "not_applicable_synthetic_fixture_only",
+    "public_attribution_decision": "approved_scoped_synthetic_case"
   },
   "claim_boundary": [
     "The repository and presentation establish a four-person senior-project attribution.",
     "Git history is evidence of authored changes, not proof of each person's product role or permission to publish a case study.",
-    "No collaborator approval, provider-rights decision, private-location clearance, or public attribution release is claimed."
+    "No collaborator role, collaborator endorsement, provider-generated output, private-location clearance, or third-party asset release is claimed."
   ],
-  "next_action": "Obtain an explicit contribution and public-showcase approval record from the project owner and collaborators before making personal or team claims public."
+  "owner_approval": "evidence/owner-approval.json",
+  "next_action": "Proceed only with the scoped synthetic personal-contribution case; return to RV-3 for current runtime proof before making product-behavior claims public."
 }

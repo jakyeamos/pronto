@@ -295,7 +295,7 @@
           "channel": "handshake",
           "requirement": "required",
           "status": "gated",
-          "artifact": "AI Showcase package after release attestation, approval, thumbnail, and hosted verification."
+          "artifact": "AI Showcase package after release attestation, editorial approval, and hosted verification."
         }
       ]
     },
@@ -497,7 +497,7 @@
           "channel": "portfolio",
           "requirement": "required",
           "status": "gated",
-          "artifact": "Clean install/apply -> overwrite refusal -> receipt-scoped recovery case."
+          "artifact": "Clean install/apply -> overwrite refusal -> receipt-scoped recovery case (local candidate package; hosting gated)."
         },
         {
           "channel": "dev_to",
@@ -533,65 +533,65 @@
           "channel": "handshake",
           "requirement": "required",
           "status": "gated",
-          "artifact": "AI Showcase package after PW-4 evidence closes."
+          "artifact": "AI Showcase package after PW-4 evidence, hosted no-auth verification, and destination readbacks."
         }
       ]
     },
     {
       "repository_name": "ai-workflow-leverage",
       "profile": "productized_workflow",
-      "release_state": "deferred",
+      "release_state": "not_applicable",
       "primary_sequence": ["github", "portfolio", "linkedin", "handshake"],
-      "active_gate": "AL-2: wait for agent-eval-runtime to own an approved append-only event contract before producing a public leverage case.",
+      "active_gate": "Excluded by owner decision from the current AI Showcase queue; retain the local packet as supporting work.",
       "targets": [
         {
           "channel": "github",
           "requirement": "required",
-          "status": "planned",
+          "status": "not_applicable",
           "artifact": "Public repository and workflow contract."
         },
         {
           "channel": "portfolio",
           "requirement": "required",
-          "status": "deferred",
-          "artifact": "Before/after leverage case with waits, retries, human touches, failures, and outcome evidence."
+          "status": "not_applicable",
+          "artifact": "Supporting local packet retained; no current AI Showcase case is requested."
         },
         {
           "channel": "dev_to",
           "requirement": "conditional",
-          "status": "deferred",
-          "artifact": "Technical article only after AL-2 produces a source-aligned trace."
+          "status": "not_applicable",
+          "artifact": "Supporting technical material retained outside the current queue."
         },
         {
           "channel": "daily_dev",
           "requirement": "conditional",
-          "status": "deferred",
-          "artifact": "Direct post only after the evidence contract is real."
+          "status": "not_applicable",
+          "artifact": "Supporting post concept retained outside the current queue."
         },
         {
           "channel": "product_hunt",
           "requirement": "conditional",
-          "status": "deferred",
-          "artifact": "Product launch only after a stable, user-facing flow exists."
+          "status": "not_applicable",
+          "artifact": "No current launch target; supporting packet retained."
         },
         {
           "channel": "linkedin",
           "requirement": "recommended",
-          "status": "deferred",
-          "artifact": "AI workflow leverage result post."
+          "status": "not_applicable",
+          "artifact": "No current result post; supporting packet retained."
         },
         {
           "channel": "handshake",
           "requirement": "required",
-          "status": "deferred",
-          "artifact": "AI Showcase package after AL-2."
+          "status": "not_applicable",
+          "artifact": "Supporting packet retained outside the current AI Showcase queue."
         }
       ]
     },
     {
       "repository_name": "marketing-autoresearch",
       "profile": "research_case",
-      "release_state": "deferred",
+      "release_state": "not_applicable",
       "primary_sequence": [
         "github",
         "portfolio",
@@ -600,49 +600,49 @@
         "linkedin",
         "handshake"
       ],
-      "active_gate": "MA-2: wait for a brief-aware source-to-claim receipt contract before rerunning the public portfolio brief.",
+      "active_gate": "Excluded by owner decision from the current AI Showcase queue; retain the local packet as supporting work.",
       "targets": [
         {
           "channel": "github",
           "requirement": "required",
-          "status": "planned",
+          "status": "not_applicable",
           "artifact": "Public repository and research/brief contract."
         },
         {
           "channel": "portfolio",
           "requirement": "required",
-          "status": "deferred",
-          "artifact": "Source-aware brief case with explicit attribution and claim provenance."
+          "status": "not_applicable",
+          "artifact": "Supporting local packet retained; no current AI Showcase case is requested."
         },
         {
           "channel": "dev_to",
           "requirement": "recommended",
-          "status": "deferred",
-          "artifact": "Technical article on brief-aware research automation after MA-2."
+          "status": "not_applicable",
+          "artifact": "Supporting technical material retained outside the current queue."
         },
         {
           "channel": "daily_dev",
           "requirement": "recommended",
-          "status": "deferred",
-          "artifact": "Direct post for the source-to-brief case."
+          "status": "not_applicable",
+          "artifact": "Supporting post concept retained outside the current queue."
         },
         {
           "channel": "product_hunt",
           "requirement": "conditional",
-          "status": "deferred",
-          "artifact": "Launch only if the public workflow becomes a stable user-facing product."
+          "status": "not_applicable",
+          "artifact": "No current launch target; supporting packet retained."
         },
         {
           "channel": "linkedin",
           "requirement": "recommended",
-          "status": "deferred",
-          "artifact": "Research automation result post."
+          "status": "not_applicable",
+          "artifact": "No current result post; supporting packet retained."
         },
         {
           "channel": "handshake",
           "requirement": "required",
-          "status": "deferred",
-          "artifact": "AI Showcase package after MA-2."
+          "status": "not_applicable",
+          "artifact": "Supporting packet retained outside the current AI Showcase queue."
         }
       ]
     },
@@ -663,7 +663,7 @@
           "channel": "portfolio",
           "requirement": "required",
           "status": "gated",
-          "artifact": "Rights-safe before/after visualization case with contribution boundaries."
+          "artifact": "Local synthetic constraint case with contribution boundaries; live before/after remains gated."
         },
         {
           "channel": "product_hunt",
@@ -687,7 +687,7 @@
           "channel": "handshake",
           "requirement": "required",
           "status": "gated",
-          "artifact": "AI Showcase package after RV-1."
+          "artifact": "AI Showcase package after RV-1, hosted no-auth verification, and external destination readbacks."
         }
       ]
     },
@@ -715,7 +715,7 @@
           "channel": "portfolio",
           "requirement": "required",
           "status": "gated",
-          "artifact": "Two-source backlog -> normalized decision contract case."
+          "artifact": "Local synthetic two-backlog contract case; adapter and scenario proof remain gated."
         },
         {
           "channel": "dev_to",
@@ -745,7 +745,7 @@
           "channel": "handshake",
           "requirement": "required",
           "status": "gated",
-          "artifact": "AI Showcase package after DS-1."
+          "artifact": "AI Showcase package after DS-1, hosted no-auth verification, and external destination readbacks."
         }
       ]
     },
@@ -806,7 +806,7 @@
           "channel": "portfolio",
           "requirement": "required",
           "status": "gated",
-          "artifact": "Request -> routing decision -> conflict/fallback receipt case."
+          "artifact": "Request -> routing decision -> conflict/fallback receipt case (local candidate package; hosting gated)."
         },
         {
           "channel": "dev_to",
@@ -836,7 +836,7 @@
           "channel": "handshake",
           "requirement": "required",
           "status": "gated",
-          "artifact": "AI Showcase package after AR-5."
+          "artifact": "AI Showcase package after AR-5, hosted no-auth verification, and destination readbacks."
         }
       ]
     },
@@ -900,7 +900,7 @@
           "channel": "handshake",
           "requirement": "required",
           "status": "gated",
-          "artifact": "AI Showcase package after CB-2/CB-3."
+          "artifact": "AI Showcase package after CB-2/CB-3, hosted no-auth verification, and destination readbacks."
         }
       ]
     },
@@ -1378,7 +1378,7 @@
       "profile": "productized_workflow",
       "release_state": "gated",
       "primary_sequence": ["github", "portfolio", "handshake"],
-      "active_gate": "Preview and apply one real unreferenced export while preserving unknown consumers and recovery evidence, then promote the candidate local packet to DPW-3 packaging.",
+      "active_gate": "Current-dev bounded deletion/refusal/recovery and binary preview are verified; close stale/negative breadth and downstream parity, then promote the candidate local packet to DPW-3 packaging.",
       "targets": [
         {
           "channel": "github",
@@ -1390,13 +1390,13 @@
           "channel": "portfolio",
           "requirement": "required",
           "status": "gated",
-          "artifact": "Candidate local case at showcase-materials/deletion-proof-workbench/public/index.html; hosted no-auth URL, stale/recovery matrix, and downstream parity remain gated."
+          "artifact": "Candidate local case at showcase-materials/deletion-proof-workbench/public/index.html; reviewed local binary preview, hosted no-auth URL, stale/negative matrix, and downstream parity remain gated."
         },
         {
           "channel": "handshake",
           "requirement": "required",
           "status": "gated",
-          "artifact": "Candidate preview.html and public-description.txt; binary preview, linked deletion proof, and posting readback remain gated."
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked deletion proof, hosted no-auth access, and posting readback remain gated."
         }
       ]
     },
@@ -1405,7 +1405,7 @@
       "profile": "technical_case",
       "release_state": "gated",
       "primary_sequence": ["github", "portfolio", "handshake"],
-      "active_gate": "Candidate local packet is complete; consume upstream Quality Setup and Evidence Replay receipts, close the individual-check projection, and promote RI-3 packaging.",
+      "active_gate": "Current-dev individual receipts and binary preview are verified; consume upstream Quality Setup and Evidence Replay receipts, close the individual-check projection, and promote RI-3 packaging.",
       "targets": [
         {
           "channel": "github",
@@ -1417,13 +1417,13 @@
           "channel": "portfolio",
           "requirement": "required",
           "status": "gated",
-          "artifact": "Candidate local case at showcase-materials/readiness-inspector/public/index.html; upstream projection, stale-state matrix, and hosted no-auth URL remain gated."
+          "artifact": "Candidate local case at showcase-materials/readiness-inspector/public/index.html; reviewed local binary preview, upstream projection, stale-state matrix, and hosted no-auth URL remain gated."
         },
         {
           "channel": "handshake",
           "requirement": "required",
           "status": "gated",
-          "artifact": "Candidate preview.html and public-description.txt; binary preview, linked readiness proof, and posting readback remain gated."
+          "artifact": "Candidate preview.html, assets/preview-16x9.png, and public-description.txt; linked readiness proof, hosted no-auth access, and posting readback remain gated."
         }
       ]
     },

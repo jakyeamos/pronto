@@ -208,22 +208,32 @@ test("Marketing Autoresearch MA-1 binds a public decision brief to privacy and r
   const readinessProject = readiness.projects.find(
     (candidate) => candidate.repository_name === "marketing-autoresearch",
   );
-  assert.equal(project?.next_step_category, "demo_integration");
-  assert.match(project?.next_step ?? "", /MA-2/);
-  assert.equal(readinessProject?.first_required_closure, "MA-2");
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 5);
+  assert.equal(project?.public_eligibility, "not_applicable");
+  assert.equal(project?.next_step_category, "content");
+  assert.match(project?.next_step ?? "", /do not include this repository/i);
+  assert.equal(readinessProject?.showcase_eligible, false);
+  assert.equal(readinessProject?.exclusion_reason, "owner_decision");
+  assert.equal(readinessProject?.first_required_closure, null);
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 0);
   assert.match(route, /MA-1 closure/);
   assert.match(route, /MA-2 blocker/);
   assert.match(route, /source-to-claim receipt/i);
   assert.match(route, /privacy review/i);
 });
 
-test("RemodelVision parks attribution safely while closing the synthetic fixture gap", async () => {
-  const [ledger, fixture, blocker, runtimeBlocker, route, contract, readiness] =
+test("RemodelVision scopes owner attribution safely while closing the synthetic fixture gap", async () => {
+  const [ledger, approval, fixture, blocker, runtimeBlocker, route, contract, readiness] =
     await Promise.all([
       readFile(
         new URL(
           "showcase-materials/remodelvision/contribution-ledger.json",
+          root,
+        ),
+        "utf8",
+      ).then(JSON.parse),
+      readFile(
+        new URL(
+          "showcase-materials/remodelvision/evidence/owner-approval.json",
           root,
         ),
         "utf8",
@@ -263,18 +273,24 @@ test("RemodelVision parks attribution safely while closing the synthetic fixture
     ledger.schema_version,
     "pronto-showcase-remodelvision-contribution-ledger/v1",
   );
-  assert.equal(ledger.status, "review_required");
+  assert.equal(ledger.status, "owner_approved_scoped");
   assert.equal(
     ledger.observed_attribution.project_statement.status,
     "observed",
   );
   assert.equal(
     ledger.boundary_status.personal_contribution_role,
-    "unknown_pending_owner_review",
+    "owner_approved_majority_implementation",
   );
   assert.equal(
     ledger.boundary_status.collaborator_approval_for_public_showcase,
-    "unknown_pending_collaborator_review",
+    "not_required_for_scoped_personal_claim_no_collaborator_claims",
+  );
+  assert.equal(approval.approver, "Jakye Amos");
+  assert.equal(approval.scope.approved_for_local_showcase, true);
+  assert.match(
+    approval.scope.personal_contribution_statement,
+    /implemented most/i,
   );
   assert.match(ledger.claim_boundary.join(" | "), /not proof/i);
 
@@ -290,14 +306,13 @@ test("RemodelVision parks attribution safely while closing the synthetic fixture
   assert.match(fixture.display_rules.join(" | "), /synthetic label/i);
 
   assert.equal(blocker.gap, "RV-1");
-  assert.equal(blocker.status, "blocked");
-  assert.equal(blocker.disposition, "parked_pending_collaborator_approval");
-  assert.ok(
-    blocker.missing_contract.required.some((item) =>
-      /collaborator approval/i.test(item),
-    ),
+  assert.equal(blocker.status, "resolved_scoped");
+  assert.equal(blocker.disposition, "owner_approved_scoped_synthetic_case");
+  assert.equal(
+    blocker.resolution.approval_record,
+    "showcase-materials/remodelvision/evidence/owner-approval.json",
   );
-  assert.match(blocker.blocked_action, /Do not publish/i);
+  assert.match(blocker.blocked_action, /Do not publish collaborator roles/i);
 
   assert.equal(runtimeBlocker.gap, "RV-3");
   assert.equal(runtimeBlocker.status, "blocked");
@@ -316,16 +331,19 @@ test("RemodelVision parks attribution safely while closing the synthetic fixture
   const readinessProject = readiness.projects.find(
     (candidate) => candidate.repository_name === "remodelvision",
   );
-  assert.equal(project?.next_step_category, "evidence");
-  assert.match(project?.next_step ?? "", /RV-1/);
-  assert.match(project?.blockers?.join(" | ") ?? "", /collaborator-approval/i);
-  assert.equal(readinessProject?.first_required_closure, "RV-1");
-  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 5);
+  assert.equal(project?.next_step_category, "product");
+  assert.match(project?.next_step ?? "", /RV-3/);
+  assert.doesNotMatch(
+    project?.blockers?.join(" | ") ?? "",
+    /collaborator-approval/i,
+  );
+  assert.equal(readinessProject?.first_required_closure, "RV-3");
+  assert.equal(readinessProject?.remaining_gap_count_before_rehearsal, 4);
   assert.equal(
     readinessProject?.rehearsal_disposition,
-    "blocked_attribution_and_runtime_owner_boundary",
+    "local_material_package_complete_scoped_owner_attribution_approved_runtime_owner_boundary_remains",
   );
-  assert.match(route, /RV-1 blocker/);
+  assert.match(route, /RV-1 scoped closure/);
   assert.match(route, /RV-2 closure/);
   assert.match(route, /RV-3 blocker/);
   assert.match(route, /rights-safe-fixture\.svg/);

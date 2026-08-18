@@ -1,10 +1,11 @@
 # Research Domain Writing route plan
 
 Status: the real case, negative path, and visual claim trace are assembled.
-RDW-1, RDW-2, and RDW-3 are closed. RDW-0 is partial: the installed pack passes
-and matches known repository content, but the release artifact is not bound to
-an exact source revision. RDW-4 remains a human editorial gate, and RDW-5
-remains open until provenance, hosting, and public verification close.
+RDW-0, RDW-1, RDW-2, RDW-3, and RDW-4 are closed for the selected local case.
+The installed basketball assets are attested byte-for-byte to repository
+revision `aa46b36`; the active checkout remains explicitly different. RDW-5
+remains open for no-auth hosting, responsive hosted verification, and external
+destination readbacks.
 
 The [canonical target](../ideal-demo-targets.md#research-domain-writing) owns the
 durable promise and proof gate.
@@ -44,11 +45,24 @@ targeted stop → evidence-safe final.
 
 Reviewed baseline: the installed CLI validates the packet, research readiness,
 the failing exact-draft QA receipt, the repaired exact-draft claim ledger, and
-the installed basketball pack as `specialized/production`. The installed
-domain contract is byte-identical to repository revision `aa46b36`, but the
-wheel does not embed that revision, its recorded build worktree no longer
-exists, and the active source checkout differs. The visual walkthrough is now
-locally addressable; release provenance and public hosting are not proven.
+the installed basketball pack as `specialized/production`. The seven installed
+basketball assets match repository revision `aa46b36` byte-for-byte under the
+owner attestation in `rdw-0-provenance.json`; the active source checkout is
+recorded separately and is not substituted for the artifact source. The visual
+walkthrough is locally addressable; public hosting is not proven.
+
+## 4. Local showcase package
+
+The agent-owned material layer is now assembled locally: `preview.html`, a
+crop-safe 1600×900 SVG/PNG preview, and
+`evidence/rdw-6-material-checkpoint.json` sit beside the real case, claim
+ledger, captions, and no-auth page source. The preview keeps the Tatum line,
+the stopped “elite two-way engine” inference, and the evidence-safe repair in
+one frame.
+
+This closes the thumbnail/material packaging gap and the selected release
+provenance/editorial gates. No-auth hosting and external destination readbacks
+remain open; the local package is not a publication claim.
 
 Project disposition: `targeted_gap_closure` — preserve the proven packet and QA
 path, reconcile installed/source pack provenance, then package the proof
@@ -59,17 +73,17 @@ RDW-5; evidence — RDW-3, RDW-4.
 
 | ID    | Gap to close                              | Observable acceptance condition                                                                                                            | Owner                 | Required proof                                              |
 | ----- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- | ----------------------------------------------------------- |
-| RDW-0 | Reconcile installed/source pack contract  | **Partial:** installed validation passes and content matches `aa46b36`; the intended release artifact is bound to an exact source revision | Release/product owner | `rdw-0-provenance.json` and rebuilt or attested artifact    |
+| RDW-0 | Reconcile installed/source pack contract  | **Closed by attestation:** installed validation passes and all seven basketball assets match repository revision `aa46b36` byte-for-byte; the active checkout is recorded separately | Release/product owner | `rdw-0-provenance.json` and its asset manifest                         |
 | RDW-1 | Author the representative source packet   | **Closed:** the Tatum packet supports a real 2023–24 box-score line and intentionally lacks impact evidence                                | Research owner        | `source-packet.yaml`, case and claim ledgers                |
 | RDW-2 | Make the claim trace visually addressable | **Closed:** selecting a claim reveals its source, support type, and uncertainty without exposing implementation clutter                    | Product/design owner  | `public/index.html` interactive trace                       |
 | RDW-3 | Reproduce the unsafe-claim stop           | **Closed:** fresh QA rejects the unsupported impact inference; both failing and repaired receipts pass exact-draft validation              | Workflow owner        | `rdw-run/unsafe-qa.yaml`, repaired final, validation record |
-| RDW-4 | Preserve voice through repair             | The corrected paragraph remains readable and useful after safety intervention                                                              | Editorial owner       | Side-by-side human review                                   |
+| RDW-4 | Preserve voice through repair             | **Closed by owner review:** the unsafe and repaired paragraphs remain readable, useful, and within the reviewed fact boundary                     | Editorial owner       | `evidence/editorial-approval.json`                                  |
 | RDW-5 | Package public evidence                   | **Partial:** local candidate includes sources, trace, draft, final, and limitations; provenance and no-auth hosting remain open            | Showcase owner        | `final-package.json`, link check, hosted claim audit        |
 
-**Build order:** RDW-0 → RDW-2 → RDW-4 → RDW-5. RDW-1, RDW-2, and RDW-3 are
-closed; RDW-0 and RDW-5 are partial, and RDW-4 is the next owner gate.
+**Build order:** RDW-0 → RDW-2 → RDW-4 → RDW-5. RDW-0 through RDW-4 are
+closed for the selected local case; RDW-5 is the remaining hosting and
+readback gate.
 
-**Next closure:** the release owner must select and attest or rebuild the exact
-source revision for RDW-0. The editorial owner can then close RDW-4 by reviewing
-the unsafe and repaired prose side by side. RDW-5 closes only after those gates,
-no-auth hosting, responsive public verification, and owner copy approval.
+**Next closure:** host the no-auth page, verify it on desktop and mobile, and
+record the external destination readbacks. The source attestation and editorial
+approval are closed in the local evidence bundle.
