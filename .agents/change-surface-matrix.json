@@ -333,6 +333,20 @@
       "status": "applicable"
     },
     {
+      "id": "long-running-task-triage",
+      "scope": "external",
+      "path": "Quality Runner long_running_task_observability and long_running_task_optimization dimensions, src-tauri/src/quality.rs, src-tauri/src/remediation.rs, and agent command guidance",
+      "owner": "Pronto and Quality Runner integration owners",
+      "condition": "Long-running task qualification, dimension import, pillar mapping, remediation copy, priority, or blocker semantics change.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml quality::tests::repository_maturity_maps_long_running_task_dimensions_to_operability",
+        "cargo test --manifest-path src-tauri/Cargo.toml remediation::tests::canonical_maturity_projection_owns_below_target_fleet_dimension_action",
+        "Confirm both dimensions create deferred P2 maturity actions and do not create blocker severity."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "quality-runner-web-readiness",
       "scope": "external",
       "path": "<repository>/.quality-runner/web-readiness.json",
