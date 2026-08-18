@@ -131,6 +131,25 @@ describe("repository detail surfaces", () => {
         counts: { unknown: 1 },
         disposition_counts: { legacy_unsigned_receipt: 1 },
         overlaps: [],
+        workspace_policy: {
+          schema_version: "workspace-policy/v1",
+          repository_role: "production_product",
+          status: "canonical_drift",
+          disposition: "canonical_workspace_missing",
+          baseline_target: 2,
+          canonical_target: 2,
+          canonical_observed: 1,
+          temporary_observed: 1,
+          active_temporary_lanes: 1,
+          retained_lane_count: 0,
+          managed_target_total: 3,
+          canonical_workspaces: [],
+          protected_refs: ["main", "develop"],
+          lease_required_for: "temporary",
+          canonical_protection: "enforced",
+          policy_path: "/tmp/pronto/.agents/workspace-policy.json",
+          drift: ["missing-canonical:integration"],
+        },
         integrity: { hmac_identity: "not_verified_by_pronto" },
       },
     });
@@ -173,6 +192,9 @@ describe("repository detail surfaces", () => {
     expect(markup).toContain("Release rule trace");
     expect(markup).toContain("Workspaces");
     expect(markup).toContain("Custody");
+    expect(markup).toContain("Workspace policy · production product");
+    expect(markup).toContain("Baseline target: 2");
+    expect(markup).toContain("canonical drift");
     expect(markup).toContain("legacy_unsigned_receipt");
     expect(markup).toContain("Read-only projection");
     expect(markup).toContain("no mutation authority");

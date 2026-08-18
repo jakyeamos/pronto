@@ -22,6 +22,90 @@ The native projection is `pronto-custody-projection/v1`; the CLI envelope is
 heads, status, operation markers, open-file evidence, and local receipt files.
 Cached Pronto labels do not authorize custody decisions.
 
+## Role-based workspace targets
+
+Custody is projected alongside a separate workspace policy dimension. A policy
+classifies the repository's protected canonical workspaces by role:
+
+- `production_product` has two canonical workspaces: `release` on `main` or
+  `master`, and `integration` on the repository's `dev` line.
+- `supporting_project` has one canonical `working` workspace on its actual
+  working branch.
+- `role_unresolved` is explicit and does not produce a baseline target.
+
+The fleet baseline is `2P + 1N`, where `P` is the number of production products
+and `N` is the number of supporting projects. Active feature, agent,
+verification, adoption, and cleanup worktrees are temporary lanes; they do not
+count toward that baseline and require isolated-change leases. A deliberate
+retention exception is reported separately with its review deadline.
+
+The projection exposes `baseline_target`, `canonical_observed`,
+`temporary_observed`, `active_temporary_lanes`, `retained_lane_count`,
+`managed_target_total`, and `drift`. Canonical protection and temporary-lane
+custody are separate dimensions: a canonical workspace is protected by the
+role policy, while every other workspace must be leased. A missing or invalid
+policy remains an explicit `policy_missing` or `policy_invalid` condition; it
+does not authorize adoption, deletion, or integration.
+
+### Fleet manifest generation
+
+Pronto generates the QR input manifest from the registered fleet and live
+temporary-lane projections. It requires an explicit, exact-coverage role map;
+it never infers product role from Showcase labels, repository names, or branch
+activity:
+
+```bash
+pronto workspace-manifest --role-map /path/to/workspace-role-map.json --json
+```
+
+The role map uses `workspace-role-map/v1` and contains one entry per registered
+repository. Production entries require `release_ref` (`main` or `master`) and
+`integration_ref` (`dev`); supporting entries require the actual
+`working_ref`; unresolved entries are allowed but keep the fleet baseline
+incomplete. Missing or extra repository IDs fail the command. The resulting
+`workspace-fleet-manifest/v1` is read-only and can be passed to QR:
+
+```bash
+qr fleet workspace-target calculate --manifest /path/to/workspace-fleet.json --json
+```
+
+The checked-in `.pronto/workspace-role-map.json` is the reviewed exact-coverage
+fleet map: 10 production products and 58 supporting projects. Its production
+entries use `main` or `master` plus `dev`; its supporting entries use `dev` as
+their working ref. The review explicitly assigns Bballedu's release ref to
+`master`. This gives the current fleet a baseline target of `2*10 + 58 = 78`;
+future role changes remain separate, reviewable policy decisions.
+
+The manifest generator reports current active temporary lanes from live custody
+evidence. It remains read-only: it does not write repository policy files,
+protect refs, grant custody, or delete worktrees.
+
+### Repository policy-file generation
+
+Per-repository policy files are a separate, explicit local-write surface. Use
+the same reviewed role map to plan or generate `.agents/workspace-policy.json`
+in each registered Git repository:
+
+```bash
+pronto workspace-policy generate \
+  --role-map /path/to/workspace-role-map.json \
+  [--repository <id|path|name>] --json
+```
+
+Without `--write`, the command emits `workspace-policy-generation/v1` and
+per-repository `would_create`/`would_replace` results without changing files.
+`--write` creates missing files. An existing differing file is a conflict until
+`--replace --write` is explicitly supplied. Fleet generation is plan-first:
+any blocked Git root, symlinked `.agents` directory or policy file, malformed
+target, or unresolved conflict prevents ready targets from being applied, so a
+fleet run does not silently produce a partial policy set. An explicit
+`--repository` scopes the plan to one registered repository.
+
+This command writes only the repository-owned policy file. It never commits or
+pushes, protects `main`/`master` or `dev`, grants temporary-lane custody, creates
+or removes worktrees, or changes provider state. Each generated file must be
+reviewed and committed through that repository's normal integration lane.
+
 ## State and disposition
 
 Each lane has an independent lifecycle `state`:

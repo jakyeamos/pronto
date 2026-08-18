@@ -166,6 +166,49 @@ export function RepositoryInventoryPanels({
             authority
           </small>
           <small>{repository.custody.next_safe_step}</small>
+          {repository.custody.workspace_policy && (
+            <div className="workspace-card">
+              <strong>
+                Workspace policy ·{" "}
+                {repository.custody.workspace_policy.repository_role.replaceAll(
+                  "_",
+                  " ",
+                )}
+              </strong>
+              <span>
+                Baseline target:{" "}
+                {repository.custody.workspace_policy.baseline_target ??
+                  "unresolved"}
+                {" · "}
+                Canonical:{" "}
+                {repository.custody.workspace_policy.canonical_observed}/
+                {repository.custody.workspace_policy.canonical_target ?? "?"}
+              </span>
+              <span>
+                Temporary:{" "}
+                {repository.custody.workspace_policy.temporary_observed}
+                {" · "}
+                Active lanes:{" "}
+                {repository.custody.workspace_policy.active_temporary_lanes}
+                {" · "}
+                Retained:{" "}
+                {repository.custody.workspace_policy.retained_lane_count}
+              </span>
+              <small>
+                {repository.custody.workspace_policy.status.replaceAll(
+                  "_",
+                  " ",
+                )}{" "}
+                ·{" "}
+                {repository.custody.workspace_policy.disposition.replaceAll(
+                  "_",
+                  " ",
+                )}{" "}
+                · {repository.custody.workspace_policy.lease_required_for}{" "}
+                workspaces require leases
+              </small>
+            </div>
+          )}
           {repository.custody.unleased_worktrees.length > 0 && (
             <div className="workspace-card">
               <strong>Unleased worktrees</strong>
@@ -182,7 +225,11 @@ export function RepositoryInventoryPanels({
                   <div>
                     <strong>{lane.task_id}</strong>
                     <span>
-                      {lane.state} · {lane.disposition}
+                      {lane.state} · {lane.disposition} ·{" "}
+                      {lane.workspace_class ?? "temporary"}
+                      {lane.lease_required === false
+                        ? " · lease optional"
+                        : " · lease required"}
                     </span>
                     {lane.branch && <span>{lane.branch}</span>}
                     <small>{lane.next_action}</small>
