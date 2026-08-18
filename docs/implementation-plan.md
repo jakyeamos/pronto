@@ -107,6 +107,12 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
   status, reason, reviewer, review time, evidence, and optional expiry. A
   missing, invalid, expired, no-longer-detected, or report-scope-mismatched
   decision remains visible and cannot silently suppress current work.
+- Ordinary `quality refresh` imports the newest valid QR detector ledger from
+  `~/.quality-runner/fleet-detector-refresh/<refresh-id>/detector-refresh.json`
+  and its published `code-quality-scan.json` reports. A missing or malformed
+  detector ledger/report is blocked evidence with `refresh required`; it does
+  not silently preserve a credible-looking current count. Explicit scoped
+  fleet-audit imports remain authoritative for that refresh.
 - `pronto-remediation/v3` treats active work and history separately and resolves
   a goal profile before generating actions. Repository-owned
   `pronto-remediation-goal/v1` contracts select the target outcome, applicable
