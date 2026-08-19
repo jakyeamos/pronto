@@ -168,6 +168,7 @@ export function RepositoryDetailSurface({
           remediation={remediation}
           events={events}
           onOpenWorkspace={onOpenWorkspace}
+          onPrepareRepository={onPrepareRepository}
         />
       ) : (
         <>

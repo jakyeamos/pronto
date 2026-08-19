@@ -37,4 +37,5 @@ export interface TelescopeWorkspaceProps {
   events: EventRecord[];
   initialProjection?: TelescopeProjection;
   onOpenWorkspace: (workspaceId: string, tool: ExternalTool) => Promise<void>;
+  onPrepareRepository?: (workspaceId?: string) => Promise<void>;
 }

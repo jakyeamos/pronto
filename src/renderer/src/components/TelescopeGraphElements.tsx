@@ -17,6 +17,9 @@ interface EntityData extends Record<string, unknown> {
   sourceFileCount?: number;
   narrativeStatus?: string;
   authored?: boolean;
+  cityRole?: string;
+  actorLabels?: string[];
+  payloadLabels?: string[];
   tone?: string;
   dimmed?: boolean;
   selected?: boolean;
@@ -68,7 +71,12 @@ export const TelescopeEntityNode = memo(function TelescopeEntityNode({
       title={entity.label}
     >
       <Handle type="target" position={Position.Left} />
-      <BuildingSilhouette archetype={archetype} label={entity.label} />
+      <BuildingSilhouette
+        archetype={archetype}
+        label={entity.label}
+        cityRole={entity.cityRole ?? "workplace"}
+        actorLabels={entity.actorLabels ?? []}
+      />
       <div className="telescope-building-copy">
         <strong>{entity.label}</strong>
         <small>
@@ -80,7 +88,7 @@ export const TelescopeEntityNode = memo(function TelescopeEntityNode({
       </div>
       <div className="telescope-building-meta">
         {kindIcon(entity.kind)}
-        <span>{entity.kind}</span>
+        <span>{humanizeRole(entity.cityRole ?? entity.kind)}</span>
         {entity.narrativeStatus && entity.narrativeStatus !== "derived" && (
           <em>{entity.narrativeStatus}</em>
         )}
@@ -133,9 +141,13 @@ export const TelescopeGroupNode = memo(function TelescopeGroupNode({
 function BuildingSilhouette({
   archetype,
   label,
+  cityRole,
+  actorLabels,
 }: {
   archetype: TelescopeArchetype;
   label: string;
+  cityRole: string;
+  actorLabels: string[];
 }): ReactElement {
   const width = 240;
   const height = 190;
@@ -225,8 +237,71 @@ function BuildingSilhouette({
         left={left}
         right={right}
       />
+      <CityRoleDetails cityRole={cityRole} baseY={baseY} left={left} right={right} />
+      {actorLabels.slice(0, 3).map((actor, index) => (
+        <g
+          className="telescope-city-person"
+          key={actor}
+          transform={`translate(${left - 20 + index * 18} ${baseY - 7})`}
+        >
+          <title>{actor}</title>
+          <circle cx="5" cy="-11" r="4" />
+          <path d="M 5 -7 L 5 6 M 0 -1 L 10 -1 M 5 6 L 1 13 M 5 6 L 9 13" />
+        </g>
+      ))}
     </svg>
   );
+}
+
+function humanizeRole(value: string): string {
+  return value.replaceAll("-", " ");
+}
+
+function CityRoleDetails({
+  cityRole,
+  baseY,
+  left,
+  right,
+}: {
+  cityRole: string;
+  baseY: number;
+  left: number;
+  right: number;
+}): ReactElement {
+  if (cityRole.includes("gate") || cityRole.includes("terminal")) {
+    return (
+      <g className="building-role-gate">
+        <path d={`M ${left + 42} ${baseY} V ${baseY - 36} H ${left + 78} V ${baseY}`} />
+        <path d={`M ${left + 34} ${baseY - 36} H ${left + 86}`} />
+      </g>
+    );
+  }
+  if (cityRole.includes("archive") || cityRole.includes("vault")) {
+    return (
+      <g className="building-role-vault">
+        <circle cx={left + 60} cy={baseY - 42} r="24" />
+        <path d={`M ${left + 60} ${baseY - 62} V ${baseY - 22} M ${left + 40} ${baseY - 42} H ${left + 80}`} />
+      </g>
+    );
+  }
+  if (cityRole.includes("port") || cityRole.includes("bridge")) {
+    return (
+      <g className="building-role-port">
+        <path d={`M ${right - 24} ${baseY - 8} H ${right + 42}`} />
+        <path d={`M ${right + 4} ${baseY - 8} V ${baseY - 38} M ${right + 30} ${baseY - 8} V ${baseY - 26}`} />
+      </g>
+    );
+  }
+  if (cityRole.includes("yard") || cityRole.includes("workshop")) {
+    return (
+      <g className="building-role-yard">
+        <path d={`M ${left + 14} ${baseY - 24} H ${right - 14}`} />
+        <circle cx={left + 34} cy={baseY - 16} r="7" />
+        <circle cx={right - 34} cy={baseY - 16} r="7" />
+      </g>
+    );
+  }
+  return <path className="building-role-entry" d={`M ${left + 48} ${baseY} V ${baseY - 27} H ${left + 72} V ${baseY}`} />;
 }
 
 function BuildingDetails({

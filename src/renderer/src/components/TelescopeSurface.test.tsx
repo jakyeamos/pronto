@@ -269,6 +269,7 @@ describe("TelescopeSurface", () => {
     expect(
       screen.getByText("Focuses the city on the request path."),
     ).toBeTruthy();
+    expect(screen.getByLabelText(/guided city story/i)).toBeTruthy();
     expect(screen.getByText(/Behavior contract unavailable/i)).toBeTruthy();
     expect(
       screen
@@ -349,5 +350,87 @@ describe("TelescopeSurface", () => {
       );
       expect(unrelated).toBeNull();
     });
+  });
+
+  it("routes incomplete meaning through the guarded Map Workshop", async () => {
+    const onPrepareRepository = vi.fn(async () => undefined);
+    const incompleteProjection: TelescopeProjection = {
+      ...projection,
+      schema_version: "pronto-telescope/v2",
+      map_readiness: {
+        state: "needs_information",
+        reason: "A primary actor is still unknown.",
+        requirements: [],
+        blocking_gap_keys: ["telescope-readiness:actors"],
+        enhancement_gap_keys: [],
+      },
+      blocking_gaps: [],
+      enhancement_gaps: [],
+      knowledge_tasks: [
+        {
+          id: "knowledge-task-actors",
+          stable_gap_key: "telescope-readiness:actors",
+          domain: "telescope_readiness",
+          status: "open",
+          title: "Complete Telescope knowledge: actors",
+          question: "Who enters this city, and which gates do they use?",
+          summary: "Entrypoints do not establish the people using them.",
+          priority: "P1",
+          dependency_order: 2,
+          depends_on: ["telescope-readiness:identity"],
+          unlocks: ["People and crews"],
+          candidate_answers: ["Repository operator"],
+          allowed_responses: ["confirm", "edit", "unknown"],
+          completion_criteria: ["actors contains explicit draft evidence."],
+          manifest_fields: ["actors"],
+          evidence: [{ path: "src/api.ts", line: 12, provenance: "symbol" }],
+          freshness: "current-workspace",
+          provenance: "telescope-readiness-to-remediation-projection",
+          read_only: true,
+          guarded_handoff: true,
+        },
+      ],
+    };
+    render(
+      <TelescopeSurface
+        repository={makeRepository()}
+        remediation={remediation}
+        events={[]}
+        initialProjection={incompleteProjection}
+        onOpenWorkspace={async () => undefined}
+        onPrepareRepository={onPrepareRepository}
+      />,
+    );
+
+    expect(screen.getByText("Who enters this city, and which gates do they use?")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Answer next question" }));
+    await waitFor(() => expect(onPrepareRepository).toHaveBeenCalledTimes(1));
+  });
+
+  it("turns Source detail into a building-local evidence workspace", async () => {
+    render(
+      <TelescopeSurface
+        repository={makeRepository()}
+        remediation={remediation}
+        events={[]}
+        initialProjection={projection}
+        onOpenWorkspace={async () => undefined}
+      />,
+    );
+
+    const sourceDetailButton = screen.getByRole("button", {
+      name: "Source detail",
+    });
+    fireEvent.click(sourceDetailButton);
+    await waitFor(() =>
+      expect(sourceDetailButton.getAttribute("aria-pressed")).toBe("true"),
+    );
+    await waitFor(() =>
+      expect(document.querySelector(".telescope-source-detail")).toBeTruthy(),
+    );
+    expect(screen.getByText("Immediate handoffs")).toBeTruthy();
+    expect(screen.getByText("Symbols and data")).toBeTruthy();
+    expect(screen.getAllByText(/src\/api\.ts/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/repository-wide file graph/i)).toBeNull();
   });
 });

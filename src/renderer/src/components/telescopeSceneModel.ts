@@ -4,7 +4,6 @@ import type {
   TelescopeProjection,
 } from "../types/telescope";
 import {
-  MAX_OVERVIEW_BUILDINGS,
   MAX_SOURCE_DETAIL_BUILDINGS,
   archetypeForNode,
   buildDistricts,
@@ -13,9 +12,14 @@ import {
   stableId,
   toBuilding,
 } from "./telescopeSceneBuckets";
+
 export type TelescopeSceneLevel = "overview" | "subsystems" | "source";
 export type TelescopeArchetype =
-  "fin-row" | "tower" | "slab-stack" | "cube" | "low-slab";
+  | "fin-row"
+  | "tower"
+  | "slab-stack"
+  | "cube"
+  | "low-slab";
 export type TelescopeRailKind = "data" | "control" | "event" | "import";
 
 export { archetypeForNode, MAX_SOURCE_DETAIL_BUILDINGS };
@@ -52,6 +56,9 @@ export interface TelescopeSceneBuilding {
   confidence: string;
   narrativeStatus: string;
   authored: boolean;
+  cityRole: string;
+  actorLabels: string[];
+  payloadLabels: string[];
 }
 
 export interface TelescopeSceneRail {
@@ -75,14 +82,21 @@ export interface TelescopeSceneModel {
   primaryFlowId: string | null;
   primaryRailIds: string[];
   primaryBuildingIds: string[];
-  maxOverviewBuildings: number;
   clusteredSourceNodeCount: number;
   sourceDetailBuildingLimit: number;
+  scopedSourceNodeCount: number;
+  hiddenSourceNodeCount: number;
+}
+
+export interface TelescopeSceneScope {
+  selectedGroupId?: string | null;
+  selectedNodeIds?: string[];
 }
 
 export function buildTelescopeScene(
   projection: TelescopeProjection,
   level: TelescopeSceneLevel = "overview",
+  scope: TelescopeSceneScope = {},
 ): TelescopeSceneModel {
   const primaryFlowId =
     projection.narrative?.primary_flow_id ??
@@ -92,12 +106,14 @@ export function buildTelescopeScene(
   const primaryFlow = primaryFlowId
     ? projection.flows.find((flow) => flow.id === primaryFlowId)
     : undefined;
+  const scopedNodeIds = sourceNodeScope(projection, level, scope, primaryFlow);
   const buckets = collectBuckets(
     projection,
     level,
     new Set(primaryFlow?.node_ids ?? []),
+    scopedNodeIds,
   );
-  const buildings = buckets.map(toBuilding);
+  const buildings = buckets.map((bucket) => toBuilding(bucket, projection));
   const buildingBySourceNode = new Map<string, string>();
   for (const building of buildings) {
     for (const sourceNodeId of building.sourceNodeIds) {
@@ -134,7 +150,6 @@ export function buildTelescopeScene(
     primaryFlowId,
     primaryRailIds,
     primaryBuildingIds,
-    maxOverviewBuildings: MAX_OVERVIEW_BUILDINGS,
     clusteredSourceNodeCount:
       level === "source"
         ? buckets
@@ -142,7 +157,59 @@ export function buildTelescopeScene(
             .reduce((total, bucket) => total + bucket.nodes.length, 0)
         : 0,
     sourceDetailBuildingLimit: MAX_SOURCE_DETAIL_BUILDINGS,
+    scopedSourceNodeCount: scopedNodeIds.size,
+    hiddenSourceNodeCount: Math.max(
+      0,
+      projection.nodes.length - scopedNodeIds.size,
+    ),
   };
+}
+
+function sourceNodeScope(
+  projection: TelescopeProjection,
+  level: TelescopeSceneLevel,
+  scope: TelescopeSceneScope,
+  primaryFlow: TelescopeFlow | undefined,
+): Set<string> {
+  if (level === "overview") {
+    return new Set(projection.nodes.map((node) => node.id));
+  }
+
+  const selected = new Set(scope.selectedNodeIds ?? []);
+  const selectedGroupId =
+    scope.selectedGroupId ??
+    projection.nodes.find((node) => selected.has(node.id))?.group_id ??
+    null;
+
+  if (level === "subsystems") {
+    const districtNodes = new Set(
+      projection.nodes
+        .filter((node) => node.group_id === selectedGroupId)
+        .map((node) => node.id),
+    );
+    if (districtNodes.size === 0) {
+      for (const nodeId of primaryFlow?.node_ids ?? []) {
+        districtNodes.add(nodeId);
+      }
+    }
+    const districtSeed = new Set(districtNodes);
+    for (const edge of projection.edges) {
+      if (districtSeed.has(edge.source)) districtNodes.add(edge.target);
+      if (districtSeed.has(edge.target)) districtNodes.add(edge.source);
+    }
+    return districtNodes;
+  }
+
+  if (selected.size === 0) {
+    const fallback = primaryFlow?.node_ids[0] ?? projection.nodes[0]?.id;
+    if (fallback) selected.add(fallback);
+  }
+  const local = new Set(selected);
+  for (const edge of projection.edges) {
+    if (selected.has(edge.source)) local.add(edge.target);
+    if (selected.has(edge.target)) local.add(edge.source);
+  }
+  return local;
 }
 
 function buildRails(

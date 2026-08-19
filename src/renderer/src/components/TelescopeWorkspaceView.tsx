@@ -14,7 +14,7 @@ import {
   Target,
   Wrench,
 } from "lucide-react";
-import type { ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import * as api from "../api";
 import { formatTime } from "./ConsolePrimitives";
 import {
@@ -32,7 +32,12 @@ import {
 } from "./telescopeSurfaceUtils";
 import type { TelescopeWorkspaceProps } from "./telescopeSurfaceTypes";
 import type { TelescopeWorkspaceModel } from "./useTelescopeWorkspaceModel";
-import type { TelescopeLens } from "../types/telescope";
+import type {
+  TelescopeAction,
+  TelescopeLens,
+  TelescopeNode,
+  TelescopeProjection,
+} from "../types/telescope";
 import type { TelescopeSceneLevel } from "./telescopeSceneModel";
 
 const nodeTypes = {
@@ -60,6 +65,7 @@ export function TelescopeWorkspaceView({
   remediation,
   events,
   onOpenWorkspace,
+  onPrepareRepository,
   model,
 }: TelescopeWorkspaceProps & { model: TelescopeWorkspaceModel }): ReactElement {
   const {
@@ -102,6 +108,7 @@ export function TelescopeWorkspaceView({
     load,
     selectOrderedNode,
   } = model;
+  const [tourIndex, setTourIndex] = useState(0);
 
   if (loading && !projection) {
     return (
@@ -129,6 +136,18 @@ export function TelescopeWorkspaceView({
   }
 
   const selectedItem = resolveSelection(projection, selection);
+  const selectedSourceNode =
+    selection?.kind === "node"
+      ? (projection.nodes.find((node) => node.id === selection.id) ?? null)
+      : null;
+  const selectedDistrict =
+    selection?.kind === "group"
+      ? (projection.groups.find((group) => group.id === selection.id) ?? null)
+      : selectedSourceNode
+        ? (projection.groups.find(
+            (group) => group.id === selectedSourceNode.group_id,
+          ) ?? null)
+        : null;
   const lensSummary = summarizeLens(
     activeLens,
     repository,
@@ -173,6 +192,7 @@ export function TelescopeWorkspaceView({
             {projection.coverage.examined_source_files} adapted
           </span>
           <span>Narrative {projection.narrative?.status ?? "missing"}</span>
+          <span>Map {projection.map_readiness?.state ?? "measured"}</span>
           {scene?.clusteredSourceNodeCount ? (
             <span>
               Source detail groups {scene.clusteredSourceNodeCount} entities for
@@ -209,6 +229,7 @@ export function TelescopeWorkspaceView({
         onSelect={(actionId) => {
           setSelection({ kind: "action", id: actionId });
           setSceneLevel("subsystems");
+          setTourIndex(0);
           setCollapsedGroups(new Set());
         }}
         onClear={() => {
@@ -216,6 +237,16 @@ export function TelescopeWorkspaceView({
           setSceneLevel("overview");
         }}
       />
+      {projection.map_readiness &&
+        projection.map_readiness.state !== "reviewed" && (
+          <TelescopeMapWorkshop
+            projection={projection}
+            onPrepare={() =>
+              onPrepareRepository?.(repository.workspace.id) ??
+              Promise.resolve()
+            }
+          />
+        )}
       <div className="telescope-lenses" aria-label="Telescope lenses">
         {lensOptions.map((lens) => {
           const Icon = lens.icon;
@@ -245,7 +276,16 @@ export function TelescopeWorkspaceView({
               type="button"
               aria-pressed={sceneLevel === level}
               key={level}
-              onClick={() => setSceneLevel(level)}
+              onClick={() => {
+                if (level === "source" && !selectedSourceNode) {
+                  const fallbackNodeId =
+                    primaryFlow?.node_ids[0] ?? projection.nodes[0]?.id;
+                  if (fallbackNodeId) {
+                    setSelection({ kind: "node", id: fallbackNodeId });
+                  }
+                }
+                setSceneLevel(level);
+              }}
             >
               {label}
             </button>
@@ -282,6 +322,37 @@ export function TelescopeWorkspaceView({
               : `${visibleNodes.length} map objects · ${layoutEngine === "grid-fallback" ? "fallback layout" : lensSummary.label}`}
         </span>
       </div>
+      <nav className="telescope-breadcrumbs" aria-label="Map location">
+        <button
+          type="button"
+          onClick={() => {
+            setSelection(null);
+            setSceneLevel("overview");
+          }}
+        >
+          City
+        </button>
+        {sceneLevel !== "overview" && selectedDistrict && (
+          <>
+            <span>›</span>
+            <button
+              type="button"
+              onClick={() => {
+                setSelection({ kind: "group", id: selectedDistrict.id });
+                setSceneLevel("subsystems");
+              }}
+            >
+              {selectedDistrict.label}
+            </button>
+          </>
+        )}
+        {sceneLevel === "source" && selectedSourceNode && (
+          <>
+            <span>›</span>
+            <strong>{selectedSourceNode.label}</strong>
+          </>
+        )}
+      </nav>
       <div className="telescope-frame">
         <TelescopeNavigator
           projection={projection}
@@ -313,7 +384,10 @@ export function TelescopeWorkspaceView({
             setSelection(nextSelection);
           }}
         />
-        <div className="telescope-canvas" aria-label="Architecture canvas">
+        <div
+          className={`telescope-canvas ${sceneLevel === "source" ? "is-source-detail" : ""}`}
+          aria-label="Architecture canvas"
+        >
           <ReactFlow
             nodes={visibleNodes}
             edges={visibleEdges}
@@ -365,6 +439,8 @@ export function TelescopeWorkspaceView({
             }}
             onPaneClick={() => setSelection(null)}
             fitView
+            nodesDraggable={false}
+            nodesConnectable={false}
             minZoom={0.04}
             maxZoom={1.8}
             nodesFocusable
@@ -383,6 +459,27 @@ export function TelescopeWorkspaceView({
             />
             <Controls showInteractive={false} />
           </ReactFlow>
+          {sceneLevel === "source" && (
+            <TelescopeSourceDetail
+              node={selectedSourceNode}
+              projection={projection}
+              onOpenWorkspace={() =>
+                onOpenWorkspace(repository.workspace.id, "editor")
+              }
+            />
+          )}
+          {activeAction && sceneLevel !== "source" && (
+            <TelescopeActionTour
+              action={activeAction}
+              projection={projection}
+              index={tourIndex}
+              onIndex={setTourIndex}
+              onExit={() => {
+                setSelection(null);
+                setSceneLevel("overview");
+              }}
+            />
+          )}
           <div className="telescope-canvas-actions">
             <button
               type="button"
@@ -448,16 +545,14 @@ export function TelescopeWorkspaceView({
       {(error ||
         layoutWarning ||
         projection.warnings.length > 0 ||
-        Boolean(scene?.clusteredSourceNodeCount) ||
         reducedMotion) && (
         <footer className="telescope-warnings">
           {error && <span>{error}</span>}
           {layoutWarning && <span>{layoutWarning}</span>}
-          {scene?.clusteredSourceNodeCount ? (
+          {sceneLevel !== "overview" && scene?.hiddenSourceNodeCount ? (
             <span>
-              Source detail is capped at {scene.sourceDetailBuildingLimit}{" "}
-              buildings; the navigator still exposes every underlying source
-              entity.
+              {scene.hiddenSourceNodeCount} unrelated source entities are hidden
+              from this semantic scope and remain available through navigation.
             </span>
           ) : null}
           {projection.warnings.map((warning) => (
@@ -467,6 +562,302 @@ export function TelescopeWorkspaceView({
             <span>Flow motion is reduced by system preference.</span>
           )}
         </footer>
+      )}
+    </section>
+  );
+}
+
+function TelescopeActionTour({
+  action,
+  projection,
+  index,
+  onIndex,
+  onExit,
+}: {
+  action: TelescopeAction;
+  projection: TelescopeProjection;
+  index: number;
+  onIndex: (index: number) => void;
+  onExit: () => void;
+}): ReactElement {
+  const stops = action.node_ids
+    .map((nodeId) => projection.nodes.find((node) => node.id === nodeId))
+    .filter((node): node is TelescopeNode => Boolean(node));
+  const safeIndex = Math.min(index, Math.max(0, stops.length - 1));
+  const stop = stops[safeIndex];
+  const step = action.explanation?.steps[safeIndex];
+  return (
+    <section
+      className="telescope-action-tour"
+      aria-label={`${action.label} guided city story`}
+    >
+      <div>
+        <span className="eyebrow">Guided city story</span>
+        <strong>{action.label}</strong>
+        <small>
+          {stops.length
+            ? `Stop ${safeIndex + 1} of ${stops.length}`
+            : "Action overview"}
+        </small>
+      </div>
+      <h3>{stop?.label ?? "Mapped neighborhood"}</h3>
+      <p>{step ?? stop?.semantic_summary ?? action.what_it_does}</p>
+      {stop?.source_anchors[0] && (
+        <code>
+          {stop.source_anchors[0].path}
+          {stop.source_anchors[0].line
+            ? `:${stop.source_anchors[0].line}`
+            : ""}
+        </code>
+      )}
+      <div>
+        <button
+          type="button"
+          disabled={safeIndex === 0}
+          onClick={() => onIndex(safeIndex - 1)}
+        >
+          Previous
+        </button>
+        <button
+          type="button"
+          disabled={safeIndex >= stops.length - 1}
+          onClick={() => onIndex(safeIndex + 1)}
+        >
+          Next stop
+        </button>
+        <button type="button" onClick={onExit}>
+          Leave tour
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function TelescopeSourceDetail({
+  node,
+  projection,
+  onOpenWorkspace,
+}: {
+  node: TelescopeNode | null;
+  projection: TelescopeProjection;
+  onOpenWorkspace: () => Promise<void>;
+}): ReactElement {
+  const [visibleEvidence, setVisibleEvidence] = useState(10);
+  useEffect(() => {
+    setVisibleEvidence(10);
+  }, [node?.id]);
+
+  if (!node) {
+    return (
+      <aside
+        className="telescope-source-detail"
+        aria-label="Building source detail"
+      >
+        <span className="eyebrow">Enter a building</span>
+        <h2>Select a building to inspect its local implementation</h2>
+        <p>
+          Source detail intentionally keeps the view building-local. Choose a
+          building to inspect its files, symbols, and immediate handoffs.
+        </p>
+      </aside>
+    );
+  }
+
+  const relationships = projection.edges.filter(
+    (edge) => edge.source === node.id || edge.target === node.id,
+  );
+  const evidence = [...node.source_anchors].sort(
+    (left, right) =>
+      left.path.localeCompare(right.path) ||
+      (left.line ?? 0) - (right.line ?? 0),
+  );
+  return (
+    <aside
+      className="telescope-source-detail"
+      aria-label={`${node.label} source detail`}
+    >
+      <div className="telescope-source-heading">
+        <div>
+          <span className="eyebrow">Inside this building</span>
+          <h2>{node.label}</h2>
+          <p>{node.implementation_summary}</p>
+        </div>
+        <button
+          className="button button-secondary"
+          type="button"
+          onClick={() => void onOpenWorkspace()}
+        >
+          Open source
+        </button>
+      </div>
+      <div className="telescope-source-sections">
+        <section>
+          <h3>Behavioral steps</h3>
+          {node.explanation?.steps?.length ? (
+            <ol>
+              {node.explanation.steps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          ) : (
+            <p className="telescope-source-empty">
+              No reviewed behavioral steps yet.
+            </p>
+          )}
+        </section>
+        <section>
+          <h3>Immediate handoffs</h3>
+          <ul>
+            {relationships.map((edge) => {
+              const peerId = edge.source === node.id ? edge.target : edge.source;
+              const peer = projection.nodes.find(
+                (candidate) => candidate.id === peerId,
+              );
+              return (
+                <li key={edge.id}>
+                  <strong>
+                    {edge.source === node.id ? "Sends to" : "Receives from"} {" "}
+                    {peer?.label ?? peerId}
+                  </strong>
+                  <span>
+                    {edge.label} · {edge.confidence} confidence
+                  </span>
+                </li>
+              );
+            })}
+            {relationships.length === 0 && (
+              <li>No source-backed handoffs were extracted.</li>
+            )}
+          </ul>
+        </section>
+        <section>
+          <h3>Symbols and data</h3>
+          <div className="telescope-source-chips">
+            {[...node.symbols, ...node.data_shapes].map((item) => (
+              <code key={item}>{item}</code>
+            ))}
+            {node.symbols.length + node.data_shapes.length === 0 && (
+              <span>No named symbols or data shapes extracted.</span>
+            )}
+          </div>
+        </section>
+        <section>
+          <h3>Source evidence</h3>
+          <div className="telescope-source-evidence-list">
+            {evidence.slice(0, visibleEvidence).map((anchor) => (
+              <div
+                key={`${anchor.path}:${anchor.line ?? 0}:${anchor.symbol ?? ""}`}
+              >
+                <code>{anchor.path}</code>
+                <span>
+                  {anchor.line ? `line ${anchor.line}` : "file"}
+                  {anchor.symbol ? ` · ${anchor.symbol}` : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+          {visibleEvidence < evidence.length && (
+            <button
+              className="button button-quiet"
+              type="button"
+              onClick={() => setVisibleEvidence((count) => count + 10)}
+            >
+              Show 10 more
+            </button>
+          )}
+        </section>
+      </div>
+    </aside>
+  );
+}
+
+function TelescopeMapWorkshop({
+  projection,
+  onPrepare,
+}: {
+  projection: TelescopeProjection;
+  onPrepare: () => Promise<void>;
+}): ReactElement {
+  const [expanded, setExpanded] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const task = [...(projection.knowledge_tasks ?? [])].sort(
+    (left, right) =>
+      left.dependency_order - right.dependency_order ||
+      left.id.localeCompare(right.id),
+  )[0];
+  return (
+    <section className="telescope-map-workshop" aria-label="Map Workshop">
+      <div className="telescope-workshop-intro">
+        <span className="eyebrow">Map workshop</span>
+        <strong>
+          {projection.map_readiness?.state === "reviewable"
+            ? "This city is ready for human review"
+            : "Pronto needs one consequential answer before this city can publish"}
+        </strong>
+        <p>{projection.map_readiness?.reason}</p>
+      </div>
+      {task ? (
+        <div className="telescope-workshop-question">
+          <div>
+            <small>Next question · unlocks {task.unlocks.join(", ")}</small>
+            <h3>{task.question}</h3>
+            <p>{task.summary}</p>
+          </div>
+          {task.candidate_answers.length > 0 && (
+            <div className="telescope-workshop-candidates">
+              {task.candidate_answers.slice(0, 3).map((candidate) => (
+                <span key={candidate}>{candidate}</span>
+              ))}
+            </div>
+          )}
+          <div className="telescope-workshop-actions">
+            <button
+              className="button button-primary"
+              type="button"
+              disabled={preparing}
+              onClick={() => {
+                setPreparing(true);
+                void onPrepare().finally(() => setPreparing(false));
+              }}
+            >
+              {preparing ? "Preparing…" : "Answer next question"}
+            </button>
+            <button
+              className="button button-quiet"
+              type="button"
+              onClick={() => setExpanded((current) => !current)}
+            >
+              {expanded ? "Hide evidence" : "Why Pronto is asking"}
+            </button>
+          </div>
+          {expanded && (
+            <div className="telescope-workshop-evidence">
+              <p>
+                This is a guarded draft task. It can prepare manifest evidence,
+                but it cannot mark the map reviewed.
+              </p>
+              <ul>
+                {task.evidence.slice(0, 6).map((anchor) => (
+                  <li key={`${anchor.path}:${anchor.line ?? 0}`}>
+                    <code>{anchor.path}</code>
+                    {anchor.line ? `:${anchor.line}` : ""}
+                  </li>
+                ))}
+                {task.evidence.length === 0 && (
+                  <li>No source anchor can answer this question yet.</li>
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="telescope-workshop-question">
+          <h3>Review the important claims against the measured city</h3>
+          <p>
+            Explicit review is still required for the current source
+            fingerprint.
+          </p>
+        </div>
       )}
     </section>
   );

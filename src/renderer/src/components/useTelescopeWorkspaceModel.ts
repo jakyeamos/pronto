@@ -95,9 +95,26 @@ function useTelescopeWorkspaceModelInternal({
   const [reducedMotion, setReducedMotion] = useState(false);
   const { fitView, setViewport } = useReactFlow();
   const layoutRequest = useRef(0);
+  const sceneScope = useMemo(
+    () => ({
+      selectedGroupId:
+        selection?.kind === "group"
+          ? selection.id
+          : selection?.kind === "node"
+            ? (projection?.nodes.find((node) => node.id === selection.id)
+                ?.group_id ?? null)
+            : null,
+      selectedNodeIds:
+        selection?.kind === "node" ? [selection.id] : [],
+    }),
+    [projection, selection],
+  );
   const scene = useMemo(
-    () => (projection ? buildTelescopeScene(projection, sceneLevel) : null),
-    [projection, sceneLevel],
+    () =>
+      projection
+        ? buildTelescopeScene(projection, sceneLevel, sceneScope)
+        : null,
+    [projection, sceneLevel, sceneScope],
   );
   const primaryFlow = useMemo(
     () => (projection && scene ? firstPrimaryFlow(projection, scene) : null),

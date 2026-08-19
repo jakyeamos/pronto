@@ -1,19 +1,16 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildTelescopeScene,
-  MAX_SOURCE_DETAIL_BUILDINGS,
-} from "./telescopeSceneModel";
+import { buildTelescopeScene } from "./telescopeSceneModel";
 import { makeTelescopeSceneProjection } from "./telescopeSceneModel.test-support";
 
 describe("buildTelescopeScene", () => {
-  it("keeps overview comprehensible without losing source-node coverage", () => {
+  it("keeps every authored overview building instead of enforcing an arbitrary quota", () => {
     const projection = makeTelescopeSceneProjection(32);
     const scene = buildTelescopeScene(projection, "overview");
     const covered = new Set(
       scene.buildings.flatMap((building) => building.sourceNodeIds),
     );
 
-    expect(scene.buildings.length).toBeLessThanOrEqual(24);
+    expect(scene.buildings.length).toBe(32);
     expect(covered.size).toBe(projection.nodes.length);
     expect(scene.primaryFlowId).toBe("flow-primary");
     expect(scene.primaryRailIds.length).toBeGreaterThan(0);
@@ -37,26 +34,20 @@ describe("buildTelescopeScene", () => {
     );
   });
 
-  it("bounds source detail while retaining every source entity in inspectable clusters", () => {
+  it("scopes source detail to a selected building and its immediate handoffs", () => {
     const projection = makeTelescopeSceneProjection(206);
-    const first = buildTelescopeScene(projection, "source");
-    const second = buildTelescopeScene(projection, "source");
+    const scope = { selectedNodeIds: ["node-100"] };
+    const first = buildTelescopeScene(projection, "source", scope);
+    const second = buildTelescopeScene(projection, "source", scope);
     const covered = new Set(
       first.buildings.flatMap((building) => building.sourceNodeIds),
     );
 
     expect(first).toEqual(second);
-    expect(first.buildings.length).toBeLessThanOrEqual(
-      MAX_SOURCE_DETAIL_BUILDINGS,
-    );
-    expect(first.clusteredSourceNodeCount).toBeGreaterThan(0);
-    expect(first.sourceDetailBuildingLimit).toBe(MAX_SOURCE_DETAIL_BUILDINGS);
-    expect(covered).toEqual(new Set(projection.nodes.map((node) => node.id)));
-    expect(
-      first.buildings.some((building) =>
-        building.label.startsWith("More District"),
-      ),
-    ).toBe(true);
+    expect(first.buildings.length).toBe(3);
+    expect(first.scopedSourceNodeCount).toBe(3);
+    expect(first.hiddenSourceNodeCount).toBe(203);
+    expect(covered).toEqual(new Set(["node-99", "node-100", "node-101"]));
   });
 });
 

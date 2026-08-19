@@ -19,8 +19,6 @@ interface BuildingBucket {
   archetype?: TelescopeArchetype;
 }
 
-export const MAX_OVERVIEW_BUILDINGS = 24;
-const MAX_BUILDINGS_PER_DISTRICT = 6;
 export const MAX_SOURCE_DETAIL_BUILDINGS = 96;
 
 export function archetypeForNode(
@@ -41,11 +39,13 @@ export function collectBuckets(
   projection: TelescopeProjection,
   level: TelescopeSceneLevel,
   primaryNodeIds: Set<string>,
+  scopedNodeIds: Set<string> = new Set(projection.nodes.map((node) => node.id)),
 ): BuildingBucket[] {
   const groups = new Map(projection.groups.map((group) => [group.id, group]));
   const sourceBuckets = new Map<string, BuildingBucket>();
   const groupNodes = new Map<string, TelescopeNode[]>();
   for (const node of projection.nodes) {
+    if (!scopedNodeIds.has(node.id)) continue;
     const nodes = groupNodes.get(node.group_id) ?? [];
     nodes.push(node);
     groupNodes.set(node.group_id, nodes);
@@ -77,9 +77,6 @@ export function collectBuckets(
   }
 
   let buckets = [...sourceBuckets.values()];
-  if (level === "overview" && buckets.length > MAX_OVERVIEW_BUILDINGS) {
-    buckets = compactOverviewBuckets(buckets);
-  }
   if (level === "source" && buckets.length > MAX_SOURCE_DETAIL_BUILDINGS) {
     buckets = compactSourceBuckets(buckets, primaryNodeIds);
   }
@@ -141,61 +138,10 @@ function measuredLinesForBucket(bucket: BuildingBucket): number {
   );
 }
 
-function compactOverviewBuckets(buckets: BuildingBucket[]): BuildingBucket[] {
-  const byGroup = new Map<string, BuildingBucket[]>();
-  for (const bucket of buckets) {
-    const groupBuckets = byGroup.get(bucket.group.id) ?? [];
-    groupBuckets.push(bucket);
-    byGroup.set(bucket.group.id, groupBuckets);
-  }
-  const retained: BuildingBucket[] = [];
-  for (const groupBuckets of byGroup.values()) {
-    const ordered = [...groupBuckets].sort(
-      (left, right) =>
-        Number(right.authored) - Number(left.authored) ||
-        right.nodes.length - left.nodes.length ||
-        left.key.localeCompare(right.key),
-    );
-    retained.push(...ordered.slice(0, MAX_BUILDINGS_PER_DISTRICT));
-    const remainder = ordered.slice(MAX_BUILDINGS_PER_DISTRICT);
-    if (remainder.length) {
-      retained.push({
-        key: "other|" + remainder[0].group.id,
-        group: remainder[0].group,
-        nodes: remainder.flatMap((bucket) => bucket.nodes),
-        authored: false,
-      });
-    }
-  }
-  if (retained.length <= MAX_OVERVIEW_BUILDINGS) return retained;
-  const ordered = [...retained].sort(
-    (left, right) =>
-      Number(right.authored) - Number(left.authored) ||
-      right.nodes.length - left.nodes.length ||
-      left.key.localeCompare(right.key),
-  );
-  const keep = ordered.slice(0, MAX_OVERVIEW_BUILDINGS);
-  const overflow = ordered.slice(MAX_OVERVIEW_BUILDINGS);
-  if (!overflow.length) return keep;
-  const byGroupId = new Map<string, BuildingBucket>();
-  for (const bucket of keep) {
-    const existing = byGroupId.get(bucket.group.id);
-    if (existing) existing.nodes.push(...bucket.nodes);
-    else byGroupId.set(bucket.group.id, bucket);
-  }
-  for (const bucket of overflow) {
-    const target = byGroupId.get(bucket.group.id);
-    if (target) {
-      target.nodes.push(...bucket.nodes);
-      continue;
-    }
-    const fallback = keep[keep.length - 1];
-    if (fallback) fallback.nodes.push(...bucket.nodes);
-  }
-  return keep;
-}
-
-export function toBuilding(bucket: BuildingBucket): TelescopeSceneBuilding {
+export function toBuilding(
+  bucket: BuildingBucket,
+  projection: TelescopeProjection,
+): TelescopeSceneBuilding {
   const representative = [...bucket.nodes].sort(
     (left, right) =>
       (right.measured_lines ?? 0) - (left.measured_lines ?? 0) ||
@@ -260,7 +206,35 @@ export function toBuilding(bucket: BuildingBucket): TelescopeSceneBuilding {
     confidence: confidenceForNodes(bucket.nodes),
     narrativeStatus,
     authored: bucket.authored,
+    cityRole: representative.city_role ?? cityRoleForKind(representative.kind),
+    actorLabels: (projection.actors ?? [])
+      .filter((actor) =>
+        actor.node_ids.some((nodeId) =>
+          bucket.nodes.some((node) => node.id === nodeId),
+        ),
+      )
+      .map((actor) => actor.label),
+    payloadLabels: (projection.payloads ?? [])
+      .filter((payload) =>
+        projection.flows.some(
+          (flow) =>
+            payload.flow_ids.includes(flow.id) &&
+            flow.node_ids.some((nodeId) =>
+              bucket.nodes.some((node) => node.id === nodeId),
+            ),
+        ),
+      )
+      .map((payload) => payload.label),
   };
+}
+
+function cityRoleForKind(kind: string): string {
+  if (kind === "route" || kind === "entrypoint") return "city-gate";
+  if (kind === "store") return "archive";
+  if (kind === "integration") return "boundary-port";
+  if (kind === "worker") return "service-yard";
+  if (kind === "interface") return "public-terminal";
+  return "workplace";
 }
 
 export function buildDistricts(

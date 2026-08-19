@@ -21,6 +21,9 @@ export interface TelescopeSceneNodeData extends Record<string, unknown> {
   sourcePaths?: string[];
   narrativeStatus?: string;
   authored?: boolean;
+  cityRole?: string;
+  actorLabels?: string[];
+  payloadLabels?: string[];
   district?: boolean;
   tone?: string;
   dimmed?: boolean;
@@ -146,6 +149,9 @@ export function computeTelescopeSceneLayout(
           sourcePaths: building.sourcePaths,
           narrativeStatus: building.narrativeStatus,
           authored: building.authored,
+          cityRole: building.cityRole,
+          actorLabels: building.actorLabels,
+          payloadLabels: building.payloadLabels,
         },
       });
     });
