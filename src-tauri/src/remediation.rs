@@ -1,6 +1,7 @@
 include!("remediation/part-01.rs");
 include!("remediation/part-02.rs");
 include!("remediation/part-03.rs");
+include!("remediation/part-03a.rs");
 include!("remediation/part-04.rs");
 include!("remediation/part-05.rs");
 include!("remediation/part-06.rs");
@@ -17,4 +18,5 @@ mod tests {
     include!("remediation/tests-03.rs");
     include!("remediation/tests-04.rs");
     include!("remediation/tests-05.rs");
+    include!("remediation/tests-06.rs");
 }

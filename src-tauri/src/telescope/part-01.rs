@@ -1,6 +1,6 @@
-pub const SCHEMA_VERSION: &str = "pronto-telescope/v1";
+pub const SCHEMA_VERSION: &str = "pronto-telescope/v2";
 pub const NARRATIVE_MANIFEST_PATH: &str = ".pronto/telescope-map.json";
-pub const VISUAL_MODEL_VERSION: &str = "pronto-telescope-city/v1";
+pub const VISUAL_MODEL_VERSION: &str = "pronto-telescope-city/v2";
 const MAX_SOURCE_FILES: usize = 2_500;
 const MAX_SOURCE_BYTES: u64 = 512 * 1024;
 const SOURCE_EXTENSIONS: &[&str] = &[
@@ -30,6 +30,22 @@ pub struct TelescopeProjection {
     pub enrichment: TelescopeEnrichment,
     #[serde(default)]
     pub narrative: TelescopeNarrative,
+    #[serde(default)]
+    pub map_readiness: TelescopeMapReadiness,
+    #[serde(default)]
+    pub blocking_gaps: Vec<TelescopeKnowledgeGap>,
+    #[serde(default)]
+    pub enhancement_gaps: Vec<TelescopeKnowledgeGap>,
+    #[serde(default)]
+    pub knowledge_tasks: Vec<TelescopeKnowledgeTask>,
+    #[serde(default)]
+    pub actors: Vec<TelescopeActor>,
+    #[serde(default)]
+    pub payloads: Vec<TelescopePayload>,
+    #[serde(default)]
+    pub scopes: Vec<TelescopeScope>,
+    #[serde(default)]
+    pub readiness_receipt: TelescopeReadinessReceipt,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -122,6 +138,10 @@ pub struct TelescopeNode {
     pub visual_override_provenance: String,
     #[serde(default)]
     pub narrative_status: String,
+    #[serde(default)]
+    pub city_role: String,
+    #[serde(default)]
+    pub explanation: TelescopeStructuredExplanation,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -185,6 +205,8 @@ pub struct TelescopeAction {
     pub provenance: String,
     pub read_only: bool,
     pub guarded: bool,
+    #[serde(default)]
+    pub explanation: TelescopeStructuredExplanation,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -253,6 +275,20 @@ pub struct TelescopeNarrative {
     pub coverage: TelescopeNarrativeCoverage,
     #[serde(default)]
     pub drift_warnings: Vec<TelescopeWarning>,
+    #[serde(default)]
+    pub identity: TelescopeNarrativeIdentity,
+    #[serde(default)]
+    pub actors: Vec<TelescopeNarrativeActor>,
+    #[serde(default)]
+    pub payloads: Vec<TelescopeNarrativePayload>,
+    #[serde(default)]
+    pub decisions: Vec<TelescopeNarrativeDecision>,
+    #[serde(default)]
+    pub failures: Vec<TelescopeNarrativeFailure>,
+    #[serde(default)]
+    pub applicability: Vec<TelescopeApplicabilityDecision>,
+    #[serde(default)]
+    pub review: TelescopeNarrativeReview,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -299,6 +335,10 @@ pub struct TelescopeNarrativeNode {
     pub visual_archetype: String,
     #[serde(default)]
     pub status: String,
+    #[serde(default, rename = "cityRole")]
+    pub city_role: String,
+    #[serde(default)]
+    pub explanation: TelescopeStructuredExplanation,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -366,6 +406,8 @@ pub struct TelescopeNarrativeAction {
     pub read_only: bool,
     #[serde(default)]
     pub guarded: bool,
+    #[serde(default)]
+    pub explanation: TelescopeStructuredExplanation,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -390,6 +432,20 @@ struct TelescopeManifest {
     flows: Vec<TelescopeNarrativeFlow>,
     #[serde(default)]
     actions: Vec<TelescopeNarrativeAction>,
+    #[serde(default)]
+    identity: TelescopeNarrativeIdentity,
+    #[serde(default)]
+    actors: Vec<TelescopeNarrativeActor>,
+    #[serde(default)]
+    payloads: Vec<TelescopeNarrativePayload>,
+    #[serde(default)]
+    decisions: Vec<TelescopeNarrativeDecision>,
+    #[serde(default)]
+    failures: Vec<TelescopeNarrativeFailure>,
+    #[serde(default)]
+    applicability: Vec<TelescopeApplicabilityDecision>,
+    #[serde(default)]
+    review: TelescopeNarrativeReview,
 }
 
 #[derive(Debug, Clone)]

@@ -98,8 +98,8 @@ stale/unknown until it is refreshed from the exact target commit.
 | Fold preparation                     | `fold preview [<repository>] [--target <branch>] [--product <name> \| --group <name>] [--limit <n>] [--cursor <token>] --json`                                    | `pronto-agent-fold-preview/v2`                                                                                   |
 | Fleet orientation                    | `summary [--product <name> \| --group <name>] --json`                                                                                                             | `pronto-agent-summary/v1`                                                                                        |
 | One repository and task-lane custody | `repo <absolute-repo-path> [--fresh] --json`                                                                                                                      | `pronto-agent-repository/v1` with `pronto-task-lanes/v1`                                                         |
-| Repository architecture map          | `telescope <repository> --json`                                                                                                                                   | `pronto-telescope/v1`; cached when the workspace fingerprint matches                                             |
-| Forced architecture refresh          | `telescope refresh <repository> --json`                                                                                                                           | `pronto-telescope/v1`; regenerates the active-worktree projection                                                |
+| Repository architecture map          | `telescope <repository> --json`                                                                                                                                   | `pronto-telescope/v2` plus `pronto-telescope-city/v2`; cached when the workspace fingerprint matches             |
+| Forced architecture refresh          | `telescope refresh <repository> --json`                                                                                                                           | `pronto-telescope/v2`; regenerates measured evidence and reassesses readiness                                    |
 | Repository target                    | `repo set-target <repository> <branch> --json`                                                                                                                    | persisted target override                                                                                        |
 | Quality evidence                     | `quality [<repository>] --json`                                                                                                                                   | `pronto-agent-quality/v1`                                                                                        |
 | Quality import                       | `quality refresh --json`                                                                                                                                          | persisted quality plus accepted Analytics observation                                                            |
@@ -147,19 +147,34 @@ and assume it will resolve.
 ### Telescope boundary
 
 `telescope` resolves a registered repository to its active worktree and emits
-the source-derived `pronto-telescope/v1` graph. The response binds groups,
-nodes, edges, flows, summaries, and source anchors to the branch, commit,
-dirty-state fingerprint, schema version, generation time, coverage, and
-warnings. A matching `get` may reuse Pronto's local SQLite cache; `refresh`
-always regenerates it.
+the source-derived `pronto-telescope/v2` graph, coordinated
+`pronto-telescope-city/v2` model, and optional authored
+`.pronto/telescope-map.json` narrative layer. The response binds groups,
+nodes, edges, flows, actions, actors, payloads, semantic scopes, structured
+explanations, visual archetypes, categorical map readiness, knowledge tasks,
+narrative status, and source
+anchors to the branch, commit, dirty-state fingerprint, schema version,
+visual-model version, generation time, coverage, and warnings. A matching
+`get` may reuse Pronto's local SQLite cache; `refresh` always regenerates
+measured data and never rewrites the authored manifest.
+
+Readiness is `unavailable`, `measured`, `needs_information`, `reviewable`,
+`reviewed`, or `stale`; never substitute a blended percentage. Knowledge tasks
+remain a read-only `telescope_readiness` projection for existing remediation
+and attention workflows. The guarded answer handoff prepares draft evidence
+only. It does not mutate task state or mark the map reviewed. The readiness
+receipt contributes only to Quality Runner's developer-legibility
+architecture-visibility lane.
 
 The command is read-only with respect to the target repository. Its local
-Pronto cache stores topology, hashes, summaries, and repository-relative
-references, never source bodies, diffs, runtime values, or absolute personal
-paths. TypeScript, JavaScript, and Rust receive semantic extraction;
-unsupported languages remain partial. Treat derived and inferred summaries as
-interpretation, not confirmed source evidence. See `docs/telescope.md` for the
-renderer, lens, accessibility, and privacy contract.
+Pronto cache stores measured topology, authored summaries, hashes, and
+repository-relative references, never source bodies, diffs, runtime values, or
+absolute personal paths. TypeScript, JavaScript, and Rust receive semantic
+extraction; unsupported languages remain partial. Treat draft, derived,
+inferred, stale, and partial descriptions or rails as interpretation rather
+than confirmed source evidence. See `docs/telescope.md` for the authored map,
+visual renderer, Map Workshop, semantic scopes, lens, accessibility, and
+privacy contract.
 
 `release preview` v2 exposes every commit since the last published, non-draft,
 non-prerelease tag and an explicit advisory `recommendation`. Its disposition

@@ -6,4 +6,7 @@ oversized-source src/renderer/src/api.ts typed IPC contract remains co-located s
 oversized-source src/renderer/src/components/AnalyticsComponents.tsx analytics surface and chart composition share the same evidence formatting and unavailable-state rules
 oversized-source src/renderer/src/components/Drawers.tsx existing shared preparation and action drawer keeps cross-surface release/provider state transitions in one boundary
 oversized-source src/renderer/src/types.ts shared snapshot and command types are kept together to preserve renderer/native contract parity
+oversized-source src-tauri/src/core.rs legacy native command routing and store transactions remain consolidated; Telescope adds only the canonical remediation synchronization and CLI exposure until the command router is extracted
+oversized-source src-tauri/src/remediation.rs canonical remediation lifecycle remains co-located so Telescope readiness reuses status preservation and plan derivation instead of creating a parallel task store
+oversized-source src-tauri/src/telescope.rs measured extraction, workspace binding, authored narrative, and readiness projection remain co-located while the versioned Telescope contract stabilizes; remove after extractor and projection owners are separated
 oversized-source scripts/papercuts-capture.py standalone standard-library hook stays single-file so atomic source/runtime parity and sandbox deployment do not depend on local modules

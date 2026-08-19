@@ -12,7 +12,7 @@ fn repository_telescope_at(
         .find(|repository| repository.id == repository_id)
         .ok_or_else(|| "Repository is not registered".to_string())?;
     let workspace = &repository.workspace;
-    crate::telescope::get_or_generate_cancellable(
+    let projection = crate::telescope::get_or_generate_cancellable(
         path,
         &crate::telescope::TelescopeRequest {
             repository_id: &repository.id,
@@ -25,7 +25,20 @@ fn repository_telescope_at(
         },
         force_refresh,
         cancellation,
-    )
+    )?;
+    let _lock = acquire_store_write_lock(path)?;
+    let mut state = load_store(path)?;
+    if let Some(repository) = state
+        .repositories
+        .iter()
+        .find(|candidate| candidate.id == repository_id)
+        .cloned()
+    {
+        if remediation::sync_telescope_readiness(&mut state.remediation, &repository, &projection) {
+            save_store(path, &state)?;
+        }
+    }
+    Ok(projection)
 }
 
 #[tauri::command]

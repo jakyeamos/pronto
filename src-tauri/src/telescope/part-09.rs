@@ -4,17 +4,6 @@ fn validate_manifest_shape(
     warnings: &mut Vec<TelescopeWarning>,
     drift_warnings: &mut Vec<TelescopeWarning>,
 ) {
-    if manifest.groups.len() > 7 || manifest.groups.len() < 4 {
-        push_manifest_warning(
-            warnings,
-            drift_warnings,
-            "narrative-group-range",
-            format!(
-                "Authored architecture maps should use 4–7 neighborhoods; this map declares {}.",
-                manifest.groups.len()
-            ),
-        );
-    }
     let discovered = files
         .iter()
         .map(|file| file.relative_path.as_str())

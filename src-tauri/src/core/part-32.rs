@@ -431,6 +431,49 @@ fn agent_attention_report(snapshot: &PortfolioSnapshot) -> AgentAttentionReport 
             });
         }
     }
+    for plan in &snapshot.remediation.plans {
+        let Some(repository) = snapshot
+            .repositories
+            .iter()
+            .find(|repository| repository.id == plan.repository_id)
+        else {
+            continue;
+        };
+        for action in plan.actions.iter().filter(|action| {
+            action.domain == "telescope_readiness"
+                && matches!(action.status.as_str(), "open" | "in_progress" | "blocked")
+        }) {
+            items.push(AgentAttentionItem {
+                id: format!(
+                    "{}:telescope-readiness:{}",
+                    repository.id, action.stable_key
+                ),
+                repository_id: repository.id.clone(),
+                repository_name: repository.name.clone(),
+                repository_path: repository.path.clone(),
+                workspace_id: Some(repository.workspace.id.clone()),
+                workspace_path: Some(repository.workspace.path.clone()),
+                category: "telescope_readiness".to_string(),
+                severity: action.priority.clone(),
+                status: action.status.clone(),
+                freshness: action.evidence.first().map(|item| item.freshness.clone()),
+                summary: action.title.clone(),
+                evidence: action
+                    .evidence
+                    .iter()
+                    .map(|item| AgentEvidenceReference {
+                        source: item.source.clone(),
+                        label: item.label.clone(),
+                        status: Some(item.status.clone()),
+                        freshness: Some(item.freshness.clone()),
+                        observed_at: item.observed_at.clone(),
+                        value: Some(item.detail.clone()),
+                        report_path: item.report_path.clone(),
+                    })
+                    .collect(),
+            });
+        }
+    }
     AgentAttentionReport {
         schema_version: AGENT_ATTENTION_SCHEMA.to_string(),
         generated_at: snapshot.generated_at.clone(),

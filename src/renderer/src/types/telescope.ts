@@ -69,6 +69,8 @@ export interface TelescopeNode {
   visual_archetype?: string;
   visual_override_provenance?: string;
   narrative_status?: string;
+  city_role?: string;
+  explanation?: TelescopeStructuredExplanation;
 }
 
 export interface TelescopeEdge {
@@ -120,6 +122,27 @@ export interface TelescopeAction {
   provenance: string;
   read_only: boolean;
   guarded: boolean;
+  explanation?: TelescopeStructuredExplanation;
+}
+
+export interface TelescopeStructuredExplanation {
+  purpose: string;
+  user_outcome: string;
+  participants: string[];
+  triggers: string[];
+  preconditions: string[];
+  steps: string[];
+  inputs: string[];
+  outputs: string[];
+  state_changes: string[];
+  responsibilities: string[];
+  boundaries: string[];
+  decisions: string[];
+  dependencies: string[];
+  failures: string[];
+  security: string[];
+  performance: string[];
+  testing: string[];
 }
 
 export interface TelescopeActionCoverage {
@@ -166,6 +189,8 @@ export interface TelescopeNarrativeNode {
   files?: string[];
   visualArchetype?: string;
   status?: string;
+  cityRole?: string;
+  explanation?: Partial<TelescopeStructuredExplanation>;
 }
 
 export interface TelescopeNarrativeEdge {
@@ -205,6 +230,127 @@ export interface TelescopeNarrativeAction {
   status?: string;
   readOnly?: boolean;
   guarded?: boolean;
+  explanation?: Partial<TelescopeStructuredExplanation>;
+}
+
+export interface TelescopeNarrativeIdentity {
+  purpose: string;
+  audience: string[];
+  outcomes: string[];
+  status: string;
+  provenance: string;
+}
+
+export interface TelescopeActor {
+  id: string;
+  label: string;
+  role: string;
+  metaphor: string;
+  description: string;
+  action_ids: string[];
+  node_ids: string[];
+  status: string;
+  provenance: string;
+}
+
+export interface TelescopePayload {
+  id: string;
+  label: string;
+  metaphor: string;
+  description: string;
+  flow_ids: string[];
+  data_shapes: string[];
+  status: string;
+  provenance: string;
+}
+
+export interface TelescopeReadinessRequirement {
+  key: string;
+  label: string;
+  applicability: string;
+  status: string;
+  reason: string;
+  evidence: TelescopeAnchor[];
+}
+
+export interface TelescopeMapReadiness {
+  state:
+    | "unavailable"
+    | "measured"
+    | "needs_information"
+    | "reviewable"
+    | "reviewed"
+    | "stale"
+    | string;
+  reason: string;
+  requirements: TelescopeReadinessRequirement[];
+  blocking_gap_keys: string[];
+  enhancement_gap_keys: string[];
+  reviewed_fingerprint?: string | null;
+  current_fingerprint?: string | null;
+}
+
+export interface TelescopeKnowledgeGap {
+  key: string;
+  category: string;
+  question: string;
+  why_source_cannot_answer: string;
+  unlocks: string[];
+  candidate_answers: string[];
+  evidence: TelescopeAnchor[];
+  allowed_responses: string[];
+  depends_on: string[];
+  completion_criteria: string[];
+  manifest_fields: string[];
+  blocking: boolean;
+  freshness: string;
+  provenance: string;
+}
+
+export interface TelescopeKnowledgeTask {
+  id: string;
+  stable_gap_key: string;
+  domain: "telescope_readiness" | string;
+  status: string;
+  title: string;
+  question: string;
+  summary: string;
+  priority: string;
+  dependency_order: number;
+  depends_on: string[];
+  unlocks: string[];
+  candidate_answers: string[];
+  allowed_responses: string[];
+  completion_criteria: string[];
+  manifest_fields: string[];
+  evidence: TelescopeAnchor[];
+  freshness: string;
+  provenance: string;
+  read_only: boolean;
+  guarded_handoff: boolean;
+}
+
+export interface TelescopeScope {
+  id: string;
+  level: "overview" | "district" | "building" | "action" | string;
+  label: string;
+  purpose: string;
+  group_ids: string[];
+  node_ids: string[];
+  edge_ids: string[];
+  flow_ids: string[];
+}
+
+export interface TelescopeReadinessReceipt {
+  schema_version: string;
+  lane: string;
+  state: string;
+  applicability: string;
+  workspace_fingerprint: string;
+  generated_at: string;
+  architecture_visibility_ready: boolean;
+  blocking_gap_keys: string[];
+  evidence: string[];
 }
 
 export interface TelescopeNarrative {
@@ -221,10 +367,22 @@ export interface TelescopeNarrative {
   authored_actions?: TelescopeNarrativeAction[];
   coverage?: TelescopeNarrativeCoverage;
   drift_warnings?: TelescopeWarning[];
+  identity?: TelescopeNarrativeIdentity;
+  actors?: TelescopeActor[];
+  payloads?: TelescopePayload[];
+  decisions?: Array<{ id: string; label: string; explanation: string; files: string[]; status: string }>;
+  failures?: Array<{ id: string; label: string; behavior: string; action_ids: string[]; files: string[]; status: string }>;
+  applicability?: Array<{ requirement: string; state: string; reason: string; status: string }>;
+  review?: {
+    reviewed_fingerprint?: string | null;
+    reviewed_at?: string | null;
+    reviewer_provenance: string;
+    high_impact_claim_ids: string[];
+  };
 }
 
 export interface TelescopeProjection {
-  schema_version: "pronto-telescope/v1";
+  schema_version: "pronto-telescope/v1" | "pronto-telescope/v2";
   repository_id: string;
   repository_name: string;
   binding: TelescopeBinding;
@@ -245,6 +403,14 @@ export interface TelescopeProjection {
     status: string;
   };
   narrative?: TelescopeNarrative;
+  map_readiness?: TelescopeMapReadiness;
+  blocking_gaps?: TelescopeKnowledgeGap[];
+  enhancement_gaps?: TelescopeKnowledgeGap[];
+  knowledge_tasks?: TelescopeKnowledgeTask[];
+  actors?: TelescopeActor[];
+  payloads?: TelescopePayload[];
+  scopes?: TelescopeScope[];
+  readiness_receipt?: TelescopeReadinessReceipt;
 }
 
 export type TelescopeLens =

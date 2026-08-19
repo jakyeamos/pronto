@@ -28,7 +28,8 @@ unavailable until it is regenerated from the exact `dev` commit.
   there instead of duplicating it in the renderer or Node adapter.
 - `src-tauri/src/telescope.rs` owns the versioned source-derived architecture
   graph, language adapters, workspace binding, uncertainty, and cache privacy.
-  `.pronto/telescope-map.json` owns the repository's authored narrative layer
+  `.pronto/telescope-map.json` v2 owns the repository's authored narrative,
+  city roles, actors, payloads, and explicit review layer
   while measured files, counts, relationships, coverage, and freshness remain
   extractor-owned. Workflow systems annotate that graph through lenses;
   Compass, ICM, quality, remediation, and activity evidence must not rewrite
@@ -37,8 +38,14 @@ unavailable until it is regenerated from the exact `dev` commit.
   Runner receipts; `behaviorId` links and coverage counts must not become a
   duplicate behavioral contract or a second verification path. Natural-language
   action questions are routed locally against those same projected fields;
-  direct and related matches focus the city but never create or execute an
-  action.
+  direct and related matches focus the city and may start a guided source-backed
+  tour, but never create or execute an action. Categorical map readiness and
+  stable `telescope_readiness` knowledge tasks project into existing
+  remediation/attention handoffs; they do not create a Telescope task store.
+  Quality Runner owns holistic maturity and consumes only Telescope's scoped
+  developer-legibility architecture-visibility receipt. Source detail is
+  building-local and progressively expanded; a repository-wide source graph is
+  prohibited by the readability and resource-safety contract.
 - `workspace-policy generate` owns the explicit per-repository
   `.agents/workspace-policy.json` projection from the reviewed fleet role map.
   It defaults to a no-write plan and only `--write` may create files; it never

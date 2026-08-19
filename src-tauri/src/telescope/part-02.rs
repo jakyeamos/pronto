@@ -232,6 +232,21 @@ fn extract_projection(
             visual_archetype: visual_archetype_for_kind(&kind).to_string(),
             visual_override_provenance: "measured-default".to_string(),
             narrative_status: "derived".to_string(),
+            city_role: city_role_for_kind(&kind).to_string(),
+            explanation: TelescopeStructuredExplanation {
+                purpose: semantic_summary(&label, &kind),
+                responsibilities: vec![format!(
+                    "Owns the source behavior represented by {}.",
+                    file.relative_path
+                )],
+                dependencies: Vec::new(),
+                testing: if file.relative_path.contains("test") {
+                    vec!["This source file contains test or verification behavior.".to_string()]
+                } else {
+                    Vec::new()
+                },
+                ..TelescopeStructuredExplanation::default()
+            },
         });
     }
 
@@ -275,6 +290,17 @@ fn extract_projection(
                 visual_archetype: "low-slab".to_string(),
                 visual_override_provenance: "measured-default".to_string(),
                 narrative_status: "derived".to_string(),
+                city_role: "boundary-facility".to_string(),
+                explanation: TelescopeStructuredExplanation {
+                    purpose: format!("Provides functionality imported from {specifier}."),
+                    boundaries: vec![
+                        "This dependency is outside the repository boundary.".to_string()
+                    ],
+                    failures: vec![
+                        "Runtime behavior and availability were not inspected.".to_string()
+                    ],
+                    ..TelescopeStructuredExplanation::default()
+                },
             });
         }
     }
@@ -398,6 +424,36 @@ fn extract_projection(
         "partial"
     };
     let freshness_state = if commit.is_some() { "fresh" } else { "partial" };
+    let actors = project_actors(&narrative, &actions, &nodes);
+    let payloads = project_payloads(&narrative, &flows);
+    let scopes = project_scopes(&groups, &nodes, &edges, &flows, &actions);
+    let (map_readiness, blocking_gaps, enhancement_gaps, knowledge_tasks) = assess_map_readiness(
+        &narrative,
+        &groups,
+        &nodes,
+        &edges,
+        &flows,
+        &actions,
+        &actors,
+        &payloads,
+        &measured_fingerprint,
+        files.is_empty(),
+    );
+    let readiness_receipt = TelescopeReadinessReceipt {
+        schema_version: "pronto-telescope-readiness-receipt/v1".to_string(),
+        lane: "developer-legibility:architecture-visibility".to_string(),
+        state: map_readiness.state.clone(),
+        applicability: "applicable".to_string(),
+        workspace_fingerprint: workspace_fingerprint.clone(),
+        generated_at: generated_at.clone(),
+        architecture_visibility_ready: map_readiness.state == "reviewed",
+        blocking_gap_keys: map_readiness.blocking_gap_keys.clone(),
+        evidence: vec![
+            NARRATIVE_MANIFEST_PATH.to_string(),
+            "workspace-source-topology".to_string(),
+            CONTRACT_PATH.to_string(),
+        ],
+    };
 
     Ok(TelescopeProjection {
         schema_version: SCHEMA_VERSION.to_string(),
@@ -443,5 +499,13 @@ fn extract_projection(
             status: "disabled-by-default".to_string(),
         },
         narrative,
+        map_readiness,
+        blocking_gaps,
+        enhancement_gaps,
+        knowledge_tasks,
+        actors,
+        payloads,
+        scopes,
+        readiness_receipt,
     })
 }

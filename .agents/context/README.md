@@ -21,9 +21,9 @@ Read the deeper file only when the task matches it:
 - [Repository operating contract](../../docs/repository-contract.md) —
   architecture ownership, coding and security constraints, failure recovery,
   approval gates, definition of done, and installation/release rollback.
-- [Repository Telescope](../../docs/telescope.md) — source-derived architecture
-  projection, freshness and privacy contract, canvas interactions, and
-  independently composable workflow lenses.
+- [Repository Telescope](../../docs/telescope.md) — source-derived living-city
+  projection, categorical readiness and Map Workshop contract, building-local
+  source detail, freshness/privacy rules, and independently composable lenses.
 - [Implementation examples](../../docs/implementation-examples.md) — existing
   end-to-end patterns for projection, quality, remediation, and change-surface
   work.

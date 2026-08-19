@@ -15,6 +15,7 @@ use std::sync::{
 };
 
 include!("telescope/part-01.rs");
+include!("telescope/part-01a.rs");
 include!("telescope/part-02.rs");
 include!("telescope/part-03.rs");
 include!("telescope/part-04.rs");
@@ -24,10 +25,13 @@ include!("telescope/part-07.rs");
 include!("telescope/part-08.rs");
 include!("telescope/part-09.rs");
 include!("telescope/part-10.rs");
+include!("telescope/part-11a.rs");
+include!("telescope/part-11.rs");
 
 #[cfg(test)]
 mod tests {
     include!("telescope/tests-01.rs");
     include!("telescope/tests-02.rs");
     include!("telescope/tests-03.rs");
+    include!("telescope/tests-04.rs");
 }

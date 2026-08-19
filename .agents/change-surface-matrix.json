@@ -226,12 +226,8 @@
       "scope": "local and external consumer contract",
       "path": "src-tauri/src/telescope.rs, src-tauri/src/behavior_assurance.rs, src-tauri/src/core.rs, src-tauri/src/lib.rs, .pronto/telescope-map.json, .pronto/behavior-assurance.json, src/renderer/src/components/Telescope*, src/renderer/src/components/telescopeLayout*, src/renderer/src/components/telescopeScene*, src/renderer/src/types/telescope.ts, src/renderer/src/api.ts, src/renderer/src/components/Drawers.tsx, src/renderer/src/components/AppSidebar.tsx, src/renderer/src/styles.css, docs/telescope.md, docs/repository-contract.md, .agents/context/, ~/.agents/skills/pronto/",
       "owner": "Pronto repository maintainers and Codex skill routing",
-      "condition": "The source-derived topology, workspace binding, cache, extraction adapters, canvas interactions, workflow lenses, CLI or Tauri command, privacy boundary, or Telescope documentation changes.",
-      "operations": [
-        "add",
-        "change",
-        "remove"
-      ],
+      "condition": "The source-derived topology, workspace binding, categorical map readiness, knowledge tasks, city semantics, semantic scopes, cache, extraction adapters, canvas interactions, workflow lenses, CLI or Tauri command, privacy boundary, or Telescope documentation changes.",
+      "operations": ["add", "change", "remove"],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml telescope::tests",
         "cargo test --manifest-path src-tauri/Cargo.toml",
@@ -242,12 +238,17 @@
         "pnpm cli help and verify telescope plus telescope refresh syntax",
         "Exercise pronto telescope <registered-repository> --json, a repeated cached get, and pronto telescope refresh <registered-repository> --json.",
         "Verify deterministic IDs, branch/commit/dirty/workspace binding, stale-cache invalidation, dynamic imports, cycles, monorepo topology, and unsupported-language partial coverage.",
-        "Validate .pronto/telescope-map.json group limits, source-relative paths, authored edge anchors, flow references, draft/reviewed status, measured-versus-authored provenance, and narrative drift without manifest mutation.",
+        "Validate .pronto/telescope-map.json v2 using adaptive semantic completeness rather than arbitrary district or building limits; require source-relative paths, anchored claims and edges, valid flow references, explicit unknown and reason-bearing not-applicable states, draft/reviewed status, measured-versus-authored provenance, and narrative drift without manifest mutation.",
+        "Verify unavailable, measured, needs_information, reviewable, reviewed, and stale readiness states; semantic blocking versus enhancement gaps; dependency-ordered stable knowledge-task keys; and selective reopening after source drift.",
+        "Verify existing Compass, behavior assurance, documentation, and source evidence suppress duplicate questions, while unknown remains unknown and completing a task changes only intended draft fields without approving the map.",
         "Validate the action catalog against .pronto/behavior-assurance.json: behaviorId links resolve to the canonical contract, unmapped declared behaviors remain visible as review actions, and unlinked actions stay explicitly unprofiled.",
-        "Verify the visual model renders distinct building archetypes, district plates, typed rails, uncertain-path styling, labeled payload tokens, primary-flow framing, collision-free deterministic layout, and overview-to-source coverage.",
+        "Verify the visual model renders function-specific city silhouettes, source-backed actors and crews, district plates, typed rails, uncertain-path styling, labeled payloads, primary-flow framing, collision-free deterministic layout, and adaptive overview-to-source coverage.",
         "Verify cached and CLI JSON contains no source bodies, uncommitted diffs, runtime payload values, credentials, or absolute personal paths.",
-        "Verify synchronized map/navigator selection, What it does and How it's built inspector modes, lens isolation, flow inspection and pause, keyboard navigation, and reduced motion.",
-        "Exercise natural-language action routing (including a question such as how does search work), direct and related matches, action-specific city focus, behavior evidence states, scenario/source handoffs, and the read-only boundary without executing catalog actions.",
+        "Verify buildings cannot be dragged, Fit is the default for each semantic scope, labels remain readable through clustering, and City, District, Building, and Action views are materially different without rearranging canonical geometry.",
+        "Verify synchronized map/navigator selection, structured What it does and How it's built explanations, Map Workshop handoff, source-mapped lens isolation, flow inspection and pause, keyboard navigation, and reduced motion.",
+        "Exercise natural-language action routing (including a question such as how does search work), direct and related matches, guided action-city tours, behavior evidence states, scenario/source handoffs, and the read-only boundary without executing catalog actions or making runtime model calls.",
+        "Stress Source detail with dense repositories and prove it renders a building-local split workspace with progressive files, symbols, behavioral steps, handoffs, and evidence rather than a repository-wide dependency graph.",
+        "Run an unfamiliar-reader comprehension check covering repository purpose, major areas, one important action, its source evidence, and one operational concern.",
         "Exercise the packaged Tauri surface at desktop and compact widths, including cooperative refresh cancellation; source tests and builds do not substitute for visible behavior verification.",
         "Verify Compass and ICM remain optional lenses and AI enrichment is disabled by default with explicit provenance when enabled."
       ],
@@ -273,7 +274,7 @@
         "Verify relative context links resolve inside the repository.",
         "Verify workspace-manifest requires exact role coverage and emits workspace-fleet-manifest/v1 without mutation authority.",
         "Verify workspace-policy generation is documented as dry-run by default, explicit --write/--replace, exact role-map coverage, and no Git/provider mutation.",
-        "Verify Telescope documents the cached versus forced-refresh boundary, active-worktree binding, partial extraction, and repository-read-only privacy contract.",
+        "Verify Telescope documents categorical map readiness, Map Workshop knowledge-task routing, Quality Runner receipt ownership, semantic scopes, cached versus forced-refresh behavior, active-worktree binding, partial extraction, and the repository-read-only privacy contract.",
         "Run a scoped Quality Runner fleet audit and inspect agent_usability."
       ],
       "status": "applicable"
@@ -296,7 +297,7 @@
         "Verify the skill documents read-only route, scoped stale-record refresh, provenance classification, and transactional cleanup postconditions.",
         "Verify the skill tells agents to consume foundation_readiness as repository evidence and make the task-specific recommendation in chat without treating it as rewrite authority.",
         "Run pnpm cli help and confirm the documented command is exposed.",
-        "Dogfood Telescope from a fresh context against positive, negative, and unsupported-language boundary cases, then run the skill structural validator.",
+        "Dogfood Telescope v2 from a fresh context against reviewed, information-blocked, stale, and unsupported-language cases; verify the skill preserves categorical readiness and existing remediation/Quality Runner ownership; then run the skill structural validator.",
         "Verify repo and route remain the only command entry points for task-lane custody; no competing worktree mutator is introduced."
       ],
       "status": "applicable"

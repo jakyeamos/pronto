@@ -64,11 +64,16 @@ fn load_and_apply_narrative(
         }
     };
 
-    if !manifest.schema_version.is_empty() && manifest.schema_version != "pronto-telescope-map/v1" {
+    if !manifest.schema_version.is_empty()
+        && !matches!(
+            manifest.schema_version.as_str(),
+            "pronto-telescope-map/v1" | "pronto-telescope-map/v2"
+        )
+    {
         let warning = TelescopeWarning {
             code: "narrative-manifest-version-unsupported".to_string(),
             message: format!(
-                "Manifest schema {} is not the supported pronto-telescope-map/v1 shape.",
+                "Manifest schema {} is not a supported pronto-telescope-map/v1 or v2 shape.",
                 manifest.schema_version
             ),
             scope: "narrative".to_string(),
@@ -113,6 +118,13 @@ fn load_and_apply_narrative(
     narrative.authored_edges = manifest.edges.clone();
     narrative.authored_actions = manifest.actions.clone();
     narrative.primary_flow_id = manifest.primary_flow_id.clone();
+    narrative.identity = manifest.identity.clone();
+    narrative.actors = manifest.actors.clone();
+    narrative.payloads = manifest.payloads.clone();
+    narrative.decisions = manifest.decisions.clone();
+    narrative.failures = manifest.failures.clone();
+    narrative.applicability = manifest.applicability.clone();
+    narrative.review = manifest.review.clone();
 
     let discovered_paths = files
         .iter()
@@ -316,6 +328,9 @@ fn load_and_apply_narrative(
             }
             node.visual_override_provenance = "authored-manifest".to_string();
             node.narrative_status = authored_status(&authored_node.status, &narrative.status);
+            if !authored_node.city_role.is_empty() {
+                node.city_role = authored_node.city_role.clone();
+            }
             node.source_file_count = node.source_file_count.max(authored_node.files.len());
             if index == 0 {
                 if !authored_node.label.is_empty() {
@@ -327,6 +342,15 @@ fn load_and_apply_narrative(
                 }
                 if !authored_node.how_its_built.is_empty() {
                     node.implementation_summary = authored_node.how_its_built.clone();
+                }
+                node.explanation = authored_node.explanation.clone();
+                if node.explanation.purpose.is_empty() {
+                    node.explanation.purpose = node.semantic_summary.clone();
+                }
+                if node.explanation.responsibilities.is_empty() {
+                    node.explanation
+                        .responsibilities
+                        .push(node.implementation_summary.clone());
                 }
             }
             push_unique(&mut node.provenance, "authored-manifest");

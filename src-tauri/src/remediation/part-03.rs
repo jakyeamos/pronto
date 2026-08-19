@@ -196,6 +196,124 @@ pub fn recompute_plan_derived(plan: &mut RemediationPlan) {
     plan.explanation = build_remediation_explanation(&plan.goal, &plan.actions, &plan.coverage);
 }
 
+pub fn sync_telescope_readiness(
+    run: &mut RemediationRun,
+    repository: &RepositorySnapshot,
+    projection: &crate::telescope::TelescopeProjection,
+) -> bool {
+    let previous_plan = run
+        .plans
+        .iter()
+        .find(|plan| plan.repository_id == repository.id)
+        .cloned();
+    let previous_actions = previous_plan
+        .as_ref()
+        .map(|plan| {
+            plan.actions
+                .iter()
+                .map(|action| (action.stable_key.as_str(), action))
+                .collect::<HashMap<_, _>>()
+        })
+        .unwrap_or_default();
+    let current_keys = projection
+        .knowledge_tasks
+        .iter()
+        .map(|task| task.stable_gap_key.as_str())
+        .collect::<HashSet<_>>();
+    let mut plan = build_plan(
+        repository,
+        previous_plan.as_ref(),
+        Some(&projection.readiness_receipt.workspace_fingerprint),
+        &projection.binding.generated_at,
+        None,
+    );
+
+    // build_plan retains disappeared actions as verified history. Replace only
+    // the still-current Telescope entries so status preservation and selective
+    // reopening use the canonical remediation lifecycle.
+    plan.actions.retain(|action| {
+        action.domain != "telescope_readiness" || !current_keys.contains(action.stable_key.as_str())
+    });
+    for task in &projection.knowledge_tasks {
+        let evidence = if task.evidence.is_empty() {
+            vec![RemediationEvidence {
+                source: "Pronto Telescope".to_string(),
+                label: task
+                    .stable_gap_key
+                    .strip_prefix("telescope-readiness:")
+                    .unwrap_or(&task.stable_gap_key)
+                    .to_string(),
+                status: "Open question".to_string(),
+                freshness: task.freshness.clone(),
+                observed_at: Some(projection.binding.generated_at.clone()),
+                scanned_commit: projection.binding.commit.clone(),
+                scanned_branch: Some(projection.binding.branch.clone()),
+                report_path: None,
+                detail: task.summary.clone(),
+            }]
+        } else {
+            task.evidence
+                .iter()
+                .map(|anchor| RemediationEvidence {
+                    source: "Pronto Telescope".to_string(),
+                    label: task
+                        .stable_gap_key
+                        .strip_prefix("telescope-readiness:")
+                        .unwrap_or(&task.stable_gap_key)
+                        .to_string(),
+                    status: "Source candidate".to_string(),
+                    freshness: task.freshness.clone(),
+                    observed_at: Some(projection.binding.generated_at.clone()),
+                    scanned_commit: projection.binding.commit.clone(),
+                    scanned_branch: Some(projection.binding.branch.clone()),
+                    report_path: Some(anchor.path.clone()),
+                    detail: task.summary.clone(),
+                })
+                .collect()
+        };
+        plan.actions.push(materialize_action(
+            repository,
+            ActionSeed {
+                stable_key: task.stable_gap_key.clone(),
+                domain: "telescope_readiness".to_string(),
+                title: task.title.clone(),
+                summary: format!("{} Unlocks: {}", task.question, task.unlocks.join(", ")),
+                severity: if task.priority == "P1" {
+                    "blocking"
+                } else {
+                    "enhancement"
+                }
+                .to_string(),
+                priority: task.priority.clone(),
+                weight: if task.priority == "P1" { 3 } else { 1 },
+                acceptance_criteria: task.completion_criteria.clone(),
+                evidence,
+                related_finding_ids: Vec::new(),
+                source_run_id: Some(projection.readiness_receipt.workspace_fingerprint.clone()),
+            },
+            &previous_actions,
+            &projection.binding.generated_at,
+        ));
+    }
+    recompute_plan_derived(&mut plan);
+
+    let before = run
+        .plans
+        .iter()
+        .find(|candidate| candidate.repository_id == repository.id)
+        .and_then(|candidate| serde_json::to_value(candidate).ok());
+    run.plans
+        .retain(|candidate| candidate.repository_id != repository.id);
+    if !plan_is_terminal(&plan) {
+        run.plans.push(plan.clone());
+    }
+    rank_active_plans(&mut run.plans);
+    let after = (!plan_is_terminal(&plan))
+        .then(|| serde_json::to_value(&plan).ok())
+        .flatten();
+    before != after
+}
+
 pub fn normalize_queue(run: &mut RemediationRun, closed_at: &str) {
     let mut active_plans = Vec::new();
     for plan in std::mem::take(&mut run.plans) {
@@ -399,35 +517,4 @@ fn closure_from_plan(
         deferred_action_count,
         last_evidence_at: latest_plan_evidence_at(plan),
     }
-}
-
-fn closure_from_transition(
-    repository: &RepositorySnapshot,
-    previous: &RemediationPlan,
-    current: &RemediationPlan,
-    closed_at: &str,
-    source_refresh_id: Option<&str>,
-) -> RemediationClosure {
-    let mut closure = closure_from_plan(current, closed_at, source_refresh_id);
-    closure.resolved_action_count = previous.actions.len();
-    closure.last_evidence_at =
-        latest_plan_evidence_at(current).or_else(|| Some(repository.last_scan_at.clone()));
-    if current.actions.is_empty() {
-        closure.summary = format!(
-            "Fresh evidence removed {} prior action(s) from the active remediation queue.",
-            previous.actions.len()
-        );
-    }
-    closure
-}
-
-fn deduplicate_closures(closures: &mut Vec<RemediationClosure>) {
-    closures.sort_by(|left, right| {
-        right
-            .closed_at
-            .cmp(&left.closed_at)
-            .then_with(|| left.repository_name.cmp(&right.repository_name))
-    });
-    let mut seen = std::collections::HashSet::new();
-    closures.retain(|closure| seen.insert(closure.id.clone()));
 }

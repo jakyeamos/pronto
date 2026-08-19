@@ -47,3 +47,23 @@ qr fleet audit run --repo-path "$(git rev-parse --show-toplevel)" \
 `change_surface_hotspots` remains a separate signal. It identifies multi-signal
 change amplification; it does not change the developer-legibility score or
 automatically prescribe a refactor.
+
+## Telescope architecture-visibility receipt
+
+Telescope v2 contributes a narrow readiness receipt to the existing
+`developer_legibility` architecture-visibility lane. The receipt reports the
+active workspace fingerprint, categorical `map_readiness`, blocking and
+enhancement gap keys, extraction coverage, authored-review state, and freshness.
+It is evidence for this one lane; Telescope does not calculate or replace the
+holistic developer-legibility maturity level.
+
+Quality Runner consumers must preserve `unavailable`, `measured`,
+`needs_information`, `reviewable`, `reviewed`, and `stale` as distinct states.
+They must also preserve explicit unknowns and reason-bearing `not_applicable`
+decisions. Only a fresh `reviewed` receipt can support reviewed
+architecture-visibility evidence. Counts, extracted coverage, or an attractive
+measured preview cannot be promoted into that claim.
+
+Unresolved receipt gaps project through Pronto's existing remediation and
+attention systems with the `telescope_readiness` domain. They remain supporting
+evidence and work items, not a second maturity score or a separate task store.

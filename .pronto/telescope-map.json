@@ -1,7 +1,139 @@
 {
-  "schemaVersion": "pronto-telescope-map/v1",
+  "schemaVersion": "pronto-telescope-map/v2",
   "status": "draft",
-  "visualModelVersion": "pronto-telescope-city/v1",
+  "visualModelVersion": "pronto-telescope-city/v2",
+  "identity": {
+    "purpose": "Pronto is a local-first command center that helps a person understand, improve, and safely move work across a portfolio of software repositories.",
+    "audience": [
+      "Repository owners who need a fast, evidence-backed explanation of unfamiliar code",
+      "Operators coordinating quality, remediation, custody, and delivery across multiple repositories",
+      "Agents preparing bounded work without inventing authority or product truth"
+    ],
+    "outcomes": [
+      "Understand what a repository does and how an important behavior moves through it",
+      "See which operational evidence is current, missing, blocked, or stale",
+      "Hand off an evidence-backed next action through Pronto's existing guards"
+    ],
+    "status": "draft",
+    "provenance": "repository-authored"
+  },
+  "actors": [
+    {
+      "id": "repository-reader",
+      "label": "Repository reader",
+      "role": "user",
+      "metaphor": "visitor",
+      "description": "Enters the city to learn its purpose, follow a journey, and inspect the evidence behind the explanation.",
+      "actionIds": ["understand-repository", "inspect-assurance-portfolio", "open-source-workspace"],
+      "nodeIds": ["workspace-shell", "telescope-surface"],
+      "status": "draft"
+    },
+    {
+      "id": "portfolio-operator",
+      "label": "Portfolio operator",
+      "role": "operator",
+      "metaphor": "city coordinator",
+      "description": "Uses quality, remediation, custody, and delivery evidence to decide what needs attention and what is ready to move.",
+      "actionIds": ["work-remediation", "prepare-delivery"],
+      "nodeIds": ["remediation-plans", "custody-lanes", "release-gates"],
+      "status": "draft"
+    },
+    {
+      "id": "guarded-agent",
+      "label": "Guarded agent",
+      "role": "agent",
+      "metaphor": "specialist crew",
+      "description": "Receives a scoped, evidence-backed task and prepares work without bypassing repository ownership or release gates.",
+      "actionIds": ["work-remediation", "preview-ai-summary"],
+      "nodeIds": ["verified-automation", "repository-core"],
+      "status": "draft"
+    }
+  ],
+  "payloads": [
+    {
+      "id": "repository-context",
+      "label": "repository context",
+      "metaphor": "case file",
+      "description": "Workspace identity, freshness, measured topology, and source anchors move from the repository boundary into the city renderer.",
+      "flowIds": ["understand-repository"],
+      "dataShapes": ["TelescopeProjection", "workspace fingerprint"],
+      "status": "draft"
+    },
+    {
+      "id": "quality-evidence",
+      "label": "quality evidence",
+      "metaphor": "inspection report",
+      "description": "Freshness, findings, maturity, and behavior receipts travel through Pronto without being converted into unsupported green states.",
+      "flowIds": ["inspect-quality-flow"],
+      "dataShapes": ["quality projection", "behavior receipt"],
+      "status": "draft"
+    },
+    {
+      "id": "guarded-work-order",
+      "label": "guarded work order",
+      "metaphor": "crew dispatch",
+      "description": "A scoped remediation or preparation request leaves Telescope through an existing guarded handoff rather than mutating the repository from the map.",
+      "flowIds": ["remediate-and-deliver"],
+      "dataShapes": ["remediation action", "custody receipt", "release gate"],
+      "status": "draft"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "source-topology-canonical",
+      "label": "Source topology stays canonical",
+      "explanation": "Telescope measures code structure first; Compass, behavior, quality, remediation, and intent may annotate the city but cannot replace its source-derived topology.",
+      "files": ["src-tauri/src/telescope.rs", "src/renderer/src/components/telescopeSceneModel.ts"],
+      "status": "draft"
+    },
+    {
+      "id": "runtime-ai-disabled",
+      "label": "Runtime AI is not required",
+      "explanation": "The desktop app uses local deterministic projections. An agent may prepare a draft manifest ahead of time, but the app stores no model prompt or credential.",
+      "files": ["src-tauri/src/telescope.rs"],
+      "status": "draft"
+    },
+    {
+      "id": "map-is-read-only",
+      "label": "The city explains before it acts",
+      "explanation": "Telescope remains read-only and hands source opening, remediation, and preparation to existing guarded Pronto surfaces.",
+      "files": ["src/renderer/src/components/TelescopeSurface.tsx", "src-tauri/src/core.rs"],
+      "status": "draft"
+    }
+  ],
+  "failures": [
+    {
+      "id": "stale-map",
+      "label": "Reviewed meaning no longer matches source",
+      "behavior": "Pronto marks the city stale, keeps the measured preview available, and opens only the affected readiness questions instead of silently rewriting authored meaning.",
+      "actionIds": ["understand-repository"],
+      "files": ["src-tauri/src/telescope.rs"],
+      "status": "draft"
+    },
+    {
+      "id": "incomplete-map",
+      "label": "Consequential meaning is missing",
+      "behavior": "Pronto shows the Map Workshop and an explicitly incomplete measured preview; it does not present a polished city as complete.",
+      "actionIds": ["understand-repository"],
+      "files": ["src/renderer/src/components/TelescopeSurface.tsx"],
+      "status": "draft"
+    },
+    {
+      "id": "blocked-handoff",
+      "label": "A guarded action cannot proceed",
+      "behavior": "The existing remediation, custody, or release surface explains the blocking evidence while Telescope remains read-only.",
+      "actionIds": ["work-remediation", "prepare-delivery"],
+      "files": ["src-tauri/src/remediation.rs", "src-tauri/src/custody.rs", "src-tauri/src/release_boundary.rs"],
+      "status": "draft"
+    }
+  ],
+  "applicability": [],
+  "review": {
+    "reviewedFingerprint": null,
+    "reviewedAt": null,
+    "reviewerProvenance": "",
+    "highImpactClaimIds": []
+  },
   "groups": [
     {
       "id": "experience",
@@ -101,6 +233,25 @@
       "howItsBuilt": "A React application composes route surfaces, shared state, keyboard behavior, and guarded actions.",
       "files": ["src/renderer/src/App.tsx"],
       "visualArchetype": "tower",
+      "cityRole": "city-hall",
+      "explanation": {
+        "purpose": "Give a repository reader one stable entrance to Pronto's portfolio, evidence, and guarded work surfaces.",
+        "userOutcome": "A person can enter one repository, understand its current state, and choose a safe next action without learning Pronto's internal modules first.",
+        "participants": ["Repository reader", "Portfolio operator"],
+        "triggers": ["A repository is selected from the portfolio"],
+        "steps": ["Resolve the selected registered workspace", "Load current repository and evidence projections", "Open the requested overview or Telescope surface"],
+        "inputs": ["Registered repository identity", "Workspace snapshot", "Current route"],
+        "outputs": ["Focused repository workspace"],
+        "stateChanges": ["The active repository route and contextual surface change"],
+        "responsibilities": ["Compose global navigation", "Preserve repository context across surfaces", "Route guarded actions"],
+        "boundaries": ["Does not itself mutate repositories"],
+        "decisions": ["Chooses which bounded repository surface is visible"],
+        "dependencies": ["Repository core", "Detail drawer"],
+        "failures": ["Unavailable repository snapshots remain explicit instead of rendering invented state"],
+        "security": ["Mutation authority remains behind existing Tauri commands and guards"],
+        "performance": ["Loads one primary workspace per route"],
+        "testing": ["Renderer route and repository-selection tests"]
+      },
       "status": "draft"
     },
     {
@@ -131,6 +282,25 @@
       "howItsBuilt": "A React Flow viewport coordinates scene layout, synchronized selection, level of detail, flow tokens, and workflow lenses.",
       "files": ["src/renderer/src/components/TelescopeSurface.tsx"],
       "visualArchetype": "tower",
+      "cityRole": "observatory",
+      "explanation": {
+        "purpose": "Turn source-backed architecture and behavior into a guided city that an unfamiliar reader can explore.",
+        "userOutcome": "A person can explain the repository's purpose, major areas, an important action, and the evidence behind it.",
+        "participants": ["Repository reader", "Portfolio operator"],
+        "triggers": ["The Telescope tab opens", "An action is searched", "A district or building is selected"],
+        "steps": ["Show readiness before claiming completeness", "Frame the primary city story", "Focus a district or action", "Enter one building for local evidence"],
+        "inputs": ["Telescope projection", "Repository operations evidence", "User selection"],
+        "outputs": ["Scoped city scene", "Explanation", "Source handoff"],
+        "stateChanges": ["Selection, scope, lens, and tour stop update without altering topology"],
+        "responsibilities": ["Synchronize navigator and city", "Keep Fit as the default", "Render readiness and uncertainty honestly"],
+        "boundaries": ["Read-only", "No runtime AI", "No source bodies in the projection"],
+        "decisions": ["Overview, district, and building scopes use different semantic projections"],
+        "dependencies": ["Scene model", "District layout", "Telescope contract"],
+        "failures": ["Incomplete meaning opens Map Workshop", "Layout warnings remain visible"],
+        "security": ["Guarded tasks and source opening hand off to existing Pronto surfaces"],
+        "performance": ["Source detail renders one building and immediate handoffs only"],
+        "testing": ["Scope, selection, keyboard, reduced-motion, and source-detail tests"]
+      },
       "status": "draft"
     },
     {
@@ -141,6 +311,7 @@
       "howItsBuilt": "Custom SVG primitives render fin rows, towers, slab stacks, cubes, and low slabs inside React Flow nodes.",
       "files": ["src/renderer/src/components/TelescopeGraphElements.tsx"],
       "visualArchetype": "fin-row",
+      "cityRole": "architectural-model-yard",
       "status": "draft"
     },
     {
@@ -151,6 +322,25 @@
       "howItsBuilt": "Deterministic bucketing compacts measured nodes, preserves authored buildings, and marks the primary story flow.",
       "files": ["src/renderer/src/components/telescopeSceneModel.ts"],
       "visualArchetype": "slab-stack",
+      "cityRole": "planning-office",
+      "explanation": {
+        "purpose": "Project the same canonical architecture into a whole-city overview, a district interior, or one building's local handoffs.",
+        "userOutcome": "Changing detail level reveals new information instead of shrinking the same global graph.",
+        "participants": ["Telescope surface"],
+        "triggers": ["Projection refresh", "Scope or selection change"],
+        "steps": ["Choose the semantic source-node scope", "Aggregate measured nodes into authored buildings", "Retain source-backed boundary crossings", "Build typed rails and primary story identity"],
+        "inputs": ["Measured nodes and edges", "Authored building IDs", "Selected action, district, or node"],
+        "outputs": ["Deterministic scene model"],
+        "stateChanges": [],
+        "responsibilities": ["Preserve complete authored overview meaning", "Hide unrelated implementation noise", "Keep geometry deterministic"],
+        "boundaries": ["Does not author prose", "Does not invent actors or payloads"],
+        "decisions": ["Semantic scope replaces arbitrary building quotas"],
+        "dependencies": ["Telescope projection"],
+        "failures": ["Missing selection falls back to the primary high-confidence story"],
+        "security": [],
+        "performance": ["Building source detail is local by construction"],
+        "testing": ["Adaptive overview and local source-scope fixtures"]
+      },
       "status": "draft"
     },
     {
@@ -161,6 +351,7 @@
       "howItsBuilt": "A dependency-light grid and dimetric projection pack buildings, preserve spacing, and route rails around silhouettes.",
       "files": ["src/renderer/src/components/telescopeSceneLayout.ts"],
       "visualArchetype": "cube",
+      "cityRole": "surveyors-yard",
       "status": "draft"
     },
     {
@@ -171,6 +362,7 @@
       "howItsBuilt": "Typed projection interfaces make narrative status, coverage, visual overrides, rails, and flows explicit.",
       "files": ["src/renderer/src/types/telescope.ts"],
       "visualArchetype": "cube",
+      "cityRole": "records-office",
       "status": "draft"
     },
     {
@@ -181,6 +373,25 @@
       "howItsBuilt": "Rust adapters inspect supported source files, fall back to generic topology, and overlay the authored map without rewriting it.",
       "files": ["src-tauri/src/telescope.rs"],
       "visualArchetype": "tower",
+      "cityRole": "survey-office",
+      "explanation": {
+        "purpose": "Measure the active worktree and reconcile it with reviewed repository meaning without overwriting authorship.",
+        "userOutcome": "Every city claim can be traced to current source, reviewed meaning, or an explicit unknown.",
+        "participants": ["Repository core", "Map author", "Quality Runner"],
+        "triggers": ["Telescope load", "Explicit map refresh"],
+        "steps": ["Bind workspace and dirty state", "Extract supported topology", "Apply repository narrative", "Assess readiness gaps", "Publish scopes, tasks, and receipt"],
+        "inputs": ["Active worktree", "Behavior contract", "Telescope map manifest"],
+        "outputs": ["pronto-telescope/v2", "pronto-telescope-city/v2", "Architecture-visibility readiness receipt"],
+        "stateChanges": ["Cache entries change only when the workspace fingerprint or visual model changes"],
+        "responsibilities": ["Measure topology", "Mark partial extraction", "Generate stable knowledge-gap keys", "Preserve reviewed prose"],
+        "boundaries": ["No source bodies, diffs, prompts, answers, or absolute personal paths enter the cache"],
+        "decisions": ["Readiness is categorical, not a blended score", "Unknown remains unknown"],
+        "dependencies": ["Git worktree state", "Language adapters", "Repository-local manifest"],
+        "failures": ["Extraction failure is unavailable", "Consequential meaning gaps block publication", "Fingerprint drift makes reviewed meaning stale"],
+        "security": ["AI is not called by the app runtime"],
+        "performance": ["Expensive extraction and layout remain outside the full render path"],
+        "testing": ["Readiness, privacy, cache, language, drift, and deterministic ID fixtures"]
+      },
       "status": "draft"
     },
     {
@@ -191,6 +402,7 @@
       "howItsBuilt": "Tauri commands and Rust modules expose typed read-only projections while keeping mutation behind existing gates.",
       "files": ["src-tauri/src/lib.rs"],
       "visualArchetype": "cube",
+      "cityRole": "city-gate",
       "status": "draft"
     },
     {
@@ -201,6 +413,7 @@
       "howItsBuilt": "A Rust core owns repository snapshots, command routing, and the bridge to the Telescope generator.",
       "files": ["src-tauri/src/core.rs"],
       "visualArchetype": "tower",
+      "cityRole": "transit-hub",
       "status": "draft"
     },
     {
@@ -211,6 +424,7 @@
       "howItsBuilt": "Quality projections preserve freshness, detector coverage, maturity, and installed-runtime evidence states.",
       "files": ["src-tauri/src/quality.rs"],
       "visualArchetype": "fin-row",
+      "cityRole": "inspection-bureau",
       "status": "draft"
     },
     {
@@ -221,6 +435,7 @@
       "howItsBuilt": "Repository contracts and receipts feed explicit verified, stale, unavailable, partial, and conflicted states.",
       "files": ["src-tauri/src/behavior_assurance.rs"],
       "visualArchetype": "cube",
+      "cityRole": "proof-laboratory",
       "status": "draft"
     },
     {
@@ -231,6 +446,7 @@
       "howItsBuilt": "Remediation projections overlay source-bound findings and hand actions off to guarded preparation surfaces.",
       "files": ["src-tauri/src/remediation.rs"],
       "visualArchetype": "slab-stack",
+      "cityRole": "repair-depot",
       "status": "draft"
     },
     {
@@ -241,6 +457,7 @@
       "howItsBuilt": "Custody records and workspace evidence drive changes and ownership overlays with explicit verification boundaries.",
       "files": ["src-tauri/src/custody.rs"],
       "visualArchetype": "fin-row",
+      "cityRole": "crew-dispatch",
       "status": "draft"
     },
     {
@@ -251,6 +468,7 @@
       "howItsBuilt": "Release boundary checks consume repository evidence and preserve blocked, stale, and unavailable outcomes.",
       "files": ["src-tauri/src/release_boundary.rs"],
       "visualArchetype": "tower",
+      "cityRole": "release-terminal",
       "status": "draft"
     },
     {
@@ -261,6 +479,7 @@
       "howItsBuilt": "Project Compass remains an optional adapter projected as a lens over source-derived districts and flows.",
       "files": ["src-tauri/src/project_compass.rs"],
       "visualArchetype": "low-slab",
+      "cityRole": "planning-pavilion",
       "status": "draft"
     },
     {
@@ -271,6 +490,7 @@
       "howItsBuilt": "Skill usage and papercut collectors provide evidence-bound activity overlays rather than inferred activity.",
       "files": ["src-tauri/src/skills.rs", "src-tauri/src/skill_usage_collector.rs"],
       "visualArchetype": "low-slab",
+      "cityRole": "service-yard",
       "status": "draft"
     }
   ],
@@ -351,6 +571,7 @@
   "flows": [
     {
       "id": "understand-repository",
+      "behaviorId": "telescope-living-city-readiness",
       "label": "Understand a repository",
       "kind": "user-story",
       "nodeIds": ["workspace-shell", "detail-drawer", "telescope-surface", "telescope-contract"],
@@ -393,7 +614,26 @@
       "flowId": "understand-repository",
       "status": "draft",
       "readOnly": true,
-      "guarded": false
+      "guarded": false,
+      "explanation": {
+        "purpose": "Give an unfamiliar reader a reliable mental model of Pronto before they have to read its source.",
+        "userOutcome": "The reader can name Pronto's purpose, its major districts, one important workflow, and the evidence behind that explanation.",
+        "participants": ["Repository reader", "Pronto workspace"],
+        "triggers": ["A repository is opened", "A reader asks how Pronto works"],
+        "preconditions": ["The active worktree has been measured", "Map readiness is visible"],
+        "steps": ["Open the repository workspace", "Check whether the city is reviewed or still needs information", "Follow the primary repository story", "Inspect a district or building for implementation evidence"],
+        "inputs": ["Measured source topology", "Reviewed or draft Telescope narrative", "Canonical behavior evidence"],
+        "outputs": ["A scoped city explanation", "Repository-relative source anchors", "Visible unknowns and freshness"],
+        "stateChanges": ["The current city scope and selection change; repository source does not"],
+        "responsibilities": ["Keep authored meaning separate from measured facts", "Expose evidence and uncertainty at every level"],
+        "boundaries": ["Telescope explains and routes; guarded Pronto surfaces own mutations"],
+        "decisions": ["Incomplete meaning opens the Map Workshop instead of masquerading as a finished city"],
+        "dependencies": ["Repository extraction", "Telescope narrative manifest", "Behavior assurance when applicable"],
+        "failures": ["Extraction failure makes the map unavailable", "Source drift makes reviewed narrative stale", "Consequential unknowns block publication"],
+        "security": ["Cached projections exclude source bodies, diffs, prompts, and absolute personal paths"],
+        "performance": ["Each exploration level renders only its semantic scope"],
+        "testing": ["An unfamiliar-reader test must recover purpose, major areas, one action, evidence, and one operational concern"]
+      }
     },
     {
       "id": "understand-repository",
@@ -438,6 +678,7 @@
     },
     {
       "id": "inspect-source-evidence",
+      "behaviorId": "telescope-semantic-exploration",
       "label": "Inspect source evidence",
       "verb": "Inspect",
       "category": "evidence",
@@ -447,7 +688,26 @@
       "nodeIds": ["telescope-surface", "telescope-extractor", "telescope-contract"],
       "status": "draft",
       "readOnly": true,
-      "guarded": false
+      "guarded": false,
+      "explanation": {
+        "purpose": "Let a reader verify a city claim without turning the entire repository into an unreadable dependency graph.",
+        "userOutcome": "The reader can trace the selected building to its local handoffs, symbols, files, and claim-level provenance.",
+        "participants": ["Repository reader"],
+        "triggers": ["A district, building, rail, flow, or action is selected", "Source detail is opened"],
+        "preconditions": ["The selected entity has repository-relative evidence"],
+        "steps": ["Enter the selected building", "Inspect its immediate incoming and outgoing handoffs", "Expand files and symbols progressively", "Open a source anchor through the guarded workspace handoff"],
+        "inputs": ["Selected city entity", "Measured relationships", "Authored claim provenance"],
+        "outputs": ["A local source map", "Readable evidence lists", "A guarded open-source handoff"],
+        "stateChanges": ["Only the visual scope and progressive evidence expansion change"],
+        "responsibilities": ["Keep evidence local to the selected building", "Preserve confidence and provenance"],
+        "boundaries": ["The projection stores paths and symbols, not source bodies"],
+        "decisions": ["Unrelated repository entities are hidden until the reader navigates to them"],
+        "dependencies": ["Telescope extractor", "Repository workspace boundary"],
+        "failures": ["Missing anchors remain explicit", "Unsupported relationships remain partial or inferred"],
+        "security": ["No source bodies, diffs, or runtime payload values enter the Telescope cache"],
+        "performance": ["Evidence is virtualized or progressively expanded and the graph stays one-hop local"],
+        "testing": ["Stress the prior global-source-graph crash shape and prove the source scope remains bounded"]
+      }
     },
     {
       "id": "refresh-map",
@@ -571,7 +831,26 @@
       "nodeIds": ["remediation-plans", "custody-lanes"],
       "status": "draft",
       "readOnly": false,
-      "guarded": true
+      "guarded": true,
+      "explanation": {
+        "purpose": "Explain where a remediation plan touches the architecture and what prevents the work from closing.",
+        "userOutcome": "The operator can see affected facilities, blocking dependencies, custody, and required closure evidence in one city story.",
+        "participants": ["Repository operator", "Verified remediation agent"],
+        "triggers": ["A remediation plan is selected", "A Telescope readiness gap is routed into remediation"],
+        "preconditions": ["The task is source-mapped", "Custody and freshness are available"],
+        "steps": ["Focus affected facilities", "Follow dependencies and blocked routes", "Inspect required evidence", "Hand off the guarded action"],
+        "inputs": ["Remediation actions", "Telescope knowledge tasks", "Custody evidence"],
+        "outputs": ["A source-mapped repair story", "A guarded preparation handoff"],
+        "stateChanges": ["Telescope does not change remediation status; the owning guarded workflow does"],
+        "responsibilities": ["Preserve the canonical remediation task state", "Report unmapped actions rather than inventing locations"],
+        "boundaries": ["The lens annotates canonical topology and never creates a second task database"],
+        "decisions": ["Only source-mapped facilities receive repair crews or blocked-route visuals"],
+        "dependencies": ["Remediation projection", "Custody projection", "Telescope source anchors"],
+        "failures": ["Stale or unmapped remediation evidence remains visible and unconfirmed"],
+        "security": ["The city receives task metadata and anchors, not sensitive worktree content"],
+        "performance": ["The lens filters the unchanged city rather than generating another topology"],
+        "testing": ["Lens isolation and unmapped-information reporting are required"]
+      }
     },
     {
       "id": "prepare-delivery",
@@ -584,7 +863,26 @@
       "nodeIds": ["custody-lanes", "release-gates", "repository-core"],
       "status": "draft",
       "readOnly": false,
-      "guarded": true
+      "guarded": true,
+      "explanation": {
+        "purpose": "Show how a change moves from an owned workspace through validation to a release decision.",
+        "userOutcome": "The operator can locate the changed subsystem, understand its gates, and see the exact blocker before preparing delivery.",
+        "participants": ["Repository operator", "Custody owner", "Release gate"],
+        "triggers": ["A delivery action or lens is selected"],
+        "preconditions": ["Changed facilities and release evidence can be mapped"],
+        "steps": ["Locate the changed facility", "Follow custody and integration paths", "Inspect validation checkpoints", "Arrive at the release terminal", "Hand off guarded preparation"],
+        "inputs": ["Workspace changes", "Custody evidence", "Quality and behavior gates", "Release rules"],
+        "outputs": ["A delivery path", "Visible blockers and stale evidence", "A guarded preparation handoff"],
+        "stateChanges": ["The city selection changes; no release action runs inside Telescope"],
+        "responsibilities": ["Keep source state, installed state, and release evidence distinct", "Do not imply a gate passed when evidence is missing"],
+        "boundaries": ["Release preparation remains owned by Pronto's existing guarded surface"],
+        "decisions": ["Unmapped checks are reported instead of receiving decorative checkpoints"],
+        "dependencies": ["Custody", "Quality Runner", "Behavior assurance", "Release boundary"],
+        "failures": ["Missing, stale, failed, or insufficient evidence blocks the story before the release terminal"],
+        "security": ["No diffs or runtime payload values are copied into the city projection"],
+        "performance": ["The lens activates only facilities on the delivery path"],
+        "testing": ["Verify the changed-subsystem-to-release route and all unavailable states"]
+      }
     },
     {
       "id": "open-source-workspace",

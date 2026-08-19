@@ -10,7 +10,8 @@ canonical when optional workflow adapters are unavailable.
 
 ## Projection contract
 
-The Rust core owns `pronto-telescope/v1`. Both
+The Rust core owns `pronto-telescope/v2` and its coordinated visual projection
+`pronto-telescope-city/v2`. Both
 `get_repository_telescope` and `pronto telescope <repository> --json` return
 that projection. `refresh_repository_telescope` and
 `pronto telescope refresh <repository> --json` force regeneration before
@@ -26,6 +27,11 @@ The projection contains:
 - `actions` and `action_coverage`, which make useful read-only operations
   searchable and map each operation to city nodes, rails, flows, source
   anchors, and (when available) a behavior-assurance ID;
+- categorical `map_readiness`, semantic blocking and enhancement gaps, and
+  dependency-ordered `knowledge_tasks` projected into Pronto's existing
+  remediation/attention workflow under the `telescope_readiness` domain;
+- actors, payloads, overview/district/building/action scopes, structured
+  explanations, and a developer-legibility readiness receipt;
 - semantic and implementation summaries, repository-relative source anchors,
   symbols, technologies, and statically derived data shapes;
 - relationship direction, kind, confidence, and provenance;
@@ -69,7 +75,7 @@ repository-scoped.
 
 Telescope separates what the machine can measure from what a human chooses to
 explain. A repository may add `.pronto/telescope-map.json` using
-`pronto-telescope-map/v1`. The manifest is a small, repository-local narrative
+`pronto-telescope-map/v2`. The manifest is a small, repository-local narrative
 layer: its groups are neighborhoods, its nodes are meaningful buildings, its
 edges name the story rails, and its flows describe the user or system journeys
 worth following.
@@ -85,8 +91,11 @@ The boundary is deliberate:
   reviews them. Refresh updates measured data, reports narrative drift, and
   never overwrites the manifest's explanations or layout decisions.
 
-The manifest should contain four to seven human-named neighborhoods and about
-15–25 overview buildings. `pathPrefixes` create conceptual districts from
+District and building counts are adaptive. The overview includes every
+district and landmark needed to explain the repository and clusters routine
+implementation structures whenever showing them separately would make the
+explanation less readable. It never treats an arbitrary node quota as
+architectural completeness. `pathPrefixes` create conceptual districts from
 source-backed files; a node's `groupId` and `files` can make a more specific
 building assignment. Every authored edge must identify source-relative files
 that the extractor can resolve, and every flow must reference valid authored
@@ -103,6 +112,57 @@ rails signal inferred or partial evidence. Overview, subsystem, and source
 levels progressively reveal detail while preserving stable positions and a
 deterministic primary story flow. Pronto lenses tint or annotate these
 districts and rails but never redefine the source-derived city.
+
+Actors and activity are evidence-bound. People appear only when a reviewed or
+draft actor maps to the facility or action; payloads become labeled parcels,
+documents, cargo, or service traffic only when a real flow supports them.
+Routes become gates, persistence becomes archives or vaults, workers become
+yards or utility crews, queues become depots, and external boundaries become
+ports or bridges. The technical role and source evidence remain visible beside
+the metaphor. Telescope never invents pedestrians or traffic for atmosphere.
+
+## Map readiness and workshop
+
+Telescope publishes one categorical readiness state rather than a blended
+score:
+
+- `unavailable`: extraction or workspace binding failed;
+- `measured`: source topology exists but repository meaning is not established;
+- `needs_information`: a consequential purpose, boundary, action, movement,
+  constraint, metaphor, or evidence question remains;
+- `reviewable`: the candidate city is complete enough for explicit review;
+- `reviewed`: high-impact meaning is approved against the current narrative
+  and workspace fingerprint; or
+- `stale`: a reviewed explanation may no longer match the active worktree.
+
+Applicability is repository-specific. `not_applicable` is accepted only with a
+reason, while `unknown` remains unknown. A gap blocks publication when it
+prevents an unfamiliar person from understanding purpose, a major boundary, a
+primary action or state transition, or the evidence supporting the story.
+Lower-impact omissions can remain enhancement gaps.
+
+Incomplete repositories open a clearly labeled Map Workshop and may show a
+measured preview; they do not present the preview as a finished city. Workshop
+tasks ask one consequential question at a time, explain why source could not
+answer it, show candidate answers and source anchors, name the exact city
+element unlocked, and allow confirm, choose, edit, not-applicable, unknown, or
+point-to-evidence responses. Stable gap keys deduplicate tasks and dependencies
+order identity before actors, boundaries, actions, movement, metaphor, and
+final review.
+
+There is no Telescope task database. `knowledge_tasks` are a read-only
+`telescope_readiness` projection for Pronto's remediation and attention
+systems. “Answer next question” invokes the existing guarded repository-task
+handoff, which may prepare a draft manifest change in an isolated worktree.
+Completing a task never marks the city reviewed. Refresh updates measured
+evidence, opens only affected drift questions, and never rewrites authored
+meaning.
+
+The `readiness_receipt` is narrowly scoped to Quality Runner's existing
+developer-legibility architecture-visibility lane. Quality Runner remains the
+owner of holistic maturity and must preserve Telescope's applicability,
+freshness, unknowns, and blocking gap keys instead of converting them to a
+generic score.
 
 ## Action catalog and behavior assurance
 
@@ -129,8 +189,9 @@ behavior IDs, and source paths. It accepts conversational questions such as
 “how does search work?”: the renderer removes conversational filler, ranks the
 same projected action metadata, and presents direct and related matches. It
 does not invent a behavior or transmit the query. Pressing Enter or selecting
-a result focuses the top action's simplified city neighborhood, opens the
-explanation in the same **What it does** / **How it's built** inspector, and
+a result focuses the top action's simplified city neighborhood, starts a
+guided camera story through mapped facilities, opens the explanation in the
+same **What it does** / **How it's built** inspector, and
 shows linked behavior state and scenario evidence without displaying runtime
 payload values. The selection is read-only; source opening, remediation,
 preparation, and release actions still hand off to their existing guarded
@@ -145,7 +206,9 @@ The wider Pronto shell uses a grouped global rail and keeps the repository
 switcher separate from Telescope's entity navigator.
 
 The canvas supports pan, zoom, fit, reset, keyboard selection, compound group
-expansion, and level-of-detail clustering. Selecting a node, group,
+expansion, and level-of-detail clustering. Buildings are never draggable; Fit
+is the default after load, refresh, and scope changes, and it frames the
+semantic scope rather than an unfiltered source graph. Selecting a node, group,
 relationship, flow, or catalog action synchronizes the navigator and inspector,
 highlights the relevant path, and dims unrelated architecture. The inspector separates
 **What it does** from **How it's built**. Directional tokens can be inspected
@@ -157,15 +220,29 @@ path so interaction remains responsive as the measured graph grows. The React
 Flow canvas uses custom SVG/CSS nodes and typed rails. Animation updates remain
 isolated from topology state to avoid full-canvas rerenders.
 
+The exploration levels are distinct products over stable geometry:
+
+- **Overview** shows the complete explanatory city, its districts, landmarks,
+  and one primary story while hiding routine imports.
+- **Subsystems** enters the selected district and reveals internal services,
+  routes, stores, workers, integrations, and boundary crossings while keeping
+  only useful neighboring landmarks.
+- **Source detail** enters one building. It renders that building and immediate
+  handoffs beside progressively expanded files, symbols, behavioral steps,
+  relationships, and line anchors. It must never materialize the repository's
+  global file graph; this local scope is both the readability contract and the
+  recurrence prevention for the prior source-detail resource exhaustion.
+
 ## Workflow lenses
 
 Lenses annotate the base graph and can be enabled independently. They never
 rewrite base topology:
 
-1. Changes and ownership projects branches, worktrees, dirty state, custody,
-   overlaps, and target integration paths.
-2. Quality and evidence projects Quality Runner findings, maturity, detector
-   coverage, CI, freshness, and installed-runtime parity.
+1. Changes and ownership projects source-mapped construction, branches,
+   worktrees, dirty state, custody, overlaps, and target integration paths.
+2. Quality and evidence projects source-mapped inspections, Quality Runner
+   findings, maturity, detector coverage, CI, freshness, and installed-runtime
+   parity.
 3. Remediation filters and annotates architecture connected to open actions,
    dependencies, blockers, and closure evidence.
 4. Delivery projects pull requests, checks, release rules, versions, recipes,
@@ -179,6 +256,11 @@ rewrite base topology:
 The repository projection is the current fidelity boundary. A future fleet
 view may connect repository projections through explicit cross-repository
 evidence, but it must not weaken repository binding, privacy, or uncertainty.
+
+A lens dims unaffected architecture, activates relevant stories, states the
+evidence used, and reports unmapped records. Aggregate evidence with no
+repository-relative anchor produces no decorative tint, crew, checkpoint, or
+traffic.
 
 ## Guarded handoffs
 

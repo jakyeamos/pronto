@@ -225,6 +225,7 @@ fn build_telescope_actions(
             provenance: "authored-action-inventory".to_string(),
             read_only: authored.read_only,
             guarded: authored.guarded,
+            explanation: authored.explanation.clone(),
         });
     }
 
@@ -287,6 +288,26 @@ fn build_telescope_actions(
             provenance: "behavior-assurance-contract".to_string(),
             read_only: true,
             guarded: false,
+            explanation: TelescopeStructuredExplanation {
+                purpose: behavior.title.clone(),
+                steps: behavior
+                    .scenarios
+                    .iter()
+                    .map(|scenario| format!("Exercise scenario {}", scenario.id))
+                    .collect(),
+                decisions: behavior.invariants.clone(),
+                testing: behavior
+                    .scenarios
+                    .iter()
+                    .map(|scenario| {
+                        format!(
+                            "Scenario {} requires {} verification.",
+                            scenario.id, scenario.verification_level
+                        )
+                    })
+                    .collect(),
+                ..TelescopeStructuredExplanation::default()
+            },
         });
     }
 
@@ -326,6 +347,20 @@ fn build_telescope_actions(
             provenance: "static-relationship-walk".to_string(),
             read_only: true,
             guarded: false,
+            explanation: TelescopeStructuredExplanation {
+                purpose: format!("Trace {} through the measured source topology.", flow.label),
+                steps: flow
+                    .node_ids
+                    .iter()
+                    .map(|id| format!("Visit {id}"))
+                    .collect(),
+                outputs: flow.data_shape.clone().into_iter().collect(),
+                failures: vec![
+                    "This is a static path, not a runtime trace; branches may be incomplete."
+                        .to_string(),
+                ],
+                ..TelescopeStructuredExplanation::default()
+            },
         });
     }
 
@@ -355,6 +390,7 @@ fn build_telescope_actions(
                 provenance: "static-entrypoint-inference".to_string(),
                 read_only: true,
                 guarded: false,
+                explanation: node.explanation.clone(),
             });
         }
     }
