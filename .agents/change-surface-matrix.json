@@ -116,7 +116,7 @@
     {
       "id": "agent-attention-projection",
       "scope": "local and external consumer contract",
-      "path": "src-tauri/src/core/part-32.rs, src-tauri/src/core/part-33.rs, src-tauri/src/core/cli-24.rs, src-tauri/src/core/tests-04.rs, .agents/context/commands.md, docs/implementation-plan.md, docs/implementation-examples.md",
+      "path": "src-tauri/src/core/part-32.rs, src-tauri/src/core/part-33.rs, src-tauri/src/core/part-39.rs, src-tauri/src/core/cli-24.rs, src-tauri/src/core/tests-12.rs, .agents/context/commands.md, docs/implementation-plan.md, docs/implementation-examples.md",
       "owner": "Pronto repository maintainers",
       "condition": "Agent attention categories, evidence, repository scoping, or safe next-action guidance changes.",
       "operations": [

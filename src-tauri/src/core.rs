@@ -36,6 +36,7 @@ include!("core/part-35.rs");
 include!("core/part-36.rs");
 include!("core/part-37.rs");
 include!("core/part-38.rs");
+include!("core/part-39.rs");
 include!("core/cli.rs");
 include!("core/cli-01.rs");
 include!("core/cli-02.rs");
@@ -89,4 +90,5 @@ mod tests {
     include!("core/tests-09.rs");
     include!("core/tests-10.rs");
     include!("core/tests-11.rs");
+    include!("core/tests-12.rs");
 }
