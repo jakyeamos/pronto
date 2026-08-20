@@ -171,6 +171,13 @@ fn scan_repository(
     );
     let submodules = parse_submodules(path);
     let custody = crate::custody::project(path).unwrap_or_default();
+    let branch_lifecycle = crate::branch_lifecycle::project(
+        &branches,
+        &workspaces,
+        &custody,
+        target_branch.as_deref(),
+        default_branch.as_deref(),
+    );
     let lifecycle_candidate = if primary.last_activity_at.as_ref().is_some_and(|value| {
         DateTime::parse_from_rfc3339(value)
             .map(|date| {
@@ -207,6 +214,7 @@ fn scan_repository(
         workspace: primary,
         workspaces,
         branches,
+        branch_lifecycle,
         submodules,
         pull_requests: existing
             .map(|repository| repository.pull_requests.clone())
@@ -241,7 +249,7 @@ fn transition_fingerprint(repository: &RepositorySnapshot) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{}|{}|{}|{}|{}|{}|{}|{}|{}",
+        "{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
         repository.branch,
         repository.target_branch.as_deref().unwrap_or_default(),
         repository.target_branch_configured,
@@ -250,6 +258,9 @@ fn transition_fingerprint(repository: &RepositorySnapshot) -> String {
         repository.workspace.removed,
         repository.workspace.sync_state,
         repository.workspace.activity.state,
+        repository.branch_lifecycle.status,
+        repository.branch_lifecycle.feature_branch_count,
+        repository.branch_lifecycle.expired_count,
         condition_state
     )
 }

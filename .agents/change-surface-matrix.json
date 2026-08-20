@@ -90,6 +90,30 @@
       "status": "applicable"
     },
     {
+      "id": "branch-lifecycle-budget",
+      "scope": "local and external consumer contract",
+      "path": "src-tauri/src/branch_lifecycle.rs, src-tauri/src/core.rs, src-tauri/src/lib.rs, src-tauri/src/showcase.rs, src-tauri/src/remediation.rs, src/renderer/src/types.ts, src/renderer/src/components/RepositoryInventoryPanels.tsx, src/renderer/src/styles.css, .agents/context/commands.md, docs/implementation-plan.md, docs/implementation-examples.md, docs/repository-contract.md, docs/integrations/pronto-custody.md, ~/.agents/skills/isolated-change-workflow/SKILL.md, ~/.agents/skills/isolated-change-workflow/scripts/isolated_change.py",
+      "owner": "Pronto and isolated-change-workflow integration owners",
+      "condition": "Feature-branch admission pressure, short-lived lifecycle status, custody lease/expiry visibility, or target-relative retirement guidance changes.",
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml branch_lifecycle::tests",
+        "cargo check --manifest-path src-tauri/Cargo.toml --lib",
+        "pnpm cli repo <repository> --json and inspect branch_lifecycle",
+        "pnpm cli route <repository> --json and inspect repository.branch_lifecycle",
+        "pnpm typecheck",
+        "pnpm vitest run src/renderer/src/components/RepositoryDetailSurfaces.test.tsx",
+        "python3 -B ~/.agents/skills/isolated-change-workflow/scripts/test_isolated_change.py",
+        "Verify soft-limit warning, hard-limit projected block, expired-lease disposition, protected-branch exclusion, and read_only=true without any Git mutation.",
+        "Verify isolated-change-workflow start blocks live hard-limit admission before receipt/worktree creation and preserves soft-limit evidence in the signed receipt."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "renderer",
       "scope": "local",
       "path": "src/renderer/src/",

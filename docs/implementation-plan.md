@@ -85,6 +85,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
   - `pronto doctor [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] --json` for a fail-closed storage, freshness, and local-path gate before agent routing; scoped checks prevent unrelated fleet rows from blocking repository work, while blocked reports exit non-zero and never write the snapshot;
   - `pronto next [<repository>] [--limit <n>] --json` for bounded daily orientation, ranked attention, and safe inspection follow-ups;
   - `pronto fold preview [<repository>] [--target <branch>] [--limit <n>] [--cursor <token>] --json` for paginated advisory branch/worktree candidates and preservation reasons before the reviewed fold workflow;
+  - repository snapshots project `branch_lifecycle` as read-only evidence for the global isolated-change admission boundary: five counted feature or agent-task branches warn, eight refuse creation, and the signed custody receipt records the live `branch_admission` result;
   - `pronto summary --json` for fleet counts and repository summaries;
   - `pronto repo <repository> --json` for one repository plus its product/group memberships;
   - `pronto quality [<repository>] --json` for fleet or repository quality evidence;
@@ -132,7 +133,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 - `doctor` opens the persisted SQLite database read-only and does not migrate, refresh, or repair local state; `refresh` remains the explicit state-changing path for fresh Git evidence.
 - `route` is also read-only and preserves a clean machine-readable stdout contract when invoked through the documented silent pnpm wrapper; the JSON payload is the only stdout content.
 - The agent operating route is provider-neutral: the global home contract routes portfolio, workspace, branch, quality, and release triage to the `$pronto` skill; this repository's `.agents/context/` packet supplies the live CLI contract.
-- `$pronto` is an evidence and preflight surface, not an autonomous Git operator. `fold preview` supplies persisted branch/worktree candidates, while the reviewed `fold-feature-branches` workflow owns live ref classification, integration, and pruning authorization.
+- `$pronto` is an evidence and preflight surface, not an autonomous Git operator. `fold preview` supplies persisted branch/worktree candidates, while the reviewed `fold-feature-branches` workflow owns live ref classification, integration, and pruning authorization. The installed isolated-change workflow owns branch creation admission; arbitrary Git/provider-created or remote-only branches remain outside that boundary.
 - The repository-owned `.pronto/behavior-assurance.json` contract inventories critical behavior; immutable receipts preserve target, producer, oracle result, verification level, and evidence. `docs/pronto-behavior-spec.xlsx` is historical inventory only and cannot establish release readiness.
 - Tauri interaction verification is performed when the local desktop runtime can launch; provider and release scenarios remain explicitly blocked rather than receiving a passing receipt from static code. The CI tracker additionally requires a failed-run fixture or live GitHub snapshot before its interaction claim is complete.
 

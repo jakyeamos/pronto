@@ -651,6 +651,7 @@ mod tests {
             workspace: workspace.clone(),
             workspaces: vec![workspace],
             branches: Vec::new(),
+            branch_lifecycle: Default::default(),
             submodules: Vec::new(),
             pull_requests: Vec::new(),
             releases: Vec::new(),

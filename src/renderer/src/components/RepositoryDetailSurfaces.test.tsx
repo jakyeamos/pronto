@@ -152,6 +152,48 @@ describe("repository detail surfaces", () => {
         },
         integrity: { hmac_identity: "not_verified_by_pronto" },
       },
+      branch_lifecycle: {
+        schema_version: "pronto-branch-lifecycle/v1",
+        target_branch: "develop",
+        policy: {
+          soft_limit: 5,
+          hard_limit: 8,
+          warning_after_hours: 48,
+          expiry_after_hours: 336,
+        },
+        status: "disposition_required",
+        admission: "review_required",
+        feature_branch_count: 2,
+        active_feature_branch_count: 1,
+        retirement_review_count: 1,
+        expired_count: 0,
+        unknown_count: 0,
+        branches: [
+          {
+            name: "main",
+            role: "Production",
+            counted: false,
+            status: "protected",
+            integration_state: "No unique commits",
+            lease_status: "unleased",
+            reason: "Protected branch",
+            next_safe_step: "Leave in place.",
+          },
+          {
+            name: "develop",
+            role: "Integration",
+            counted: false,
+            status: "protected",
+            integration_state: "No unique commits",
+            lease_status: "unleased",
+            reason: "Protected branch",
+            next_safe_step: "Leave in place.",
+          },
+        ],
+        next_safe_step:
+          "Resolve expired or target-relative retirement candidates.",
+        read_only: true,
+      },
     });
     const markup = renderToStaticMarkup(
       <RepositoryDetailSurface
@@ -200,6 +242,9 @@ describe("repository detail surfaces", () => {
     expect(markup).toContain("no mutation authority");
     expect(markup).toContain("Conditions");
     expect(markup).toContain("Branches");
+    expect(markup).toContain("2/8 feature branches");
+    expect(markup).toContain("disposition required");
+    expect(markup).toContain("read-only");
     expect(markup).toContain("Not scored");
     expect(markup).toContain("Configured");
     expect(markup).toContain("Dependency audit");

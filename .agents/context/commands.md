@@ -59,6 +59,13 @@ explicit path for live merge checks. A blocked route
 intentionally withholds follow-up projections and exits non-zero; use its
 `next_safe_step` before refreshing or repairing evidence.
 
+The branch-lifecycle projection is read-only evidence. The installed global
+isolated-change workflow enforces its per-repository admission boundary: it
+warns at five counted feature or agent-task branches, refuses creation at
+eight, and records the live `branch_admission` result in the signed custody
+receipt before adding a worktree. Pronto projects the policy and observed
+state; the workflow owns the narrow Git mutation boundary.
+
 Workspace projections carry `provenance` with a bounded kind (`canonical`,
 `linked`, `temporary`, or `unknown`), owner and lease when known, the
 canonical repository, recorded HEAD, preservation evidence, and cleanup state.
@@ -631,6 +638,11 @@ registered fleet and should be reserved for an explicitly fleet-wide task.
 fold dev, delete branches, or push. Use it for persisted branch/worktree
 evidence, then use the reviewed branch-folding workflow and ordinary Git
 commands within their own authorization boundaries.
+
+This admission boundary does not intercept arbitrary `git switch -c` or
+`git branch` calls, GitHub/provider branch creation, or remote-only branches.
+Those paths must remain explicitly governed by their own admission boundary;
+they must not be treated as enforced by this projection.
 
 ## Evidence interpretation
 

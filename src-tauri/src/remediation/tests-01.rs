@@ -54,6 +54,7 @@ fn fixture_repository(name: &str) -> RepositorySnapshot {
             },
             workspaces: Vec::new(),
             branches: Vec::<BranchSummary>::new(),
+            branch_lifecycle: Default::default(),
             submodules: Vec::new(),
             pull_requests: Vec::new(),
             releases: Vec::new(),

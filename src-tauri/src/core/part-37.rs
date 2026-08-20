@@ -20,6 +20,14 @@ fn print_human_repository(detail: &AgentRepositoryDetail) {
             .count()
     );
     println!(
+        "Branch lifecycle: {} · {}/{} feature branches · admission {}",
+        repository.branch_lifecycle.status,
+        repository.branch_lifecycle.feature_branch_count,
+        repository.branch_lifecycle.policy.hard_limit,
+        repository.branch_lifecycle.admission
+    );
+    println!("  {}", repository.branch_lifecycle.next_safe_step);
+    println!(
         "Task lanes: {} active · {} adoptable · {} stale · {} contested · {} unknown · {} total",
         detail.task_lanes.counts.active,
         detail.task_lanes.counts.adoptable,

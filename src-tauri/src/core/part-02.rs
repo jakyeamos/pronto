@@ -108,6 +108,8 @@ pub struct RepositorySnapshot {
     pub workspaces: Vec<WorkspaceSummary>,
     pub branches: Vec<BranchSummary>,
     #[serde(default)]
+    pub branch_lifecycle: crate::branch_lifecycle::BranchLifecycleSnapshot,
+    #[serde(default)]
     pub submodules: Vec<SubmoduleSummary>,
     #[serde(default)]
     pub pull_requests: Vec<PullRequestSnapshot>,

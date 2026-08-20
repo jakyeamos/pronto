@@ -159,6 +159,7 @@ fn agent_repository_summary(repository: &RepositorySnapshot) -> AgentRepositoryS
             .clone()
             .or_else(|| repository.default_branch.clone()),
         target_branch_configured: repository.target_branch_configured,
+        branch_lifecycle: repository.branch_lifecycle.clone(),
         workspaces: repository
             .workspaces
             .iter()

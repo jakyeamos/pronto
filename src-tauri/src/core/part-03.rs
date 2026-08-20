@@ -259,6 +259,8 @@ pub struct AgentRepositorySummary {
     pub default_branch: Option<String>,
     pub target_branch: Option<String>,
     pub target_branch_configured: bool,
+    #[serde(default)]
+    pub branch_lifecycle: crate::branch_lifecycle::BranchLifecycleSnapshot,
     pub workspaces: Vec<AgentWorkspaceSummary>,
     pub active_conditions: Vec<AgentConditionSummary>,
     pub quality_status: String,

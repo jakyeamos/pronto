@@ -1,4 +1,5 @@
 pub mod behavior_assurance;
+pub mod branch_lifecycle;
 pub mod change_matrix;
 pub mod core;
 pub mod custody;

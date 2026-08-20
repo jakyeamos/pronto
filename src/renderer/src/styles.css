@@ -4601,6 +4601,37 @@ h1 {
   color: var(--faint);
   font-size: 9px;
 }
+.branch-lifecycle-summary {
+  display: grid;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-sm);
+  border: 1px solid rgba(142, 160, 184, 0.22);
+  border-radius: 8px;
+  background: rgba(21, 39, 64, 0.42);
+}
+.branch-lifecycle-summary-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+.branch-lifecycle-summary-top strong {
+  color: #d2deee;
+  font-size: 10px;
+}
+.branch-lifecycle-summary-top span,
+.branch-lifecycle-summary small {
+  color: var(--faint);
+  font-size: 9px;
+  line-height: 1.4;
+}
+.branch-row small {
+  display: block;
+  margin-top: 4px;
+  color: var(--faint);
+  font-size: 9px;
+}
 .drawer-empty {
   display: flex;
   align-items: center;

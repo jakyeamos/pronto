@@ -118,6 +118,17 @@ active-work evidence exists. The correct sequence is preserve, reconcile the
 canonical branch, fold the wanted change, verify and publish, then prune only
 after equivalence and ownership checks.
 
+## Bound feature-branch lifecycle
+
+The repository projects `branch_lifecycle` as read-only evidence, while the
+installed global isolated-change workflow owns creation enforcement. It takes
+a per-repository admission lock, warns at five counted feature or agent-task
+branches, refuses creation at eight, and records the live `branch_admission`
+result in the signed custody receipt before adding the worktree. Protected
+target, default, and release branches are excluded from the count. Direct Git
+or provider-created branches remain outside this boundary and require their
+own explicit admission control.
+
 ## Keep fail-open capture durable across sandbox generations
 
 `scripts/papercuts-capture.py` and `scripts/papercuts_capture/` are the

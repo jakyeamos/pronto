@@ -13,6 +13,7 @@ const fixtureFiles = [
   ".agents/change-surface-matrix.json",
   ".agents/context/README.md",
   ".agents/context/branch-sensitive-quality-verification.md",
+  ".agents/context/quality-prevention.md",
   ".agents/context/commands.md",
   ".agents/environment-legibility.json",
   ".gitignore",

@@ -26,6 +26,10 @@ unavailable until it is regenerated from the exact `dev` commit.
 - Focused Rust modules such as `quality.rs`, `remediation.rs`,
   `change_matrix.rs`, and `showcase.rs` own their domain rules. Add behavior
   there instead of duplicating it in the renderer or Node adapter.
+- `src-tauri/src/branch_lifecycle.rs` owns the versioned branch-admission
+  policy and read-only lifecycle projection. The installed global
+  `isolated-change-workflow` owns creation enforcement and custody receipt
+  recording; Pronto must not duplicate that Git mutation boundary.
 - `src-tauri/src/telescope.rs` owns the versioned source-derived architecture
   graph, language adapters, workspace binding, uncertainty, and cache privacy.
   `.pronto/telescope-map.json` v2 owns the repository's authored narrative,
@@ -140,6 +144,13 @@ Pronto is local-first and read-only by default. Never commit credentials,
 tokens, raw keychain values, local SQLite databases, or provider response
 caches. Do not log secrets or include them in fixtures. `gh` authentication is
 provider access evidence, not permission to mutate GitHub.
+
+Branch lifecycle limits are enforced by the installed global isolated-change
+workflow at repository admission: five counted feature or agent-task branches
+warn, eight refuse creation, protected target/default/release branches are
+excluded, and the signed custody receipt records the live decision. Pronto's
+`branch_lifecycle` field is an evidence projection. It does not intercept
+arbitrary Git/provider-created or remote-only branches.
 
 Quality evidence is fresh only when its observation is inside the configured
 freshness window and its scanned commit equals the current repository commit.

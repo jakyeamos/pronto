@@ -22,6 +22,14 @@ The native projection is `pronto-custody-projection/v1`; the CLI envelope is
 heads, status, operation markers, open-file evidence, and local receipt files.
 Cached Pronto labels do not authorize custody decisions.
 
+The repository also projects `branch_lifecycle` as read-only evidence. Branch
+creation enforcement belongs to the installed global isolated-change workflow:
+it takes a per-repository admission lock, warns at five counted feature or
+agent-task branches, refuses creation at eight, and records the live
+`branch_admission` result in the signed custody receipt before adding the
+worktree. Direct Git/provider creation and remote-only branches are outside
+that boundary and require their own explicit control.
+
 ## Role-based workspace targets
 
 Custody is projected alongside a separate workspace policy dimension. A policy
