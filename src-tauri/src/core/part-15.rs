@@ -286,8 +286,9 @@ fn process_qr_audit_lifecycle(
     qr: &str,
     audit_id: &str,
     artifact_root: Option<String>,
+    publish_feed: bool,
 ) -> Result<bool, (String, String)> {
-    let qr_audit_commands = [
+    let mut qr_audit_commands = vec![
         (
             "qr_replay",
             "replay",
@@ -298,12 +299,14 @@ fn process_qr_audit_lifecycle(
             "report",
             "Aggregate QR report written for review.",
         ),
-        (
+    ];
+    if publish_feed {
+        qr_audit_commands.push((
             "qr_feed",
             "feed",
             "Canonical maturity feed published from the replay-validated audit.",
-        ),
-    ];
+        ));
+    }
     for (step_id, action, success_detail) in qr_audit_commands {
         set_remediation_refresh_step(
             steps,
@@ -387,5 +390,19 @@ fn process_qr_audit_lifecycle(
             return Err((step_id.to_string(), error));
         }
     }
-    Ok(true)
+    if !publish_feed {
+        set_remediation_refresh_step(
+            steps,
+            "qr_feed",
+            "skipped",
+            "A repository-scoped refresh retains the canonical fleet feed and imports replay-validated audit evidence directly.",
+            artifact_root,
+        );
+        if let Err(error) =
+            persist_remediation_refresh(path, refresh_id, "in_progress", None, steps)
+        {
+            return Err(("qr_feed".to_string(), error));
+        }
+    }
+    Ok(publish_feed)
 }

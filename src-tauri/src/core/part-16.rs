@@ -1,5 +1,87 @@
+#[derive(Debug)]
+struct RemediationRefreshScope {
+    repository_ids: HashSet<String>,
+    repository_paths: Vec<String>,
+    target_name: Option<String>,
+}
+
+impl RemediationRefreshScope {
+    fn is_repository_scoped(&self) -> bool {
+        self.target_name.is_some()
+    }
+}
+
+fn remediation_refresh_scope(
+    snapshot: &PortfolioSnapshot,
+    target_query: Option<&str>,
+) -> Result<RemediationRefreshScope, String> {
+    let selected_repository = target_query
+        .map(|query| find_cli_repository(snapshot, query).cloned())
+        .transpose()?;
+    if let Some(repository) = selected_repository.as_ref() {
+        if remediation::is_excluded_repository(repository) {
+            return Err(format!(
+                "Repository '{}' is excluded from remediation refresh.",
+                repository.name
+            ));
+        }
+    }
+    let repositories = snapshot
+        .repositories
+        .iter()
+        .filter(|repository| {
+            selected_repository
+                .as_ref()
+                .map(|selected| selected.id == repository.id)
+                .unwrap_or(true)
+        })
+        .filter(|repository| !remediation::is_excluded_repository(repository))
+        .collect::<Vec<_>>();
+    if repositories.is_empty() {
+        return Err("No eligible repositories are registered for remediation refresh.".to_string());
+    }
+    Ok(RemediationRefreshScope {
+        repository_ids: repositories
+            .iter()
+            .map(|repository| repository.id.clone())
+            .collect(),
+        repository_paths: repositories
+            .iter()
+            .map(|repository| repository.path.clone())
+            .collect(),
+        target_name: selected_repository.map(|repository| repository.name),
+    })
+}
+
+fn qr_fleet_run_arguments(
+    repository_paths: &[String],
+    projects_root: &Path,
+    all_projects_scope: bool,
+    dynamic: bool,
+    changed_only: bool,
+    timeout_seconds: u64,
+) -> Vec<String> {
+    let mut arguments = vec!["fleet".to_string(), "audit".to_string(), "run".to_string()];
+    if all_projects_scope {
+        arguments.extend(["--all".to_string(), "--projects-root".to_string()]);
+        arguments.push(projects_root.to_string_lossy().to_string());
+    } else {
+        arguments.extend([
+            "--projects-root".to_string(),
+            projects_root.to_string_lossy().to_string(),
+        ]);
+        for repository_path in repository_paths {
+            arguments.push("--repo-path".to_string());
+            arguments.push(repository_path.clone());
+        }
+    }
+    append_qr_audit_runtime_arguments(&mut arguments, dynamic, changed_only, timeout_seconds);
+    arguments
+}
+
 fn refresh_remediation_at(
     path: &Path,
+    target_query: Option<&str>,
     qr_executable: Option<&str>,
     dynamic: bool,
     changed_only: bool,
@@ -7,15 +89,16 @@ fn refresh_remediation_at(
     timeout_seconds: u64,
 ) -> Result<PortfolioSnapshot, String> {
     let initial_state = load_store(path)?;
-    let has_eligible_repositories = initial_state
-        .repositories
-        .iter()
-        .filter(|repository| !remediation::is_excluded_repository(repository))
-        .next()
-        .is_some();
-    if !has_eligible_repositories {
-        return Err("No eligible repositories remain for remediation refresh.".to_string());
-    }
+    let initial_snapshot = snapshot_from_store(path, &initial_state);
+    let scope = remediation_refresh_scope(&initial_snapshot, target_query)?;
+    let eligible_paths = scope.repository_paths.clone();
+    let eligible_ids = scope.repository_ids.clone();
+    let repository_scoped = scope.is_repository_scoped();
+    let scope_label = scope
+        .target_name
+        .as_deref()
+        .map(|name| format!("repository '{name}'"))
+        .unwrap_or_else(|| "eligible repositories".to_string());
     let refresh_id = format!("remediation-refresh-{}", iso_now().replace([':', '-'], ""));
     let mut steps = remediation_refresh_steps();
     let _ = persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps);
@@ -58,36 +141,16 @@ fn refresh_remediation_at(
         &mut steps,
         "local_scan",
         "in_progress",
-        "Refreshing local Git/workspace evidence for eligible repositories only.",
+        format!("Refreshing local Git/workspace evidence for {scope_label} only."),
         None,
     );
     persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
-    let (eligible_ids, eligible_paths) = match with_store_write_state(path, |state| {
-        let eligible_ids = state
-            .repositories
-            .iter()
-            .filter(|repository| !remediation::is_excluded_repository(repository))
-            .map(|repository| repository.id.clone())
-            .collect::<HashSet<_>>();
-        audited_scan_and_persist_scoped_locked(
-            path,
-            state,
-            Some(&eligible_ids),
-            Some("eligible repositories"),
-        )?;
-        let eligible_paths = state
-            .repositories
-            .iter()
-            .filter(|repository| !remediation::is_excluded_repository(repository))
-            .map(|repository| repository.path.clone())
-            .collect::<Vec<_>>();
-        Ok((eligible_ids, eligible_paths))
-    }) {
-        Ok(result) => result,
-        Err(error) => {
-            return fail_remediation_refresh(path, &refresh_id, &mut steps, "local_scan", error)
-        }
-    };
+    let mut state = load_store(path)?;
+    if let Err(error) =
+        audited_scan_and_persist_scoped(path, &mut state, Some(&eligible_ids), Some(&scope_label))
+    {
+        return fail_remediation_refresh(path, &refresh_id, &mut steps, "local_scan", error);
+    }
     if eligible_paths.is_empty() {
         return fail_remediation_refresh(
             path,
@@ -107,24 +170,18 @@ fn refresh_remediation_at(
     persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
 
     let projects_root = qr_projects_root(&eligible_paths)?;
-    let all_projects_scope = dirs::home_dir()
+    let all_projects_scope = !repository_scoped
+        && dirs::home_dir()
         .map(|home| projects_root == home.join("projects"))
         .unwrap_or(false);
-    let mut fleet_arguments = vec!["fleet".to_string(), "audit".to_string(), "run".to_string()];
-    if all_projects_scope {
-        fleet_arguments.extend(["--all".to_string(), "--projects-root".to_string()]);
-        fleet_arguments.push(projects_root.to_string_lossy().to_string());
-    } else {
-        fleet_arguments.extend([
-            "--projects-root".to_string(),
-            projects_root.to_string_lossy().to_string(),
-        ]);
-        for repository_path in &eligible_paths {
-            fleet_arguments.push("--repo-path".to_string());
-            fleet_arguments.push(repository_path.clone());
-        }
-    }
-    append_qr_audit_runtime_arguments(&mut fleet_arguments, dynamic, changed_only, timeout_seconds);
+    let fleet_arguments = qr_fleet_run_arguments(
+        &eligible_paths,
+        &projects_root,
+        all_projects_scope,
+        dynamic,
+        changed_only,
+        timeout_seconds,
+    );
     set_remediation_refresh_step(
         &mut steps,
         "qr_fleet_run",
@@ -172,6 +229,7 @@ fn refresh_remediation_at(
         &qr,
         &audit_id,
         artifact_root.clone(),
+        !repository_scoped,
     ) {
         Ok(published) => published,
         Err((step_id, error)) => {
@@ -179,7 +237,7 @@ fn refresh_remediation_at(
         }
     };
 
-    if !feed_published && !all_projects_scope {
+    if !repository_scoped && !feed_published && !all_projects_scope {
         if let Some(canonical_root) = dirs::home_dir()
             .map(|home| home.join("projects"))
             .filter(|root| root.is_dir())
@@ -240,6 +298,7 @@ fn refresh_remediation_at(
                             &qr,
                             &canonical_audit_id,
                             canonical_artifact_root,
+                            true,
                         ) {
                             Ok(published) => published,
                             Err((step_id, error)) => {
@@ -326,7 +385,7 @@ fn refresh_remediation_at(
             &mut steps,
             "provider",
             "in_progress",
-            "Refreshing GitHub context for eligible repositories.",
+            format!("Refreshing GitHub context for {scope_label}."),
             None,
         );
         persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
@@ -335,7 +394,7 @@ fn refresh_remediation_at(
                 &mut steps,
                 "provider",
                 "completed",
-                "GitHub provider context refreshed for eligible repositories.",
+                format!("GitHub provider context refreshed for {scope_label}."),
                 None,
             ),
             Err(error) => {
@@ -348,15 +407,30 @@ fn refresh_remediation_at(
     let mut final_state = load_store(path)?;
     let scoped_fleet_root = scoped_artifact_root.as_deref().map(Path::new);
     apply_quality_evidence_scoped(&mut final_state, Some(&eligible_ids), scoped_fleet_root);
-    let maturity_repository_count = final_state
+    let scoped_repositories = final_state
         .repositories
         .iter()
-        .filter(|repository| !remediation::is_excluded_repository(repository))
+        .filter(|repository| eligible_ids.contains(&repository.id))
+        .cloned()
+        .collect::<Vec<_>>();
+    let maturity_repository_count = scoped_repositories
+        .iter()
         .filter(|repository| remediation::repository_requires_maturity(repository))
         .count();
-    let maturity_gaps = maturity_coverage_gaps(&final_state.repositories);
-    let quality_import_completed = feed_published && maturity_gaps.is_empty();
-    let quality_import_detail = if !feed_published {
+    let maturity_gaps = maturity_coverage_gaps(&scoped_repositories);
+    let quality_source_ready = repository_scoped || feed_published;
+    let quality_import_completed = quality_source_ready && maturity_gaps.is_empty();
+    let quality_import_detail = if repository_scoped && maturity_gaps.is_empty() {
+        format!(
+            "Pronto imported replay-validated audit evidence for {scope_label}; all {maturity_repository_count} maturity-applicable repositories in scope have fresh scores, and CI ideal-state projections were refreshed."
+        )
+    } else if repository_scoped {
+        format!(
+            "The replay-validated audit for {scope_label} is incomplete because {} maturity-applicable repositories lack fresh scores: {}.",
+            maturity_gaps.len(),
+            maturity_gaps.join(", ")
+        )
+    } else if !feed_published {
         "The canonical QR maturity feed was not published; prior maturity evidence was retained."
             .to_string()
     } else if maturity_gaps.is_empty() {
@@ -412,13 +486,13 @@ fn refresh_remediation_at(
         final_state
             .repositories
             .iter()
-            .filter(|repository| !remediation::is_excluded_repository(repository))
+            .filter(|repository| eligible_ids.contains(&repository.id))
             .map(|repository| repository.id.clone())
             .collect(),
         final_state
             .repositories
             .iter()
-            .filter(|repository| !remediation::is_excluded_repository(repository))
+            .filter(|repository| eligible_ids.contains(&repository.id))
             .map(|repository| repository.path.clone())
             .collect(),
         steps,

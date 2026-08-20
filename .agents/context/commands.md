@@ -519,15 +519,21 @@ not require a local checkout. This is bounded Pronto enforcement, not a
 fleet-wide auto-commit service; nightly automation may report or recover only
 under its separately authorized ownership rules.
 
-`remediation refresh` closes its quality-import checkpoint only when the
-canonical QR feed is published and every eligible repository whose goal
-requires maturity has a fresh repository-level score. A replay-validated
-scoped audit may supply that repository evidence when the repository lives
-outside the canonical projects root. Pronto retains that scoped audit
-provenance across later local or provider refreshes; the remediation plan,
+`remediation refresh [<repository>]` closes its quality-import checkpoint only
+when the canonical QR feed is published for a fleet refresh, or when a
+replay-validated scoped audit supplies the selected repository's evidence. For
+fleet refreshes, every eligible repository whose goal requires maturity must
+have a fresh repository-level score. A scoped audit may supply that repository
+evidence when the repository lives outside the canonical projects root. Pronto
+retains that scoped audit provenance across later local or provider refreshes;
+the remediation plan,
 repository projection, and UI must all read the same imported maturity
 snapshot. Missing or stale applicable scores leave the refresh `partial` and
 the `quality_import` step `blocked` with the affected repositories named.
+When `<repository>` is supplied, it may be an exact registered repository name,
+ID, absolute path, or workspace path. Pronto scans and audits only that
+repository, imports its replay-validated evidence without republishing the
+canonical fleet feed, and does not change unrelated repository projections.
 Version 2 feeds may additionally publish `measurement_confidence`. Pronto
 accepts only `low`, `medium`, or `high`, requires deterministic replay and an
 exact population count, and rejects a `high` claim that retains measurement
@@ -535,7 +541,7 @@ gaps or limitations. The quality overview displays the imported confidence and
 measured population beside the maturity score; older version 1 feeds remain
 valid but display confidence as unavailable.
 Dynamic audits default to a 120-second per-command timeout. Use
-`remediation refresh --dynamic --timeout-seconds <positive-integer>` when a
+`remediation refresh [<repository>] --dynamic --timeout-seconds <positive-integer>` when a
 repository's documented quality command legitimately needs a longer bound;
 the same explicit timeout is applied to both the scoped audit and any required
 canonical all-projects fallback.

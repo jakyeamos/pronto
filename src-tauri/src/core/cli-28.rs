@@ -94,10 +94,11 @@ fn run_cli_arm_28(
             }
         }
         Some("refresh") => {
-            if positionals.len() != 1 {
-                eprintln!("Usage: pronto remediation refresh [--qr-bin <path>] [--dynamic] [--no-changed-only] [--timeout-seconds <positive-integer>] [--skip-provider] [--json]");
+            if positionals.len() > 2 {
+                eprintln!("Usage: pronto remediation refresh [<repository>] [--qr-bin <path>] [--dynamic] [--no-changed-only] [--timeout-seconds <positive-integer>] [--skip-provider] [--json]");
                 std::process::exit(2);
             }
+            let target_query = positionals.get(1).cloned();
             let qr_bin = cli_option(&arguments, "--qr-bin").unwrap_or_else(|error| {
                 eprintln!("Pronto CLI error: {error}");
                 std::process::exit(2);
@@ -110,6 +111,7 @@ fn run_cli_arm_28(
                 .unwrap_or(DEFAULT_QR_AUDIT_TIMEOUT_SECONDS);
             let result = refresh_remediation_at(
                 &path,
+                target_query.as_deref(),
                 qr_bin.as_deref(),
                 arguments.iter().any(|argument| argument == "--dynamic"),
                 !arguments

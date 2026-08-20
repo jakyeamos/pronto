@@ -135,6 +135,31 @@
     }
 
 #[test]
+    fn remediation_refresh_scope_selects_one_exact_repository() {
+        let root = fixture_root();
+        fixture_repository(&root);
+        let store = root.join("registry.db");
+        let snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        let repository = snapshot.repositories[0].clone();
+
+        let fleet_scope = remediation_refresh_scope(&snapshot, None)
+            .expect("fleet refresh scope should include the fixture repository");
+        assert!(!fleet_scope.is_repository_scoped());
+        assert_eq!(fleet_scope.repository_ids.len(), 1);
+
+        let selected_scope = remediation_refresh_scope(&snapshot, Some(&repository.path))
+            .expect("repository path should resolve to a scoped refresh");
+        assert!(selected_scope.is_repository_scoped());
+        assert_eq!(selected_scope.repository_ids, [repository.id.clone()].into_iter().collect());
+        assert_eq!(selected_scope.repository_paths, vec![repository.path.clone()]);
+        assert_eq!(selected_scope.target_name.as_deref(), Some(repository.name.as_str()));
+        assert!(remediation_refresh_scope(&snapshot, Some("missing-repository")).is_err());
+
+        fs::remove_dir_all(root).expect("remediation scope fixture should be removable");
+    }
+
+#[test]
     fn cli_repeated_options_are_agent_friendly() {
         let arguments = vec![
             "group".to_string(),
@@ -202,6 +227,34 @@
                 "--json"
             ]
         );
+    }
+
+#[test]
+    fn qr_fleet_run_arguments_bound_repository_scope_without_all_flag() {
+        let repository_paths = vec!["/tmp/projects/alpha".to_string()];
+        let scoped = qr_fleet_run_arguments(
+            &repository_paths,
+            Path::new("/tmp/projects"),
+            false,
+            false,
+            true,
+            120,
+        );
+        assert!(scoped.windows(2).any(|window| {
+            window[0] == "--repo-path" && window[1] == "/tmp/projects/alpha"
+        }));
+        assert!(!scoped.iter().any(|argument| argument == "--all"));
+
+        let fleet = qr_fleet_run_arguments(
+            &repository_paths,
+            Path::new("/tmp/projects"),
+            true,
+            false,
+            true,
+            120,
+        );
+        assert!(fleet.iter().any(|argument| argument == "--all"));
+        assert!(!fleet.iter().any(|argument| argument == "--repo-path"));
     }
 
 #[test]

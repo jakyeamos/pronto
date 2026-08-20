@@ -305,6 +305,7 @@ pub fn refresh_remediation() -> Result<PortfolioSnapshot, String> {
     refresh_remediation_at(
         &store_path(),
         None,
+        None,
         false,
         true,
         false,
