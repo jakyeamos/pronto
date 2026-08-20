@@ -114,6 +114,27 @@
       "status": "applicable"
     },
     {
+      "id": "agent-attention-projection",
+      "scope": "local and external consumer contract",
+      "path": "src-tauri/src/core/part-32.rs, src-tauri/src/core/part-33.rs, src-tauri/src/core/cli-24.rs, src-tauri/src/core/tests-04.rs, .agents/context/commands.md, docs/implementation-plan.md, docs/implementation-examples.md",
+      "owner": "Pronto repository maintainers",
+      "condition": "Agent attention categories, evidence, repository scoping, or safe next-action guidance changes.",
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::agent_attention_",
+        "cargo check --manifest-path src-tauri/Cargo.toml --lib",
+        "pnpm cli attention --json and pnpm cli attention <repository> --json",
+        "pnpm typecheck",
+        "node scripts/validate-repository-contract.mjs",
+        "Verify missing, invalid, incomplete, open-item, healthy, and repository-scoped Project Compass attention states remain explicit."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "renderer",
       "scope": "local",
       "path": "src/renderer/src/",
@@ -175,7 +196,7 @@
         "pnpm vitest run src/renderer/src/components/AnalyticsComponents.test.tsx",
         "pnpm typecheck",
         "pnpm build:web",
-        "Verify Portfolio contains no chart and Analytics is reachable from primary navigation and the Portfolio text link.",
+        "Verify Portfolio contains no chart, the curated Analytics view omits the retired Workspace activity / Activity composition chart, and Analytics is reachable from primary navigation and the Portfolio text link.",
         "Verify an accepted changed quality import appends an Analytics observation, an unchanged repeat deduplicates, and rejected or unavailable evidence appends nothing.",
         "Verify complementary QR reports retain critical and high findings without duplicating stable fingerprints, clean inspected workspaces classify as idle, repository scatter tooltips name repositories with rounded values, and every chart uses daily UTC observations with full UTC tooltip timestamps."
       ],
@@ -219,7 +240,7 @@
         "pnpm build:web",
         "Verify findings evidence coverage equals findings_repository_count available plus repository_count minus findings_repository_count unavailable at every observation.",
         "Verify the observed-findings rail is absent for an empty findings array and visible when at least one deterministic finding exists.",
-        "Verify Portfolio contains no chart and Analytics is reachable from primary navigation and the Portfolio text link."
+        "Verify Portfolio contains no chart, the curated Analytics view omits the retired Workspace activity / Activity composition chart, and Analytics is reachable from primary navigation and the Portfolio text link."
       ],
       "status": "applicable"
     },

@@ -237,6 +237,18 @@ describe("analytics charts", () => {
     expect(markup).toContain(">Repository</button>");
   });
 
+  it("omits the retired workspace activity composition card", () => {
+    const markup = renderToStaticMarkup(
+      <AnalyticsSurface
+        analytics={makeAnalytics([makeSample()])}
+        repositories={[]}
+      />,
+    );
+
+    expect(markup).not.toContain("Activity composition");
+    expect(markup).not.toContain('aria-label="Workspace activity composition"');
+  });
+
   it("treats serialized null metrics as unavailable instead of crashing", () => {
     const unavailable = renderToStaticMarkup(
       <AnalyticsSurface
@@ -299,8 +311,8 @@ describe("analytics charts", () => {
           { label: "Active", color: "var(--mint)", value: 3 },
           { label: "Interrupted", color: "var(--coral)", value: 1 },
         ]}
-        ariaLabel="Workspace activity composition"
-        summary="Workspace activity state composition at the latest local refresh."
+        ariaLabel="Release readiness composition"
+        summary="Release readiness state composition at the latest local refresh."
       />,
     );
     const comparison = renderToStaticMarkup(
@@ -318,14 +330,12 @@ describe("analytics charts", () => {
       />,
     );
 
-    expect(composition).toContain(
-      'aria-label="Workspace activity composition"',
-    );
+    expect(composition).toContain('aria-label="Release readiness composition"');
     expect(composition).toContain("3");
     expect(composition).toContain("chart-segment-label");
     expect(composition).toContain("4 total");
     expect(composition).toContain(
-      "Workspace activity state composition at the latest local refresh.",
+      "Release readiness state composition at the latest local refresh.",
     );
     expect(comparison).toContain(
       'aria-label="Repository attention comparison"',

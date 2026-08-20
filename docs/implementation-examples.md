@@ -80,6 +80,18 @@ Agent usability is the reference for a supplemental maturity projection:
 - Missing behavior receipts remain visible even when documentation and static
   mappings are healthy.
 
+The agent attention projection is the reference for bounded repository warnings:
+
+- `src-tauri/src/core/part-32.rs::agent_attention_report` emits one evidence-backed
+  `project_compass` item when the contract is missing or invalid, MVP coverage is
+  incomplete, or blockers or drift remain; a complete Ready Compass contract
+  emits no item.
+- `src-tauri/src/core/part-32.rs::agent_attention_report_for_query` applies an
+  exact repository binding for `pronto attention <repository> --json`; callers do
+  not reconstruct the filter or warning semantics.
+- `src-tauri/src/core/part-33.rs` keeps the next safe step read-only and
+  distinguishes repository evidence from mutation authorization.
+
 The fleet quality outcome is the reference for descriptive portfolio status:
 
 - Quality Runner owns the category taxonomy and the repository-level

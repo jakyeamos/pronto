@@ -131,7 +131,7 @@ stale/unknown until it is refreshed from the exact target commit.
 | Skill change matrix                  | `change-matrix skill <skill-id> [--operation <add\|change\|remove>] --json`                                                                                       | `pronto-change-matrix/v1`                                                                                        |
 | Active remediation                   | `remediation [<repository>] --json`                                                                                                                               | `pronto-remediation/v3`                                                                                          |
 | Remediation execution gate           | `remediation gate <repository> [--workspace <id>] --json`                                                                                                         | `pronto-remediation-execution-gate/v1`                                                                           |
-| Work requiring attention             | `attention --json`                                                                                                                                                | `pronto-agent-attention/v1`                                                                                      |
+| Work requiring attention             | `attention [<repository>] --json`                                                                                                                                  | `pronto-agent-attention/v1`                                                                                      |
 | Recent transitions/audits            | `activity [<repository>] --limit <n> --json`                                                                                                                      | `pronto-agent-activity/v1`                                                                                       |
 | Preparation preflight                | `prepare <repository> [--workspace <id>] [--fresh] --json`                                                                                                        | `pronto-agent-preparation/v1`                                                                                    |
 | Release preflight                    | `release preview <repository> [--workspace <id>] [--fresh] --json`                                                                                                | `pronto-agent-release/v2`                                                                                        |
@@ -357,6 +357,13 @@ and JSON explain the count rather than projecting only a number. `Missing`
 means the repository has not established a Compass contract; `Invalid`
 preserves the parse or contract error. Pronto never creates or repairs Compass
 artifacts during a refresh.
+
+`attention [<repository>] --json` projects the same local snapshot as a bounded
+attention envelope. It adds one `project_compass` item when Compass is Missing,
+Invalid, or Ready with incomplete MVP coverage, open blockers, or open drift,
+and no item for a complete Ready contract. With a repository argument, all
+returned items bind to that repository; the command remains read-only and does
+not repair the Compass contract.
 
 The fleet summary also includes a read-only `showcase` projection with schema
 `pronto-showcase/v2`, derived from the single fleet-level

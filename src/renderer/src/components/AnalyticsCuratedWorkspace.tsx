@@ -318,23 +318,6 @@ export function AnalyticsCuratedWorkspace({
           </Card>
         ))}
         <Card
-          eyebrow="Workspace activity"
-          title="Activity composition"
-          description="Active, interrupted, idle, and unknown workspaces are shown as a point-in-time composition over recent refreshes."
-        >
-          <GovernedBars
-            samples={samples}
-            metrics={pick(
-              "workspaces.activity.active",
-              "workspaces.activity.interrupted",
-              "workspaces.activity.idle",
-              "workspaces.activity.unknown",
-            )}
-            ariaLabel="Workspace activity composition"
-            stacked
-          />
-        </Card>
-        <Card
           eyebrow="Remediation backlog"
           title="Action composition"
           description="Open, in-progress, blocked, deferred, and verified actions remain evidence-bound status counts."

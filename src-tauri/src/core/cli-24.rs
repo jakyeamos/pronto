@@ -9,13 +9,14 @@ fn run_cli_arm_24(
         eprintln!("Pronto CLI error: {error}");
         std::process::exit(2);
     });
-    if !positionals.is_empty() {
-        eprintln!("Usage: pronto attention [--json]");
+    if positionals.len() > 1 {
+        eprintln!("Usage: pronto attention [<repository>] [--json]");
         std::process::exit(2);
     }
+    let query = positionals.first().map(String::as_str);
     match load_store_read_only(&path)
         .map(|state| snapshot_from_store(&path, &state))
-        .map(|snapshot| agent_attention_report(&snapshot))
+        .and_then(|snapshot| agent_attention_report_for_query(&snapshot, query))
     {
         Ok(report) if json => println!(
             "{}",

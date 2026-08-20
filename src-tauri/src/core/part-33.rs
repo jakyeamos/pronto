@@ -39,6 +39,10 @@ fn agent_next_action(item: &AgentAttentionItem) -> AgentNextAction {
             "repo",
             "Inspect the repository projection and condition evidence before choosing a workflow.".to_string(),
         ),
+        "project_compass" => (
+            "repo",
+            "Inspect the repository Project Compass evidence; reconcile the canonical contract without treating documentation as verification evidence.".to_string(),
+        ),
         _ => (
             "attention",
             "Inspect the linked evidence before taking any repository, provider, remediation, or release action.".to_string(),

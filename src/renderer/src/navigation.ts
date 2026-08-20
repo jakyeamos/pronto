@@ -75,7 +75,7 @@ export const pageCopy: Record<
   analytics: {
     eyebrow: "Local refresh history",
     title: "See the portfolio move.",
-    body: "Read-only trends for health, delivery, quality, workspace activity, and release readiness from local refresh evidence.",
+    body: "Read-only trends for health, delivery, quality, workspace friction, and release readiness from local refresh evidence.",
   },
   skills: {
     eyebrow: "Provider-neutral corpus",

@@ -94,7 +94,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
     for an auditable repository-owned review decision that overlays, but never
     mutates, Quality Runner detector evidence;
   - `pronto remediation [<repository>] --json` for the ranked active remediation queue and point-in-time resolved-action history;
-  - `pronto attention --json` for conditions, dirty workspaces, synchronization gaps, and quality gaps;
+  - `pronto attention [<repository>] --json` for conditions, dirty workspaces, synchronization gaps, quality gaps, Project Compass afflictions, and optionally one repository;
   - `pronto activity [<repository>] --limit <n> --json` for bounded events and action audits;
   - `pronto prepare <repository> --json` for pull-request, release, and recipe evidence;
   - `pronto release preview <repository> --json` for the release-specific evidence and review boundary.

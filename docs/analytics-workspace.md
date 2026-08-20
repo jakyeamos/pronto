@@ -39,11 +39,10 @@ refresh-required detector evidence remains unavailable for current-count and
 delta claims.
 
 The curated workspace separates commit volume from branch divergence and also
-covers workspace activity composition, quality and evidence cohorts, finding
-severity, repository-by-gate coverage, release readiness, and remediation
-backlog and progress. Metrics introduced after a historical observation are
-shown as unavailable for that observation rather than being backfilled as
-zero.
+covers workspace friction, quality and evidence cohorts, finding severity,
+repository-by-gate coverage, release readiness, and remediation backlog and
+progress. Metrics introduced after a historical observation are shown as
+unavailable for that observation rather than being backfilled as zero.
 
 Workspace activity reserves `Unknown` for incomplete or uncertain process
 inspection. A clean, synchronized workspace with a completed inspection and no
