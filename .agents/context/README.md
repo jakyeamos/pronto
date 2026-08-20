@@ -15,6 +15,9 @@ Read the deeper file only when the task matches it:
 
 - [Agent command contract](commands.md) — exact CLI invocation, focused JSON
   projections, freshness semantics, and the read/write boundary for agent use.
+- [Quality prevention contract](quality-prevention.md) — task-scoped QR
+  baseline/completion checkpoints and the boundary between candidate and
+  certified native checks.
 - [Repository operating contract](../../docs/repository-contract.md) —
   architecture ownership, coding and security constraints, failure recovery,
   approval gates, definition of done, and installation/release rollback.
