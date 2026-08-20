@@ -1,0 +1,30 @@
+#[allow(unused_variables)]
+fn run_cli_arm_24(
+    arguments: &Vec<String>,
+    json: bool,
+    path: &PathBuf,
+    command: &str,
+) {
+    let positionals = cli_positionals(&arguments, &[]).unwrap_or_else(|error| {
+        eprintln!("Pronto CLI error: {error}");
+        std::process::exit(2);
+    });
+    if !positionals.is_empty() {
+        eprintln!("Usage: pronto attention [--json]");
+        std::process::exit(2);
+    }
+    match load_store_read_only(&path)
+        .map(|state| snapshot_from_store(&path, &state))
+        .map(|snapshot| agent_attention_report(&snapshot))
+    {
+        Ok(report) if json => println!(
+            "{}",
+            serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+        ),
+        Ok(report) => print_human_attention(&report),
+        Err(error) => {
+            eprintln!("Pronto could not read attention state: {error}");
+            std::process::exit(1);
+        }
+    }
+}
