@@ -73,7 +73,10 @@ const ANALYTICS_DEDUP_MINUTES: i64 = 15;
 
 const DEFAULT_QR_AUDIT_TIMEOUT_SECONDS: u64 = 120;
 
-const STORE_WRITE_LOCK_WAIT_SECONDS: u64 = 5;
+// Refreshes can legitimately exceed five seconds on a cold or contended
+// checkout. Wait for the active writer instead of reporting a transient
+// concurrency failure to the caller.
+const STORE_WRITE_LOCK_WAIT_SECONDS: u64 = 30;
 
 const STORE_WRITE_LOCK_STALE_SECONDS: u64 = 1_800;
 
