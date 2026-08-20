@@ -63,7 +63,11 @@ const DEFAULT_MAX_MANIFEST_BYTES: u64 = 64 * 1024;
 
 const MAX_AI_DIFF_BYTES: usize = 2_000_000;
 
-const ANALYTICS_SCHEMA: &str = "pronto-analytics/v2";
+const ANALYTICS_SCHEMA: &str = "pronto-analytics/v3";
+
+const ANALYTICS_SAMPLE_SCHEMA: &str = "pronto-analytics-sample/v3";
+
+const LEGACY_ANALYTICS_SAMPLE_SCHEMA: &str = "pronto-analytics-sample/v2";
 
 const ANALYTICS_RANGE_DAYS: i64 = 30;
 

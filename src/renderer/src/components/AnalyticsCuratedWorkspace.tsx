@@ -195,7 +195,7 @@ export function AnalyticsCuratedWorkspace({
     [
       "Release readiness",
       "Configured versus ready",
-      "Ready repositories are compared only with repositories that have configured local release rules.",
+      "Ready repositories are compared only with repositories that have Pronto release rules configured.",
       ["release.configured_repositories", "release.ready_repositories"],
       "Configured and release-ready repositories over time",
     ],
@@ -265,13 +265,13 @@ export function AnalyticsCuratedWorkspace({
           </small>
         </div>
         <div>
-          <span>Release ready</span>
+          <span>Pronto release rules configured</span>
           <strong>
             {latestSample
               ? `${latestSample.release_ready_repository_count}/${latestSample.release_rule_repository_count}`
               : "Unavailable"}
           </strong>
-          <small>Configured rules only</small>
+          <small>Pronto configuration only</small>
         </div>
       </div>
       <div className="analytics-workspace-grid">
@@ -297,8 +297,8 @@ export function AnalyticsCuratedWorkspace({
         </Card>
         <Card
           eyebrow="Cohort posture"
-          title="Quality × evidence coverage"
-          description="Median lines create cohort-relative quadrants. Missing scores are excluded and remain visible in findings."
+          title="Maturity × evidence coverage"
+          description="Repository maturity is compared with imported maturity evidence coverage. Fresh-passing CI is tracked separately and is not used as this coverage axis."
           wide
         >
           <QualityCoverageScatter repositories={repositories} />

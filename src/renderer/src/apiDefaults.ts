@@ -63,7 +63,7 @@ export const emptySnapshot: PortfolioSnapshot = {
 };
 
 export const emptyAnalytics: AnalyticsSnapshot = {
-  schema_version: "pronto-analytics/v2",
+  schema_version: "pronto-analytics/v3",
   generated_at: new Date().toISOString(),
   source: "Local refresh snapshots",
   freshness: "Unavailable until the first local refresh",

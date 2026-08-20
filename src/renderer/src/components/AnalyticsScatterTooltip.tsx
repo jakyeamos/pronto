@@ -4,7 +4,7 @@ import { formatAnalyticsNumber } from "./AnalyticsChartFormatting";
 interface QualityScatterPoint {
   name: string;
   maturity: number;
-  evidence: number;
+  coverage: number;
 }
 
 export interface QualityScatterTooltipPayload {
@@ -24,7 +24,9 @@ export function QualityScatterTooltip({
     <div className="analytics-tooltip" role="status">
       <strong>{point.name}</strong>
       <span>Maturity {formatAnalyticsNumber(point.maturity)}</span>
-      <span>Evidence {formatAnalyticsNumber(point.evidence)}</span>
+      <span>
+        Maturity evidence {formatAnalyticsNumber(point.coverage * 100)}%
+      </span>
     </div>
   );
 }

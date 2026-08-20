@@ -1,4 +1,6 @@
 export interface AnalyticsMetricSample {
+  /** Persisted sample schema; legacy rows are upgraded on read. */
+  schema_version?: string;
   observed_at: string;
   repository_count: number;
   workspace_count: number;
@@ -15,6 +17,7 @@ export interface AnalyticsMetricSample {
   commits_last_30_days?: number | null;
   ci_readiness_score?: number | null;
   maturity_score?: number | null;
+  maturity_evidence_coverage?: number | null;
   findings_total?: number | null;
   high_severity_findings?: number | null;
   detector_findings_total?: number | null;
@@ -35,7 +38,7 @@ export interface AnalyticsMetricSample {
   remediation_verified_action_count?: number;
   remediation_progress_percent?: number | null;
   quality_freshness?: string;
-  /** Governed v2 observations. Legacy fixed fields remain for v1 history adaptation. */
+  /** Governed v3 observations. Legacy fixed fields remain for historical migration. */
   metrics?: Record<string, number | null>;
 }
 

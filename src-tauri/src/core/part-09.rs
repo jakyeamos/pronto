@@ -86,14 +86,16 @@ fn deterministic_analytics_findings(
             latest.quality_freshness.as_deref(),
             Some("Stale") | Some("Conflicted")
         ) {
-            findings.push(AnalyticsFinding { id: "quality-evidence-state".to_string(), kind: if latest.quality_freshness.as_deref() == Some("Conflicted") { "conflict" } else { "stale" }.to_string(), severity: "attention".to_string(), title: format!("Quality evidence is {}", latest.quality_freshness.as_deref().unwrap_or("unavailable").to_lowercase()), detail: "The chart retains the observation and labels its evidence state; it does not infer a cause.".to_string(), metric_ids: vec!["quality.maturity_score".to_string(), "quality.evidence_score".to_string()], repository_id: None, observed_at: Some(latest.observed_at.clone()) });
+            findings.push(AnalyticsFinding { id: "quality-evidence-state".to_string(), kind: if latest.quality_freshness.as_deref() == Some("Conflicted") { "conflict" } else { "stale" }.to_string(), severity: "attention".to_string(), title: format!("Quality evidence is {}", latest.quality_freshness.as_deref().unwrap_or("unavailable").to_lowercase()), detail: "The chart retains the observation and labels its evidence state; it does not infer a cause.".to_string(), metric_ids: vec!["quality.maturity_score".to_string(), "quality.maturity_evidence_coverage".to_string(), "quality.fresh_passing_ci_score".to_string()], repository_id: None, observed_at: Some(latest.observed_at.clone()) });
         }
     }
     let missing = repositories
         .iter()
         .filter(|series| {
             series.samples.last().is_none_or(|sample| {
-                sample.ci_readiness_score.is_none() || sample.maturity_score.is_none()
+                sample.ci_readiness_score.is_none()
+                    || sample.maturity_score.is_none()
+                    || sample.maturity_evidence_coverage.is_none()
             })
         })
         .count();
@@ -103,11 +105,12 @@ fn deterministic_analytics_findings(
             kind: "coverage-gap".to_string(),
             severity: "attention".to_string(),
             title: format!("{missing} repositories lack quality coverage"),
-            detail: "No score is shown where timestamped quality evidence is unavailable."
+            detail: "No quality score or maturity evidence coverage is shown where timestamped evidence is unavailable."
                 .to_string(),
             metric_ids: vec![
                 "quality.maturity_score".to_string(),
-                "quality.evidence_score".to_string(),
+                "quality.maturity_evidence_coverage".to_string(),
+                "quality.fresh_passing_ci_score".to_string(),
             ],
             repository_id: None,
             observed_at: samples.last().map(|sample| sample.observed_at.clone()),

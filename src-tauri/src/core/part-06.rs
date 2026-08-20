@@ -383,8 +383,15 @@ fn analytics_repository_sample(
     });
     let ci_readiness_score = repository.quality.ci_readiness.score;
     let maturity_score = repository.quality.maturity.score;
+    let maturity_evidence_coverage = repository
+        .quality
+        .maturity
+        .repository_maturity
+        .as_ref()
+        .map(|model| model.evidence.evidence_coverage);
     let findings_available = quality_metric_is_available(repository);
     AnalyticsMetricSample {
+        schema_version: ANALYTICS_SAMPLE_SCHEMA.to_string(),
         observed_at: observed_at.to_string(),
         repository_count: 1,
         workspace_count: repository.workspaces.len() as u64,
@@ -409,6 +416,7 @@ fn analytics_repository_sample(
         commits_last_30_days: local_commit_count_since(Path::new(&repository.path), observed_at),
         ci_readiness_score,
         maturity_score,
+        maturity_evidence_coverage,
         findings_total: findings_available.then_some(repository.quality.findings.total),
         high_severity_findings: findings_available
             .then_some(repository.quality.findings.high_severity_total),

@@ -332,22 +332,25 @@ export function QualityCoverageScatter({
       return {
         name: series.name,
         maturity: sample ? metricValue(sample, "quality.maturity_score") : null,
-        evidence: sample ? metricValue(sample, "quality.evidence_score") : null,
+        coverage: sample
+          ? metricValue(sample, "quality.maturity_evidence_coverage")
+          : null,
       };
     })
     .filter(
-      (item): item is { name: string; maturity: number; evidence: number } =>
-        item.maturity != null && item.evidence != null,
+      (item): item is { name: string; maturity: number; coverage: number } =>
+        item.maturity != null && item.coverage != null,
     );
   if (!data.length)
     return (
       <div className="analytics-state">
-        Quality and evidence coverage are unavailable for this cohort.
+        Repository maturity and maturity evidence coverage are unavailable for
+        this cohort.
       </div>
     );
-  const xMedian = [...data].sort((a, b) => a.evidence - b.evidence)[
+  const xMedian = [...data].sort((a, b) => a.coverage - b.coverage)[
     Math.floor(data.length / 2)
-  ].evidence;
+  ].coverage;
   const yMedian = [...data].sort((a, b) => a.maturity - b.maturity)[
     Math.floor(data.length / 2)
   ].maturity;
@@ -355,7 +358,7 @@ export function QualityCoverageScatter({
     <div
       className="analytics-chart-frame analytics-chart-frame-tall"
       role="img"
-      aria-label="Quality maturity versus evidence coverage"
+      aria-label="Repository maturity versus maturity evidence coverage"
     >
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart
@@ -365,13 +368,13 @@ export function QualityCoverageScatter({
           <CartesianGrid stroke="var(--chart-grid)" />
           <XAxis
             type="number"
-            dataKey="evidence"
-            name="Evidence coverage"
-            domain={[0, 4]}
-            tickFormatter={(value) => formatAnalyticsNumber(Number(value))}
+            dataKey="coverage"
+            name="Maturity evidence coverage"
+            domain={[0, 1]}
+            tickFormatter={(value: number) => `${Math.round(value * 100)}%`}
             tick={{ fill: "var(--muted)" }}
             label={{
-              value: "Evidence coverage",
+              value: "Maturity evidence coverage",
               position: "insideBottom",
               offset: -8,
               fill: "var(--muted)",
@@ -412,7 +415,7 @@ export function QualityCoverageScatter({
               <Cell
                 key={entry.name}
                 fill={
-                  entry.evidence >= xMedian && entry.maturity >= yMedian
+                  entry.coverage >= xMedian && entry.maturity >= yMedian
                     ? "var(--mint)"
                     : "var(--amber)"
                 }
@@ -430,12 +433,17 @@ export function EvidenceHeatmap({
 }: {
   repositories: AnalyticsRepositorySeries[];
 }): ReactElement {
-  const gates = ["Quality", "Findings", "Git sync", "Release"];
+  const gates = [
+    "Maturity evidence",
+    "Findings",
+    "Git sync",
+    "Pronto release rules",
+  ];
   return (
     <div
       className="analytics-heatmap"
       role="table"
-      aria-label="Repository evidence coverage"
+      aria-label="Repository maturity evidence coverage"
     >
       <div
         className="analytics-heatmap-row analytics-heatmap-header"
@@ -451,8 +459,8 @@ export function EvidenceHeatmap({
       {repositories.slice(0, 12).map((series) => {
         const sample = series.samples.at(-1);
         const states = [
-          sample?.ci_readiness_score != null,
-          (sample?.detector_findings_total ?? sample?.findings_total) != null,
+          sample?.maturity_evidence_coverage != null,
+          sample?.findings_total != null,
           sample != null,
           (sample?.release_rule_repository_count ?? 0) > 0,
         ];

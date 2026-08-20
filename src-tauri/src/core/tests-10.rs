@@ -356,20 +356,49 @@
     }
 
 #[test]
-    fn adapts_v1_samples_into_governed_v2_metrics() {
+    fn migrates_legacy_samples_into_governed_v3_metrics() {
         let payload = r#"{"observed_at":"2026-08-13T00:00:00Z","repository_count":1,"workspace_count":1,"branch_count":1,"active_condition_count":2,"dirty_workspace_count":1,"unsynced_workspace_count":0,"active_workspace_count":1,"interrupted_workspace_count":0,"idle_workspace_count":0,"unknown_workspace_count":0,"ahead_commit_count":75,"behind_commit_count":3,"commits_last_30_days":8000,"ci_readiness_score":3.0,"maturity_score":2.5,"findings_total":4,"high_severity_findings":1,"ci_readiness_scored_repository_count":1,"maturity_scored_repository_count":1,"findings_repository_count":1,"release_rule_repository_count":1,"release_ready_repository_count":0,"quality_freshness":"Fresh"}"#;
         let legacy: AnalyticsMetricSample =
             serde_json::from_str(payload).expect("v1 sample should decode");
-        let adapted = adapt_analytics_sample(legacy);
+        assert_eq!(legacy.schema_version, LEGACY_ANALYTICS_SAMPLE_SCHEMA);
+        let adapted = migrate_analytics_sample(legacy.clone());
+        assert_eq!(adapted.schema_version, ANALYTICS_SAMPLE_SCHEMA);
         assert_eq!(
             adapted.metrics["git.commits.trailing_30_days"],
             Some(8000.0)
         );
         assert_eq!(adapted.metrics["git.ahead_commits"], Some(75.0));
         assert_eq!(adapted.metrics["quality.maturity_score"], Some(2.5));
+        assert_eq!(adapted.metrics["quality.maturity_evidence_coverage"], None);
+        assert_eq!(adapted.metrics["quality.fresh_passing_ci_score"], Some(3.0));
+        assert_eq!(adapted.metrics["quality.evidence_score"], Some(3.0));
         assert_eq!(adapted.metrics["workspaces.activity.active"], Some(1.0));
         assert_eq!(adapted.metrics["remediation.actions.open"], None);
         assert_eq!(adapted.metrics["remediation.progress_percent"], None);
+
+        let mut legacy_metrics = legacy.clone();
+        legacy_metrics.ci_readiness_score = None;
+        legacy_metrics
+            .metrics
+            .insert("quality.evidence_score".to_string(), Some(3.25));
+        let migrated_metrics = migrate_analytics_sample(legacy_metrics);
+        assert_eq!(
+            migrated_metrics.metrics["quality.fresh_passing_ci_score"],
+            Some(3.25)
+        );
+        assert_eq!(
+            migrated_metrics.metrics["quality.evidence_score"],
+            Some(3.25)
+        );
+
+        let mut current = legacy;
+        current.schema_version = ANALYTICS_SAMPLE_SCHEMA.to_string();
+        current.maturity_evidence_coverage = Some(0.625);
+        let migrated_current = migrate_analytics_sample(current);
+        assert_eq!(
+            migrated_current.metrics["quality.maturity_evidence_coverage"],
+            Some(0.625)
+        );
     }
 
 #[test]
@@ -389,6 +418,27 @@
                 "workspaces.unsynced".to_string()
             ]
         ));
+        assert!(!metric_axis_compatible(
+            &catalog,
+            &[
+                "quality.maturity_score".to_string(),
+                "quality.maturity_evidence_coverage".to_string()
+            ]
+        ));
+        assert_eq!(
+            catalog
+                .iter()
+                .find(|metric| metric.id == "quality.fresh_passing_ci_score")
+                .map(|metric| metric.label.as_str()),
+            Some("Fresh-passing CI score")
+        );
+        assert_eq!(
+            catalog
+                .iter()
+                .find(|metric| metric.id == "release.configured_repositories")
+                .map(|metric| metric.label.as_str()),
+            Some("Pronto release rules configured")
+        );
         assert!(metric_axis_compatible(
             &catalog,
             &[

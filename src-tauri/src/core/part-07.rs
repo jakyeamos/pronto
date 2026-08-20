@@ -35,6 +35,7 @@ fn analytics_portfolio_sample(
         .map(|repository| analytics_repository_sample(repository, observed_at))
         .collect::<Vec<_>>();
     AnalyticsMetricSample {
+        schema_version: ANALYTICS_SAMPLE_SCHEMA.to_string(),
         observed_at: observed_at.to_string(),
         repository_count: samples.iter().map(|sample| sample.repository_count).sum(),
         workspace_count: samples.iter().map(|sample| sample.workspace_count).sum(),
@@ -77,6 +78,9 @@ fn analytics_portfolio_sample(
         }),
         ci_readiness_score: average_score(&samples, |sample| sample.ci_readiness_score),
         maturity_score: average_score(&samples, |sample| sample.maturity_score),
+        maturity_evidence_coverage: average_score(&samples, |sample| {
+            sample.maturity_evidence_coverage
+        }),
         findings_total: sum_optional_metric(&samples, |sample| sample.findings_total),
         high_severity_findings: sum_optional_metric(&samples, |sample| {
             sample.high_severity_findings
@@ -185,7 +189,13 @@ fn analytics_portfolio_sample(
     }
 }
 
-fn adapt_analytics_sample(mut sample: AnalyticsMetricSample) -> AnalyticsMetricSample {
+fn migrate_analytics_sample(mut sample: AnalyticsMetricSample) -> AnalyticsMetricSample {
+    let legacy_fresh_passing_ci_score = sample
+        .metrics
+        .get("quality.evidence_score")
+        .copied()
+        .flatten()
+        .or(sample.ci_readiness_score);
     let mut insert = |id: &str, value: Option<f64>| {
         sample.metrics.entry(id.to_string()).or_insert(value);
     };
@@ -211,6 +221,14 @@ fn adapt_analytics_sample(mut sample: AnalyticsMetricSample) -> AnalyticsMetricS
         Some(sample.active_condition_count as f64),
     );
     insert("quality.maturity_score", sample.maturity_score);
+    insert(
+        "quality.maturity_evidence_coverage",
+        sample.maturity_evidence_coverage,
+    );
+    insert(
+        "quality.fresh_passing_ci_score",
+        legacy_fresh_passing_ci_score,
+    );
     insert("quality.evidence_score", sample.ci_readiness_score);
     insert("findings.total", sample.findings_total.map(|v| v as f64));
     insert(
@@ -288,6 +306,7 @@ fn adapt_analytics_sample(mut sample: AnalyticsMetricSample) -> AnalyticsMetricS
         "remediation.progress_percent",
         sample.remediation_progress_percent,
     );
+    sample.schema_version = ANALYTICS_SAMPLE_SCHEMA.to_string();
     sample
 }
 
@@ -331,6 +350,7 @@ fn latest_analytics_sample(
         .map(|payload| {
             serde_json::from_str(&payload)
                 .map_err(|error| format!("Could not decode analytics sample: {error}"))
+                .map(migrate_analytics_sample)
         })
         .transpose()
 }
@@ -361,7 +381,7 @@ fn record_analytics_samples_at(
     state: &StoreState,
     observed_at: &str,
 ) -> Result<(), String> {
-    let portfolio = adapt_analytics_sample(analytics_portfolio_sample(
+    let portfolio = migrate_analytics_sample(analytics_portfolio_sample(
         &state.repositories,
         &state.remediation,
         observed_at,
@@ -370,7 +390,7 @@ fn record_analytics_samples_at(
     samples.extend(state.repositories.iter().map(|repository| {
         (
             Some(repository.id.clone()),
-            adapt_analytics_sample(analytics_repository_sample(repository, observed_at)),
+            migrate_analytics_sample(analytics_repository_sample(repository, observed_at)),
         )
     }));
 

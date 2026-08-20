@@ -22,8 +22,14 @@ pub struct RefreshBatchReport {
     pub snapshot: PortfolioSnapshot,
 }
 
+fn legacy_analytics_sample_schema() -> String {
+    LEGACY_ANALYTICS_SAMPLE_SCHEMA.to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AnalyticsMetricSample {
+    #[serde(default = "legacy_analytics_sample_schema")]
+    pub schema_version: String,
     pub observed_at: String,
     pub repository_count: u64,
     pub workspace_count: u64,
@@ -40,6 +46,8 @@ pub struct AnalyticsMetricSample {
     pub commits_last_30_days: Option<u64>,
     pub ci_readiness_score: Option<f64>,
     pub maturity_score: Option<f64>,
+    #[serde(default)]
+    pub maturity_evidence_coverage: Option<f64>,
     pub findings_total: Option<u64>,
     pub high_severity_findings: Option<u64>,
     #[serde(default)]

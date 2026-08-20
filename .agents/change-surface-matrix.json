@@ -180,7 +180,7 @@
     {
       "id": "analytics-contract",
       "scope": "local",
-      "path": "src-tauri/src/core.rs, src-tauri/src/quality.rs, src/renderer/src/components/Analytics*, src/renderer/src/types/quality.ts, src/renderer/src/styles.css, and docs/analytics-workspace.md",
+      "path": "src-tauri/src/core/part-01.rs, src-tauri/src/core/part-03.rs, src-tauri/src/core/part-06.rs, src-tauri/src/core/part-07.rs, src-tauri/src/core/part-08.rs, src-tauri/src/core/part-09.rs, src-tauri/src/core/tests-10.rs, src/renderer/src/components/Analytics*, src/renderer/src/types/insights.ts, src/renderer/src/apiDefaults.ts, .agents/context/commands.md, and docs/analytics-workspace.md",
       "owner": "Pronto repository maintainers",
       "condition": "Analytics metrics, sampling, compatibility, findings, ranges, saved views, or chart behavior changes.",
       "operations": [
@@ -190,6 +190,7 @@
       ],
       "validation": [
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::analytics",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::migrates_legacy_samples_into_governed_v3_metrics",
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::quality_refresh_records_changed_analytics_and_deduplicates_unchanged_imports",
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::material_detector_evidence_change_creates_a_new_analytics_observation",
         "cargo test --manifest-path src-tauri/Cargo.toml quality::tests::ingests_qr_gates_and_severity_breakdown_without_running_commands",
@@ -225,7 +226,7 @@
     {
       "id": "analytics-contract",
       "scope": "local",
-      "path": "src-tauri/src/core.rs, src/renderer/src/components/Analytics*, and docs/analytics-workspace.md",
+      "path": "src-tauri/src/core/part-01.rs, src-tauri/src/core/part-03.rs, src-tauri/src/core/part-06.rs, src-tauri/src/core/part-07.rs, src-tauri/src/core/part-08.rs, src-tauri/src/core/part-09.rs, src-tauri/src/core/tests-10.rs, src/renderer/src/components/Analytics*, src/renderer/src/types/insights.ts, src/renderer/src/apiDefaults.ts, .agents/context/commands.md, and docs/analytics-workspace.md",
       "owner": "Pronto repository maintainers",
       "condition": "Analytics metrics, sampling, compatibility, findings, ranges, saved views, or chart behavior changes.",
       "operations": [

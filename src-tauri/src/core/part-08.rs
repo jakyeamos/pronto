@@ -28,7 +28,7 @@ fn load_analytics_samples(
             for row in rows {
                 let payload =
                     row.map_err(|error| format!("Could not decode analytics row: {error}"))?;
-                samples.push(adapt_analytics_sample(
+                samples.push(migrate_analytics_sample(
                     serde_json::from_str(&payload)
                         .map_err(|error| format!("Could not decode analytics sample: {error}"))?,
                 ));
@@ -41,7 +41,7 @@ fn load_analytics_samples(
             for row in rows {
                 let payload =
                     row.map_err(|error| format!("Could not decode analytics row: {error}"))?;
-                samples.push(adapt_analytics_sample(
+                samples.push(migrate_analytics_sample(
                     serde_json::from_str(&payload)
                         .map_err(|error| format!("Could not decode analytics sample: {error}"))?,
                 ));
@@ -239,9 +239,37 @@ fn analytics_metric_catalog() -> Vec<MetricDefinition> {
             &["line", "scatter", "bar", "table"],
         ),
         metric_definition(
+            "quality.maturity_evidence_coverage",
+            "Maturity evidence coverage",
+            "Share of applicable repository maturity pillars with imported evidence.",
+            "ratio-0-1",
+            "applicable maturity pillars",
+            "repository",
+            "point-in-time",
+            None,
+            "average",
+            "higher-is-better",
+            "quality-runner",
+            &["line", "scatter", "bar", "heatmap", "table"],
+        ),
+        metric_definition(
+            "quality.fresh_passing_ci_score",
+            "Fresh-passing CI score",
+            "Fresh passing CI, local, and Quality Runner evidence score.",
+            "score-0-4",
+            "scored repositories",
+            "repository",
+            "point-in-time",
+            None,
+            "average",
+            "higher-is-better",
+            "quality-runner",
+            &["line", "scatter", "bar", "heatmap", "table"],
+        ),
+        metric_definition(
             "quality.evidence_score",
-            "Evidence coverage",
-            "Fresh passing CI evidence score.",
+            "Fresh-passing CI score (legacy)",
+            "Legacy v2 alias for fresh-passing CI evidence; it is not maturity evidence coverage.",
             "score-0-4",
             "scored repositories",
             "repository",
@@ -339,9 +367,9 @@ fn analytics_metric_catalog() -> Vec<MetricDefinition> {
         metric_definition(
             "release.ready_repositories",
             "Release ready",
-            "Repositories meeting configured local release thresholds.",
+            "Repositories meeting Pronto-configured local release thresholds.",
             "repositories",
-            "configured release rules",
+            "Pronto release rules configured",
             "portfolio",
             "point-in-time",
             None,
@@ -352,10 +380,10 @@ fn analytics_metric_catalog() -> Vec<MetricDefinition> {
         ),
         metric_definition(
             "release.configured_repositories",
-            "Release rules configured",
-            "Repositories with a configured local release threshold.",
+            "Pronto release rules configured",
+            "Repositories with a Pronto-configured local release threshold.",
             "repositories",
-            "configured release rules",
+            "Pronto release rules configured",
             "portfolio",
             "point-in-time",
             None,
