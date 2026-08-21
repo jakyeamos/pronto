@@ -6,19 +6,62 @@ impl GitHubCliAdapter {
         }
     }
 
+    fn failure_message(stderr: &[u8]) -> String {
+        let detail = String::from_utf8_lossy(stderr).to_ascii_lowercase();
+        let network_failure = [
+            "check your internet connection",
+            "could not resolve host",
+            "error connecting to api.github.com",
+            "failed to connect",
+            "network is unreachable",
+            "no such host",
+            "operation timed out",
+            "proxyconnect tcp",
+            "temporary failure in name resolution",
+            "tls handshake timeout",
+        ]
+        .iter()
+        .any(|marker| detail.contains(marker));
+        if network_failure {
+            return "GitHub provider unavailable: GitHub CLI could not reach GitHub; authentication was not verified. Check network access and retry.".to_string();
+        }
+
+        let authentication_failure = [
+            "401 unauthorized",
+            "bad credentials",
+            "failed to log in",
+            "http 401",
+            "login required",
+            "not logged in",
+            "requires authentication",
+            "status 401",
+            "the token in",
+            "token is expired",
+            "token is invalid",
+        ]
+        .iter()
+        .any(|marker| detail.contains(marker));
+        if authentication_failure {
+            return "GitHub provider unavailable: GitHub CLI authentication is invalid or expired. Run `gh auth status` and reauthenticate if needed.".to_string();
+        }
+
+        "GitHub provider unavailable: GitHub CLI request failed; authentication and network status could not be determined.".to_string()
+    }
+
     fn json(&self, arguments: &[&str]) -> Result<serde_json::Value, String> {
         let output = Command::new(&self.executable)
             .args(arguments)
             .output()
-            .map_err(|_| {
-                "GitHub provider unavailable: install GitHub CLI and authenticate it before refreshing."
-                    .to_string()
+            .map_err(|error| {
+                if error.kind() == std::io::ErrorKind::NotFound {
+                    "GitHub provider unavailable: GitHub CLI is not installed or not on PATH."
+                        .to_string()
+                } else {
+                    format!("GitHub provider unavailable: could not start GitHub CLI ({error}).")
+                }
             })?;
         if !output.status.success() {
-            return Err(
-                "GitHub provider unavailable: GitHub CLI authentication is missing or expired."
-                    .to_string(),
-            );
+            return Err(Self::failure_message(&output.stderr));
         }
         serde_json::from_slice(&output.stdout)
             .map_err(|_| "GitHub provider returned invalid JSON.".to_string())

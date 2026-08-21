@@ -729,6 +729,7 @@
       ],
       "validation": [
         "gh auth status --hostname github.com",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::github_cli_json_distinguishes_failure_causes_without_overclaiming_authentication",
         "pnpm cli refresh-github \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm cli repo \"$(git rev-parse --show-toplevel)\" --json",
         "Verify workflow-run, job, and prompt-artifact evidence remains bounded and provider-unavailable states stay explicit."

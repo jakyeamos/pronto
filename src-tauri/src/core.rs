@@ -92,4 +92,5 @@ mod tests {
     include!("core/tests-10.rs");
     include!("core/tests-11.rs");
     include!("core/tests-12.rs");
+    include!("core/tests-13.rs");
 }

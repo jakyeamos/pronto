@@ -646,6 +646,10 @@ the exact failure rather than claiming completion.
 Use `refresh-github <repository|group|product> --json` when live provider
 evidence is needed for a bounded scope. Omitting the target refreshes the whole
 registered fleet and should be reserved for an explicitly fleet-wide task.
+The persisted provider status distinguishes a missing GitHub CLI, unreachable
+GitHub, invalid or expired authentication, and an otherwise unclassified CLI
+failure. A network failure leaves authentication unverified and is not a reason
+to reauthenticate by itself.
 
 `fold preview` is an advisory projection only; it does not clean branches,
 fold dev, delete branches, or push. Use it for persisted branch/worktree
