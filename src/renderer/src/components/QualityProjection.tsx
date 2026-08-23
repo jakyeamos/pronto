@@ -154,7 +154,13 @@ export function maturityDimensionLabel(dimension: string): string {
 }
 
 export function agentUsabilityTone(status: string): string {
-  if (status === "healthy" || status === "behavior_verified") return "mint";
+  if (
+    status === "healthy" ||
+    status === "behavior_verified" ||
+    status === "complete" ||
+    status === "certified"
+  )
+    return "mint";
   if (status === "blocked") return "red";
   if (status === "attention" || status === "stale") return "amber";
   return "slate";

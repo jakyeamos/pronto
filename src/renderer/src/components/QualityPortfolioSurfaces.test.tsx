@@ -32,6 +32,8 @@ describe("portfolio quality surfaces", () => {
           maturity_fresh_evidence_coverage: 0.7,
           maturity_provisional_repository_count: 1,
           maturity_capped_repository_count: 0,
+          maturity_complete_repository_count: 2,
+          maturity_certified_repository_count: 3,
           maturity_pillars: [
             {
               id: "security_privacy_supply_chain",
@@ -51,6 +53,8 @@ describe("portfolio quality surfaces", () => {
     expect(markup).toContain("80% evidence");
     expect(markup).toContain("70% fresh");
     expect(markup).toContain("1 provisional");
+    expect(markup).toContain("2 complete");
+    expect(markup).toContain("3 certified (assurance setup)");
     expect(markup).toContain(
       "Product readiness and Project Compass progress are reported separately",
     );

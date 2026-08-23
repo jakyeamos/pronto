@@ -145,6 +145,10 @@ export function QualityMaturitySummary({
   targetReadinessState?: TargetEvidenceState;
 }): ReactElement {
   const repositoryMaturity = maturity.repository_maturity;
+  const certificationStatus =
+    repositoryMaturity?.certification_status ?? "not_certified";
+  const certificationMissingGateIds =
+    repositoryMaturity?.certification_missing_gate_ids ?? [];
   const dimensions = Object.entries(maturity.dimension_scores ?? {}).sort(
     ([leftDimension, leftScore], [rightDimension, rightScore]) =>
       leftScore - rightScore || leftDimension.localeCompare(rightDimension),
@@ -234,9 +238,19 @@ export function QualityMaturitySummary({
             applicable dimensions · {(maturity.gaps ?? []).length} maturity gaps
           </small>
           {repositoryMaturity && (
-            <div className="repository-maturity-meta">
+            <div
+              className="repository-maturity-meta"
+              aria-label="Maturity and certification status"
+            >
+              <span>Maturity</span>
               <StatusPill tone={agentUsabilityTone(repositoryMaturity.status)}>
                 {repositoryMaturity.status}
+              </StatusPill>
+              <span>Certification</span>
+              <StatusPill tone={agentUsabilityTone(certificationStatus)}>
+                {certificationStatus === "certified"
+                  ? "certified"
+                  : "not certified"}
               </StatusPill>
               <small>
                 {Math.round(
@@ -247,6 +261,15 @@ export function QualityMaturitySummary({
                   repositoryMaturity.evidence.fresh_evidence_coverage * 100,
                 )}
                 % fresh
+              </small>
+              <small>
+                {certificationStatus === "certified"
+                  ? "Assurance gates are set up."
+                  : certificationMissingGateIds.length > 0
+                    ? `Setup needed: ${certificationMissingGateIds
+                        .map((gateId) => gateId.replaceAll("_", " "))
+                        .join(", ")}.`
+                    : "Assurance gate setup is not yet established."}
               </small>
             </div>
           )}

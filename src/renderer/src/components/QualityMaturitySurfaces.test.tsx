@@ -223,6 +223,11 @@ describe("quality maturity surfaces", () => {
             score: 2,
             uncapped_score: 3.5,
             status: "blocked",
+            certification_status: "not_certified",
+            certification_missing_gate_ids: [
+              "maturity_model",
+              "behavior_assurance",
+            ],
             pillars: [
               {
                 id: "correctness_reliability",
@@ -333,6 +338,8 @@ describe("quality maturity surfaces", () => {
     expect(markup).toContain("Security, privacy, and supply chain");
     expect(markup).toContain("60% evidence");
     expect(markup).toContain("30% fresh");
+    expect(markup).toContain("not certified");
+    expect(markup).toContain("behavior assurance");
     expect(markup).toContain("Score capped at 2/4");
     expect(markup).toContain("N/A");
     expect(markup).toContain("Unknown");

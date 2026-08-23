@@ -134,6 +134,17 @@ export function QualityGatesSurface({
                 {portfolioQuality.maturity_capped_repository_count ?? 0} capped
               </small>
             )}
+            {(portfolioQuality.maturity_complete_repository_count !==
+              undefined ||
+              portfolioQuality.maturity_certified_repository_count !==
+                undefined) && (
+              <small>
+                {portfolioQuality.maturity_complete_repository_count ?? 0}{" "}
+                complete ·{" "}
+                {portfolioQuality.maturity_certified_repository_count ?? 0}{" "}
+                certified (assurance setup)
+              </small>
+            )}
             <small>
               Product readiness and Project Compass progress are reported
               separately from repository maturity.
