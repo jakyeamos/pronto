@@ -27,7 +27,7 @@ use std::thread;
 use std::time::{Duration as StdDuration, Instant};
 
 const STORE_VERSION: u8 = 5;
-const SQLITE_SCHEMA_VERSION: i64 = 10;
+const SQLITE_SCHEMA_VERSION: i64 = 11;
 const DEFAULT_RETENTION_DAYS: i64 = 90;
 const DEFAULT_MAX_UNTRACKED_BYTES: u64 = 2_000_000;
 const DEFAULT_MAX_MANIFEST_BYTES: u64 = 64 * 1024;
@@ -20647,6 +20647,35 @@ mod tests {
             )
             .expect("provider identity table should exist after migration");
         assert_eq!(provider_identity_table, "provider_identities");
+        fs::remove_dir_all(root).expect("fixture root should be removable");
+    }
+
+    #[test]
+    fn opens_current_schema_v11_for_writer() {
+        let root = fixture_root();
+        let database = root.join("registry.db");
+        let connection = SqliteConnection::open(&database).expect("schema fixture should open");
+        connection
+            .execute_batch(
+                "CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                 INSERT INTO metadata (key, value) VALUES ('schema_version', '11');
+                 INSERT INTO metadata (key, value) VALUES ('store_version', '5');",
+            )
+            .expect("schema v11 fixture should be writable");
+        drop(connection);
+
+        let state = load_store(&database).expect("schema v11 should open for writers");
+        assert_eq!(state.version, STORE_VERSION);
+
+        let connection = SqliteConnection::open(&database).expect("database should reopen");
+        let schema_version: String = connection
+            .query_row(
+                "SELECT value FROM metadata WHERE key = 'schema_version'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("schema version should remain readable");
+        assert_eq!(schema_version, SQLITE_SCHEMA_VERSION.to_string());
         fs::remove_dir_all(root).expect("fixture root should be removable");
     }
 
