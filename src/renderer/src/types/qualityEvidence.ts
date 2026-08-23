@@ -254,6 +254,8 @@ export interface QualityPortfolioSnapshot {
   maturity_fresh_evidence_coverage?: number;
   maturity_provisional_repository_count?: number;
   maturity_capped_repository_count?: number;
+  maturity_complete_repository_count?: number;
+  maturity_certified_repository_count?: number;
   audit_status: string;
   ci_readiness_score?: number;
   ci_readiness_score_display?: string;

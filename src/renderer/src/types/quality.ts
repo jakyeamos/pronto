@@ -178,6 +178,8 @@ interface RepositoryMaturityModel {
   score?: number;
   uncapped_score?: number;
   status: string;
+  certification_status?: "certified" | "not_certified" | string;
+  certification_missing_gate_ids?: string[];
   pillars: RepositoryMaturityPillar[];
   evidence: {
     applicable_pillar_count: number;

@@ -1,5 +1,5 @@
 use crate::behavior_assurance::{
-    BehaviorAssurancePortfolioState, BehaviorAssuranceRepositoryState,
+    BehaviorAssurancePortfolioState, BehaviorAssuranceRepositoryState, ASSESSMENT_SCHEMA,
 };
 use crate::core::{CheckSnapshot, RemoteRepositorySnapshot, RepositorySnapshot};
 use crate::evidence_contract::{EvidenceContractFleetCoverage, EvidenceContractRepositoryStatus};
@@ -31,6 +31,8 @@ pub(crate) const FLEET_MATURITY_FINDING_SCHEMA_PREFIX: &str =
 const MATURITY_FEED_STATUS: [&str; 2] = ["completed", "complete_with_blockers"];
 const MAX_MATURITY_GAPS: usize = 64;
 const QUALITY_GIT_TIMEOUT: StdDuration = StdDuration::from_secs(2);
+const MATURITY_CERTIFICATION_GATE_IDS: [&str; 3] =
+    ["maturity_model", "ci_configuration", "behavior_assurance"];
 const MATURITY_FEED_FORBIDDEN_KEYS: [&str; 15] = [
     "prompt",
     "prompts",
@@ -514,16 +516,40 @@ pub struct RepositoryMaturityCriticalCap {
     pub reasons: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+fn default_maturity_certification_status() -> String {
+    "not_certified".to_string()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct RepositoryMaturityModel {
     pub schema: String,
     pub score: Option<f64>,
     pub uncapped_score: Option<f64>,
     pub status: String,
+    #[serde(default = "default_maturity_certification_status")]
+    pub certification_status: String,
+    #[serde(default)]
+    pub certification_missing_gate_ids: Vec<String>,
     pub pillars: Vec<RepositoryMaturityPillar>,
     pub evidence: RepositoryMaturityEvidence,
     pub critical_cap: RepositoryMaturityCriticalCap,
+}
+
+impl Default for RepositoryMaturityModel {
+    fn default() -> Self {
+        Self {
+            schema: String::new(),
+            score: None,
+            uncapped_score: None,
+            status: String::new(),
+            certification_status: default_maturity_certification_status(),
+            certification_missing_gate_ids: Vec::new(),
+            pillars: Vec::new(),
+            evidence: RepositoryMaturityEvidence::default(),
+            critical_cap: RepositoryMaturityCriticalCap::default(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -882,6 +908,10 @@ pub struct QualityPortfolioSnapshot {
     pub maturity_provisional_repository_count: usize,
     #[serde(default)]
     pub maturity_capped_repository_count: usize,
+    #[serde(default)]
+    pub maturity_complete_repository_count: usize,
+    #[serde(default)]
+    pub maturity_certified_repository_count: usize,
     pub audit_status: String,
     #[serde(default)]
     pub ci_readiness_score: Option<f64>,
@@ -953,6 +983,8 @@ impl Default for QualityPortfolioSnapshot {
             maturity_fresh_evidence_coverage: None,
             maturity_provisional_repository_count: 0,
             maturity_capped_repository_count: 0,
+            maturity_complete_repository_count: 0,
+            maturity_certified_repository_count: 0,
             audit_status: "Not configured".to_string(),
             ci_readiness_score: None,
             ci_readiness_score_display: None,
@@ -1795,42 +1827,49 @@ pub fn update_composite_maturity_summary(
     let mut implementation_scores = Vec::new();
     let mut live_scores = Vec::new();
     for repository in repositories.iter_mut() {
-        let maturity = &mut repository.quality.maturity;
-        for dimension in LEGACY_COMPOSITE_MATURITY_DIMENSIONS {
-            maturity.dimension_scores.remove(dimension);
-        }
-        maturity
-            .gaps
-            .retain(|gap| !LEGACY_COMPOSITE_MATURITY_DIMENSIONS.contains(&gap.dimension.as_str()));
+        let mut model = {
+            let maturity = &mut repository.quality.maturity;
+            for dimension in LEGACY_COMPOSITE_MATURITY_DIMENSIONS {
+                maturity.dimension_scores.remove(dimension);
+            }
+            maturity.gaps.retain(|gap| {
+                !LEGACY_COMPOSITE_MATURITY_DIMENSIONS.contains(&gap.dimension.as_str())
+            });
 
-        merge_composite_dimension(
-            maturity,
-            "ci.fresh_passing",
-            repository.quality.ci_readiness.score,
-            "Fresh passing CI evidence",
-        );
-        let mac_control = &repository.quality.mac_control_ideal_state;
-        if mac_control.applicability != "Not applicable" {
-            let implementation_score = mac_control_implementation_score(mac_control);
-            let live_score = mac_control_live_score(mac_control);
             merge_composite_dimension(
                 maturity,
-                "mac_control.task_usability",
-                average_quality_scores(&[implementation_score, live_score]),
-                "Mac Control implementation and live task usability",
+                "ci.fresh_passing",
+                repository.quality.ci_readiness.score,
+                "Fresh passing CI evidence",
             );
-            implementation_scores.push(implementation_score);
-            live_scores.push(live_score);
-        }
+            let mac_control = &repository.quality.mac_control_ideal_state;
+            if mac_control.applicability != "Not applicable" {
+                let implementation_score = mac_control_implementation_score(mac_control);
+                let live_score = mac_control_live_score(mac_control);
+                merge_composite_dimension(
+                    maturity,
+                    "mac_control.task_usability",
+                    average_quality_scores(&[implementation_score, live_score]),
+                    "Mac Control implementation and live task usability",
+                );
+                implementation_scores.push(implementation_score);
+                live_scores.push(live_score);
+            }
 
-        merge_composite_dimension(
-            maturity,
-            "web_readiness.user_journey",
-            web_readiness_maturity_score(&repository.quality.web_readiness),
-            "User-facing route readiness",
-        );
+            merge_composite_dimension(
+                maturity,
+                "web_readiness.user_journey",
+                web_readiness_maturity_score(&repository.quality.web_readiness),
+                "User-facing route readiness",
+            );
 
-        let model = build_repository_maturity_model(maturity);
+            build_repository_maturity_model(maturity)
+        };
+        let (certification_status, certification_missing_gate_ids) =
+            derive_maturity_certification(&repository.quality, &model);
+        model.certification_status = certification_status;
+        model.certification_missing_gate_ids = certification_missing_gate_ids;
+        let maturity = &mut repository.quality.maturity;
         maturity.score = model.score;
         maturity.score_display = model.score.map(|score| format!("{score:.3}"));
         maturity.scored_dimension_count = Some(model.evidence.assessed_pillar_count);
@@ -1912,11 +1951,78 @@ pub fn update_composite_maturity_summary(
         .filter_map(|repository| repository.quality.maturity.repository_maturity.as_ref())
         .filter(|model| model.status == "provisional")
         .count();
+    portfolio.maturity_complete_repository_count = repositories
+        .iter()
+        .filter_map(|repository| repository.quality.maturity.repository_maturity.as_ref())
+        .filter(|model| model.status == "complete")
+        .count();
+    portfolio.maturity_certified_repository_count = repositories
+        .iter()
+        .filter_map(|repository| repository.quality.maturity.repository_maturity.as_ref())
+        .filter(|model| model.certification_status == "certified")
+        .count();
     portfolio.maturity_capped_repository_count = repositories
         .iter()
         .filter_map(|repository| repository.quality.maturity.repository_maturity.as_ref())
         .filter(|model| model.critical_cap.applied)
         .count();
+}
+
+fn derive_maturity_certification(
+    quality: &QualitySnapshot,
+    model: &RepositoryMaturityModel,
+) -> (String, Vec<String>) {
+    let mut missing_gate_ids = Vec::new();
+
+    // Certification means the assurance gates have an established path. It
+    // does not require the measured maturity score to be 4/4.
+    if model.score.is_none() || !model.evidence.unknown_applicability.is_empty() {
+        missing_gate_ids.push(MATURITY_CERTIFICATION_GATE_IDS[0].to_string());
+    }
+
+    let ci_readiness = &quality.ci_readiness;
+    if ci_readiness.applicable_gate_ids.is_empty()
+        || !ci_readiness.unconfigured_gate_ids.is_empty()
+        || !ci_readiness.missing_gate_ids.is_empty()
+    {
+        missing_gate_ids.push(MATURITY_CERTIFICATION_GATE_IDS[1].to_string());
+    }
+
+    let behavior_assurance = &quality.behavior_assurance;
+    let behavior_gate_is_setup = match behavior_assurance.applicability.as_str() {
+        "not_applicable" => true,
+        "applicable" => {
+            behavior_assurance.contract_status == "current"
+                && (behavior_assurance.schema == ASSESSMENT_SCHEMA
+                    || behavior_assurance.contract_schema.as_deref()
+                        == Some("pronto-behavior-assurance/v2"))
+        }
+        _ => false,
+    };
+    if !behavior_gate_is_setup {
+        missing_gate_ids.push(MATURITY_CERTIFICATION_GATE_IDS[2].to_string());
+    }
+
+    let status = if missing_gate_ids.is_empty() {
+        "certified"
+    } else {
+        "not_certified"
+    };
+    (status.to_string(), missing_gate_ids)
+}
+
+fn normalize_repository_maturity_projection(
+    mut model: RepositoryMaturityModel,
+) -> RepositoryMaturityModel {
+    // Quality Runner used `certified` for the old 4/4 status. Keep older
+    // feeds readable while reserving certification for assurance setup.
+    if model.status == "certified" {
+        model.status = "complete".to_string();
+    }
+    if model.certification_status.is_empty() {
+        model.certification_status = default_maturity_certification_status();
+    }
+    model
 }
 
 fn web_readiness_maturity_score(readiness: &WebReadinessSnapshot) -> Option<f64> {
@@ -2091,7 +2197,7 @@ fn build_repository_maturity_model(maturity: &QualityMaturity) -> RepositoryMatu
     } else {
         0.0
     };
-    let certified = score == Some(4.0)
+    let complete = score == Some(4.0)
         && evidence_coverage == 1.0
         && critical_reasons.is_empty()
         && unknown_applicability.is_empty()
@@ -2102,8 +2208,8 @@ fn build_repository_maturity_model(maturity: &QualityMaturity) -> RepositoryMatu
         "unknown"
     } else if !critical_reasons.is_empty() {
         "blocked"
-    } else if certified {
-        "certified"
+    } else if complete {
+        "complete"
     } else if evidence_coverage < 1.0 || !unknown_applicability.is_empty() {
         "provisional"
     } else {
@@ -2132,6 +2238,8 @@ fn build_repository_maturity_model(maturity: &QualityMaturity) -> RepositoryMatu
         score,
         uncapped_score,
         status: status.to_string(),
+        certification_status: default_maturity_certification_status(),
+        certification_missing_gate_ids: Vec::new(),
         pillars,
         evidence: RepositoryMaturityEvidence {
             applicable_pillar_count,
@@ -4029,7 +4137,8 @@ pub fn maturity_feed_import(
             repository_maturity: projection
                 .get("repository_maturity")
                 .filter(|value| value.is_object())
-                .and_then(|value| serde_json::from_value(value.clone()).ok()),
+                .and_then(|value| serde_json::from_value(value.clone()).ok())
+                .map(normalize_repository_maturity_projection),
             audit_id: audit_id.map(str::to_string),
             observed_at: as_of.map(str::to_string),
             scanned_commit: projection
@@ -7550,6 +7659,91 @@ mod tests {
         assert_eq!(model.score, Some(2.0));
         assert_eq!(model.status, "blocked");
         assert!(model.critical_cap.applied);
+    }
+
+    #[test]
+    fn repository_maturity_uses_complete_for_four_out_of_four() {
+        let mut dimension_scores = BTreeMap::new();
+        for (pillar, _, _, _) in REPOSITORY_MATURITY_PILLARS {
+            for (_, patterns) in maturity_pillar_capabilities(pillar) {
+                dimension_scores.insert(patterns[0].to_string(), 4.0);
+            }
+        }
+        let maturity = QualityMaturity {
+            dimension_scores,
+            agent_usability: Some(AgentUsabilityMaturity {
+                applicability: "applicable".to_string(),
+                ..AgentUsabilityMaturity::default()
+            }),
+            ..QualityMaturity::default()
+        };
+
+        let model = build_repository_maturity_model(&maturity);
+
+        assert_eq!(model.score, Some(4.0));
+        assert_eq!(model.status, "complete");
+        assert_eq!(model.certification_status, "not_certified");
+    }
+
+    #[test]
+    fn maturity_certification_requires_gate_setup_but_not_a_four_score() {
+        let mut quality = QualitySnapshot::default();
+        quality.ci_readiness.applicable_gate_ids = vec!["build".to_string()];
+        quality.ci_readiness.configured_gate_ids = vec!["build".to_string()];
+        quality.behavior_assurance.applicability = "applicable".to_string();
+        quality.behavior_assurance.schema = ASSESSMENT_SCHEMA.to_string();
+        quality.behavior_assurance.contract_status = "current".to_string();
+        quality.behavior_assurance.result_status = "unknown".to_string();
+        quality.behavior_assurance.release_ready = false;
+        let model = RepositoryMaturityModel {
+            score: Some(2.5),
+            evidence: RepositoryMaturityEvidence {
+                applicable_pillar_count: 4,
+                assessed_pillar_count: 4,
+                unknown_applicability: Vec::new(),
+                ..RepositoryMaturityEvidence::default()
+            },
+            ..RepositoryMaturityModel::default()
+        };
+
+        let (status, missing_gate_ids) = derive_maturity_certification(&quality, &model);
+
+        assert_eq!(status, "certified");
+        assert!(missing_gate_ids.is_empty());
+    }
+
+    #[test]
+    fn maturity_certification_reports_unconfigured_assurance_gates() {
+        let model = RepositoryMaturityModel {
+            score: Some(3.0),
+            evidence: RepositoryMaturityEvidence {
+                applicable_pillar_count: 4,
+                assessed_pillar_count: 4,
+                unknown_applicability: Vec::new(),
+                ..RepositoryMaturityEvidence::default()
+            },
+            ..RepositoryMaturityModel::default()
+        };
+
+        let (status, missing_gate_ids) =
+            derive_maturity_certification(&QualitySnapshot::default(), &model);
+
+        assert_eq!(status, "not_certified");
+        assert_eq!(
+            missing_gate_ids,
+            vec!["ci_configuration", "behavior_assurance"]
+        );
+    }
+
+    #[test]
+    fn legacy_certified_feed_status_is_normalized_to_complete() {
+        let model = normalize_repository_maturity_projection(RepositoryMaturityModel {
+            status: "certified".to_string(),
+            ..RepositoryMaturityModel::default()
+        });
+
+        assert_eq!(model.status, "complete");
+        assert_eq!(model.certification_status, "not_certified");
     }
 
     #[test]
