@@ -47,6 +47,12 @@ unavailable until it is regenerated from the exact `dev` commit.
   `.agents/change-surface-matrix.json` are governed contracts. Update the
   affected projection, consumer, documentation, and machine-readable evidence
   together.
+- Agent capability claims use the [capability claims gate](../.agents/context/capability-claims.md)
+  and its machine-readable [contract](../.agents/context/capability-gate.json).
+  Agents must inspect the exposed tool surface and attempt safe read-only
+  discovery before claiming a capability is unavailable. A failed discovery
+  is `discovery_blocked` (availability unknown), while policy prohibition and
+  missing operation authority remain separate outcomes.
 
 AI Showcase readiness is governed by one fleet-level
 `.pronto/showcase-goal.json`; see `docs/showcase-contract.md`. Public
@@ -115,6 +121,31 @@ exact population coverage, limitations, and unresolved measurement-gap count.
 A conclusive failing quality check can support high measurement confidence even
 though it lowers maturity; incomplete population, disabled dynamic verification,
 or unresolved measurement gaps cannot.
+
+### Maturity status versus certification
+
+These are separate repository claims:
+
+- `repository_maturity.status: "complete"` means the measured repository
+  maturity is 4/4 with complete applicable evidence, maintained applicable
+  pillars, and no critical-risk cap.
+- `repository_maturity.certification_status: "certified"` means the assurance
+  path is established. In the current contract that requires a measured
+  maturity model with no unknown applicability, all applicable CI gates
+  configured, and either a current v2 behavior-assurance contract or an
+  explicit behavior-assurance `not_applicable` declaration. It does not require
+  a 4/4 score or current passing receipts.
+- `repository_maturity.certification_missing_gate_ids` identifies setup gaps
+  (`maturity_model`, `ci_configuration`, and `behavior_assurance`) without
+  turning them into maturity score gaps.
+
+The feature-specific `foundation_readiness.disposition` remains the fast chat
+decision about whether to extend, modernize alongside, or stabilize the
+foundation. Certification never grants rewrite authority and does not block
+urgent correctness, security, or recovery work. For compatibility, Pronto
+normalizes an older producer `status: "certified"` value to local
+`status: "complete"` while leaving certification setup unclaimed until the
+local assurance gates are evaluated.
 
 The desktop app renders its persisted portfolio snapshot immediately. When that
 snapshot names the canonical audit path but has no accepted audit and reports

@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-16",
+  "last_reviewed": "2026-08-17",
   "reviewed_no_impact": [
     {
       "change": "Split the renderer API barrel into defaults, review commands, and portfolio commands.",
@@ -169,7 +169,23 @@
         "Verify refresh-batch documents its parallel scan, serialized merge, and conflict-retry boundary.",
         "Verify release preview documents the v2 advisory recommendation dispositions and no-publication boundary.",
         "Verify relative context links resolve inside the repository.",
+        "Verify the capability claims gate requires tool-surface inspection and safe read-only discovery before an unavailable claim, and preserves prohibited, authorization_required, available_authorized, and discovery_blocked as distinct outcomes.",
         "Run a scoped Quality Runner fleet audit and inspect agent_usability."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "agent-capability-claims",
+      "scope": "local",
+      "path": ".agents/context/capability-gate.json, .agents/context/capability-claims.md, scripts/validate-repository-contract.mjs",
+      "owner": "Pronto repository maintainers and Codex routing",
+      "condition": "The evidence or classification required before an agent claims a tool, connector, skill, or provider capability is unavailable changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "node scripts/validate-repository-contract.mjs",
+        "node --test scripts/validate-repository-contract.test.mjs",
+        "Verify a failed discovery remains discovery_blocked rather than unavailable.",
+        "Verify a narrow policy prohibition does not classify a neighboring capability as unavailable."
       ],
       "status": "applicable"
     },

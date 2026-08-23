@@ -1,0 +1,42 @@
+{
+  "schema": "pronto-agent-capability-gate/v1",
+  "last_reviewed": "2026-08-17",
+  "owner": "Pronto repository maintainers and Codex routing",
+  "claim": {
+    "trigger": "before_claiming_a_capability_is_unavailable",
+    "required_steps": [
+      "inspect_exposed_tool_surface",
+      "attempt_safe_read_only_discovery",
+      "classify_scope_and_authority"
+    ],
+    "outcomes": [
+      {
+        "id": "unavailable",
+        "definition": "No callable capability was exposed after discovery and safe read-only probing."
+      },
+      {
+        "id": "prohibited",
+        "definition": "A capability is exposed, but current policy explicitly forbids its use."
+      },
+      {
+        "id": "authorization_required",
+        "definition": "A capability is exposed, but the requested operation requires authority not granted in the current turn."
+      },
+      {
+        "id": "available_authorized",
+        "definition": "A capability is exposed, in scope, and callable for the requested operation."
+      },
+      {
+        "id": "discovery_blocked",
+        "definition": "The tool surface or safe discovery attempt could not be inspected; availability remains unknown."
+      }
+    ],
+    "required_evidence": [
+      "tool_surface_source",
+      "discovery_result",
+      "scope_or_policy_basis"
+    ],
+    "unknown_on_failed_discovery": true,
+    "narrow_prohibitions_do_not_generalize": true
+  }
+}

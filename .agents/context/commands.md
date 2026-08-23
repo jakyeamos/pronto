@@ -1,6 +1,6 @@
 # Agent command contract
 
-Last reviewed: 2026-08-16.
+Last reviewed: 2026-08-17.
 
 ## Invocation
 
@@ -35,6 +35,13 @@ empty and sets `live_verification_required: true`; direct `fold preview` is the
 explicit path for live merge checks. A blocked route
 intentionally withholds follow-up projections and exits non-zero; use its
 `next_safe_step` before refreshing or repairing evidence.
+
+Before claiming that an agent capability is unavailable, apply the
+[capability claims gate](capability-claims.md). Inspect the exposed tool
+surface, attempt the smallest safe read-only discovery, and distinguish
+`unavailable`, `prohibited`, `authorization_required`,
+`available_authorized`, and `discovery_blocked`. A restriction on one
+capability must not be generalized to a neighboring tool or provider.
 
 ## Target branch policy
 

@@ -13,6 +13,8 @@ const fixtureFiles = [
   ".agents/change-surface-matrix.json",
   ".agents/context/README.md",
   ".agents/context/branch-sensitive-quality-verification.md",
+  ".agents/context/capability-claims.md",
+  ".agents/context/capability-gate.json",
   ".agents/context/commands.md",
   ".agents/environment-legibility.json",
   ".gitignore",
@@ -75,6 +77,16 @@ function mutateEvidenceContract(fixture, mutate) {
 
 function mutateCacheLifecycle(fixture, mutate) {
   const contractPath = path.join(fixture, ".pronto/cache-lifecycle.json");
+  const contract = JSON.parse(fs.readFileSync(contractPath, "utf8"));
+  mutate(contract);
+  writeJson(contractPath, contract);
+}
+
+function mutateCapabilityGate(fixture, mutate) {
+  const contractPath = path.join(
+    fixture,
+    ".agents/context/capability-gate.json",
+  );
   const contract = JSON.parse(fs.readFileSync(contractPath, "utf8"));
   mutate(contract);
   writeJson(contractPath, contract);
@@ -156,6 +168,32 @@ test("rejects an unresolved tool-to-skill relationship", (t) => {
   assertRejected(
     runValidator(fixture),
     /pronto-cli: unknown skill reference: missing-skill/,
+  );
+});
+
+test("rejects a capability gate that collapses authorization into unavailable", (t) => {
+  const fixture = createFixture(t);
+  mutateCapabilityGate(fixture, (contract) => {
+    contract.claim.outcomes = contract.claim.outcomes.filter(
+      (outcome) => outcome.id !== "authorization_required",
+    );
+  });
+
+  assertRejected(
+    runValidator(fixture),
+    /capability-gate\.json: required outcome is missing: authorization_required/,
+  );
+});
+
+test("rejects a capability gate that treats failed discovery as unavailable", (t) => {
+  const fixture = createFixture(t);
+  mutateCapabilityGate(fixture, (contract) => {
+    contract.claim.unknown_on_failed_discovery = false;
+  });
+
+  assertRejected(
+    runValidator(fixture),
+    /capability-gate\.json: failed discovery must preserve unknown availability/,
   );
 });
 

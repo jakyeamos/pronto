@@ -9,12 +9,14 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const requiredDocuments = [
   ".agents/context/README.md",
   ".agents/context/commands.md",
+  ".agents/context/capability-claims.md",
   "docs/repository-contract.md",
   "docs/implementation-examples.md",
   "docs/agent-usability-maturity.md",
 ];
 const evidenceContractPath = ".agents/environment-legibility.json";
 const agentUsabilityContractPath = ".agents/agent-usability.json";
+const capabilityGatePath = ".agents/context/capability-gate.json";
 const cacheLifecyclePath = ".pronto/cache-lifecycle.json";
 const automationFiles = new Set([
   ".circleci/config.yml",
@@ -149,6 +151,110 @@ for (const heading of [
   if (!implementationExamples.includes(heading)) {
     errors.push(
       `implementation examples: required heading is missing: ${heading}`,
+    );
+  }
+}
+
+let capabilityGate;
+try {
+  capabilityGate = JSON.parse(read(capabilityGatePath));
+} catch (error) {
+  errors.push(`${capabilityGatePath}: invalid JSON: ${error.message}`);
+}
+
+const capabilityClaims =
+  documents.get(".agents/context/capability-claims.md") ?? "";
+if (!capabilityClaims.includes("# Capability claims gate")) {
+  errors.push(
+    ".agents/context/capability-claims.md: capability claims heading is missing",
+  );
+}
+for (const requiredTerm of [
+  "Inspect the currently exposed tool surface",
+  "Attempt the smallest safe read-only discovery call",
+  "`unavailable`",
+  "`prohibited`",
+  "`authorization_required`",
+  "`available_authorized`",
+  "`discovery_blocked`",
+]) {
+  if (!capabilityClaims.includes(requiredTerm)) {
+    errors.push(
+      `.agents/context/capability-claims.md: required gate term is missing: ${requiredTerm}`,
+    );
+  }
+}
+
+if (capabilityGate) {
+  if (capabilityGate.schema !== "pronto-agent-capability-gate/v1") {
+    errors.push(`${capabilityGatePath}: unsupported schema`);
+  }
+  if (!capabilityGate.owner) {
+    errors.push(`${capabilityGatePath}: owner is required`);
+  }
+  const reviewed = Date.parse(capabilityGate.last_reviewed);
+  const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+  if (
+    !Number.isFinite(reviewed) ||
+    reviewed > Date.now() ||
+    Date.now() - reviewed > ninetyDays
+  ) {
+    errors.push(
+      `${capabilityGatePath}: last_reviewed is missing, future-dated, or stale`,
+    );
+  }
+  const claim = capabilityGate.claim;
+  const requiredSteps = new Set([
+    "inspect_exposed_tool_surface",
+    "attempt_safe_read_only_discovery",
+    "classify_scope_and_authority",
+  ]);
+  for (const step of requiredSteps) {
+    if (
+      !Array.isArray(claim?.required_steps) ||
+      !claim.required_steps.includes(step)
+    ) {
+      errors.push(`${capabilityGatePath}: required step is missing: ${step}`);
+    }
+  }
+  const requiredOutcomes = new Set([
+    "unavailable",
+    "prohibited",
+    "authorization_required",
+    "available_authorized",
+    "discovery_blocked",
+  ]);
+  const outcomes = new Set(
+    Array.isArray(claim?.outcomes)
+      ? claim.outcomes.map((outcome) => outcome?.id)
+      : [],
+  );
+  for (const outcome of requiredOutcomes) {
+    if (!outcomes.has(outcome)) {
+      errors.push(
+        `${capabilityGatePath}: required outcome is missing: ${outcome}`,
+      );
+    }
+  }
+  for (const evidence of [
+    "tool_surface_source",
+    "discovery_result",
+    "scope_or_policy_basis",
+  ]) {
+    if (!claim?.required_evidence?.includes(evidence)) {
+      errors.push(
+        `${capabilityGatePath}: required evidence is missing: ${evidence}`,
+      );
+    }
+  }
+  if (claim?.unknown_on_failed_discovery !== true) {
+    errors.push(
+      `${capabilityGatePath}: failed discovery must preserve unknown availability`,
+    );
+  }
+  if (claim?.narrow_prohibitions_do_not_generalize !== true) {
+    errors.push(
+      `${capabilityGatePath}: narrow prohibitions must not generalize`,
     );
   }
 }

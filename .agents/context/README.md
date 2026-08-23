@@ -1,6 +1,6 @@
 # Pronto agent context
 
-Last reviewed: 2026-08-01.
+Last reviewed: 2026-08-17.
 
 Pronto is the local-first portfolio and Git evidence surface for this machine.
 Use this index when a task needs portfolio-wide repository state, workspace
@@ -15,6 +15,9 @@ Read the deeper file only when the task matches it:
 
 - [Agent command contract](commands.md) — exact CLI invocation, focused JSON
   projections, freshness semantics, and the read/write boundary for agent use.
+- [Capability claims gate](capability-claims.md) — the required tool-surface
+  discovery and evidence classification before claiming a capability is
+  unavailable, prohibited, authorization-required, or available.
 - [Repository operating contract](../../docs/repository-contract.md) —
   architecture ownership, coding and security constraints, failure recovery,
   approval gates, definition of done, and installation/release rollback.
