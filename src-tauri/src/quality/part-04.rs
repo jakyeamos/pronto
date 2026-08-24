@@ -199,6 +199,9 @@ fn validate_checkpoint_target(
         }
     }
     for repository in repositories {
+        if crate::remediation::is_excluded_repository(repository) {
+            continue;
+        }
         let repository_id = repository_feed_id(repository);
         if !commits.contains_key(&repository_id) {
             return Err(format!(

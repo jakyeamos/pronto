@@ -167,7 +167,8 @@ fn fixture_plan(
     }
 
 #[test]
-    fn does_not_exclude_repositories_without_policy_entries() {
+fn does_not_exclude_repositories_without_policy_entries() {
+        assert!(is_excluded_repository(&fixture_repository("codex")));
         assert!(!is_excluded_repository(&fixture_repository(
             "soundscape-app"
         )));

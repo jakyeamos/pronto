@@ -314,6 +314,11 @@ fn fixture_sha256(path: &Path) -> String {
     fn coordinated_maturity_checkpoint_import_binds_both_evidence_lanes() {
         let root = fixture_root();
         let repository = fixture_repository(&root.join("repo"));
+        let mut excluded_repository = fixture_repository(&root.join("codex"));
+        excluded_repository.id = "repo-codex".to_string();
+        excluded_repository.name = "codex".to_string();
+        excluded_repository.path = root.join("codex").to_string_lossy().to_string();
+        excluded_repository.workspace.path = excluded_repository.path.clone();
         let as_of = "2026-07-26T11:00:00Z";
         let bundle = root.join("current/checkpoints/checkpoint-fixture");
         fs::create_dir_all(&bundle).expect("checkpoint bundle should be writable");
@@ -389,7 +394,7 @@ fn fixture_sha256(path: &Path) -> String {
         .expect("checkpoint should be writable");
 
         let imported =
-            maturity_checkpoint_import(Some(&checkpoint_path), std::slice::from_ref(&repository))
+            maturity_checkpoint_import(Some(&checkpoint_path), &[repository, excluded_repository])
                 .expect("checkpoint should be attempted");
 
         assert_eq!(imported.checkpoint.status, "Coordinated");
@@ -405,10 +410,12 @@ fn fixture_sha256(path: &Path) -> String {
             imported.audit.portfolio.latest_audit_id.as_deref(),
             Some("audit-fixture")
         );
+        assert_eq!(imported.audit.portfolio.matched_repository_count, 1);
         assert_eq!(
             imported.mac_control.portfolio.run_id.as_deref(),
             Some("mac-audit-fixture")
         );
+        assert_eq!(imported.mac_control.portfolio.evaluated_repository_count, 1);
     }
 
 #[test]

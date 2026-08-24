@@ -552,10 +552,15 @@ pub fn evaluate_report_at(
     path: &Path,
     repositories: &[RepositorySnapshot],
 ) -> MacControlEvaluation {
+    let scoped_repositories = repositories
+        .iter()
+        .filter(|repository| !crate::remediation::is_excluded_repository(repository))
+        .cloned()
+        .collect::<Vec<_>>();
     let report_path = Some(path.to_string_lossy().to_string());
     if path.is_symlink() || !path.is_file() {
         return unavailable(
-            repositories,
+            &scoped_repositories,
             report_path,
             "No canonical Mac Control ideal-state report is available.",
         );
@@ -564,7 +569,7 @@ pub fn evaluate_report_at(
         Ok(contents) => contents,
         Err(error) => {
             return blocked(
-                repositories,
+                &scoped_repositories,
                 report_path,
                 format!("The Mac Control ideal-state report could not be read: {error}."),
             )
@@ -574,13 +579,13 @@ pub fn evaluate_report_at(
         Ok(report) => report,
         Err(error) => {
             return blocked(
-                repositories,
+                &scoped_repositories,
                 report_path,
                 format!("The Mac Control ideal-state report is invalid JSON: {error}."),
             )
         }
     };
-    evaluate_report(report, report_path, repositories)
+    evaluate_report(report, report_path, &scoped_repositories)
 }
 
 pub fn blocked_for_checkpoint(
@@ -588,7 +593,12 @@ pub fn blocked_for_checkpoint(
     report_path: Option<String>,
     reason: impl Into<String>,
 ) -> MacControlEvaluation {
-    blocked(repositories, report_path, reason.into())
+    let scoped_repositories = repositories
+        .iter()
+        .filter(|repository| !crate::remediation::is_excluded_repository(repository))
+        .cloned()
+        .collect::<Vec<_>>();
+    blocked(&scoped_repositories, report_path, reason.into())
 }
 
 fn evaluate_report(

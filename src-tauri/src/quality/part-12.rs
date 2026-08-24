@@ -94,7 +94,10 @@ pub fn maturity_feed_import(
         .collect::<Vec<_>>();
     let mut matches = HashMap::new();
     let mut behavior_assurance_matches = HashMap::new();
-    for repository in repositories {
+    for repository in repositories
+        .iter()
+        .filter(|repository| !crate::remediation::is_excluded_repository(repository))
+    {
         let stable_id = repository_feed_id(repository);
         let projection = projections
             .iter()

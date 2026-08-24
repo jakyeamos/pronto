@@ -131,7 +131,7 @@ stale/unknown until it is refreshed from the exact target commit.
 | Skill change matrix                  | `change-matrix skill <skill-id> [--operation <add\|change\|remove>] --json`                                                                                       | `pronto-change-matrix/v1`                                                                                        |
 | Active remediation                   | `remediation [<repository>] --json`                                                                                                                               | `pronto-remediation/v3`                                                                                          |
 | Remediation execution gate           | `remediation gate <repository> [--workspace <id>] --json`                                                                                                         | `pronto-remediation-execution-gate/v1`                                                                           |
-| Work requiring attention             | `attention [<repository>] --json`                                                                                                                                  | `pronto-agent-attention/v1`                                                                                      |
+| Work requiring attention             | `attention [<repository>] --json`                                                                                                                                 | `pronto-agent-attention/v1`                                                                                      |
 | Recent transitions/audits            | `activity [<repository>] --limit <n> --json`                                                                                                                      | `pronto-agent-activity/v1`                                                                                       |
 | Preparation preflight                | `prepare <repository> [--workspace <id>] [--fresh] --json`                                                                                                        | `pronto-agent-preparation/v1`                                                                                    |
 | Release preflight                    | `release preview <repository> [--workspace <id>] [--fresh] --json`                                                                                                | `pronto-agent-release/v2`                                                                                        |
@@ -249,6 +249,13 @@ population, and primary observed commits. A valid pointer gives one freshness
 boundary while preserving the QR score and Mac Control two-lane disposition as
 separate evidence. A missing pointer is labeled `Legacy separate`; an invalid
 or incoherent pointer is `Blocked` and must not fall back to mixing sidecars.
+
+The local registry may contain an explicit fleet exclusion that is intentionally
+outside the QR/Pronto quality population. `codex` is currently such a permanent
+exclusion: it remains visible for local/provider context, but it is not required
+in the QR checkpoint target, maturity matches, Mac Control population, or
+remediation queue. Do not add it back to a QR scope manifest to repair a missing
+receipt; preserve the exclusion in the scope evidence instead.
 
 Each repository quality projection also carries
 `foundation_readiness` (`pronto-foundation-readiness/v1`), shown to people as

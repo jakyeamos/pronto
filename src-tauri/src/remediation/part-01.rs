@@ -28,7 +28,10 @@ pub const MATURITY_CLOSURE_TARGET: f64 = 3.0;
 
 pub const MATURITY_IDEAL_SCORE: f64 = 4.0;
 
-pub const EXCLUDED_REPOSITORY_NAMES: [&str; 0] = [];
+/// Repositories that remain registered for local context but are outside the
+/// QR/Pronto fleet-quality population. Keep this list aligned with the fleet
+/// scope manifest rather than manufacturing a missing quality receipt.
+pub const EXCLUDED_REPOSITORY_NAMES: [&str; 1] = ["codex"];
 
 pub const GITHUB_ONLY_LOCALITY: &str = "GitHub only";
 
