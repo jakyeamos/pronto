@@ -5,8 +5,9 @@ src-tauri/gen
 pnpm-lock.yaml
 docs/pronto-behavior-spec.xlsx
 .aios/**
-.rdw-runs/**
 .pre-cr/**
+.quality-runner/**
 .pronto/**
+.rdw-runs/**
 .pytest_cache/**
 showcase-materials/**

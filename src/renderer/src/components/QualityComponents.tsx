@@ -324,6 +324,22 @@ export function qualityEvidenceSummary(quality: QualityPortfolioSnapshot): {
   };
 }
 
+export function qualityProfileSummary(
+  quality: QualityPortfolioSnapshot,
+): string {
+  const parts = [
+    [quality.ci_profile_invalid_count ?? 0, "invalid"],
+    [quality.ci_profile_unavailable_count ?? 0, "unavailable"],
+    [quality.ci_profile_repository_contract_count ?? 0, "repository-owned"],
+    [quality.ci_profile_compatibility_count ?? 0, "static compatibility"],
+  ]
+    .filter(([count]) => Number(count) > 0)
+    .map(([count, label]) => `${count} ${label}`);
+  return parts.length > 0
+    ? `CI profiles: ${parts.join(" · ")}`
+    : "No valid repository-owned or compatibility CI profiles";
+}
+
 export { QualityFindingsSummary } from "./QualityFindingsSummary";
 export { WebReadinessSummary } from "./WebReadinessSummary";
 export {

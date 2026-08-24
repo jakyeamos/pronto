@@ -1,6 +1,7 @@
 import type {
   InstalledRuntimeSnapshot,
   QualityFindings,
+  QualityFreshness,
   QualityGate,
   QualityMaturity,
   QualityReadiness,
@@ -87,6 +88,19 @@ interface MacControlPortfolioSnapshot {
   observed_at?: string;
   report_path?: string;
   run_id?: string;
+}
+
+export interface MaturityCheckpointSnapshot {
+  status: string;
+  publication_status: string;
+  quality_status: string;
+  freshness: QualityFreshness;
+  checkpoint_id?: string;
+  observed_at?: string;
+  qr_audit_id?: string;
+  mac_control_audit_id?: string;
+  path?: string;
+  reason?: string;
 }
 
 interface BehaviorAssuranceGap {
@@ -206,6 +220,7 @@ export interface QualitySnapshot {
   gates: QualityGate[];
   findings: QualityFindings;
   maturity: QualityMaturity;
+  foundation_readiness: FoundationReadinessGate;
   target_fleet_audit_root?: string;
   ci_readiness: QualityReadiness;
   mac_control_ideal_state?: MacControlRepositoryState;
@@ -217,6 +232,37 @@ export interface QualitySnapshot {
   last_ingested_at?: string;
   ingestion_status: string;
   ingestion_message?: string;
+}
+
+export interface FoundationReadinessReason {
+  id: string;
+  severity: "blocking" | "modernize" | "supporting" | string;
+  summary: string;
+  evidence: string[];
+}
+
+export interface FoundationReadinessGate {
+  schema: "pronto-foundation-readiness/v1" | string;
+  label: string;
+  disposition:
+    | "ready_to_extend"
+    | "modernize_alongside"
+    | "modernize_first"
+    | "review_required"
+    | "unknown"
+    | "not_applicable";
+  confidence: "low" | "medium" | "high";
+  freshness: QualityFreshness;
+  advisory_only: boolean;
+  execution_authority: boolean;
+  blocks_urgent_fixes: boolean;
+  summary: string;
+  reasons: FoundationReadinessReason[];
+  unknowns: string[];
+  next_step: string;
+  observed_at?: string;
+  scanned_commit?: string;
+  scanned_branch?: string;
 }
 
 export interface QualityMeasurementConfidence {
@@ -272,6 +318,10 @@ export interface QualityPortfolioSnapshot {
   ci_configuration_full_repository_count?: number;
   ci_configuration_repository_count?: number;
   ci_configuration_unscored_repository_count?: number;
+  ci_profile_repository_contract_count?: number;
+  ci_profile_compatibility_count?: number;
+  ci_profile_invalid_count?: number;
+  ci_profile_unavailable_count?: number;
   feed_schema?: string;
   provenance_hash?: string;
   quality_outcome_counts?: Record<string, number>;
@@ -280,6 +330,7 @@ export interface QualityPortfolioSnapshot {
     { label: string; meaning: string; next_step?: string }
   >;
   mac_control_ideal_state?: MacControlPortfolioSnapshot;
+  maturity_checkpoint?: MaturityCheckpointSnapshot;
   behavior_assurance?: BehaviorAssurancePortfolioState;
   evidence_contracts?: EvidenceContractFleetCoverage[];
 }

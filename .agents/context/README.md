@@ -1,6 +1,6 @@
 # Pronto agent context
 
-Last reviewed: 2026-08-01.
+Last reviewed: 2026-08-18.
 
 Pronto is the local-first portfolio and Git evidence surface for this machine.
 Use this index when a task needs portfolio-wide repository state, workspace
@@ -15,9 +15,15 @@ Read the deeper file only when the task matches it:
 
 - [Agent command contract](commands.md) — exact CLI invocation, focused JSON
   projections, freshness semantics, and the read/write boundary for agent use.
+- [Quality prevention contract](quality-prevention.md) — task-scoped QR
+  baseline/completion checkpoints and the boundary between candidate and
+  certified native checks.
 - [Repository operating contract](../../docs/repository-contract.md) —
   architecture ownership, coding and security constraints, failure recovery,
   approval gates, definition of done, and installation/release rollback.
+- [Repository Telescope](../../docs/telescope.md) — source-derived living-city
+  projection, categorical readiness and Map Workshop contract, building-local
+  source detail, freshness/privacy rules, and independently composable lenses.
 - [Implementation examples](../../docs/implementation-examples.md) — existing
   end-to-end patterns for projection, quality, remediation, and change-surface
   work.
@@ -30,6 +36,9 @@ Read the deeper file only when the task matches it:
 - [Implementation plan](../../docs/implementation-plan.md) — product
   boundaries and the source-of-truth relationship between the desktop app and
   CLI.
+- [CI tracker](../../docs/ci-tracker.md) — GitHub Actions failure projection,
+  prompt-artifact availability, and the user-controlled read-only Codex
+  handoff.
 - [Branch-sensitive quality verification](branch-sensitive-quality-verification.md)
   — required when a branch or commit selector is adjacent to displayed quality
   or tenure statistics.

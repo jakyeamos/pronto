@@ -96,3 +96,15 @@ comparisons, eval runs, harnesses, and benchmarks to `agent-eval-runtime`.
 - AL-3 and AL-4 stay parked until the owner approves and implements the shared
   event contract; no timing, retry, human-touch, failure, or outcome values are
   inferred in the meantime.
+
+## 6. Local showcase package
+
+The agent-owned material layer is now assembled locally: the real Tenure task
+case, paired-protocol explanation, claim ledger, no-auth page source, and
+reviewed 1600×900 preview are present in this directory. The preview shows the
+manual and assisted lanes converging on one oracle, then stops at AL-2 rather
+than manufacturing a result delta.
+
+This closes local case/visual packaging only. The shared event contract,
+prospective paired runs, outcome reconciliation, hosted no-auth verification,
+and external destination readbacks remain open; no AI-leverage claim is made.

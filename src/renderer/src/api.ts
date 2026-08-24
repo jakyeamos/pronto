@@ -24,7 +24,9 @@ import type {
   RepositoryPreparation,
   ReleaseRecipeConfig,
   ReleaseRuleConfig,
+  CiCodexHandoffReceipt,
 } from "./types";
+import type { TelescopeProjection } from "./types/telescope";
 
 function isDesktopBridgeAvailable(): boolean {
   return "__TAURI_INTERNALS__" in window;
@@ -39,6 +41,39 @@ export async function getSnapshot(): Promise<PortfolioSnapshot> {
     return emptySnapshot;
   }
   return invoke<PortfolioSnapshot>("get_snapshot");
+}
+
+export async function getRepositoryTelescope(
+  repositoryId: string,
+): Promise<TelescopeProjection> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Telescope is available in the Pronto desktop app.");
+  }
+  return invoke<TelescopeProjection>("get_repository_telescope", {
+    repositoryId,
+  });
+}
+
+export async function refreshRepositoryTelescope(
+  repositoryId: string,
+): Promise<TelescopeProjection> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error(
+      "Telescope refresh is available in the Pronto desktop app.",
+    );
+  }
+  return invoke<TelescopeProjection>("refresh_repository_telescope", {
+    repositoryId,
+  });
+}
+
+export async function cancelRepositoryTelescopeRefresh(
+  repositoryId: string,
+): Promise<boolean> {
+  if (!isDesktopBridgeAvailable()) return false;
+  return invoke<boolean>("cancel_repository_telescope_refresh", {
+    repositoryId,
+  });
 }
 
 export async function refresh(): Promise<PortfolioSnapshot> {
@@ -64,6 +99,21 @@ export async function refreshGithub(): Promise<PortfolioSnapshot> {
     throw new Error("GitHub refresh is available in the Pronto desktop app.");
   }
   return invoke<PortfolioSnapshot>("refresh_github");
+}
+
+export async function startCiCodexHandoff(
+  repository: string,
+  runId: number,
+  runAttempt: number,
+): Promise<CiCodexHandoffReceipt> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error("Codex CI handoff is available in the Pronto desktop app.");
+  }
+  return invoke<CiCodexHandoffReceipt>("start_ci_codex_handoff", {
+    repository,
+    runId,
+    runAttempt,
+  });
 }
 
 export async function refreshRemediation(): Promise<PortfolioSnapshot> {

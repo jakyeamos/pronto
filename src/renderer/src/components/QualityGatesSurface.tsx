@@ -11,13 +11,13 @@ import type { PortfolioSnapshot, RepositorySnapshot } from "../types";
 import {
   QualityFindingsSummary,
   QualityGateCell,
-  QualityMaturitySummary,
   QualityOutcomeSummary,
   projectQualityReadinessForTarget,
   qualityConfigurationSummary,
   qualityEvidenceSummary,
   macControlFreshnessLabel,
 } from "./QualityComponents";
+import { QualityMaturityWithCacheSummary } from "./CacheDesignSummary";
 import { targetScopeForRepository } from "../branchEvidence";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
 
@@ -70,6 +70,7 @@ export function QualityGatesSurface({
   const configuration = qualityConfigurationSummary(portfolioQuality);
   const evidence = qualityEvidenceSummary(portfolioQuality);
   const macControl = portfolioQuality.mac_control_ideal_state;
+  const maturityCheckpoint = portfolioQuality.maturity_checkpoint;
   const staleEvidenceContracts = (
     portfolioQuality.evidence_contracts ?? []
   ).filter((contract) => contract.status !== "current");
@@ -96,6 +97,13 @@ export function QualityGatesSurface({
             <MeasurementConfidenceSummary
               confidence={portfolioQuality.measurement_confidence}
             />
+            <small>
+              QR + Mac Control checkpoint:{" "}
+              {maturityCheckpoint?.status ?? "Legacy separate"}
+              {maturityCheckpoint?.observed_at
+                ? ` · ${formatTime(maturityCheckpoint.observed_at)}`
+                : ""}
+            </small>
             {portfolioQuality.source_maturity_score_display && (
               <small>
                 {portfolioQuality.feed_schema ===
@@ -400,7 +408,7 @@ export function QualityGatesSurface({
                         </button>
                       </th>
                       <td className="quality-matrix-sticky quality-matrix-maturity-column">
-                        <QualityMaturitySummary
+                        <QualityMaturityWithCacheSummary
                           maturity={repository.quality.maturity}
                           readiness={targetReadiness.readiness}
                           targetBranch={target.branch}

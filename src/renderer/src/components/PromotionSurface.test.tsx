@@ -98,6 +98,24 @@ function inboxFixture(overrides: Partial<PromotionInbox> = {}): PromotionInbox {
       raw_source_bytes_copied: false,
       jas_mutation: false,
     },
+    funnel: {
+      schema_version: "leverage-promotion-funnel/v1",
+      status: "pass",
+      evaluation_candidate_drafts: 188,
+      ready_behavior_identity_clusters: 136,
+      selected_forward_test_work_items: 136,
+      promotion_packets: 0,
+      forward_test_pass: 2,
+      forward_test_failed: 1,
+      forward_test_blocked: 1,
+      packets_blocked: 1,
+      packets_failed: 0,
+      quantification_pending: 2,
+      promotion_candidates: 1,
+      source_triage_artifact: "artifacts/improvement-triage/latest.json",
+      manual_review_required: true,
+      jas_mutation: false,
+    },
     errors: [],
     manual_review_required: true,
     jas_mutation: false,
@@ -155,13 +173,19 @@ describe("PromotionSurface", () => {
       "AWL owns discovery, testing, quantification, and packet generation",
     );
     expect(markup).toContain("Discovery coverage");
-    expect(markup).toContain("14 awaiting decision · 62 total candidates");
-    expect(markup).toContain("Upstream funnel: 188 evaluation drafts");
-    expect(markup).toContain("Packets stay outside the 62-candidate inbox");
+    expect(markup).toContain("Awaiting owner decision");
+    expect(markup).toContain("Complete packets only");
     expect(markup).toContain("Asset observations");
     expect(markup).toContain(
-      "Asset observations are review inputs, not candidates.",
+      "Discovery drafts and asset observations are review inputs, not formed candidates.",
     );
+    expect(markup).toContain("AWL evaluation pipeline");
+    expect(markup).toContain("Evaluation inputs");
+    expect(markup).toContain("source rows; not promotions");
+    expect(markup).toContain("Tests completed");
+    expect(markup).toContain("3");
+    expect(markup).toContain("Evaluation blocked");
+    expect(markup).toContain("Candidates formed");
     expect(markup).toContain("prompts");
     expect(markup).toContain("Workflow port candidate");
     expect(markup).toContain("Promote public");
@@ -170,6 +194,71 @@ describe("PromotionSurface", () => {
       "Accepted complete packets trigger the validated JAS admission/install path",
     );
     expect(markup).toContain("JAS unchanged");
+  });
+
+  it("separates the promotion queue, AWL drafts, and decision history", () => {
+    const base = inboxFixture();
+    const draft = {
+      ...base.candidates[0],
+      candidate_id: "candidate-draft",
+      title: "Unfinished candidate",
+      candidate_kind: "draft" as const,
+      package_status: "awaiting_forward_test",
+    };
+    const history = {
+      ...base.candidates[0],
+      candidate_id: "candidate-history",
+      title: "Deferred candidate",
+      decision: "defer" as const,
+      decision_at: "2026-08-08T17:00:00+00:00",
+      decision_reason: "Needs a stronger baseline.",
+    };
+    const markup = renderToStaticMarkup(
+      <PromotionSurface
+        inbox={{ ...base, candidates: [base.candidates[0], draft, history] }}
+        isRefreshing={false}
+        onRefresh={vi.fn(async () => undefined)}
+        onDecide={vi.fn(async () => undefined)}
+      />,
+    );
+
+    expect(markup).toContain("1 complete packet");
+    expect(markup).toContain("AWL candidate pipeline");
+    expect(markup).toContain("1 incomplete draft");
+    expect(markup).toContain("Decision history");
+    expect(markup).toContain("1 recorded decision");
+    expect(markup).toContain("Promotion-ready packets");
+    expect(markup).toContain("Incomplete candidate drafts");
+    expect(markup).toContain(
+      "Accepted, deferred, and rejected records remain available for provenance",
+    );
+  });
+
+  it("keeps incomplete drafts out of owner decision controls", () => {
+    const base = inboxFixture();
+    const draft = {
+      ...base.candidates[0],
+      candidate_id: "candidate-draft",
+      title: "Unfinished candidate",
+      candidate_kind: "draft" as const,
+      package_status: "awaiting_forward_test",
+    };
+    const markup = renderToStaticMarkup(
+      <PromotionSurface
+        inbox={{ ...base, candidates: [draft] }}
+        isRefreshing={false}
+        onRefresh={vi.fn(async () => undefined)}
+        onDecide={vi.fn(async () => undefined)}
+      />,
+    );
+
+    expect(markup).toContain("AWL pipeline draft");
+    expect(markup).toContain(
+      "It cannot receive an owner decision from this surface.",
+    );
+    expect(markup).not.toContain('data-decision="public"');
+    expect(markup).not.toContain('data-decision="defer"');
+    expect(markup).not.toContain('data-decision="reject"');
   });
 
   it("renders the JAS apply result without exposing a second approval control", () => {
@@ -300,6 +389,6 @@ describe("PromotionSurface", () => {
 
     expect(markup).toContain("AWL review is unavailable");
     expect(markup).toContain("The AWL checkout is not available.");
-    expect(markup).toContain("No evaluated candidates are waiting");
+    expect(markup).toContain("No complete candidate packets are awaiting");
   });
 });

@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Participant Deduplication · Synthetic case study</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #f5f7fb;
+        --muted: #aab4c7;
+        --line: #263247;
+        --panel: #121a29;
+        --panel-strong: #182338;
+        --accent: #83e1c0;
+        --accent-ink: #09251f;
+        --warn: #f2c47d;
+        --danger: #ff9b9b;
+        --shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #0a0f19;
+        color: var(--ink);
+        font:
+          15px/1.55 Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+      main {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 42px 24px 72px;
+      }
+      .eyebrow,
+      .label {
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 750;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .eyebrow {
+        margin-bottom: 12px;
+      }
+      h1,
+      h2,
+      h3 {
+        line-height: 1.1;
+        margin: 0;
+        letter-spacing: -0.025em;
+      }
+      h1 {
+        max-width: 840px;
+        font-size: clamp(36px, 6vw, 72px);
+      }
+      h2 {
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
+      h3 {
+        font-size: 17px;
+      }
+      p {
+        color: var(--muted);
+        margin: 0;
+      }
+      .lede {
+        font-size: 18px;
+        max-width: 720px;
+        margin-top: 20px;
+      }
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 24px 0 0;
+      }
+      .badge,
+      .status {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+      .badge.synthetic {
+        color: var(--accent);
+        border-color: rgba(131, 225, 192, 0.4);
+      }
+      .hero {
+        display: grid;
+        gap: 26px;
+        grid-template-columns: 1.2fr 0.8fr;
+        align-items: end;
+      }
+      .hero-card,
+      .panel {
+        background: linear-gradient(145deg, var(--panel-strong), var(--panel));
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+      }
+      .hero-card {
+        padding: 24px;
+      }
+      .hero-card strong {
+        display: block;
+        font-size: 40px;
+        letter-spacing: -0.04em;
+      }
+      .hero-card span {
+        color: var(--muted);
+      }
+      section {
+        margin-top: 68px;
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: end;
+        margin-bottom: 20px;
+      }
+      .section-head p {
+        max-width: 560px;
+      }
+      .stats,
+      .cards,
+      .timeline {
+        display: grid;
+        gap: 12px;
+      }
+      .stats {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .stat,
+      .card,
+      .timeline-step {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 18px;
+      }
+      .stat strong {
+        display: block;
+        font-size: 32px;
+        letter-spacing: -0.04em;
+      }
+      .stat span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .cards {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .card {
+        min-height: 188px;
+      }
+      .card .status {
+        display: inline-block;
+        margin: 14px 0 16px;
+      }
+      .status.approve {
+        color: var(--accent);
+        border-color: rgba(131, 225, 192, 0.35);
+      }
+      .status.keep {
+        color: var(--warn);
+        border-color: rgba(242, 196, 125, 0.35);
+      }
+      .status.resolve {
+        color: var(--danger);
+        border-color: rgba(255, 155, 155, 0.35);
+      }
+      .card p {
+        font-size: 13px;
+      }
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+      }
+      table {
+        border-collapse: collapse;
+        min-width: 760px;
+        width: 100%;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 14px 16px;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #182338;
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      td strong {
+        display: block;
+      }
+      td small {
+        color: var(--muted);
+      }
+      .timeline {
+        grid-template-columns: repeat(5, 1fr);
+      }
+      .timeline-step {
+        position: relative;
+      }
+      .timeline-step:not(:last-child)::after {
+        color: var(--accent);
+        content: "→";
+        font-size: 22px;
+        position: absolute;
+        right: -16px;
+        top: 22px;
+        z-index: 1;
+      }
+      .timeline-step .num {
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 750;
+      }
+      .timeline-step h3 {
+        margin: 10px 0 8px;
+      }
+      .proof-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: 1fr 1fr;
+      }
+      .proof {
+        padding: 22px;
+      }
+      .proof dl {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 1fr auto;
+        margin: 18px 0 0;
+      }
+      .proof dt {
+        color: var(--muted);
+      }
+      .proof dd {
+        margin: 0;
+        font-weight: 700;
+        text-align: right;
+      }
+      .proof dd.good {
+        color: var(--accent);
+      }
+      .limits {
+        border-color: rgba(242, 196, 125, 0.45);
+      }
+      .limits p {
+        color: #e9d3ab;
+      }
+      footer {
+        border-top: 1px solid var(--line);
+        margin-top: 68px;
+        padding-top: 18px;
+      }
+      footer p {
+        font-size: 12px;
+      }
+      @media (max-width: 850px) {
+        main {
+          padding: 28px 16px 52px;
+        }
+        .hero,
+        .proof-grid {
+          grid-template-columns: 1fr;
+        }
+        .stats,
+        .cards {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .timeline {
+          grid-template-columns: 1fr;
+        }
+        .timeline-step:not(:last-child)::after {
+          content: "↓";
+          right: auto;
+          bottom: -20px;
+          left: 22px;
+          top: auto;
+        }
+        .section-head {
+          align-items: start;
+          flex-direction: column;
+        }
+      }
+      @media (max-width: 480px) {
+        .stats,
+        .cards {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 42px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <div>
+          <div class="eyebrow">
+            Participant Deduplication · local case material
+          </div>
+          <h1>
+            Find likely duplicates without turning confidence into deletion
+            authority.
+          </h1>
+          <p class="lede">
+            An explainable review queue separates exact matches, useful fuzzy
+            signals, shared household context, and conflicts. A person decides.
+            A copy changes. The original stays untouched.
+          </p>
+          <div class="badge-row">
+            <span class="badge synthetic"
+              >Synthetic showcase fixture · no participant data</span
+            >
+            <span class="badge">No-auth static viewer</span>
+            <span class="badge">PD-1 → PD-7 local material</span>
+          </div>
+        </div>
+        <aside class="hero-card" aria-label="case boundary">
+          <div class="label">The proof moment</div>
+          <strong>2 approved</strong>
+          <span>1 keep-all household case · 1 unresolved conflict</span>
+          <p style="margin-top: 16px">
+            The queue explains the proposal; the reviewer owns the deletion
+            decision.
+          </p>
+        </aside>
+      </header>
+
+      <section aria-labelledby="summary-title">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">01 · scan</div>
+            <h2 id="summary-title">
+              A small messy workbook is enough to expose the boundary.
+            </h2>
+          </div>
+          <p>
+            Eight invented rows produce four deliberately different candidate
+            states. The case never uses a real participant, address, email, or
+            workbook.
+          </p>
+        </div>
+        <div class="stats">
+          <div class="stat"><strong>8</strong><span>invented rows</span></div>
+          <div class="stat"><strong>4</strong><span>candidate pairs</span></div>
+          <div class="stat"><strong>2</strong><span>approved pairs</span></div>
+          <div class="stat">
+            <strong>0</strong><span>original rows changed</span>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="queue-title">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">02 · explain</div>
+            <h2 id="queue-title">The queue makes uncertainty legible.</h2>
+          </div>
+          <p>
+            Field contributions stay separate: name, valid DOB, address, ZIP,
+            capped context, and penalties. Shared context is not identity.
+          </p>
+        </div>
+        <div class="cards">
+          <article class="card">
+            <h3>Exact duplicate</h3>
+            <span class="status approve">HIGH · SELECT_RECORDS</span>
+            <p>
+              <strong>Lume Vask</strong> Exact name, DOB, address, ZIP, and
+              extra-field agreement. Reviewer retains PD-001 and selects PD-002
+              for deletion.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Fuzzy name typo</h3>
+            <span class="status approve">HIGH · SELECT_RECORDS</span>
+            <p>
+              <strong>Tavi / Tavii Corv</strong> Name similarity plus exact DOB,
+              address, and ZIP. Reviewer still inspects the evidence before
+              approving.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Shared household</h3>
+            <span class="status keep">EXCLUDED · KEEP_ALL</span>
+            <p>
+              <strong>Pell / Wyn Mert</strong> Shared contact context and
+              placeholder DOB are not enough to infer one person. No deletion is
+              exposed.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Conflicting identity</h3>
+            <span class="status resolve">LOW · UNRESOLVED</span>
+            <p>
+              <strong>Kesh Pral</strong> Exact name but conflicting valid DOB
+              and different address. The system stops; the reviewer does not
+              override the conflict.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="detail-title">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">03 · review</div>
+            <h2 id="detail-title">
+              Every recommendation has a bounded action.
+            </h2>
+          </div>
+          <p>
+            The static queue is non-mutating. It shows what a reviewer can do,
+            not a hidden automation path.
+          </p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Case</th>
+                <th>Native evidence</th>
+                <th>Limit</th>
+                <th>Reviewer action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>PD-001 / PD-002</strong><small>exact</small></td>
+                <td>Name 60 · DOB 25 · address 8 · ZIP 5 · context 2</td>
+                <td>Confidence proposes; human approves</td>
+                <td><span class="status approve">SELECT_RECORDS</span></td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>PD-003 / PD-004</strong><small>fuzzy typo</small>
+                </td>
+                <td>Name 59 · DOB 25 · address 8 · ZIP 5 · context 2</td>
+                <td>Inspect the typo in context</td>
+                <td><span class="status approve">SELECT_RECORDS</span></td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>PD-005 / PD-006</strong><small>shared contact</small>
+                </td>
+                <td>Name 34 · DOB 0 · address 8 · ZIP 5 · context 2</td>
+                <td>Shared household is not identity</td>
+                <td><span class="status keep">KEEP_ALL</span></td>
+              </tr>
+              <tr>
+                <td><strong>PD-007 / PD-008</strong><small>conflict</small></td>
+                <td>Name 60 · DOB 0 · address 4 · ZIP 5 · penalties 37</td>
+                <td>Conflicting valid DOB remains unresolved</td>
+                <td><span class="status resolve">UNRESOLVED</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="flow-title">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">04 · protect</div>
+            <h2 id="flow-title">
+              Approval changes a copy, never the original.
+            </h2>
+          </div>
+          <p>
+            The behavior receipts use the repository's deterministic in-memory
+            gateway so the safety semantics are inspectable without credentials
+            or participant data.
+          </p>
+        </div>
+        <div class="timeline">
+          <div class="timeline-step">
+            <div class="num">01</div>
+            <h3>Scan</h3>
+            <p>Digest the workbook and rank candidate pairs.</p>
+          </div>
+          <div class="timeline-step">
+            <div class="num">02</div>
+            <h3>Review</h3>
+            <p>Approve two pairs; keep one; resolve one.</p>
+          </div>
+          <div class="timeline-step">
+            <div class="num">03</div>
+            <h3>Confirm</h3>
+            <p>Show the exact deletion and fill counts before mutation.</p>
+          </div>
+          <div class="timeline-step">
+            <div class="num">04</div>
+            <h3>Guard</h3>
+            <p>Reject a changed row with <strong>STALE_ROW</strong>.</p>
+          </div>
+          <div class="timeline-step">
+            <div class="num">05</div>
+            <h3>Recover</h3>
+            <p>Read copy history and deleted-row snapshots.</p>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="proof-title">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">05 · prove</div>
+            <h2 id="proof-title">
+              The local receipts make the safety claim checkable.
+            </h2>
+          </div>
+          <p>
+            These numbers come from PD-3–PD-5 local behavior probes, not from a
+            live Google Sheet.
+          </p>
+        </div>
+        <div class="proof-grid">
+          <article class="panel proof">
+            <div class="label">PD-3 · atomic apply</div>
+            <dl>
+              <dt>Rows before → after</dt>
+              <dd>9 → 6</dd>
+              <dt>Deleted rows</dt>
+              <dd class="good">3</dd>
+              <dt>Filled fields</dt>
+              <dd class="good">1</dd>
+              <dt>Audit events</dt>
+              <dd class="good">7</dd>
+              <dt>Unselected singletons</dt>
+              <dd class="good">preserved</dd>
+            </dl>
+          </article>
+          <article class="panel proof">
+            <div class="label">PD-4 · stale guard</div>
+            <dl>
+              <dt>Reviewer edit</dt>
+              <dd>D3 ZIP</dd>
+              <dt>Observed result</dt>
+              <dd class="good">STALE_ROW</dd>
+              <dt>Guard-side deletion</dt>
+              <dd class="good">0</dd>
+              <dt>Changed row</dt>
+              <dd class="good">still present</dd>
+            </dl>
+          </article>
+          <article class="panel proof">
+            <div class="label">PD-5 · copy recovery</div>
+            <dl>
+              <dt>Original digest</dt>
+              <dd class="good">unchanged</dd>
+              <dt>Copy rows</dt>
+              <dd>9 → 6</dd>
+              <dt>Deleted snapshots</dt>
+              <dd class="good">3</dd>
+              <dt>Apply batch IDs</dt>
+              <dd class="good">present</dd>
+            </dl>
+          </article>
+          <article class="panel proof limits">
+            <div class="label">Current boundary</div>
+            <h3 style="margin: 12px 0 8px">What this page does not claim</h3>
+            <p>
+              Authenticated Google Sheets, Apps Script sidebar, Railway
+              deployment, live workbook mutation, hosted URL, and responsive
+              hosted readback remain unproven. PD-6 is parked until a safe
+              owner-authenticated UAT path exists.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <footer>
+        <p>
+          <strong>Synthetic showcase fixture · no participant data.</strong>
+          Local material package for review. The original workbook is never
+          touched by this page.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>

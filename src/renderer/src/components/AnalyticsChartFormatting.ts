@@ -18,6 +18,8 @@ export function metricValue(
     "workspaces.activity.idle": sample.idle_workspace_count,
     "workspaces.activity.unknown": sample.unknown_workspace_count,
     "quality.maturity_score": sample.maturity_score,
+    "quality.maturity_evidence_coverage": sample.maturity_evidence_coverage,
+    "quality.fresh_passing_ci_score": sample.ci_readiness_score,
     "quality.evidence_score": sample.ci_readiness_score,
     "findings.total": sample.findings_total,
     "findings.high_severity": sample.high_severity_findings,

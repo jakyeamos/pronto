@@ -39,6 +39,21 @@ discovery; a missing or invalid contract remains an explicit review state.
 
 ## Add or change a quality or remediation rule
 
+Repository CI gate profiles are the reference for separating discovered
+evidence from repository-owned obligation:
+
+- `.pronto/ci-gate-profile.json` classifies all standard gates as required,
+  optional, or not applicable and records the semantic reason.
+- `src-tauri/src/quality.rs` validates the contract, preserves its provenance,
+  and includes only required gates in the ideal denominator.
+- Required `custom:<snake_case_id>` gates flow into active remediation;
+  discovered or optional custom checks do not become requirements.
+- `QualityReadinessSummary` identifies repository-owned, static compatibility,
+  unavailable, and invalid profile states rather than displaying an unexplained
+  score.
+
+See `docs/ci-gate-profiles.md` for the schema and a complete example.
+
 Quality finding dispositions show the intended evidence overlay pattern:
 
 - `.pronto/quality-finding-dispositions.json` stores repository-owned review
@@ -64,6 +79,18 @@ Agent usability is the reference for a supplemental maturity projection:
   `QualityMaturitySummary` renders it without recomputing coverage.
 - Missing behavior receipts remain visible even when documentation and static
   mappings are healthy.
+
+The agent attention projection is the reference for bounded repository warnings:
+
+- `src-tauri/src/core/part-32.rs::agent_attention_report` emits one evidence-backed
+  `project_compass` item when the contract is missing or invalid, MVP coverage is
+  incomplete, or blockers or drift remain; a complete Ready Compass contract
+  emits no item.
+- `src-tauri/src/core/part-32.rs::agent_attention_report_for_query` applies an
+  exact repository binding for `pronto attention <repository> --json`; callers do
+  not reconstruct the filter or warning semantics.
+- `src-tauri/src/core/part-33.rs` keeps the next safe step read-only and
+  distinguishes repository evidence from mutation authorization.
 
 The fleet quality outcome is the reference for descriptive portfolio status:
 
@@ -102,6 +129,17 @@ shows that an integration-eligible diff is not sufficient when unpublished or
 active-work evidence exists. The correct sequence is preserve, reconcile the
 canonical branch, fold the wanted change, verify and publish, then prune only
 after equivalence and ownership checks.
+
+## Bound feature-branch lifecycle
+
+The repository projects `branch_lifecycle` as read-only evidence, while the
+installed global isolated-change workflow owns creation enforcement. It takes
+a per-repository admission lock, warns at five counted feature or agent-task
+branches, refuses creation at eight, and records the live `branch_admission`
+result in the signed custody receipt before adding the worktree. Protected
+target, default, and release branches are excluded from the count. Direct Git
+or provider-created branches remain outside this boundary and require their
+own explicit admission control.
 
 ## Keep fail-open capture durable across sandbox generations
 

@@ -25,7 +25,7 @@
     "source_packet": "strict_mature_and_research_readiness_passed",
     "unsafe_claim_stop": "agent_qa_reproduced_and_exact_draft_receipt_validated",
     "corrected_final": "claim_ledger_validated_and_style_preserved",
-    "basketball_pack": "installed_validation_passed_release_revision_not_bound",
+    "basketball_pack": "installed_validation_passed_release_revision_attested",
     "visual_trace": "built_local_candidate",
     "public_no_auth_surface": "not_yet_verified"
   },
@@ -36,7 +36,8 @@
     "final": "rdw-run/final.md",
     "validation_record": "rdw-run/validation-record.json",
     "provenance_receipt": "rdw-0-provenance.json",
-    "public_candidate": "public/index.html"
+    "public_candidate": "public/index.html",
+    "binary_preview": "assets/preview-16x9.png"
   },
   "deterministic_gate_boundary": "The agent performs semantic Domain QA; RDW validates exact draft binding, prose-block coverage, fact linkage, and coherent rejection or pass state.",
   "reproducibility_appendix": {

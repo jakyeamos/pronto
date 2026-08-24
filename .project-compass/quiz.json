@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "sessions": [
+    {
+      "id": "pronto-root-realignment-20260814",
+      "mode": "realignment",
+      "compass_id": "project",
+      "scope_kind": "root",
+      "status": "active",
+      "questions": [
+        {
+          "id": "pronto-subsystem-model",
+          "category": "subsystem-model",
+          "prompt": "Should child Compasses follow portfolio inventory and next-action, quality and remediation evidence, provider and release context, and desktop or CLI handoff?"
+        },
+        {
+          "id": "pronto-compass-projection",
+          "category": "cross-cutting-boundary",
+          "prompt": "Should the repository registry and Compass projection be its own child Compass, or remain cross-cutting root evidence used by the other subsystems?"
+        },
+        {
+          "id": "pronto-authority-model",
+          "category": "authority-boundary",
+          "prompt": "Should Pronto's north star remain read-only coordination and evidence, or is an explicitly authorized mutation workflow intended to become a separate governed child?"
+        }
+      ],
+      "answers": [],
+      "started_at": "2026-08-14T23:24:00Z",
+      "updated_at": "2026-08-14T23:24:00Z"
+    }
+  ],
+  "updated_at": "2026-08-14T23:24:00Z"
+}

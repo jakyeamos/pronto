@@ -1,6 +1,6 @@
 # Pronto repository operating contract
 
-Last reviewed: 2026-08-16.
+Last reviewed: 2026-08-20.
 
 This is the repository-specific execution contract for contributors and
 agents. The canonical branch is `main`; work is developed on an isolated
@@ -26,12 +26,45 @@ unavailable until it is regenerated from the exact `dev` commit.
 - Focused Rust modules such as `quality.rs`, `remediation.rs`,
   `change_matrix.rs`, and `showcase.rs` own their domain rules. Add behavior
   there instead of duplicating it in the renderer or Node adapter.
+- `src-tauri/src/branch_lifecycle.rs` owns the versioned branch-admission
+  policy and read-only lifecycle projection. The installed global
+  `isolated-change-workflow` owns creation enforcement and custody receipt
+  recording; Pronto must not duplicate that Git mutation boundary.
+- `src-tauri/src/telescope.rs` owns the versioned source-derived architecture
+  graph, language adapters, workspace binding, uncertainty, and cache privacy.
+  `.pronto/telescope-map.json` v2 owns the repository's authored narrative,
+  city roles, actors, payloads, and explicit review layer
+  while measured files, counts, relationships, coverage, and freshness remain
+  extractor-owned. Workflow systems annotate that graph through lenses;
+  Compass, ICM, quality, remediation, and activity evidence must not rewrite
+  its base topology. Telescope actions are a read-only visual projection over
+  the canonical `.pronto/behavior-assurance.json` v2 contract and Quality
+  Runner receipts; `behaviorId` links and coverage counts must not become a
+  duplicate behavioral contract or a second verification path. Natural-language
+  action questions are routed locally against those same projected fields;
+  direct and related matches focus the city and may start a guided source-backed
+  tour, but never create or execute an action. Categorical map readiness and
+  stable `telescope_readiness` knowledge tasks project into existing
+  remediation/attention handoffs; they do not create a Telescope task store.
+  Quality Runner owns holistic maturity and consumes only Telescope's scoped
+  developer-legibility architecture-visibility receipt. Source detail is
+  building-local and progressively expanded; a repository-wide source graph is
+  prohibited by the readability and resource-safety contract.
+- `workspace-policy generate` owns the explicit per-repository
+  `.agents/workspace-policy.json` projection from the reviewed fleet role map.
+  It defaults to a no-write plan and only `--write` may create files; it never
+  performs Git, provider, branch, worktree, or ref-protection mutations.
 - `src/renderer/src/` renders shared projection contracts. It may format state
   but must not invent freshness, passing evidence, authorization, or closure.
-- `bin/pronto.mjs` is a thin launcher for the native CLI. It invokes bare
-  `cargo` so Codex storage controls remain in the command path; operators may
-  explicitly set `PRONTO_CARGO` outside Codex when needed. The desktop and CLI
-  consume the same Rust-owned truth rather than maintaining parallel domain
+  Telescope layout runs outside the main rendering path; canvas selection,
+  animation, and lens state remain renderer concerns and do not mutate the
+  repository or persisted operational evidence.
+- `bin/pronto.mjs` is the checkout-direct, zero-dependency Node launcher for
+  the native CLI. It resolves its own project root and must remain independent
+  of the calling repository's package-manager shim. It invokes bare `cargo` so
+  Codex storage controls remain in the command path; operators may explicitly
+  set `PRONTO_CARGO` outside Codex when needed. The desktop and CLI consume the
+  same Rust-owned truth rather than maintaining parallel domain
   implementations.
 - `refresh-batch` is the fleet refresh path for bounded parallel Git/filesystem
   scans. It performs one deterministic merge under the normal store lock,
@@ -47,6 +80,16 @@ unavailable until it is regenerated from the exact `dev` commit.
   `.agents/change-surface-matrix.json` are governed contracts. Update the
   affected projection, consumer, documentation, and machine-readable evidence
   together.
+- The CI tracker is an additive GitHub projection. `docs/ci-tracker.md` owns
+  its operator contract: GitHub remains authoritative, prompt artifacts are
+  bounded and untrusted evidence, fork failures are diagnosis-only, and the
+  Codex button starts only a read-only task at a registered local checkout.
+- Workspace lifecycle evidence is explicit. Each workspace records whether it
+  is `canonical`, `linked`, `temporary`, or `unknown`, plus owner/lease,
+  canonical repository, HEAD, preservation evidence, and cleanup state. Missing
+  workspace classification is fail-closed for canonical roots and for dirty or
+  unknown temporary state; only a clean, completed, reachable, Git-unregistered
+  temporary workspace may produce a warning pending scoped refresh.
 
 AI Showcase readiness is governed by one fleet-level
 `.pronto/showcase-goal.json`; see `docs/showcase-contract.md`. Public
@@ -102,6 +145,13 @@ tokens, raw keychain values, local SQLite databases, or provider response
 caches. Do not log secrets or include them in fixtures. `gh` authentication is
 provider access evidence, not permission to mutate GitHub.
 
+Branch lifecycle limits are enforced by the installed global isolated-change
+workflow at repository admission: five counted feature or agent-task branches
+warn, eight refuse creation, protected target/default/release branches are
+excluded, and the signed custody receipt records the live decision. Pronto's
+`branch_lifecycle` field is an evidence projection. It does not intercept
+arbitrary Git/provider-created or remote-only branches.
+
 Quality evidence is fresh only when its observation is inside the configured
 freshness window and its scanned commit equals the current repository commit.
 A matching branch name is routing context, not proof that the code is unchanged.
@@ -115,6 +165,12 @@ exact population coverage, limitations, and unresolved measurement-gap count.
 A conclusive failing quality check can support high measurement confidence even
 though it lowers maturity; incomplete population, disabled dynamic verification,
 or unresolved measurement gaps cannot.
+
+An explicit fleet exclusion remains visible in Pronto's local registry but is
+outside the QR checkpoint target and the corresponding maturity, Mac Control,
+and remediation populations. The current permanent exclusion is `codex`; its
+absence from the 76-repository QR target is intentional and must not be treated
+as a missing receipt or repaired by expanding the QR scope.
 
 The desktop app renders its persisted portfolio snapshot immediately. When that
 snapshot names the canonical audit path but has no accepted audit and reports
@@ -152,6 +208,23 @@ bounded separately by the feed contract. Repository cards show assessed versus
 applicable maturity dimensions and maturity gaps separately from detector
 findings.
 
+The [runtime resource efficiency maturity contract](runtime-resource-efficiency-maturity.md)
+adds `runtime_resource_efficiency` to the user-facing-quality pillar. It scores
+artifact size, loading, startup, memory, dependency, and production-payload
+outcomes according to their evidence strength. Implementation techniques such
+as route-level lazy loading are evidence inputs, never pass conditions by
+themselves.
+
+The repository quality payload includes the additive
+`pronto-foundation-readiness/v1` modernization maturity gate documented in
+[foundation-readiness.md](foundation-readiness.md). Pronto derives it only
+from current repository maturity, actionable structural findings, behavior
+assurance, and installed-runtime evidence. It is projected through the
+existing quality, repository, and route JSON contracts; it does not add a
+queue, inbox, approval step, mutation command, or second human review surface.
+Detailed reasons and unknowns remain machine-readable for an agent to turn into
+a task-specific recommendation in chat.
+
 The [Mac Control maturity gate](mac-control-maturity-gate.md) contributes
 implementation-contract and live-task-evidence dimensions to the consolidated
 score for every registered repository unless that repository explicitly proves
@@ -163,6 +236,10 @@ progress values to 0–4. Missing or invalid contracts contribute zero instead o
 disappearing from the fleet denominator; confidence remains evidence metadata
 and does not raise maturity by itself.
 
+The [cache-design maturity gate](cache-design-maturity-gate.md) imports QR's
+redacted lifecycle assessment under governance and sustainability. It can
+affect pilot maturity evidence, but it is not a release gate or critical cap.
+
 The [agent usability maturity contract](agent-usability-maturity.md) contributes
 four explicit documentation, skill-coverage, behavior, and freshness/portability
 lanes plus scored growth health to that aggregate. Repositories own the
@@ -170,23 +247,43 @@ tool relationship in `.agents/agent-usability.json`; Pronto imports the QR
 projection and never infers passing coverage from file volume.
 
 Network refreshes, Git writes, provider mutations, application installation,
-and release publication are separate authority boundaries. Use the narrowest
+and release publication are separate authority boundaries. Repository policy
+generation is the narrow local-metadata exception: its explicit `--write`
+surface is limited to `.agents/workspace-policy.json`, with conflict and
+symlink checks before installation. Use the narrowest
 repository or provider scope and preserve the exact source commit and evidence
 timestamp. AI remains disabled by default and must not receive source content,
 credentials, or operational authority without a separately designed contract.
 
+## Parallel task lanes and custody
+
+Concurrent feature work uses one branch and linked worktree per feature, with
+`dev` as the integration lane and `main` or `master` as the release lane. The
+isolated-change workflow owns signed renewable custody; Pronto exposes its
+read-only `pronto-task-lanes/v1` projection through repository detail and scoped
+route responses. A stopped agent loses custody after its lease grace period. A
+verified expired lane becomes adoptable when the recorded worktree and branch
+still match live Git, and adoption must preserve dirty WIP. Unsigned, missing,
+or mismatched evidence remains unknown or stale and cannot authorize takeover.
+
+The full state model, incomplete-work fold gate, and failure behavior are in
+[task-lane-custody.md](task-lane-custody.md).
+
 ## Common failure modes and recovery
 
-| Observed problem                                                | Likely boundary                                                       | Safe recovery                                                                                                                                                                                                                                                                                                                                |
-| --------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `route` is blocked or the snapshot is stale                     | Pronto evidence, not repository truth                                 | Follow `next_safe_step`, refresh only the named scope with authorization, then rerun the same focused route.                                                                                                                                                                                                                                 |
-| Workspace is ahead, behind, diverged, dirty, or has no upstream | Local branch versus its configured upstream                           | Inspect live Git state, preserve unpublished work, fetch, and classify the branch before any integration or pruning.                                                                                                                                                                                                                         |
-| GitHub evidence is unavailable                                  | `gh` path, version, login, repository identity, or provider freshness | Verify each prerequisite in a fresh shell, run the bounded provider refresh, and confirm the imported commit. Do not substitute SSH success for API evidence.                                                                                                                                                                                |
-| Compass is missing, invalid, blocked, or drifting               | `.project-compass` product evidence                                   | Run Compass validation and scoring, reconcile only observed evidence, then checkpoint. Do not manufacture maturity.                                                                                                                                                                                                                          |
-| Maturity is missing or stale                                    | Stable Quality Runner feed or repository identity                     | Run a protected audit, replay it, publish the selected audit to the stable feed, and refresh Pronto. Keep static and dynamic evidence distinct.                                                                                                                                                                                              |
-| Findings are unavailable despite fleet audits                   | Repository-local full detector report                                 | Run `pronto quality detector-refresh --json`; inspect every published, blocked, unsupported, ingested, or rejected result. Pronto refreshes target refs before import, excludes exact QR `unsupported` results from the applicable coverage denominator, and exits nonzero if QR says `published` but exact-target evidence is not selected. |
-| Installed daemon lags source, package, or install               | Repository-owned runtime parity manifests                             | Read the reported stage, then rebuild, reinstall, or restart only that target with the required lifecycle authority. Never infer parity from daemon health.                                                                                                                                                                                  |
-| Installed app differs from the promoted checkpoint              | `/Applications/Pronto.app` deployment boundary                        | Run `pnpm app:update` only with installation authority, restart the app, and run `pnpm app:check`.                                                                                                                                                                                                                                           |
+| Observed problem                                                | Likely boundary                                                                             | Safe recovery                                                                                                                                                                                                                                                                                                                                |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `route` is blocked or the snapshot is stale                     | Pronto evidence, not repository truth                                                       | Follow `next_safe_step`, refresh only the named scope with authorization, then rerun the same focused route.                                                                                                                                                                                                                                 |
+| Workspace is ahead, behind, diverged, dirty, or has no upstream | Local branch versus its configured upstream                                                 | Inspect live Git state, preserve unpublished work, fetch, and classify the branch before any integration or pruning.                                                                                                                                                                                                                         |
+| Workspace path is absent from the snapshot's filesystem         | Workspace provenance, last clean-status evidence, lease, or live Git metadata               | Block and preserve canonical, dirty, unknown, or incomplete-lease workspaces. For a clean temporary workspace with reachable HEAD and no live Git registration, keep the warning in `doctor` and run only the named scoped refresh; `route` remains read-only.                                                                               |
+| Temporary-worktree cleanup returns a nonzero result             | Cleanup receipt and preservation boundary                                                   | Keep the receipt blocked with the exact path, dirty files, owner, lease, and preservation action. Never report `pruned`, `completed`, or `next_action: none`; inspect and retry only after a fresh clean-status check.                                                                                                                       |
+| GitHub evidence is unavailable                                  | `gh` path, version, login, network reachability, repository identity, or provider freshness | Verify each prerequisite in a fresh shell, run the bounded provider refresh, and confirm the imported commit. A network failure leaves authentication unverified; do not reauthenticate solely because GitHub could not be reached, and do not substitute SSH success for API evidence.                                                      |
+| Compass is missing, invalid, blocked, or drifting               | `.project-compass` product evidence                                                         | Run Compass validation and scoring, reconcile only observed evidence, then checkpoint. Do not manufacture maturity.                                                                                                                                                                                                                          |
+| Maturity is missing or stale                                    | Stable Quality Runner feed or repository identity                                           | Run a protected audit, replay it, publish the selected audit to the stable feed, and refresh Pronto. Keep static and dynamic evidence distinct.                                                                                                                                                                                              |
+| Findings are unavailable despite fleet audits                   | Repository-local full detector report                                                       | Run `pronto quality detector-refresh --json`; inspect every published, blocked, unsupported, ingested, or rejected result. Pronto refreshes target refs before import, excludes exact QR `unsupported` results from the applicable coverage denominator, and exits nonzero if QR says `published` but exact-target evidence is not selected. |
+| Installed daemon lags source, package, or install               | Repository-owned runtime parity manifests                                                   | Read the reported stage, then rebuild, reinstall, or restart only that target with the required lifecycle authority. Never infer parity from daemon health.                                                                                                                                                                                  |
+| Installed app differs from the promoted checkpoint              | `/Applications/Pronto.app` deployment boundary                                              | Run `pnpm app:update` only with installation authority, restart the app, and run `pnpm app:check`.                                                                                                                                                                                                                                           |
+| Agent route stops on another repository's `pnpm` version        | Caller toolchain resolution before Pronto starts                                            | Invoke `node /Users/jakyeamos/Documents/pronto/bin/pronto.mjs route ... --json`; retain Pronto's exact package-manager pin for installs, tests, and builds.                                                                                                                                                                                  |
 
 ## Definition of done
 
@@ -203,9 +300,14 @@ A change is done only when all applicable conditions hold:
 5. Documentation, implementation examples, and the change-surface matrix are
    updated when their contract changes.
 6. Every validation failure has a fix or an exact blocker and disposition.
-7. Destructive cleanup occurs only after preservation, integration proof,
-   publication verification, and separate authorization.
-8. `pnpm contract:check` validates the cache lifecycle contract, including
+7. Destructive cleanup is transactional and separately authorized: a fresh
+   clean-status check precedes ordinary worktree removal, force removal is not
+   routine, and completion proves path absence, live Git absence, reachable
+   HEAD/ref, successful scoped refresh, and a route that no longer reports the
+   workspace.
+8. A failed cleanup preserves the exact path, dirty files, owner, lease, and
+   preservation action; it cannot be represented as a completed prune.
+9. `pnpm contract:check` validates the cache lifecycle contract, including
    safe relative paths, worktree scoping, rebuild commands, and matching ignore
    evidence.
 
@@ -229,6 +331,8 @@ before:
 
 - changing Pronto's persisted local registry or repository-owned disposition
   ledgers;
+- generating or replacing repository-owned `.agents/workspace-policy.json`
+  files (use the exact role map and explicit `--write`/`--replace` boundary);
 - installing global/system prerequisites or writing `/Applications/Pronto.app`;
 - committing, merging, rebasing, pushing, pruning, deleting, or rewriting Git
   state;

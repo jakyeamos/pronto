@@ -4,8 +4,8 @@ Pronto Analytics is a dedicated, local-only evidence workspace. Portfolio does
 not render charts; it links to Analytics and remains focused on current
 operations.
 
-The `pronto-analytics/v2` response contains a governed metric catalog, adapted
-legacy samples, repository series, deterministic findings, and local saved
+The `pronto-analytics/v3` response contains a governed metric catalog, migrated
+historical samples, repository series, deterministic findings, and local saved
 views. A metric definition records its unit, denominator, scope, time
 semantics, window, aggregation, polarity, source, freshness contract, and
 allowed visualizations. Two metrics may share an axis only when unit,
@@ -19,8 +19,11 @@ pnpm --silent run cli analytics --range-days 30 --json
 ```
 
 The requested range defaults to 30 days and is capped by configured retention.
-Existing v1 sample rows remain untouched and are adapted into governed metric
-observations when read.
+Existing v1 and v2 sample rows remain untouched and are migrated into the v3
+governed representation when read. The migration preserves the historical
+`quality.evidence_score` meaning as a fresh-passing CI alias, leaves
+`quality.maturity_evidence_coverage` unavailable for observations that did not
+record it, and never backfills that coverage from a CI score.
 
 `quality refresh --json` records an Analytics observation only after Pronto
 accepts and persists the canonical Quality Runner audit. The existing sample
@@ -39,11 +42,10 @@ refresh-required detector evidence remains unavailable for current-count and
 delta claims.
 
 The curated workspace separates commit volume from branch divergence and also
-covers workspace activity composition, quality and evidence cohorts, finding
-severity, repository-by-gate coverage, release readiness, and remediation
-backlog and progress. Metrics introduced after a historical observation are
-shown as unavailable for that observation rather than being backfilled as
-zero.
+covers workspace friction, quality and evidence cohorts, finding severity,
+repository-by-gate coverage, release readiness, and remediation backlog and
+progress. Metrics introduced after a historical observation are shown as
+unavailable for that observation rather than being backfilled as zero.
 
 Workspace activity reserves `Unknown` for incomplete or uncertain process
 inspection. A clean, synchronized workspace with a completed inspection and no

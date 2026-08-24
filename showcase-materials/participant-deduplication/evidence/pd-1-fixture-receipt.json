@@ -118,8 +118,11 @@
     "fixture_contract": {
       "status": "passed",
       "fixture": "synthetic-fixture.json",
+      "sheet_csv": "synthetic-sheet.csv",
+      "sheet_preview": "synthetic-sheet.html",
       "checks": [
         "eight invented rows form four explicit case types",
+        "the synthetic workbook is available as a reviewable CSV and a no-auth HTML sheet preview",
         "all four case pairs are generated as candidates by the current matcher",
         "exact and fuzzy cases are HIGH and eligible",
         "shared-contact household is EXCLUDED with SAME_HOUSEHOLD_ONLY",

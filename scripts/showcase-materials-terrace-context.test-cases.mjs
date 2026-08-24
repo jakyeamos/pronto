@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { pathToFileURL, URL } from "node:url";
+import { URL } from "node:url";
 
 const root = new URL("../", import.meta.url);
 
@@ -301,7 +301,10 @@ test("Context Compiler Contract CC-1 uses a real AIOS result and exact validator
     ]);
 
   const validator = await import(
-    pathToFileURL(`${fixture.contract.validator_repository}/index.mjs`).href
+    new URL(
+      fixture.contract.validator_module,
+      new URL("showcase-materials/context-compiler-contract/", root),
+    ).href
   );
   const baseline = structuredClone(fixture.valid_result);
   const missingReason = structuredClone(baseline);

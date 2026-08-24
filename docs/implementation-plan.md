@@ -61,6 +61,10 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 - Continue the versioned SQLite contract while preserving the domain contracts and CLI/renderer snapshot shapes; the initial JSON store has already been imported non-destructively.
 - Add GitHub identities, explicit per-repository mapping, refresh freshness,
   GitHub-only candidate quantification, and clone preflight.
+- Add the read-only CI tracker projection: recent workflow runs, bounded
+  failed-job context, prompt-artifact availability, and a user-controlled
+  handoff to the existing `ci-incident-router` bridge. The bridge never checks
+  out failed PR code and the handoff starts Codex with read-only sandboxing.
 - Add process/terminal metadata adapters and structured agent manifests.
 - Extend the read-only action contract into authorized bounded workspace actions only after permission, target, failure, and review semantics are explicit; destructive/history-rewriting Git operations remain prohibited.
 
@@ -80,7 +84,8 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
   - `pronto route [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] [--limit <n>] --json` for the composed, fail-closed agent entry point; it runs the doctor gate once and exposes bounded next, repository, quality, and advisory fold-preview evidence only when the selected scope is ready;
   - `pronto doctor [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] --json` for a fail-closed storage, freshness, and local-path gate before agent routing; scoped checks prevent unrelated fleet rows from blocking repository work, while blocked reports exit non-zero and never write the snapshot;
   - `pronto next [<repository>] [--limit <n>] --json` for bounded daily orientation, ranked attention, and safe inspection follow-ups;
-  - `pronto fold preview [<repository>] [--target <branch>] --json` for advisory branch/worktree candidates and preservation reasons before the reviewed fold workflow;
+  - `pronto fold preview [<repository>] [--target <branch>] [--limit <n>] [--cursor <token>] --json` for paginated advisory branch/worktree candidates and preservation reasons before the reviewed fold workflow;
+  - repository snapshots project `branch_lifecycle` as read-only evidence for the global isolated-change admission boundary: five counted feature or agent-task branches warn, eight refuse creation, and the signed custody receipt records the live `branch_admission` result;
   - `pronto summary --json` for fleet counts and repository summaries;
   - `pronto repo <repository> --json` for one repository plus its product/group memberships;
   - `pronto quality [<repository>] --json` for fleet or repository quality evidence;
@@ -89,7 +94,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
     for an auditable repository-owned review decision that overlays, but never
     mutates, Quality Runner detector evidence;
   - `pronto remediation [<repository>] --json` for the ranked active remediation queue and point-in-time resolved-action history;
-  - `pronto attention --json` for conditions, dirty workspaces, synchronization gaps, and quality gaps;
+  - `pronto attention [<repository>] --json` for conditions, dirty workspaces, synchronization gaps, quality gaps, Project Compass afflictions, and optionally one repository;
   - `pronto activity [<repository>] --limit <n> --json` for bounded events and action audits;
   - `pronto prepare <repository> --json` for pull-request, release, and recipe evidence;
   - `pronto release preview <repository> --json` for the release-specific evidence and review boundary.
@@ -103,6 +108,12 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
   status, reason, reviewer, review time, evidence, and optional expiry. A
   missing, invalid, expired, no-longer-detected, or report-scope-mismatched
   decision remains visible and cannot silently suppress current work.
+- Ordinary `quality refresh` imports the newest valid QR detector ledger from
+  `~/.quality-runner/fleet-detector-refresh/<refresh-id>/detector-refresh.json`
+  and its published `code-quality-scan.json` reports. A missing or malformed
+  detector ledger/report is blocked evidence with `refresh required`; it does
+  not silently preserve a credible-looking current count. Explicit scoped
+  fleet-audit imports remain authoritative for that refresh.
 - `pronto-remediation/v3` treats active work and history separately and resolves
   a goal profile before generating actions. Repository-owned
   `pronto-remediation-goal/v1` contracts select the target outcome, applicable
@@ -122,9 +133,9 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 - `doctor` opens the persisted SQLite database read-only and does not migrate, refresh, or repair local state; `refresh` remains the explicit state-changing path for fresh Git evidence.
 - `route` is also read-only and preserves a clean machine-readable stdout contract when invoked through the documented silent pnpm wrapper; the JSON payload is the only stdout content.
 - The agent operating route is provider-neutral: the global home contract routes portfolio, workspace, branch, quality, and release triage to the `$pronto` skill; this repository's `.agents/context/` packet supplies the live CLI contract.
-- `$pronto` is an evidence and preflight surface, not an autonomous Git operator. `fold preview` supplies persisted branch/worktree candidates, while the reviewed `fold-feature-branches` workflow owns live ref classification, integration, and pruning authorization.
+- `$pronto` is an evidence and preflight surface, not an autonomous Git operator. `fold preview` supplies persisted branch/worktree candidates, while the reviewed `fold-feature-branches` workflow owns live ref classification, integration, and pruning authorization. The installed isolated-change workflow owns branch creation admission; arbitrary Git/provider-created or remote-only branches remain outside that boundary.
 - The repository-owned `.pronto/behavior-assurance.json` contract inventories critical behavior; immutable receipts preserve target, producer, oracle result, verification level, and evidence. `docs/pronto-behavior-spec.xlsx` is historical inventory only and cannot establish release readiness.
-- Tauri interaction verification is performed when the local desktop runtime can launch; provider and release scenarios remain explicitly blocked rather than receiving a passing receipt from static code.
+- Tauri interaction verification is performed when the local desktop runtime can launch; provider and release scenarios remain explicitly blocked rather than receiving a passing receipt from static code. The CI tracker additionally requires a failed-run fixture or live GitHub snapshot before its interaction claim is complete.
 
 ## Complexity and safety gate
 
@@ -134,4 +145,8 @@ Every change must keep Git execution structured (`spawnFile` with argument array
 
 Implemented or substantially exercised: FR-001–004, FR-006, FR-016–022, FR-027–039, FR-040–043, FR-048–055 (local evidence subset), FR-064–070 (read-only action subset), FR-102/104/106/107 (privacy boundary), FR-109–112, and FR-113/115/116 (read-only CLI subset).
 
-Explicitly deferred or environment-blocked: GitHub accounts and provider refresh, remote-only import/clone, pull requests, merge actions, release preparation, process inspection, coordinated products/releases, credential-store integration, and packaging/signing.
+Explicitly deferred or environment-blocked: automatic Codex wake-up, remote-only
+import/clone, pull requests, merge actions, release preparation, process
+inspection, coordinated products/releases, credential-store integration, and
+packaging/signing. GitHub provider refresh and the read-only CI tracker are
+implemented; live consumer evidence remains a separate pilot gate.

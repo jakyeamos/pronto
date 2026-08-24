@@ -3,8 +3,8 @@
   "project": "remodelvision",
   "gap": "RV-1",
   "observed_at": "2026-08-13T17:24:41Z",
-  "status": "blocked",
-  "disposition": "parked_pending_collaborator_approval",
+  "status": "resolved_scoped",
+  "disposition": "owner_approved_scoped_synthetic_case",
   "observed_surface": {
     "repository": "remodelvision",
     "checkout": {
@@ -25,23 +25,15 @@
     },
     "contribution_ledger": "showcase-materials/remodelvision/contribution-ledger.json"
   },
-  "missing_contract": {
-    "required": [
-      "personal contribution role approved for public narration",
-      "collaborator approval for public case-study use",
-      "third-party and model-output rights decision for any non-synthetic asset"
-    ],
-    "why_current_evidence_is_insufficient": [
-      "README and presentation establish team membership but do not assign individual product roles.",
-      "Git authorship identifies changes and aliases but cannot establish a complete role or publication permission.",
-      "No approval record was found in the repository or Showcase materials."
-    ]
+  "resolution": {
+    "approval_record": "showcase-materials/remodelvision/evidence/owner-approval.json",
+    "scope": "The owner-approved majority-implementation statement may accompany the rights-safe synthetic fixture; no collaborator claims or non-synthetic assets are included."
   },
-  "blocked_action": "Do not publish a personal contribution claim, collaborator attribution, repository screenshot, or provider-generated room image as a public case study until the approval and rights record exists.",
-  "next_action": "Return to RV-1 with an explicit owner/collaborator approval record, then re-evaluate whether RV-3 can be run on the approved flow.",
+  "blocked_action": "Do not publish collaborator roles, collaborator endorsements, repository screenshots, provider-generated room images, or live product claims from this receipt.",
+  "next_action": "Return to RV-3 for current runtime proof and keep RV-4/RV-5, hosting, and destination readbacks downstream.",
   "claim_boundary": [
     "The project is a public collaborative senior project and the named team is documented.",
     "The synthetic RV-2 fixture is safe to use internally and does not clear RV-1.",
-    "No personal role, collaborator consent, third-party rights, or live product behavior is claimed."
+    "The owner-approved majority-implementation statement is scoped to the synthetic case; no collaborator role, collaborator consent, third-party rights, or live product behavior is claimed."
   ]
 }

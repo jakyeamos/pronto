@@ -1,8 +1,8 @@
 {
   "schema_version": "pronto-showcase-claim-ledger/v1",
   "project": "deletion-proof-workbench",
-  "case_id": "deletion-proof-workbench-w4-delete-001",
-  "reviewed_at": "2026-08-13T23:54:55Z",
+  "case_id": "deletion-proof-workbench-w5-current-dev-001",
+  "reviewed_at": "2026-08-14T04:08:16Z",
   "levels": [
     {
       "id": "bounded-delete",
@@ -12,7 +12,10 @@
       "allowed_claim": "A locally unreferenced direct export can be previewed and explicitly removed with a recovery reference.",
       "forbidden_inference": "The symbol is unused by dynamic, reflective, generated, or external consumers.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/dpw-w4-bounded-deletion.json#/candidate"]
+      "evidence_refs": [
+        "evidence/dpw-w4-bounded-deletion.json#/candidate",
+        "evidence/dpw-w5-current-dev-checkpoint.json#/fixture/candidate"
+      ]
     },
     {
       "id": "refusal",
@@ -22,7 +25,10 @@
       "allowed_claim": "A known bounded static reference prevents apply.",
       "forbidden_inference": "Every consumer class is discoverable by the bounded provider.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/dpw-w4-bounded-deletion.json#/refusal"]
+      "evidence_refs": [
+        "evidence/dpw-w4-bounded-deletion.json#/refusal",
+        "evidence/dpw-w5-current-dev-checkpoint.json#/fixture/refusal"
+      ]
     },
     {
       "id": "stale",
@@ -32,7 +38,10 @@
       "allowed_claim": "The current packet names stale-candidate refusal as a required next proof.",
       "forbidden_inference": "The MVP has already demonstrated stale refusal.",
       "public_claim_allowed": true,
-      "evidence_refs": ["evidence/dpw-w4-bounded-deletion.json#/stale_probe"]
+      "evidence_refs": [
+        "evidence/dpw-w4-bounded-deletion.json#/stale_probe",
+        "evidence/dpw-w5-current-dev-checkpoint.json#/negative_contracts"
+      ]
     },
     {
       "id": "deployment",

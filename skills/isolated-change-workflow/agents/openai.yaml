@@ -1,0 +1,4 @@
+interface:
+  display_name: "Isolated Change Workflow"
+  short_description: "Create evidence-bound Git task worktrees"
+  default_prompt: "Use $isolated-change-workflow to isolate this repository change and prepare it for reviewed integration."

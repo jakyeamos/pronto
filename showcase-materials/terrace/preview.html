@@ -1,0 +1,235 @@
+<!doctype html>
+<!--
+THESIS: Terrace makes a failed agent workflow inspectable and resumable; this surface refuses the generic dashboard grid in favor of one interrupted execution rail.
+OWN-WORLD: Pronto navy fields, thin structural rules, compact sans typography, and evidence-colored state bands—blue context, red stop, amber correction, mint proof.
+STORY: A recruiter sees what passed, where execution stopped, what correction was recorded, and exactly which work reran.
+FIRST VIEWPORT: The promise and provenance sit above a full-width rail whose red seam interrupts Execute attempt 1; an amber bridge reconnects it to attempt 2 and preserved successors.
+FORM: Grounded structure 3, operational workflow rail, seed d6aa0b52; the generated composition board informed hierarchy only, never facts or controls.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="A verified Terrace workflow case showing a hard stop, attributable correction, and bounded checkpoint resume."
+    />
+    <title>Terrace · Bounded workflow resume</title>
+    <link rel="stylesheet" href="workflow-preview.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#case">Skip to case</a>
+    <main id="case">
+      <header class="case-header">
+        <a
+          class="wordmark"
+          href="../ideal-demo-targets.md#terrace"
+          aria-label="Terrace ideal demo target"
+        >
+          Terrace
+        </a>
+        <div class="provenance" aria-label="Evidence status">
+          <span class="status status-source">Source candidate</span>
+          <span class="status status-pending">Integration pending</span>
+          <span class="case-kind">Synthetic reproducibility appendix</span>
+        </div>
+      </header>
+
+      <section class="opening" aria-labelledby="case-title">
+        <div class="opening-copy">
+          <p class="kicker">A durable agent workflow</p>
+          <h1 id="case-title">
+            When execution stops, continue from evidence—not memory.
+          </h1>
+          <p class="lede">
+            Terrace preserved the completed plan, stopped at the migration gate,
+            recorded an attributable correction, and retried only the stage that
+            owned the failure.
+          </p>
+        </div>
+        <dl class="run-facts" aria-label="Verified run facts">
+          <div>
+            <dt>Run</dt>
+            <dd>Same run, revisions 4 → 12</dd>
+          </div>
+          <div>
+            <dt>Preserved</dt>
+            <dd>Plan · attempt 1</dd>
+          </div>
+          <div>
+            <dt>Retried</dt>
+            <dd>Execute · attempt 2</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="workflow" aria-labelledby="workflow-title">
+        <div class="section-heading">
+          <div>
+            <p class="kicker">The bounded resume</p>
+            <h2 id="workflow-title">
+              One hard stop. One owned correction. No replayed success.
+            </h2>
+          </div>
+          <p>
+            Read left to right. The connecting rail breaks at the exact point
+            execution became unsafe.
+          </p>
+        </div>
+
+        <ol class="rail" aria-label="Terrace workflow stages and correction">
+          <li class="stage stage-pass">
+            <span class="state-mark" aria-hidden="true">✓</span>
+            <span class="stage-name">Plan</span>
+            <strong>Passed</strong>
+            <small>Attempt 1 · preserved</small>
+          </li>
+          <li class="stage stage-stop">
+            <span class="state-mark" aria-hidden="true">!</span>
+            <span class="stage-name">Execute</span>
+            <strong>Stopped</strong>
+            <small>Attempt 1 · migration blocked</small>
+          </li>
+          <li class="correction">
+            <span class="correction-label">Correction bridge</span>
+            <strong>Blocker resolved by the named owner</strong>
+            <span><code>database_operator</code></span>
+            <span><code>evidence/migration-034-applied.txt</code></span>
+          </li>
+          <li class="stage stage-pass stage-retry">
+            <span class="state-mark" aria-hidden="true">✓</span>
+            <span class="stage-name">Execute</span>
+            <strong>Passed</strong>
+            <small>Attempt 2 · owning stage retried</small>
+          </li>
+          <li class="stage stage-pass">
+            <span class="state-mark" aria-hidden="true">✓</span>
+            <span class="stage-name">Validate</span>
+            <strong>Passed</strong>
+            <small>Attempt 1</small>
+          </li>
+          <li class="stage stage-pass">
+            <span class="state-mark" aria-hidden="true">✓</span>
+            <span class="stage-name">Review</span>
+            <strong>Passed</strong>
+            <small>Attempt 1</small>
+          </li>
+          <li class="stage stage-pass">
+            <span class="state-mark" aria-hidden="true">✓</span>
+            <span class="stage-name">Complete</span>
+            <strong>Passed</strong>
+            <small>Attempt 1</small>
+          </li>
+        </ol>
+
+        <p class="rail-note">
+          <span aria-hidden="true">↳</span>
+          Plan retained the same evidence reference before and after recovery:
+          <code>docs/terrace/phases/phase-proof-bounded-resume/PLAN.md</code>
+        </p>
+      </section>
+
+      <section class="proof" aria-labelledby="proof-title">
+        <div class="proof-intro">
+          <p class="kicker">The evidence ledger</p>
+          <h2 id="proof-title">
+            The receipt records what changed—and what did not.
+          </h2>
+          <p>
+            Terrace reconstructs the run from ordered events. Unsupported
+            snapshot edits are repaired; a terminal event that skips predecessor
+            gates is refused.
+          </p>
+          <div
+            class="receipt-links"
+            aria-label="Machine-readable evidence receipts"
+          >
+            <a
+              class="receipt-link"
+              href="evidence/tr-4-bounded-resume-receipt.json"
+              >Bounded-resume receipt <span aria-hidden="true">→</span></a
+            >
+            <a
+              class="receipt-link"
+              href="evidence/tr-5-bypass-resistance-receipt.json"
+              >Bypass-resistance receipt <span aria-hidden="true">→</span></a
+            >
+          </div>
+        </div>
+
+        <div
+          class="ledger"
+          role="region"
+          aria-label="Before and after evidence comparison"
+          tabindex="0"
+        >
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Evidence</th>
+                <th scope="col">At stop · rev 4</th>
+                <th scope="col">After resume · rev 12</th>
+                <th scope="col">Disposition</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Plan</th>
+                <td data-label="At stop · rev 4">Passed · attempt 1</td>
+                <td data-label="After resume · rev 12">Passed · attempt 1</td>
+                <td data-label="Disposition">
+                  <span class="ledger-state preserved">Preserved</span>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Execute</th>
+                <td data-label="At stop · rev 4">Blocked · attempt 1</td>
+                <td data-label="After resume · rev 12">Passed · attempt 2</td>
+                <td data-label="Disposition">
+                  <span class="ledger-state retried">Retried</span>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Successors</th>
+                <td data-label="At stop · rev 4">Pending</td>
+                <td data-label="After resume · rev 12">
+                  Validate, review, complete passed once
+                </td>
+                <td data-label="Disposition">
+                  <span class="ledger-state completed">Completed</span>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Stop packet</th>
+                <td data-label="At stop · rev 4">Authoritative</td>
+                <td data-label="After resume · rev 12">
+                  Cleared on legal retry
+                </td>
+                <td data-label="Disposition">
+                  <span class="ledger-state cleared">Cleared</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="boundary">
+        <div>
+          <span class="boundary-mark" aria-hidden="true">i</span>
+          <p>
+            <strong>Proof boundary.</strong> The real historical showcase case
+            is Terrace’s active-workflow routing regression. This synthetic
+            appendix makes restart, stop, correction, resume, and bypass
+            behavior reproducible.
+          </p>
+        </div>
+        <p>
+          The candidate passes local CI but is not yet committed or integrated
+          into <code>dev</code>.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>

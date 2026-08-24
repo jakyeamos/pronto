@@ -100,3 +100,19 @@ claim-ledger engine in Pronto or call the missing-observation run a research
 result. Resume MA-2 only after the marketing-autoresearch owner approves a
 brief-aware run and receipt contract (or an explicitly owned adapter with the
 same redaction and source rules).
+
+## 6. Local showcase package
+
+The local material layer is now assembled around the real MA-1 public portfolio
+brief. `case-study.json` and `case-study.md` describe the decision question,
+allowed source registry, report-only probe, and human handoff. `claim-ledger.json`
+keeps the brief, privacy boundary, missing source-to-claim contract, report,
+publication boundary, and external release at separate evidence levels.
+
+`public/index.html` is a candidate no-auth source page and `preview.html` is a
+fixed 1600x900 capture surface. The reviewed binary preview is the visual
+thumbnail; `synthetic-fixture.json` remains only a short reproducibility
+appendix. `evidence/ma-7-material-checkpoint.json` records the package and its
+open gates. This is a local candidate, not a hosted or published case: MA-2,
+the report artifact, runtime refusal receipt, hosting, and destination readbacks
+remain open.

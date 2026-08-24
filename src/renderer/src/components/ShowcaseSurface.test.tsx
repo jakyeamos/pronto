@@ -142,6 +142,11 @@ describe("ShowcaseSurface", () => {
     expect(
       screen.getByText("Readiness · 60% product · 40% materials"),
     ).toBeTruthy();
+    expect(
+      document.querySelectorAll("details.showcase-score-disclosure"),
+    ).toHaveLength(4);
+    expect(screen.getAllByText("Product readiness")).toHaveLength(4);
+    expect(screen.getAllByText("Materials gap")).toHaveLength(2);
     expect(screen.getByText("1 need evidence before ranking")).toBeTruthy();
   });
 
@@ -267,7 +272,12 @@ describe("ShowcaseSurface", () => {
     expect(screen.getByText("Critical boundary")).toBeTruthy();
     expect(screen.getByText("fixtures/corpus/partial-js")).toBeTruthy();
 
-    fireEvent.click(screen.getByText("All showcase projects"));
+    expect(
+      screen.getByRole("button", { name: "All showcase projects" }),
+    ).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "All showcase projects" }),
+    );
     expect(
       screen.getByText("Create materials for every showcase project"),
     ).toBeTruthy();

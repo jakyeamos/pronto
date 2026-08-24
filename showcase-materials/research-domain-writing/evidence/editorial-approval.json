@@ -1,0 +1,25 @@
+{
+  "schema_version": "pronto-showcase-rdw-editorial-approval/v1",
+  "recorded_at": "2026-08-14",
+  "approver": "Jakye Amos",
+  "authority": "showcase owner approval in this task",
+  "scope": {
+    "case_id": "tatum-2023-24-claim-boundary",
+    "approved_for_local_showcase_copy": true,
+    "approved_claim_boundary": "The case may say that RDW binds source-grounded prose to an explicit claim ledger, stops the unsupported impact inference, and preserves human publication authority.",
+    "editorial_treatment": "The unsafe sentence and repaired sentence may be shown side by side; the basketball facts remain limited to the cited 2023-24 box-score line.",
+    "release_provenance": "The installed pack is attested to repository revision aa46b36 for this case; the active checkout is intentionally recorded as different.",
+    "hosting_or_external_posting": "not authorized by this record"
+  },
+  "review": {
+    "unsafe_claim_reviewed": true,
+    "repaired_claim_reviewed": true,
+    "human_publication_boundary_preserved": true,
+    "unsupported_impact_inference_removed": true
+  },
+  "claim_boundary": [
+    "This approval covers the local Showcase case and its reviewed copy, not a claim that the page is hosted or posted.",
+    "The installed artifact is bound to the selected source revision by the provenance attestation; the active source checkout is not presented as the artifact source.",
+    "No new basketball facts or performance conclusions are approved beyond the source packet and claim ledger."
+  ]
+}

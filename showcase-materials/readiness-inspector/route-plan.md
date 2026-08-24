@@ -1,8 +1,9 @@
 # Readiness Inspector route plan
 
-Status: C0 public Showcase admission is complete; a local individual-check
-candidate packet now exists, while upstream receipt projection and continuity
-proof remain gated.
+Status: C0 public Showcase admission is complete; current-dev individual-check
+receipts and a reviewed 16:9 binary preview are verified. Upstream receipt
+projection, full state breadth, native follow-up, hosting, and publication
+remain gated.
 
 The [canonical target](../ideal-demo-targets.md#readiness-inspector) owns the
 promise and proof gate. Readiness is a declared-goal question, not an aggregate
@@ -19,8 +20,8 @@ separate; no score hides an unproven check.
 
 ## 2. Concept materials
 
-The candidate frames now have a local W5 fixture behind them. Upstream receipts
-and native follow-up are still concept-to-proof gates.
+The candidate frames now have current-dev inspect/run evidence behind them.
+Upstream receipts and native follow-up are still concept-to-proof gates.
 
 | Frame      | Visual                                                                           | On-screen line                    | Intended evidence moment    |
 | ---------- | -------------------------------------------------------------------------------- | --------------------------------- | --------------------------- |
@@ -37,10 +38,11 @@ evidence → choose next action.
 
 ## 3. Build-gap specification
 
-Reviewed baseline: the W5 portfolio MVP records goal-specific checks with owner,
+Reviewed baseline: the current-dev MVP records goal-specific checks with owner,
 predicate, outcome, evidence, and next action without an aggregate score. The
-local candidate packet proves individual state separation and target binding;
-Quality Setup/Evidence Replay projection and C5 continuity proof remain open.
+packet proves target-bound passed receipts plus explicit unsupported and blocked
+states; Quality Setup/Evidence Replay projection and C5 continuity proof remain
+open.
 
 Project disposition: `targeted_gap_closure` — consume upstream receipts and
 close the individual-check projection.
@@ -53,7 +55,7 @@ packaging — RI-3.
 | RI-0 | Project upstream receipts | Quality Setup and Evidence Replay receipts appear as owner-bound checks                    | Integration owner | Projection/parity receipt    |
 | RI-1 | Preserve individual state | Passing, stale, blocked, missing, contradictory, and not-applicable checks remain distinct | Evidence owner    | State matrix                 |
 | RI-2 | Prove native follow-up    | Each failed check opens its native evidence and next action                                | Product owner     | Direct navigation readback   |
-| RI-3 | Package the public case   | Preview, short copy, no-auth readiness case, and proof link agree                          | Showcase owner    | Material review and readback |
+| RI-3 | Package the public case   | Reviewed SVG/PNG preview, short copy, no-auth readiness case, and proof link agree        | Showcase owner    | Material review and readback |
 
 **Required build order:** RI-0 → RI-1 → RI-2 → RI-3. Video is optional after
 the evidence gate.

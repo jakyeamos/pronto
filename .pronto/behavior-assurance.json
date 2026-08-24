@@ -161,6 +161,91 @@
       ]
     },
     {
+      "id": "telescope-living-city-readiness",
+      "title": "Telescope publishes only evidence-backed, reviewable repository cities",
+      "tier": 0,
+      "automation": "permanent",
+      "change_triggers": [
+        "src-tauri/src/telescope.rs",
+        ".pronto/telescope-map.json",
+        "src/renderer/src/components/TelescopeSurface.tsx",
+        "src/renderer/src/components/telescopeSceneModel.ts",
+        "src/renderer/src/components/TelescopeGraphElements.tsx"
+      ],
+      "invariants": [
+        "Map readiness remains categorical and never becomes a blended completeness score.",
+        "A consequential unknown blocks publication and produces a stable telescope_readiness task through existing guarded handoffs.",
+        "Completing an information task updates draft meaning only; explicit review against the active workspace fingerprint is still required.",
+        "Unknown and reason-bearing not-applicable states are preserved rather than converted into generated product truth."
+      ],
+      "scenarios": [
+        {
+          "id": "readiness-state-and-task-projection",
+          "title": "Readiness gaps remain explicit and actionable",
+          "oracle": "Backend fixtures cover unavailable, measured, needs_information, reviewable, reviewed, stale, unknown, and not-applicable cases while proving stable dependency-ordered gap keys and no silent manifest mutation.",
+          "verification_level": "automated",
+          "edge_profile": {
+            "categories": ["state_and_ordering", "interruption_and_recovery", "environment_and_cross_surface"],
+            "risk": "routine",
+            "side_effects": "none"
+          }
+        },
+        {
+          "id": "map-workshop-guarded-handoff",
+          "title": "Incomplete maps enter the workshop instead of appearing finished",
+          "oracle": "The renderer labels measured previews incomplete, shows the highest-impact source-backed question, and sends Answer next question through the existing repository preparation callback without changing readiness or executing repository mutations.",
+          "verification_level": "direct_surface",
+          "edge_profile": {
+            "categories": ["authorization_and_session", "state_and_ordering"],
+            "risk": "routine",
+            "side_effects": "none"
+          }
+        }
+      ]
+    },
+    {
+      "id": "telescope-semantic-exploration",
+      "title": "Telescope exploration preserves comprehension at every scope",
+      "tier": 1,
+      "automation": "permanent",
+      "change_triggers": [
+        "src/renderer/src/components/TelescopeSurface.tsx",
+        "src/renderer/src/components/telescopeSceneModel.ts",
+        "src/renderer/src/components/TelescopeGraphElements.tsx",
+        "src/renderer/src/components/telescopeSceneLayout.ts"
+      ],
+      "invariants": [
+        "Building counts adapt to semantic completeness and readable composition rather than arbitrary quotas.",
+        "Buildings remain fixed while Fit frames the current City, District, Building, or Action scope.",
+        "Source detail renders one building and immediate handoffs with progressive evidence, never the repository-wide file graph.",
+        "People, crews, payloads, rails, and lens effects appear only when backed by mapped evidence."
+      ],
+      "scenarios": [
+        {
+          "id": "scope-specific-city-composition",
+          "title": "Overview, subsystem, source detail, and action scopes differ materially",
+          "oracle": "Renderer tests prove semantic overview clustering, district-local expansion, building-local source detail, fixed nodes, fit-on-scope-change, and an action-guided tour over stable canonical geometry.",
+          "verification_level": "automated",
+          "edge_profile": {
+            "categories": ["scale_and_capacity", "state_and_ordering", "input_and_encoding"],
+            "risk": "routine",
+            "side_effects": "none"
+          }
+        },
+        {
+          "id": "source-detail-dense-repository",
+          "title": "Dense source detail remains bounded and readable",
+          "oracle": "A representative dense projection enters a split building-local workspace, progressively reveals files and symbols, and remains interactive without mounting the global dependency graph.",
+          "verification_level": "direct_surface",
+          "edge_profile": {
+            "categories": ["scale_and_capacity", "resource_and_time", "interruption_and_recovery"],
+            "risk": "hostile",
+            "side_effects": "none"
+          }
+        }
+      ]
+    },
+    {
       "id": "custody-projection",
       "title": "Pronto exposes live custody evidence without granting mutation authority",
       "tier": 0,

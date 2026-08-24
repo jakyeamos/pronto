@@ -170,6 +170,7 @@ interface RepositoryMaturityPillar {
   score?: number;
   dimension_scores: Record<string, number>;
   missing_capabilities: string[];
+  not_applicable_capabilities?: string[];
   critical_dimensions: string[];
 }
 

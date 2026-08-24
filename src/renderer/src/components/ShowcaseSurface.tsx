@@ -5,7 +5,7 @@ import type {
   ShowcasePortfolioSnapshot,
   ShowcaseProjectSnapshot,
 } from "../types";
-import { formatExactTime } from "./ConsolePrimitives";
+import { ExpandableScore, formatExactTime } from "./ConsolePrimitives";
 import { QualityRunnerCaseStudy } from "./QualityRunnerCaseStudy";
 
 const laneLabels: Record<ShowcaseProjectSnapshot["lane"], string> = {
@@ -113,6 +113,12 @@ export function ShowcaseSurface({
     );
     if (repository) onOpenRepository(repository);
   };
+  const scoring = showcase.scoring;
+  const productWeight = scoring?.product_weight ?? 0.6;
+  const materialsWeight = scoring?.materials_weight ?? 0.4;
+  const careerWeight = scoring?.priority_career_weight ?? 0.5;
+  const priorityProductWeight = scoring?.priority_product_weight ?? 0.3;
+  const materialsGapWeight = scoring?.priority_materials_gap_weight ?? 0.2;
 
   if (activeCaseStudy === "quality-runner") {
     return <QualityRunnerCaseStudy onBack={() => setActiveCaseStudy(null)} />;
@@ -225,21 +231,64 @@ export function ShowcaseSurface({
               </div>
               <div className="showcase-project-scores">
                 <span>
-                  Product{" "}
+                  <span title="Reviewed product readiness input">Product</span>{" "}
                   <strong>{scoreLabel(project.product_readiness.score)}</strong>
                 </span>
                 <span>
-                  Materials{" "}
+                  <span title="Reviewed demo-materials input">Materials</span>{" "}
                   <strong>{scoreLabel(project.demo_materials.score)}</strong>
                 </span>
-                <span>
-                  Readiness{" "}
-                  <strong>{scoreLabel(project.showcase_score)}</strong>
-                </span>
-                <span>
-                  Public priority{" "}
-                  <strong>{scoreLabel(project.priority_score)}</strong>
-                </span>
+                <ExpandableScore
+                  className="showcase-score-disclosure"
+                  label="Readiness"
+                  value={scoreLabel(project.showcase_score)}
+                  description="Combined from product readiness and demo materials."
+                  title="Open to see the reviewed inputs and their weights."
+                  breakdown={[
+                    {
+                      id: "showcase-product",
+                      label: "Product readiness",
+                      value: scoreLabel(project.product_readiness.score),
+                      detail: `${Math.round(productWeight * 100)}% weight`,
+                    },
+                    {
+                      id: "showcase-materials",
+                      label: "Demo materials",
+                      value: scoreLabel(project.demo_materials.score),
+                      detail: `${Math.round(materialsWeight * 100)}% weight`,
+                    },
+                  ]}
+                />
+                <ExpandableScore
+                  className="showcase-score-disclosure"
+                  label="Public priority"
+                  value={scoreLabel(project.priority_score)}
+                  description="A contract-defined ranking that combines career signal, product readiness, and the remaining materials gap."
+                  title="Open to see the inputs and weights used by the Showcase contract."
+                  breakdown={[
+                    {
+                      id: "priority-career-signal",
+                      label: "Career signal",
+                      value: scoreLabel(project.career_signal.score),
+                      detail: `${Math.round(careerWeight * 100)}% weight`,
+                    },
+                    {
+                      id: "priority-product",
+                      label: "Product readiness",
+                      value: scoreLabel(project.product_readiness.score),
+                      detail: `${Math.round(priorityProductWeight * 100)}% weight`,
+                    },
+                    {
+                      id: "priority-materials-gap",
+                      label: "Materials gap",
+                      value:
+                        project.demo_materials.score == null
+                          ? "—"
+                          : `${(5 - project.demo_materials.score).toFixed(1)}/5`,
+                      detail: `${Math.round(materialsGapWeight * 100)}% weight · 5 − materials score`,
+                    },
+                  ]}
+                />
                 {project.repository_id && (
                   <button
                     type="button"

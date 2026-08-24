@@ -13,8 +13,11 @@ The active Pronto workspace is also represented below because it is the
 application consuming this matrix. Its row is based on the current workspace
 scripts and the latest scoped Quality Runner refresh.
 
-This is a read-only recommendation report. It does not claim that a gate passes
-and it does not run tests, builds, audits, or network refreshes.
+This is a read-only compatibility report. New and reviewed repositories should
+own their current applicability in `.pronto/ci-gate-profile.json`; see
+[Repository CI gate profiles](ci-gate-profiles.md). The matrix does not claim
+that a gate passes and it does not run tests, builds, audits, or network
+refreshes.
 
 ## Recommended taxonomy
 
@@ -28,12 +31,6 @@ Raw CI job names are not quality dimensions. Preserve them as evidence
 provenance, but remove them from the gate list and release-rule choices. This
 includes labels such as `pre_cr`, `pre_pr`, version/platform matrix jobs,
 `truth_file`, `deploy`, `validate`, and `workflow_timeout`.
-
-Web readiness is a separate conditional gate rather than a universal matrix
-column. Pronto adds it only when the versioned Quality Runner report declares a
-`public_web` or `internal_web` surface. `not_applicable` requires an explicit
-reason; missing or invalid policy remains `unknown`. Bundle budgets and browser
-or deployment evidence retain their distinct verification levels.
 
 ### Matrix key
 
@@ -52,11 +49,10 @@ not delete the underlying CI report or QR artifact.
 
 ## CI configuration and evidence in Pronto
 
-For each available repository row, Pronto treats every `K`, `N`, `A`, and `C`
-marker as part of that repository's ideal CI profile. `C` is already scoped by
-the matrix's repository-specific capability assessment. A registered
-repository with no non-empty, unique matrix profile receives the six-gate
-baseline instead of disappearing from the denominator. The repository
+When `.pronto/ci-gate-profile.json` is absent, Pronto treats every `K`, `N`,
+`A`, and `C` marker in a unique available repository row as a compatibility CI
+profile. `C` is already scoped by the matrix's historical repository-specific
+capability assessment. The repository
 configuration count is displayed as `configured ideal gates / ideal gates`.
 Configuration is discovered from QR capability and repository-scan artifacts,
 plus imported CI check names; it does not claim that a gate has passed.
@@ -64,33 +60,13 @@ plus imported CI check names; it does not claim that a gate has passed.
 Pronto keeps execution evidence separate. It shows both `fresh passing ideal
 gates / ideal gates` and `covered ideal gates / ideal gates`: the former is the
 release-relevant count of fresh passing results, while the latter counts ideal
-gates with any imported result. Each gate retains its source, status, and
+gates with any imported result. The UI labels matrix-backed scores as static
+compatibility profiles so they cannot be mistaken for current repository-owned
+truth. Each gate retains its source, status, and
 freshness. Failed, blocked, and stale evidence remains visible as an evidence
 update and does not become a passing result. Release rules independently
-require a fresh pass. Configuration and covered evidence remain diagnostic
-lanes. Fresh passing evidence contributes as `ci.fresh_passing` to the
-correctness-and-reliability pillar. The historical `ci_readiness.score` field now has one stable
-meaning everywhere: fresh passing applicable gates divided by applicable
-gates. Covered-but-failed, blocked, or stale evidence can raise evidence
-coverage but cannot raise fresh passing readiness or repository maturity.
-`PENDING`, `FIXTURE?`, and
-rows with no recommended gates receive the baseline until an explicit
-specialized profile replaces it.
-
-Repository maturity uses seven weighted pillars: correctness and reliability;
-security, privacy, and supply chain; maintainability and evolvability;
-operability and release safety; user-facing quality; human and agent usability;
-and governance and sustainability. Each pillar receives equal influence from
-its own evidence dimensions before pillar weights are applied, so adding more
-detectors to one area cannot dominate the score. Unknown applicability remains
-unknown, explicit `not_applicable` pillars leave the denominator, and evidence
-coverage is displayed beside the score. A blocked dimension in correctness,
-security, or operability caps the repository score at 2/4.
-
-Project Compass MVP and complete-product progress remain visible product
-readiness evidence, but they do not contribute to repository maturity. A
-well-built incomplete product and a complete low-quality repository are
-therefore no longer collapsed into the same number.
+require a fresh pass. `PENDING`, `FIXTURE?`, and rows with no recommended gates
+are shown as not scored rather than as zero.
 
 ## Project matrix
 

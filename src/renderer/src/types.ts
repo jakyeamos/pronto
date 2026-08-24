@@ -4,10 +4,13 @@ import type {
   ReleaseRecipeConfig,
   ReleaseRuleConfig,
 } from "./types/quality";
+import type { CiRunSnapshot } from "./types/ci";
 import type { RemediationRun } from "./types/remediation";
 import type { ShowcasePortfolioSnapshot } from "./types/showcase";
 
 export * from "./types/quality";
+export * from "./types/cacheDesign";
+export * from "./types/ci";
 export * from "./types/remediation";
 export * from "./types/insights";
 export * from "./types/promotion";
@@ -68,6 +71,7 @@ export interface RemoteRepositorySnapshot {
   ci_checks: CheckSnapshot[];
   ci_branch?: string;
   ci_commit?: string;
+  ci_runs: CiRunSnapshot[];
 }
 
 interface CheckSnapshot {
@@ -171,6 +175,16 @@ interface WorkspaceActivity {
   manifest?: AgentManifest;
 }
 
+interface WorkspaceProvenance {
+  kind: "canonical" | "linked" | "temporary" | "unknown" | string;
+  owner?: string;
+  lease?: string;
+  canonical_repository: string;
+  head?: string;
+  preservation_evidence?: string;
+  cleanup_state: string;
+}
+
 interface WorkspaceSyncDetail {
   reason: string;
   evidence_observed_at?: string;
@@ -210,6 +224,7 @@ export interface WorkspaceSummary {
   role: string;
   role_confidence: string;
   activity: WorkspaceActivity;
+  provenance?: WorkspaceProvenance;
   sync_detail?: WorkspaceSyncDetail;
 }
 
@@ -227,11 +242,55 @@ interface BranchSummary {
   last_commit_at?: string;
 }
 
+export interface BranchLifecyclePolicy {
+  soft_limit: number;
+  hard_limit: number;
+  warning_after_hours: number;
+  expiry_after_hours: number;
+}
+
+export interface BranchLifecycleEntry {
+  name: string;
+  role: string;
+  counted: boolean;
+  status: string;
+  integration_state: string;
+  age_hours?: number;
+  last_activity_at?: string;
+  workspace_id?: string;
+  worktree_path?: string;
+  custody_task_id?: string;
+  custodian?: string;
+  created_at?: string;
+  lease_expires_at?: string;
+  lease_status: string;
+  reason: string;
+  next_safe_step: string;
+}
+
+export interface BranchLifecycleSnapshot {
+  schema_version: string;
+  target_branch?: string;
+  policy: BranchLifecyclePolicy;
+  status: string;
+  admission: string;
+  feature_branch_count: number;
+  active_feature_branch_count: number;
+  retirement_review_count: number;
+  expired_count: number;
+  unknown_count: number;
+  branches: BranchLifecycleEntry[];
+  next_safe_step: string;
+  read_only: boolean;
+}
+
 export interface CustodyLane {
   task_id: string;
   work_item_id?: string;
   branch?: string;
   worktree?: string;
+  workspace_class?: string;
+  lease_required?: boolean;
   state: string;
   disposition: string;
   dispositions: string[];
@@ -242,6 +301,33 @@ export interface CustodyLane {
   head_sha?: string;
   last_activity_at?: string;
   lease_expires_at?: string;
+}
+
+export interface WorkspacePolicyProjection {
+  schema_version: string;
+  repository_id?: string;
+  repository_role: string;
+  status: string;
+  disposition: string;
+  baseline_target: number | null;
+  canonical_target: number | null;
+  canonical_observed: number;
+  temporary_observed: number;
+  active_temporary_lanes: number;
+  retained_lane_count: number;
+  managed_target_total: number | null;
+  canonical_workspaces: Array<{
+    id: string;
+    role: string;
+    ref: string;
+    path?: string | null;
+    protected: boolean;
+  }>;
+  protected_refs: string[];
+  lease_required_for: string;
+  canonical_protection: string;
+  policy_path?: string | null;
+  drift: string[];
 }
 
 export interface CustodySnapshot {
@@ -264,6 +350,7 @@ export interface CustodySnapshot {
     paths: string[];
     status: string;
   }>;
+  workspace_policy?: WorkspacePolicyProjection;
   integrity: Record<string, string>;
 }
 
@@ -283,6 +370,7 @@ export interface RepositorySnapshot {
   workspace: WorkspaceSummary;
   workspaces: WorkspaceSummary[];
   branches: BranchSummary[];
+  branch_lifecycle?: BranchLifecycleSnapshot;
   custody?: CustodySnapshot;
   submodules: SubmoduleSummary[];
   pull_requests: PullRequestSnapshot[];

@@ -1,9 +1,10 @@
 # Portable Agentic Workbench route plan
 
 Status: PW-1 through PW-3, PW-5, and PW-6 are closed in a local,
-evidence-bound package. PW-4 was attempted and is explicitly blocked by the
-repository's no-provider/no-registration boundary. The selected workflow is
-`safe-tool-guards`; generic and Codex are both supported native projections.
+evidence-bound package. PW-7 is now closed as the local case-study, claim,
+short-copy, no-auth page-source, and reviewed binary-preview package. PW-4 was attempted and is explicitly blocked by the repository's no-provider/
+no-registration boundary. The selected workflow is `safe-tool-guards`; generic
+and Codex are both supported native projections.
 
 The [canonical target](../ideal-demo-targets.md#portable-agentic-workbench) owns
 the durable promise and proof gate.
@@ -50,7 +51,7 @@ installer, then prove one portable workflow across two clean environments and
 its recovery boundary.
 
 Gap classes: content — PW-1; demo_integration — PW-2; evidence — PW-3, PW-4,
-PW-5, PW-6.
+PW-5, PW-6; packaging — PW-7.
 
 | ID   | Gap to close                              | Observable acceptance condition                                                                            | Owner                   | Required proof                                                                                                                                  |
 | ---- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -60,8 +61,9 @@ PW-5, PW-6.
 | PW-4 | Validate behavioral equivalence           | Shared positive, negative, and boundary triggers produce equivalent workflow behavior                      | Verification owner      | Blocked: install-contract parity is proven; host behavior needs an executable runtime or provider-backed execution that this repository forbids |
 | PW-5 | Preserve provider differences             | Generic and Codex are labeled native portable projections; adapter registration remains manual             | Provider-contract owner | `comparison.html`, claim ledger, manual-review receipt                                                                                          |
 | PW-6 | Prove recovery                            | Approved install can be reversed without removing unrelated user-owned files                               | Installer/safety owner  | Receipt-scoped dry-run/apply uninstall, unrelated sentinel preservation, modified-file block                                                    |
+| PW-7 | Package the local showcase case            | Case study, claim ledger, short copy, no-auth page source, and reviewed 16:9 binary preview are present     | Showcase materials owner | `case-study.json`, `claim-ledger.json`, `public-description.txt`, `public/index.html`, `evidence/pw-7-material-checkpoint.json`                |
 
-**Build order:** PW-1 → PW-2 → PW-3/PW-5 → PW-6 → PW-4.
+**Build order:** PW-1 → PW-2 → PW-3/PW-5 → PW-6 → PW-7 → PW-4.
 
 ## 4. Evidence package
 
@@ -81,6 +83,11 @@ PW-5, PW-6.
 - [`evidence/runtime-comparison.json`](evidence/runtime-comparison.json) records
   the permitted executable probes, fixed reason codes, and the exact owner for
   the blocked host-runtime comparison.
+- [`case-study.json`](case-study.json), [`claim-ledger.json`](claim-ledger.json),
+  [`public-description.txt`](public-description.txt), and
+  [`public/index.html`](public/index.html) form the local candidate distribution
+  layer. [`evidence/pw-7-material-checkpoint.json`](evidence/pw-7-material-checkpoint.json)
+  binds the reviewed 1600x900 PNG to those sources.
 
 Browser capture and video remain optional. PW-4 remains blocked until the
 runtime/provider owner supplies a documented offline host adapter or separately

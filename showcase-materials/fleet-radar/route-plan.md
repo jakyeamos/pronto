@@ -2,7 +2,8 @@
 
 Status: C0 public Showcase admission is complete; a local read-only refresh
 candidate packet now includes receipt-contract classification, native-link
-metadata, broad registry failure coverage, and a verified 16:9 binary preview.
+metadata, broad registry failure coverage, a current-dev refresh readback, and
+a verified 16:9 binary preview.
 Real producer parity, direct native navigation, and a public no-auth case URL
 remain gated.
 
@@ -34,10 +35,10 @@ parity and direct navigation block the stronger claim.
 
 ## 2. Concept materials
 
-The candidate frames now have a local W5 registry and refresh fixture behind
-them, with W6 contract/failure proof and W7 binary-preview/hosting evidence in
-the packet. Real producer readbacks, native navigation, and public deployment
-are still proof gates.
+The candidate frames now have a current-dev registry refresh behind them, with
+W6 contract/failure proof and W7 binary-preview/hosting evidence in the packet.
+Real producer parity, native navigation, and public deployment are still proof
+gates.
 
 | Frame        | Visual                                               | On-screen line                | Intended evidence moment       |
 | ------------ | ---------------------------------------------------- | ----------------------------- | ------------------------------ |

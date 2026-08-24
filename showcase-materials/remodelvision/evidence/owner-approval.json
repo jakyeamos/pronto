@@ -1,0 +1,21 @@
+{
+  "schema_version": "pronto-showcase-remodelvision-owner-approval/v1",
+  "recorded_at": "2026-08-14",
+  "approver": "Jakye Amos",
+  "authority": "project owner approval in this task",
+  "scope": {
+    "gap": "RV-1",
+    "approved_for_local_showcase": true,
+    "personal_contribution_statement": "The owner confirms that Jakye Amos implemented most of the code for RemodelVision.",
+    "approved_case_boundary": "Use the rights-safe synthetic RV-2 fixture and the scoped personal contribution statement in the local Showcase package.",
+    "collaborator_claims": "not made",
+    "collaborator_consent": "not required for this scoped personal claim because no collaborator role, quote, likeness, or endorsement is asserted",
+    "third_party_or_provider_assets": "not approved; keep the synthetic fixture only",
+    "runtime_or_hosting": "not approved or implied by this record"
+  },
+  "claim_boundary": [
+    "The repository remains a four-person collaborative senior project; this approval does not rewrite that attribution.",
+    "The public-safe local case may state the owner's majority-implementation contribution without assigning roles to collaborators.",
+    "The approval clears the scoped attribution gate only; it does not prove the current runtime flow, constraint adherence, estimate bounds, hosting, or publication."
+  ]
+}

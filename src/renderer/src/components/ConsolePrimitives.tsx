@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
-import { CircleDot, FolderPlus, SearchX } from "lucide-react";
+import { ChevronDown, CircleDot, FolderPlus, SearchX } from "lucide-react";
 import type { Condition } from "../types";
 
 export function formatTime(value?: string): string {
@@ -82,13 +82,15 @@ export function StatusPill({
   children,
   tone = "slate",
   icon,
+  title,
 }: {
   children: ReactNode;
   tone?: string;
   icon?: ReactNode;
+  title?: string;
 }): ReactElement {
   return (
-    <span className={`status-pill status-pill-${tone}`}>
+    <span className={`status-pill status-pill-${tone}`} title={title}>
       {icon}
       {children}
     </span>
@@ -104,9 +106,57 @@ export function ConditionPill({
     <StatusPill
       tone={toneForCondition(condition)}
       icon={<CircleDot size={11} strokeWidth={2.5} />}
+      title={`${condition.title}: ${condition.summary}`}
     >
       {condition.status === "Expected" ? "Expected" : condition.title}
     </StatusPill>
+  );
+}
+
+export interface ScoreBreakdownItem {
+  id: string;
+  label: ReactNode;
+  value: ReactNode;
+  detail?: ReactNode;
+}
+
+export function ExpandableScore({
+  label,
+  value,
+  description,
+  breakdown,
+  title,
+  className,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  description?: ReactNode;
+  breakdown: ScoreBreakdownItem[];
+  title?: string;
+  className?: string;
+}): ReactElement {
+  return (
+    <details
+      className={["expandable-score", className].filter(Boolean).join(" ")}
+    >
+      <summary className="expandable-score-summary" title={title}>
+        <span>{label}</span>
+        <strong>{value}</strong>
+        <ChevronDown size={13} aria-hidden="true" />
+      </summary>
+      {description ? (
+        <small className="expandable-score-description">{description}</small>
+      ) : null}
+      <div className="expandable-score-breakdown">
+        {breakdown.map((item) => (
+          <div className="expandable-score-breakdown-item" key={item.id}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+            {item.detail ? <small>{item.detail}</small> : null}
+          </div>
+        ))}
+      </div>
+    </details>
   );
 }
 

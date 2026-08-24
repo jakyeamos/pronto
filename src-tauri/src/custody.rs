@@ -13,6 +13,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 pub const CUSTODY_PROJECTION_SCHEMA: &str = "pronto-custody-projection/v1";
+pub const WORKSPACE_POLICY_SCHEMA: &str = "workspace-policy/v1";
+pub const WORKSPACE_POLICY_RELATIVE_PATH: &str = ".agents/workspace-policy.json";
 const TASK_SCHEMA: &str = "isolated-change-task/v2";
 const LEGACY_TASK_SCHEMA: &str = "isolated-change-task/v1";
 const DEFAULT_LEASE_SECONDS: i64 = 24 * 60 * 60;
@@ -33,6 +35,10 @@ pub struct CustodyLane {
     pub base_sha: Option<String>,
     #[serde(default)]
     pub head_sha: Option<String>,
+    #[serde(default = "default_temporary_workspace_class")]
+    pub workspace_class: String,
+    #[serde(default = "default_true")]
+    pub lease_required: bool,
     #[serde(default)]
     pub recorded_state: Option<String>,
     pub state: String,
@@ -101,7 +107,47 @@ pub struct CustodySnapshot {
     #[serde(default)]
     pub overlaps: Vec<CustodyOverlap>,
     #[serde(default)]
+    pub workspace_policy: WorkspacePolicyProjection,
+    #[serde(default)]
     pub integrity: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CanonicalWorkspace {
+    pub id: String,
+    pub role: String,
+    #[serde(rename = "ref")]
+    pub reference: String,
+    #[serde(default)]
+    pub path: Option<String>,
+    pub protected: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct WorkspacePolicyProjection {
+    pub schema_version: String,
+    #[serde(default)]
+    pub repository_id: Option<String>,
+    pub repository_role: String,
+    pub status: String,
+    pub disposition: String,
+    #[serde(default)]
+    pub baseline_target: Option<u64>,
+    #[serde(default)]
+    pub canonical_target: Option<u64>,
+    pub canonical_observed: u64,
+    pub temporary_observed: u64,
+    pub active_temporary_lanes: u64,
+    pub retained_lane_count: u64,
+    #[serde(default)]
+    pub managed_target_total: Option<u64>,
+    pub canonical_workspaces: Vec<CanonicalWorkspace>,
+    pub protected_refs: Vec<String>,
+    pub lease_required_for: String,
+    pub canonical_protection: String,
+    #[serde(default)]
+    pub policy_path: Option<String>,
+    pub drift: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -112,6 +158,338 @@ struct LiveWorktree {
     clean: Option<bool>,
     operations: Vec<String>,
     open_files: Option<bool>,
+}
+
+#[derive(Debug, Clone)]
+struct ParsedWorkspacePolicy {
+    repository_id: Option<String>,
+    repository_role: String,
+    canonical_workspaces: Vec<CanonicalWorkspace>,
+    retained_lane_count: u64,
+    path: PathBuf,
+}
+
+fn default_temporary_workspace_class() -> String {
+    "temporary".to_string()
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn nonempty_policy_string(value: Option<&Value>, field: &str) -> Result<String, String> {
+    let Some(value) = value.and_then(Value::as_str) else {
+        return Err(format!("{field} must be a non-empty string"));
+    };
+    if value.trim().is_empty() {
+        return Err(format!("{field} must be a non-empty string"));
+    }
+    Ok(value.trim().to_string())
+}
+
+fn workspace_policy_path(repository: &Path) -> PathBuf {
+    repository.join(WORKSPACE_POLICY_RELATIVE_PATH)
+}
+
+fn policy_workspace_path(repository: &Path, value: Option<&String>) -> Option<PathBuf> {
+    let value = value.filter(|value| !value.trim().is_empty())?;
+    let path = Path::new(value);
+    let resolved = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        repository.join(path)
+    };
+    Some(canonical(&resolved))
+}
+
+fn parse_workspace_policy(repository: &Path) -> Result<Option<ParsedWorkspacePolicy>, String> {
+    let path = workspace_policy_path(repository);
+    if !path.exists() {
+        return Ok(None);
+    }
+    let content = fs::read_to_string(&path)
+        .map_err(|error| format!("could not read {}: {error}", path.display()))?;
+    let value: Value = serde_json::from_str(&content)
+        .map_err(|error| format!("could not parse {}: {error}", path.display()))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| format!("{} must contain an object", path.display()))?;
+    if object.get("schema_version").and_then(Value::as_str) != Some(WORKSPACE_POLICY_SCHEMA) {
+        return Err(format!("schema_version must be {WORKSPACE_POLICY_SCHEMA}"));
+    }
+    let repository_role = nonempty_policy_string(object.get("repository_role"), "repository_role")?;
+    if !matches!(
+        repository_role.as_str(),
+        "production_product" | "supporting_project" | "role_unresolved"
+    ) {
+        return Err(
+            "repository_role must be production_product, supporting_project, or role_unresolved"
+                .to_string(),
+        );
+    }
+
+    let canonical_values = object
+        .get("canonical_workspaces")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "canonical_workspaces must be an array".to_string())?;
+    let mut ids = BTreeSet::new();
+    let mut refs = BTreeSet::new();
+    let mut roles = BTreeSet::new();
+    let mut canonical_workspaces = Vec::new();
+    for (index, item) in canonical_values.iter().enumerate() {
+        let entry = item
+            .as_object()
+            .ok_or_else(|| format!("canonical_workspaces[{index}] must be an object"))?;
+        let id = nonempty_policy_string(
+            entry.get("id"),
+            &format!("canonical_workspaces[{index}].id"),
+        )?;
+        let role = nonempty_policy_string(
+            entry.get("role"),
+            &format!("canonical_workspaces[{index}].role"),
+        )?;
+        let reference = nonempty_policy_string(
+            entry.get("ref"),
+            &format!("canonical_workspaces[{index}].ref"),
+        )?;
+        if !matches!(role.as_str(), "release" | "integration" | "working") {
+            return Err(format!(
+                "canonical_workspaces[{index}].role is not supported"
+            ));
+        }
+        if entry.get("protected").and_then(Value::as_bool) != Some(true) {
+            return Err(format!(
+                "canonical_workspaces[{index}].protected must be true"
+            ));
+        }
+        if !ids.insert(id.clone()) || !refs.insert(reference.clone()) || !roles.insert(role.clone())
+        {
+            return Err("canonical workspace ids, refs, and roles must be unique".to_string());
+        }
+        let path_value = match entry.get("path") {
+            Some(Value::Null) | None => None,
+            Some(value) => Some(nonempty_policy_string(
+                Some(value),
+                &format!("canonical_workspaces[{index}].path"),
+            )?),
+        };
+        canonical_workspaces.push(CanonicalWorkspace {
+            id,
+            role,
+            reference,
+            path: path_value,
+            protected: true,
+        });
+    }
+    let expected_roles: BTreeSet<&str> = match repository_role.as_str() {
+        "production_product" => ["release", "integration"].into_iter().collect(),
+        "supporting_project" => ["working"].into_iter().collect(),
+        _ => BTreeSet::new(),
+    };
+    if repository_role != "role_unresolved"
+        && roles.iter().map(String::as_str).collect::<BTreeSet<_>>() != expected_roles
+    {
+        let missing = expected_roles
+            .difference(&roles.iter().map(String::as_str).collect())
+            .copied()
+            .collect::<Vec<_>>();
+        let extra = roles
+            .iter()
+            .map(String::as_str)
+            .filter(|role| !expected_roles.contains(role))
+            .collect::<Vec<_>>();
+        return Err(format!(
+            "canonical workspace roles do not match {repository_role}; missing={missing:?}, extra={extra:?}"
+        ));
+    }
+
+    let retention_values = object
+        .get("retention_exceptions")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "retention_exceptions must be an array".to_string())?;
+    let mut retention_ids = BTreeSet::new();
+    for (index, item) in retention_values.iter().enumerate() {
+        let entry = item
+            .as_object()
+            .ok_or_else(|| format!("retention_exceptions[{index}] must be an object"))?;
+        let lane_id = nonempty_policy_string(
+            entry.get("lane_id"),
+            &format!("retention_exceptions[{index}].lane_id"),
+        )?;
+        nonempty_policy_string(
+            entry.get("reason"),
+            &format!("retention_exceptions[{index}].reason"),
+        )?;
+        nonempty_policy_string(
+            entry.get("retained_by"),
+            &format!("retention_exceptions[{index}].retained_by"),
+        )?;
+        let review_by = nonempty_policy_string(
+            entry.get("review_by"),
+            &format!("retention_exceptions[{index}].review_by"),
+        )?;
+        if DateTime::parse_from_rfc3339(&review_by).is_err() {
+            return Err(format!(
+                "retention_exceptions[{index}].review_by must be ISO-8601"
+            ));
+        }
+        if !retention_ids.insert(lane_id) {
+            return Err("retention exception lane_id values must be unique".to_string());
+        }
+    }
+
+    let repository_id = match object.get("repository_id") {
+        Some(Value::Null) | None => None,
+        Some(value) => Some(nonempty_policy_string(Some(value), "repository_id")?),
+    };
+    Ok(Some(ParsedWorkspacePolicy {
+        repository_id,
+        repository_role,
+        canonical_workspaces,
+        retained_lane_count: retention_values.len() as u64,
+        path,
+    }))
+}
+
+fn empty_workspace_policy_projection(
+    active_temporary_lanes: u64,
+    policy_path: Option<&Path>,
+    status: &str,
+    disposition: &str,
+    drift: Vec<String>,
+) -> WorkspacePolicyProjection {
+    WorkspacePolicyProjection {
+        schema_version: WORKSPACE_POLICY_SCHEMA.to_string(),
+        repository_role: "role_unresolved".to_string(),
+        status: status.to_string(),
+        disposition: disposition.to_string(),
+        baseline_target: None,
+        canonical_target: None,
+        canonical_observed: 0,
+        temporary_observed: 0,
+        active_temporary_lanes,
+        retained_lane_count: 0,
+        managed_target_total: None,
+        canonical_workspaces: Vec::new(),
+        protected_refs: Vec::new(),
+        lease_required_for: "temporary".to_string(),
+        canonical_protection: "unresolved".to_string(),
+        policy_path: policy_path.map(|value| value.to_string_lossy().to_string()),
+        drift,
+        repository_id: None,
+    }
+}
+
+fn canonical_matches(
+    record: &LiveWorktree,
+    policy: Option<&ParsedWorkspacePolicy>,
+    repository: &Path,
+) -> bool {
+    let Some(policy) = policy else {
+        return record.path == canonical(repository);
+    };
+    policy.canonical_workspaces.iter().any(|workspace| {
+        record.branch.as_deref() == Some(workspace.reference.as_str())
+            || policy_workspace_path(repository, workspace.path.as_ref())
+                .is_some_and(|path| path == record.path)
+    })
+}
+
+fn project_workspace_policy(
+    repository: &Path,
+    live_records: &[LiveWorktree],
+    active_temporary_lanes: u64,
+) -> WorkspacePolicyProjection {
+    let policy_path = workspace_policy_path(repository);
+    let policy = match parse_workspace_policy(repository) {
+        Ok(policy) => policy,
+        Err(error) => {
+            return empty_workspace_policy_projection(
+                active_temporary_lanes,
+                Some(&policy_path),
+                "invalid",
+                "policy_invalid",
+                vec![format!("policy-invalid:{error}")],
+            )
+        }
+    };
+    let Some(policy) = policy else {
+        return empty_workspace_policy_projection(
+            active_temporary_lanes,
+            None,
+            "role_unresolved",
+            "policy_missing",
+            vec!["repository-role-unresolved".to_string()],
+        );
+    };
+    let target = match policy.repository_role.as_str() {
+        "production_product" => Some(2),
+        "supporting_project" => Some(1),
+        _ => None,
+    };
+    let expected_roles: BTreeSet<&str> = match policy.repository_role.as_str() {
+        "production_product" => ["release", "integration"].into_iter().collect(),
+        "supporting_project" => ["working"].into_iter().collect(),
+        _ => BTreeSet::new(),
+    };
+    let observed_roles = live_records
+        .iter()
+        .flat_map(|record| {
+            policy
+                .canonical_workspaces
+                .iter()
+                .filter(move |workspace| {
+                    record.branch.as_deref() == Some(workspace.reference.as_str())
+                        || policy_workspace_path(repository, workspace.path.as_ref())
+                            .is_some_and(|path| path == record.path)
+                })
+                .map(|workspace| workspace.role.as_str())
+        })
+        .collect::<BTreeSet<_>>();
+    let mut drift = expected_roles
+        .difference(&observed_roles)
+        .map(|role| format!("missing-canonical:{role}"))
+        .collect::<Vec<_>>();
+    let canonical_observed = observed_roles.len() as u64;
+    let temporary_observed = live_records
+        .iter()
+        .filter(|record| !canonical_matches(record, Some(&policy), repository))
+        .count() as u64;
+    let managed_target_total =
+        target.map(|target| target + active_temporary_lanes + policy.retained_lane_count);
+    let (status, disposition) = if policy.repository_role == "role_unresolved" {
+        ("role_unresolved", "role_unresolved")
+    } else if !drift.is_empty() {
+        ("canonical_drift", "canonical_workspace_missing")
+    } else {
+        ("observed", "policy_observed")
+    };
+    drift.sort();
+    WorkspacePolicyProjection {
+        schema_version: WORKSPACE_POLICY_SCHEMA.to_string(),
+        repository_id: policy.repository_id,
+        repository_role: policy.repository_role,
+        status: status.to_string(),
+        disposition: disposition.to_string(),
+        baseline_target: target,
+        canonical_target: target,
+        canonical_observed,
+        temporary_observed,
+        active_temporary_lanes,
+        retained_lane_count: policy.retained_lane_count,
+        managed_target_total,
+        canonical_workspaces: policy.canonical_workspaces.clone(),
+        protected_refs: policy
+            .canonical_workspaces
+            .iter()
+            .filter(|workspace| workspace.protected)
+            .map(|workspace| workspace.reference.clone())
+            .collect(),
+        lease_required_for: "temporary".to_string(),
+        canonical_protection: "enforced".to_string(),
+        policy_path: Some(policy.path.to_string_lossy().to_string()),
+        drift,
+    }
 }
 
 fn git(path: &Path, args: &[&str]) -> Result<String, String> {
@@ -555,6 +933,8 @@ fn classify(
         base_ref: string_value(receipt, "base_ref"),
         base_sha,
         head_sha: observed_head,
+        workspace_class: "temporary".to_string(),
+        lease_required: true,
         recorded_state,
         state,
         disposition: primary_disposition(&dispositions),
@@ -703,9 +1083,17 @@ pub fn project(path: &Path) -> Result<CustodySnapshot, String> {
         .map(|path| canonical(Path::new(path)))
         .collect::<BTreeSet<_>>();
     let repository_path = canonical(&repository);
+    let active_temporary_lanes = lanes.iter().filter(|lane| lane.state != "closed").count() as u64;
+    let workspace_policy =
+        project_workspace_policy(&repository, &live_records, active_temporary_lanes);
+    let policy_for_matching = parse_workspace_policy(&repository).ok().flatten();
     let unleased_worktrees = live_records
         .iter()
-        .filter(|record| record.path != repository_path && !bound_paths.contains(&record.path))
+        .filter(|record| {
+            !canonical_matches(record, policy_for_matching.as_ref(), &repository)
+                && !bound_paths.contains(&record.path)
+                && record.path != repository_path
+        })
         .map(|record| record.path.to_string_lossy().to_string())
         .collect::<Vec<_>>();
 
@@ -714,13 +1102,21 @@ pub fn project(path: &Path) -> Result<CustodySnapshot, String> {
     let blocked = lanes
         .iter()
         .any(|lane| matches!(lane.state.as_str(), "unknown" | "contested"))
-        || !unleased_worktrees.is_empty();
+        || !unleased_worktrees.is_empty()
+        || matches!(
+            workspace_policy.status.as_str(),
+            "canonical_drift" | "invalid"
+        );
     let status = if blocked {
         "attention_required"
     } else {
         "observed"
     };
-    let next_safe_step = if !unleased_worktrees.is_empty() {
+    let next_safe_step = if workspace_policy.status == "invalid" {
+        "Repair the invalid workspace policy before relying on canonical protection or temporary-lane counts.".to_string()
+    } else if workspace_policy.status == "canonical_drift" {
+        "Restore the role-defined canonical workspaces before treating temporary-lane counts as settled.".to_string()
+    } else if !unleased_worktrees.is_empty() {
         "Register each unleased task worktree through isolated-change-workflow before editing or integrating it.".to_string()
     } else if lanes.iter().any(|lane| lane.state == "adoptable") {
         "Recheck live negative evidence, then use isolated-change-workflow adopt with an exact generation and head.".to_string()
@@ -760,6 +1156,7 @@ pub fn project(path: &Path) -> Result<CustodySnapshot, String> {
         counts,
         disposition_counts,
         overlaps,
+        workspace_policy,
         integrity,
     })
 }
@@ -803,6 +1200,91 @@ mod tests {
             .then_some(())
             .expect("commit status");
         path
+    }
+
+    fn write_supporting_workspace_policy(repo: &Path) {
+        let branch = git(repo, &["branch", "--show-current"]).expect("branch");
+        let policy = serde_json::json!({
+            "schema_version": WORKSPACE_POLICY_SCHEMA,
+            "repository_role": "supporting_project",
+            "canonical_workspaces": [{
+                "id": "working",
+                "role": "working",
+                "ref": branch,
+                "protected": true
+            }],
+            "retention_exceptions": []
+        });
+        fs::create_dir_all(repo.join(".agents")).expect("policy directory");
+        fs::write(
+            repo.join(WORKSPACE_POLICY_RELATIVE_PATH),
+            serde_json::to_vec_pretty(&policy).expect("policy JSON"),
+        )
+        .expect("workspace policy");
+    }
+
+    #[test]
+    fn workspace_policy_separates_canonical_and_temporary_worktrees() {
+        let repo = temp_repo();
+        write_supporting_workspace_policy(&repo);
+        let worktree = repo.with_file_name(format!(
+            "{}-lane",
+            repo.file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or("repo")
+        ));
+        git(
+            &repo,
+            &[
+                "worktree",
+                "add",
+                "-b",
+                "codex/custody-policy-test",
+                worktree.to_str().expect("path"),
+                "HEAD",
+            ],
+        )
+        .expect("worktree add");
+
+        let snapshot = project(&repo).expect("projection");
+        assert_eq!(
+            snapshot.workspace_policy.repository_role,
+            "supporting_project"
+        );
+        assert_eq!(snapshot.workspace_policy.baseline_target, Some(1));
+        assert_eq!(snapshot.workspace_policy.canonical_observed, 1);
+        assert_eq!(snapshot.workspace_policy.temporary_observed, 1);
+        assert_eq!(snapshot.workspace_policy.active_temporary_lanes, 0);
+        assert_eq!(snapshot.workspace_policy.status, "observed");
+        assert_eq!(snapshot.unleased_worktrees.len(), 1);
+        assert_eq!(
+            snapshot.unleased_worktrees[0],
+            canonical(&worktree).to_string_lossy()
+        );
+
+        fs::remove_dir_all(&worktree).ok();
+        git(&repo, &["worktree", "prune"]).ok();
+        fs::remove_dir_all(&repo).ok();
+    }
+
+    #[test]
+    fn invalid_workspace_policy_is_explicit_and_does_not_authorize_mutation() {
+        let repo = temp_repo();
+        fs::create_dir_all(repo.join(".agents")).expect("policy directory");
+        fs::write(
+            repo.join(WORKSPACE_POLICY_RELATIVE_PATH),
+            "{\"schema_version\":\"workspace-policy/v1\",\"repository_role\":\"production_product\"}",
+        )
+        .expect("invalid policy");
+
+        let snapshot = project(&repo).expect("projection");
+        assert_eq!(snapshot.workspace_policy.status, "invalid");
+        assert_eq!(snapshot.workspace_policy.disposition, "policy_invalid");
+        assert!(snapshot.workspace_policy.drift[0].starts_with("policy-invalid:"));
+        assert!(snapshot.implementation_allowed == false);
+        assert_eq!(snapshot.next_safe_step, "Repair the invalid workspace policy before relying on canonical protection or temporary-lane counts.");
+
+        fs::remove_dir_all(&repo).ok();
     }
 
     #[test]

@@ -18,7 +18,9 @@ export default tseslint.config(
     languageOptions: {
       globals: {
         Buffer: "readonly",
+        console: "readonly",
         structuredClone: "readonly",
+        URL: "readonly",
       },
     },
   },

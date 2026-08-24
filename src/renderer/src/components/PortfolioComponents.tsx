@@ -3,7 +3,6 @@ import {
   Activity,
   BellOff,
   Check,
-  ChevronDown,
   ChevronRight,
   Clock3,
   Compass,
@@ -11,16 +10,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { Condition, EventRecord, RepositorySnapshot } from "../types";
-import {
-  ConditionPill,
-  formatTime,
-  StatusPill,
-  toneForCondition,
-} from "./ConsolePrimitives";
-import {
-  QualityAttentionList,
-  qualityAttentionItems,
-} from "./QualityComponents";
+import { ConditionPill, formatTime, StatusPill } from "./ConsolePrimitives";
+import { qualityAttentionItems } from "./QualityComponents";
 import {
   projectCompassCoverageIsIncomplete,
   projectCompassCoverageLabel,
@@ -127,11 +118,19 @@ export function RepositoryRow({
             <ChevronRight size={14} />
           </button>
         ) : expectedCount > 0 ? (
-          <StatusPill tone="violet" icon={<BellOff size={11} />}>
+          <StatusPill
+            tone="violet"
+            icon={<BellOff size={11} />}
+            title="Expected conditions are tracked context, not unresolved active work."
+          >
             {expectedCount} expected
           </StatusPill>
         ) : (
-          <StatusPill tone="mint" icon={<Check size={11} />}>
+          <StatusPill
+            tone="mint"
+            icon={<Check size={11} />}
+            title="No unresolved active condition records were found for this repository."
+          >
             No active conditions
           </StatusPill>
         )}
@@ -149,14 +148,10 @@ export function RepositoryRow({
 
 export function AttentionQueue({
   repositories,
-  onCondition,
-  onOpenRepository,
-  onOpenReport,
+  onShowAttention,
 }: {
   repositories: RepositorySnapshot[];
-  onCondition: (repository: RepositorySnapshot, condition: Condition) => void;
-  onOpenRepository?: (repository: RepositorySnapshot) => void;
-  onOpenReport?: (reportPath: string) => void;
+  onShowAttention?: () => void;
 }): ReactElement {
   const attention = repositories
     .map((repository) => ({
@@ -175,12 +170,18 @@ export function AttentionQueue({
   const attentionCount =
     attention.reduce((total, group) => total + group.conditions.length, 0) +
     qualityAttention.reduce((total, group) => total + group.items.length, 0);
+  const qualityAttentionCount = qualityAttention.reduce(
+    (total, group) => total + group.items.length,
+    0,
+  );
   return (
     <details className="rail-section attention-queue">
       <summary className="section-heading attention-queue-summary">
         <div>
           <p className="eyebrow">Evidence-led queue</p>
-          <h2>Attention queue</h2>
+          <h2 title="Unresolved local conditions and quality follow-ups from the current snapshot">
+            Attention queue
+          </h2>
         </div>
         <span
           className="section-count"
@@ -192,69 +193,48 @@ export function AttentionQueue({
       {attention.length === 0 && qualityAttention.length === 0 ? (
         <div className="rail-empty">
           <ShieldCheck size={18} />
-          <span>No active conditions in the current snapshot.</span>
+          <span>
+            No active conditions or quality follow-ups in the current snapshot.
+          </span>
         </div>
       ) : (
-        <div className="attention-list">
-          {attention.map(({ repository, conditions }) => (
-            <details className="attention-group" key={repository.id}>
-              <summary>
-                <span className="summary-repo">
-                  <span className="tiny-repo-mark">
-                    <GitBranch size={12} />
-                  </span>
-                  {repository.name}
-                </span>
-                <span className="summary-count">
-                  {conditions.length}
-                  <ChevronDown size={13} />
-                </span>
-              </summary>
-              <div className="attention-conditions">
-                {conditions.map((condition) => (
-                  <button
-                    className="attention-item"
-                    type="button"
-                    key={condition.id}
-                    onClick={() => onCondition(repository, condition)}
-                  >
-                    <span
-                      className={`attention-dot attention-dot-${toneForCondition(condition)}`}
-                    />
-                    <span className="attention-copy">
-                      <strong>{condition.title}</strong>
-                      <span>{condition.summary}</span>
-                    </span>
-                    <ChevronRight size={14} />
-                  </button>
-                ))}
-              </div>
-            </details>
-          ))}
-          {qualityAttention.map(({ repository, items }) => (
-            <details
-              className="attention-group quality-attention-group"
-              key={`quality-${repository.id}`}
+        <div className="attention-summary">
+          <div className="attention-summary-grid">
+            <div className="attention-summary-stat">
+              <strong>{attention.length}</strong>
+              <span>repositories with active conditions</span>
+            </div>
+            <div className="attention-summary-stat">
+              <strong>{attentionCount - qualityAttentionCount}</strong>
+              <span>active conditions</span>
+            </div>
+            <div className="attention-summary-stat">
+              <strong>{qualityAttention.length}</strong>
+              <span>repositories with quality follow-up</span>
+            </div>
+            <div className="attention-summary-stat">
+              <strong>{qualityAttentionCount}</strong>
+              <span>quality follow-ups</span>
+            </div>
+          </div>
+          <p
+            className="attention-summary-copy"
+            title="Active conditions are unresolved condition records with status Active. Expected conditions are intentionally excluded."
+          >
+            Active conditions are unresolved local evidence signals. The
+            Repository portfolio is the canonical repository list; this rail
+            only summarizes what needs review. Use the Quality gate matrix below
+            when you need per-repository gate comparisons.
+          </p>
+          {attention.length > 0 && onShowAttention ? (
+            <button
+              className="button button-secondary attention-summary-action"
+              type="button"
+              onClick={onShowAttention}
             >
-              <summary>
-                <span className="summary-repo">
-                  <span className="tiny-repo-mark">
-                    <GitBranch size={12} />
-                  </span>
-                  {repository.name} · quality
-                </span>
-                <span className="summary-count">
-                  {items.length}
-                  <ChevronDown size={13} />
-                </span>
-              </summary>
-              <QualityAttentionList
-                repository={repository}
-                onOpenRepository={() => onOpenRepository?.(repository)}
-                onOpenReport={onOpenReport}
-              />
-            </details>
-          ))}
+              Show active-condition repositories
+            </button>
+          ) : null}
         </div>
       )}
     </details>

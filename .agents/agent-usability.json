@@ -1,13 +1,19 @@
 {
   "schema": "agent-usability/v1",
-  "reviewed_at": "2026-08-09",
+  "reviewed_at": "2026-08-11",
   "tools": [
     {
       "id": "pronto-cli",
       "kind": "cli",
-      "documentation": [".agents/context/commands.md"],
+      "documentation": [
+        ".agents/context/commands.md",
+        "docs/ci-gate-profiles.md"
+      ],
       "skills": ["pronto"],
-      "behavior_evidence": []
+      "behavior_evidence": [
+        "src-tauri/src/quality.rs",
+        "src/renderer/src/components/QualityComponents.test.tsx"
+      ]
     }
   ],
   "skills": [

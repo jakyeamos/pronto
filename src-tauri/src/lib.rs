@@ -1,4 +1,5 @@
 pub mod behavior_assurance;
+pub mod branch_lifecycle;
 pub mod change_matrix;
 pub mod core;
 pub mod custody;
@@ -17,6 +18,8 @@ pub mod remediation;
 pub mod showcase;
 pub mod skill_usage_collector;
 pub mod skills;
+pub mod task_lanes;
+pub mod telescope;
 
 use tauri::Manager;
 
@@ -155,6 +158,7 @@ pub fn run() {
             core::refresh_quality,
             core::refresh_repository_target_evidence,
             core::refresh_github,
+            core::start_ci_codex_handoff,
             core::refresh_remediation,
             core::set_remediation_action_status,
             core::check_remediation_handoff,
@@ -175,6 +179,9 @@ pub fn run() {
             core::set_release_version,
             core::set_ai_permission,
             core::preview_ai_summary,
+            core::get_repository_telescope,
+            core::refresh_repository_telescope,
+            core::cancel_repository_telescope_refresh,
             custody::get_custody,
             core::set_retention_days,
             core::upsert_product,

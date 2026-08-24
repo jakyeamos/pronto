@@ -4,6 +4,25 @@ import type { Condition, ExternalTool, RepositorySnapshot } from "../types";
 import { ConditionPill, StatusPill } from "./ConsolePrimitives";
 import { WorkspaceSyncDetailView } from "./WorkspaceSyncDetailView";
 
+function branchLifecycleTone(status?: string): string {
+  if (status === "within_budget" || status === "active") return "mint";
+  if (
+    status === "warning" ||
+    status === "stale_warning" ||
+    status === "lease_review"
+  )
+    return "amber";
+  if (
+    status === "admission_blocked" ||
+    status === "evidence_unknown" ||
+    status === "disposition_required" ||
+    status === "expired" ||
+    status === "unknown"
+  )
+    return "coral";
+  return "slate";
+}
+
 export function RepositoryInventoryPanels({
   repository,
   onOpenWorkspace,
@@ -166,6 +185,49 @@ export function RepositoryInventoryPanels({
             authority
           </small>
           <small>{repository.custody.next_safe_step}</small>
+          {repository.custody.workspace_policy && (
+            <div className="workspace-card">
+              <strong>
+                Workspace policy ·{" "}
+                {repository.custody.workspace_policy.repository_role.replaceAll(
+                  "_",
+                  " ",
+                )}
+              </strong>
+              <span>
+                Baseline target:{" "}
+                {repository.custody.workspace_policy.baseline_target ??
+                  "unresolved"}
+                {" · "}
+                Canonical:{" "}
+                {repository.custody.workspace_policy.canonical_observed}/
+                {repository.custody.workspace_policy.canonical_target ?? "?"}
+              </span>
+              <span>
+                Temporary:{" "}
+                {repository.custody.workspace_policy.temporary_observed}
+                {" · "}
+                Active lanes:{" "}
+                {repository.custody.workspace_policy.active_temporary_lanes}
+                {" · "}
+                Retained:{" "}
+                {repository.custody.workspace_policy.retained_lane_count}
+              </span>
+              <small>
+                {repository.custody.workspace_policy.status.replaceAll(
+                  "_",
+                  " ",
+                )}{" "}
+                ·{" "}
+                {repository.custody.workspace_policy.disposition.replaceAll(
+                  "_",
+                  " ",
+                )}{" "}
+                · {repository.custody.workspace_policy.lease_required_for}{" "}
+                workspaces require leases
+              </small>
+            </div>
+          )}
           {repository.custody.unleased_worktrees.length > 0 && (
             <div className="workspace-card">
               <strong>Unleased worktrees</strong>
@@ -182,7 +244,11 @@ export function RepositoryInventoryPanels({
                   <div>
                     <strong>{lane.task_id}</strong>
                     <span>
-                      {lane.state} · {lane.disposition}
+                      {lane.state} · {lane.disposition} ·{" "}
+                      {lane.workspace_class ?? "temporary"}
+                      {lane.lease_required === false
+                        ? " · lease optional"
+                        : " · lease required"}
                     </span>
                     {lane.branch && <span>{lane.branch}</span>}
                     <small>{lane.next_action}</small>
@@ -261,26 +327,60 @@ export function RepositoryInventoryPanels({
           <h3>Branches</h3>
           <span>{repository.branches.length}</span>
         </div>
-        <div className="branch-table">
-          {repository.branches.map((branch) => (
-            <div className="branch-row" key={branch.name}>
-              <div>
-                <strong>{branch.name}</strong>
-                <span>
-                  {branch.role} · {branch.role_confidence} confidence
-                </span>
-              </div>
+        {repository.branch_lifecycle && (
+          <div className="branch-lifecycle-summary">
+            <div className="branch-lifecycle-summary-top">
               <StatusPill
-                tone={
-                  branch.integration_state === "Integration eligible"
-                    ? "mint"
-                    : "slate"
-                }
+                tone={branchLifecycleTone(repository.branch_lifecycle.status)}
               >
-                {branch.integration_state}
+                {repository.branch_lifecycle.status.replaceAll("_", " ")}
               </StatusPill>
+              <strong>
+                {repository.branch_lifecycle.feature_branch_count}/
+                {repository.branch_lifecycle.policy.hard_limit} feature branches
+              </strong>
+              <span>
+                {repository.branch_lifecycle.active_feature_branch_count} active
+              </span>
             </div>
-          ))}
+            <small>
+              {repository.branch_lifecycle.retirement_review_count} retirement
+              review · {repository.branch_lifecycle.expired_count} expired ·{" "}
+              {repository.branch_lifecycle.unknown_count} unknown · read-only
+            </small>
+            <small>{repository.branch_lifecycle.next_safe_step}</small>
+          </div>
+        )}
+        <div className="branch-table">
+          {repository.branches.map((branch) => {
+            const lifecycleEntry = repository.branch_lifecycle?.branches.find(
+              (entry) => entry.name === branch.name,
+            );
+            return (
+              <div className="branch-row" key={branch.name}>
+                <div>
+                  <strong>{branch.name}</strong>
+                  <span>
+                    {branch.role} · {branch.role_confidence} confidence
+                  </span>
+                  {lifecycleEntry && (
+                    <small>
+                      Lifecycle: {lifecycleEntry.status.replaceAll("_", " ")}
+                    </small>
+                  )}
+                </div>
+                <StatusPill
+                  tone={
+                    branch.integration_state === "Integration eligible"
+                      ? "mint"
+                      : "slate"
+                  }
+                >
+                  {branch.integration_state}
+                </StatusPill>
+              </div>
+            );
+          })}
         </div>
       </div>
     </>

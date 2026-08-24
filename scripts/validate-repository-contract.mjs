@@ -10,6 +10,7 @@ const requiredDocuments = [
   ".agents/context/README.md",
   ".agents/context/commands.md",
   "docs/repository-contract.md",
+  "docs/ci-gate-profiles.md",
   "docs/implementation-examples.md",
   "docs/agent-usability-maturity.md",
 ];

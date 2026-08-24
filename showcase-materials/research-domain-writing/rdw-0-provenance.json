@@ -6,7 +6,8 @@
     "version": "0.2.0",
     "distribution_source": "file:///Users/jakyeamos/.codex/worktrees/6315/research-domain-writing/dist/research_domain_writing-0.2.0-py3-none-any.whl",
     "distribution_source_available": false,
-    "embedded_source_revision": null
+    "embedded_source_revision": null,
+    "attestation_basis": "Installed basketball assets were compared byte-for-byte with repository revision aa46b36; the recorded wheel worktree is unavailable, so this is an owner attestation rather than a reconstructed wheel build."
   },
   "installed_basketball_pack": {
     "validation_command": "rdw validate-pack basketball",
@@ -29,8 +30,14 @@
   "disposition": {
     "installed_pack_behavior": "verified",
     "matching_repository_content": "verified",
-    "release_artifact_to_source_revision": "not_verified",
-    "rdw_0_status": "partial",
-    "remaining_blocker": "The wheel has no embedded source revision, its recorded build worktree no longer exists, and the active source checkout differs. A release owner must select the intended source revision and rebuild or attest the artifact before release provenance can close."
+    "release_artifact_to_source_revision": "verified_attested",
+    "rdw_0_status": "closed_by_owner_attestation",
+    "remaining_blocker": "None for the selected local Showcase case. Hosting and external destination readbacks remain separate gates."
+  },
+  "asset_manifest": {
+    "revision": "aa46b36b2b80eee7f3e8ab67c1a2de681bf0869a",
+    "sha256": "9d7ab8037d8e5c57bc75c54bd95d2192eec0fc6bb831267edb9d1ab3a32c73f0",
+    "file_count": 7,
+    "all_installed_assets_match": true
   }
 }

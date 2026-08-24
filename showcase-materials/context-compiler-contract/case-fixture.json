@@ -9,6 +9,7 @@
   "captured_on": "2026-08-13",
   "task": "Improve context routing receipts for agent harness work.",
   "contract": {
+    "validator_module": "validator.mjs",
     "validator_repository": "/Users/jakyeamos/projects/context-compiler-contract",
     "validator_commit": "8af820a7c27a21795713d5e6f52b0fbc242872aa",
     "result_schema": "context-compiler-result-v0.1",

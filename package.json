@@ -34,7 +34,7 @@
     "test": "cargo test --manifest-path src-tauri/Cargo.toml && vitest run --passWithNoTests",
     "test:watch": "vitest",
     "smoke": "pnpm --silent run cli help && pnpm contract:check",
-    "contract:check": "node --test scripts/validate-repository-contract.test.mjs scripts/build-workflow.test.mjs scripts/install-app.test.mjs scripts/cargo-routing.test.mjs scripts/skill-usage-collector.test.mjs scripts/showcase-materials.test.mjs scripts/install-papercuts-hook.test.mjs && node scripts/validate-repository-contract.mjs",
+    "contract:check": "node --test scripts/validate-repository-contract.test.mjs scripts/build-workflow.test.mjs scripts/install-app.test.mjs scripts/cargo-routing.test.mjs scripts/skill-usage-collector.test.mjs scripts/showcase-materials.test.mjs scripts/install-papercuts-hook.test.mjs scripts/pronto-cli-entrypoint.test.mjs && node scripts/validate-repository-contract.mjs",
     "cli": "node bin/pronto.mjs",
     "cli:json": "node bin/pronto.mjs status --json"
   },
@@ -53,6 +53,8 @@
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-dialog": "^2.7.2",
+    "@xyflow/react": "^12.11.3",
+    "elkjs": "^0.12.0",
     "lucide-react": "^1.26.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

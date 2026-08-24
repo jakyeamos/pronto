@@ -3,6 +3,7 @@
   "project": "context-compiler-contract",
   "case_id": "CC-1-real-aios-result-boundary",
   "validator": {
+    "module": "validator.mjs",
     "repository": "/Users/jakyeamos/projects/context-compiler-contract",
     "commit": "8af820a7c27a21795713d5e6f52b0fbc242872aa",
     "command": "node --input-type=module <validator harness>",

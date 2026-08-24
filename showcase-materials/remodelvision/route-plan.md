@@ -1,9 +1,9 @@
 # RemodelVision route plan
 
-Status: RV-1 is blocked at collaborator approval; RV-2 is closed with a
-synthetic rights-safe fixture; RV-3 is blocked at runtime prerequisites and
-direct-surface access. Current runnable behavior and contribution boundaries
-remain unverified.
+Status: RV-1 is closed for a scoped owner-approved personal-contribution claim
+using the synthetic case; RV-2 is closed with a synthetic rights-safe fixture;
+RV-3 is blocked at runtime prerequisites and direct-surface access. Current
+runnable behavior, constraint adherence, and estimate bounds remain unverified.
 
 The [canonical target](../ideal-demo-targets.md#remodelvision) owns the durable
 promise and proof gate.
@@ -15,8 +15,9 @@ non-negotiable constraint, and receives three visually distinct concepts with
 traceable choices, editable tradeoffs, and an estimate-oriented next-step plan.
 
 **Non-negotiable:** generated visuals are concepts, not construction guarantees.
-Personal contribution and collaborator ownership must be reviewed before any
-public attribution.
+Personal contribution and collaborator ownership must remain explicit before
+any public attribution. This route uses the owner's scoped majority-
+implementation approval and makes no collaborator claim.
 
 ## 2. Concept materials
 
@@ -62,19 +63,21 @@ packaging — RV-6.
 **Build order:** RV-1 → RV-2 → RV-3 → RV-4/RV-5 → RV-6. If RV-1 or RV-3
 cannot close, retain the concept internally and do not produce public materials.
 
-## 4. RV-1 blocker
+## 4. RV-1 scoped closure
 
 The repository and presentation identify RemodelVision as a four-person senior
-project, and the inspected checkout is clean. The contribution ledger also
-records the observed Git identities and AI-pipeline history. That evidence does
-not assign personal roles or grant permission to publish a team case study,
-however. No collaborator approval or provider/asset-rights record was found.
+project, and the inspected checkout is clean. The owner has now approved a
+scoped statement that Jakye Amos implemented most of the code. The approval is
+limited to the local Showcase case and the synthetic RV-2 fixture; it assigns no
+collaborator roles, endorsement, or rights to provider-generated or third-party
+assets.
 
-The exact stop is recorded in
-[`evidence/rv-1-blocker.json`](evidence/rv-1-blocker.json), and the non-public
-ledger is [`contribution-ledger.json`](contribution-ledger.json). Do not infer a
-personal role from commit counts or publish repository/provider assets until the
-owner and collaborators approve the attribution boundary.
+The exact resolution is recorded in
+[`evidence/rv-1-blocker.json`](evidence/rv-1-blocker.json), the owner record is
+[`evidence/owner-approval.json`](evidence/owner-approval.json), and the full
+boundary remains in [`contribution-ledger.json`](contribution-ledger.json).
+Do not infer collaborator roles from commit counts or expand this approval to
+the live product flow.
 
 ## 5. RV-2 closure
 
@@ -84,7 +87,8 @@ RV-2 is closed for the material track with
 scene with no people, address, geolocation, photographed property, provider
 output, or third-party asset. The manifest keeps the synthetic label and
 claim-limit rules attached to the asset. This clears rights-safe material
-preparation only; it does not clear RV-1 or prove the live RemodelVision flow.
+preparation only; it does not prove the live RemodelVision flow, constraint
+adherence, or estimate bounds.
 
 ## 6. RV-3 blocker
 
@@ -99,3 +103,20 @@ The exact evidence and claim boundary are recorded in
 useful implementation evidence, not proof of upload, generation, analysis,
 estimation, persistence, or handoff. RV-4 and RV-5 remain downstream of this
 stop; do not create a synthetic product result to fill the gap.
+
+## 7. Local showcase package
+
+The local candidate package is [`case-study.json`](case-study.json), with the
+long-form narrative in [`case-study.md`](case-study.md), the bounded claims in
+[`claim-ledger.json`](claim-ledger.json), and the responsive no-auth source at
+[`public/index.html`](public/index.html). The 16:9 binary is
+[`assets/preview-16x9.png`](assets/preview-16x9.png), with the editable source
+in [`assets/preview-16x9.svg`](assets/preview-16x9.svg); the checkpoint is
+[`evidence/rv-6-material-checkpoint.json`](evidence/rv-6-material-checkpoint.json).
+
+This package deliberately uses the RV-2 synthetic original fixture. It makes
+the brief, three directions, preserved-floor cue, and scoped owner contribution
+statement shareable, but it does not close RV-3 runtime proof, RV-4 constraint
+adherence, RV-5 estimate bounds, hosted no-auth verification, or external
+destination readbacks. It is a candidate local material, not a public
+case-study release.

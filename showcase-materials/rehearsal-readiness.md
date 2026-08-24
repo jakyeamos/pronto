@@ -2,13 +2,14 @@
 
 Last reviewed: 2026-08-13.
 
-This is the execution ledger for the 38 durable Showcase records: 34 eligible
-public targets, two excluded projects, one deferred product-direction record,
+This is the execution ledger for the 38 durable Showcase records: 32 eligible
+public targets, four excluded projects, one deferred product-direction record,
 and one supporting component in the AI Code Quality Stack. BidCamp is retained
 only as an excluded inventory record because it is client work, Soundscape is
-excluded by owner decision, TMCP is deferred behind its product-direction gate,
-and Anti-Slop is retained as a supporting package in a separate AI Code Quality
-Stack portfolio story. This ledger tracks optional video enhancement
+excluded by owner decision, AI Workflow Leverage and Marketing Autoresearch are
+excluded from the current queue by owner decision, TMCP is deferred behind its
+product-direction gate, and Anti-Slop is retained as a supporting package in a
+separate AI Code Quality Stack portfolio story. This ledger tracks optional video enhancement
 without altering publication readiness. It does not count a storyboard,
 synthetic voice file, or plausible script as behavioral proof when the case and
 its proof gate are still aspirational.
@@ -44,7 +45,7 @@ gap_closure → evidence → final_materials → reviewed`. The optional
 | Chiron's Forge             | Targeted gap closure        | Seven accepted gaps remain; CF-0 is explicitly blocked at source/deployment provenance                                                                                  | CF-0 owner-supplied repository and deployed revision                   | Blocked · provenance             |
 | Mac Control                | Targeted gap closure        | MC-1 closed; MC-2/MC-3/MC-4 source candidate passes; five accepted gaps remain                                                                                          | Explicit installed-update authority + live run                         | Not ready · installed/evidence   |
 | BidCamp                    | Excluded · client work      | Showcase work stopped                                                                                                                                                   | None                                                                   | Excluded                         |
-| Research Domain Writing    | Targeted gap closure        | RDW-1/2/3 closed; RDW-0/5 partial; three gates remain                                                                                                                   | RDW-0 release-source binding · parked with owner                       | Not ready · owner/external gates |
+| Research Domain Writing    | Targeted gap closure        | RDW-0/1/2/3/4 closed for the selected local case; hosted proof remains                                                                                                 | RDW-5 hosted no-auth page and readbacks                                | Not ready · hosting             |
 | Soundscape                 | Excluded · owner decision   | Showcase work stopped                                                                                                                                                   | None                                                                   | Excluded                         |
 | TMCP                       | Deferred · conditional gate | Narrower demo target superseded                                                                                                                                         | TM-0 always-on atomic-node ideal state                                 | Deferred · product direction     |
 | ESLint Anti-Slop           | Supporting component        | Package retained; standalone card folded                                                                                                                                | None · evidence moves to stack                                         | Not applicable                   |
@@ -52,9 +53,9 @@ gap_closure → evidence → final_materials → reviewed`. The optional
 | Terrace                    | Targeted gap closure        | TR-1–TR-6 closed locally; TR-2–TR-5 integrated into local `dev`; TR-6 capture pre-integration                                                                           | Refresh TR-6 local capture when a permitted browser can open `file://` | Optional · capture refresh       |
 | Context Compiler Contract  | Largely product-ready       | Five accepted gaps remain                                                                                                                                               | CC-1 positive and negative fixtures                                    | Not ready · case/content         |
 | Portable Agentic Workbench | Targeted gap closure        | Six accepted gaps remain                                                                                                                                                | PW-1 public representative workflow                                    | Not ready · case/content         |
-| AI Workflow Leverage       | Material build/restoration  | Five accepted gaps remain; AL-2 is parked at the eval-runtime owner boundary                                                                                            | AL-2 approved event contract and paired receipts                       | Not ready · measurement          |
-| Marketing Autoresearch     | Targeted gap closure        | Five accepted gaps remain; MA-2 is parked at the brief/source-claim contract                                                                                            | MA-2 brief-aware shadow research run                                   | Blocked · owner contract         |
-| RemodelVision              | Material build/restoration  | Five accepted gaps remain; RV-1 and RV-3 are parked at owner/runtime boundaries                                                                                         | RV-1 approved contribution boundary                                    | Blocked · attribution/runtime    |
+| AI Workflow Leverage       | Excluded · owner decision   | Supporting packet retained outside the current AI Showcase queue                                                                                                       | None                                                                   | Excluded                         |
+| Marketing Autoresearch     | Excluded · owner decision   | Supporting packet retained outside the current AI Showcase queue                                                                                                       | None                                                                   | Excluded                         |
+| RemodelVision              | Material build/restoration  | RV-1 is scoped owner-approved for the synthetic case; RV-3 remains parked at runtime prerequisites                                                                   | RV-3 current runtime and direct-surface proof                           | Blocked · runtime                |
 | Dsci-proj                  | Material build/restoration  | Five accepted gaps remain; DS-0 contract and a labeled synthetic contract preview are closed, while implementation remains narrower                                     | DS-1 two-backlog adapter                                               | Not ready · adapter proof        |
 | Book                       | Largely product-ready       | Five accepted gaps remain; BK-1 is resolved for the owner-approved synthetic case using invented text and original copyright-free music; direct reader proof and hosting remain open | BK-2 transformation arc and direct reader proof                         | Not ready · direct-surface/public |
 | Agent Router               | Targeted gap closure        | AR-1 through AR-4 replay/spec, candidate, rationale, and bounded execution receipts closed; AR-5 is parked at the native output contract and three accepted gaps remain | AR-5 confidence/fallback contract, then AR-6 reconciliation            | Not ready · synthesis/evidence   |
@@ -102,15 +103,13 @@ packet:
 4. Terrace
 5. Context Compiler Contract
 6. Portable Agentic Workbench
-7. AI Workflow Leverage
-8. Marketing Autoresearch
-9. RemodelVision
-10. Dsci-proj
-11. Book
-12. Agent Router
-13. Codex Browser Control
-14. Participant Deduplication
-15. Chiron's Forge
+7. RemodelVision
+8. Dsci-proj
+9. Book
+10. Agent Router
+11. Codex Browser Control
+12. Participant Deduplication
+13. Chiron's Forge
 
 The dev-tooling wave follows its dependency order after the existing queue:
 

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="material-status" content="candidate-local" />
+    <title>Mac Control · case packet</title>
+    <style>
+      :root { color-scheme: dark; font: 16px/1.5 system-ui, sans-serif; }
+      body { margin: 0; background: #0b1220; color: #f5f7fb; }
+      main { width: min(960px, 92vw); margin: 0 auto; padding: 48px 0 64px; }
+      .eyebrow { color: #91e2b8; letter-spacing: .12em; text-transform: uppercase; font-size: 12px; font-weight: 700; }
+      p { color: #a8b4c8; max-width: 720px; }
+      a { color: #91e2b8; }
+      .status { border: 1px solid #334155; border-radius: 999px; display: inline-block; padding: 5px 10px; color: #f0c77a; font-size: 12px; }
+      nav { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 28px; }
+      code { color: #dbeafe; }
+    </style>
+  </head>
+  <body data-material-status="candidate-local">
+    <main>
+      <p class="eyebrow">Mac Control · AI Showcase case packet</p>
+      <h1>A local safety and verification layer between AI intent and native macOS action.</h1>
+      <p>Mac Control routes typed native actions through approval, execution, verification, and redacted receipts. The creator-owned safety model is explicit: missing permission, ambiguous state, or failed verification cannot become success-shaped output.</p>
+      <p><span class="status">Candidate-local material · MC-2 live proof still open</span></p>
+      <p>The current packet includes a measured System Settings comparison, an owner-only daemon boundary, and documented limitations. The installed release check did not pass, and the required real 16:9 capture plus redacted authorization/outcome receipt have not been produced.</p>
+      <nav>
+        <a href="../preview.html">Open candidate preview</a>
+        <a href="../showcase-packet.md">Read the full packet</a>
+        <a href="../evidence/focus-session-determinism.json">Benchmark receipt</a>
+        <a href="../evidence/qa.yaml">QA boundary</a>
+      </nav>
+      <p><code>Measured capability, not production-readiness claim.</code></p>
+    </main>
+  </body>
+</html>
