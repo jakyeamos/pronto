@@ -1,6 +1,7 @@
 [quality_runner]
 default_profile = "pronto"
 allowed_package_managers = ["pnpm"]
+required_capabilities = ["formatter", "lint", "typecheck", "tests", "build", "dead_code", "runtime_smoke", "pre_pr", "pre_cr"]
 
 [quality_runner.web_readiness]
 applicability = "not_applicable"
