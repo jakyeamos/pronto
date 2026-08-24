@@ -1,11 +1,14 @@
 import type { ReactElement } from "react";
+import { useState } from "react";
 import {
   ExternalLink,
   GitBranch as Github,
   RefreshCw,
   ShieldCheck,
 } from "lucide-react";
+import { GitHubVisibilityDialog } from "./GitHubVisibilityDialog";
 import type {
+  GitHubVisibility,
   ProviderIdentity,
   ProviderStatus,
   RemoteRepositorySnapshot,
@@ -18,13 +21,21 @@ export function RemoteCatalogSurface({
   repositories,
   isRefreshing,
   onRefresh,
+  onChangeVisibility,
 }: {
   status: ProviderStatus;
   identities: ProviderIdentity[];
   repositories: RemoteRepositorySnapshot[];
   isRefreshing: boolean;
   onRefresh: () => Promise<void>;
+  onChangeVisibility: (
+    repositoryId: string,
+    targetVisibility: GitHubVisibility,
+    confirmation: string,
+  ) => Promise<void>;
 }): ReactElement {
+  const [selectedRepository, setSelectedRepository] =
+    useState<RemoteRepositorySnapshot | null>(null);
   const githubOnlyCount = repositories.filter(
     (repository) => repository.locality === "GitHub only",
   ).length;
@@ -34,7 +45,7 @@ export function RemoteCatalogSurface({
       <section className="surface-panel">
         <div className="surface-heading">
           <div>
-            <p className="eyebrow">Read-only provider boundary</p>
+            <p className="eyebrow">Approval-gated provider action</p>
             <h2>GitHub remote catalog</h2>
             <p>
               The snapshot includes connected local checkouts and GitHub-only
@@ -96,7 +107,9 @@ export function RemoteCatalogSurface({
             </h2>
             <p>
               GitHub-only entries remain quantified in provider evidence and do
-              not create a synthetic local remediation plan.
+              not create a synthetic local remediation plan. Visibility changes
+              require fresh administration permission, exact confirmation, and
+              provider readback.
             </p>
           </div>
         </div>
@@ -123,26 +136,62 @@ export function RemoteCatalogSurface({
                       {repository.locality}
                     </StatusPill>
                   </div>
-                  <small>
-                    {repository.archived ? "Archived" : "Active"} · default{" "}
-                    {repository.default_branch || "unknown"} · refreshed{" "}
-                    {formatTime(repository.last_refreshed_at)}
-                  </small>
+                  <div className="remote-repository-meta">
+                    <small>
+                      {repository.archived ? "Archived" : "Active"} · default{" "}
+                      {repository.default_branch || "unknown"} · refreshed{" "}
+                      {formatTime(repository.last_refreshed_at)}
+                    </small>
+                    <span className="remote-visibility-badge">
+                      {repository.visibility ?? "Visibility unavailable"}
+                    </span>
+                    <span className="remote-permission-label">
+                      {repository.viewer_permission
+                        ? repository.viewer_permission + " permission"
+                        : "Permission unavailable"}
+                    </span>
+                  </div>
                 </div>
-                <a
-                  className="icon-button"
-                  href={repository.html_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={"Open " + repository.full_name + " on GitHub"}
-                >
-                  <ExternalLink size={14} />
-                </a>
+                <div className="remote-repository-actions">
+                  <a
+                    className="icon-button"
+                    href={repository.html_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={"Open " + repository.full_name + " on GitHub"}
+                  >
+                    <ExternalLink size={14} />
+                  </a>
+                  {repository.viewer_can_administer === true &&
+                    repository.visibility && (
+                      <button
+                        className="button button-secondary button-compact"
+                        type="button"
+                        onClick={() => setSelectedRepository(repository)}
+                        disabled={isRefreshing}
+                      >
+                        Change visibility
+                      </button>
+                    )}
+                </div>
               </article>
             ))}
           </div>
         )}
       </section>
+      {selectedRepository && (
+        <GitHubVisibilityDialog
+          repository={selectedRepository}
+          onCancel={() => setSelectedRepository(null)}
+          onConfirm={(targetVisibility, confirmation) =>
+            onChangeVisibility(
+              selectedRepository.id,
+              targetVisibility,
+              confirmation,
+            )
+          }
+        />
+      )}
     </div>
   );
 }

@@ -5897,6 +5897,9 @@ mod tests {
                 ci_checks: Vec::new(),
                 ci_branch: None,
                 ci_commit: None,
+                visibility: None,
+                viewer_can_administer: None,
+                viewer_permission: None,
             },
             RemoteRepositorySnapshot {
                 id: "github:43".to_string(),
@@ -5915,6 +5918,9 @@ mod tests {
                 ci_checks: Vec::new(),
                 ci_branch: None,
                 ci_commit: None,
+                visibility: None,
+                viewer_can_administer: None,
+                viewer_permission: None,
             },
         ];
 

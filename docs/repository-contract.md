@@ -103,10 +103,14 @@ repository change-surface matrix to retain conditional external impacts.
 
 ## Security and credential constraints
 
-Pronto is local-first and read-only by default. Never commit credentials,
+Pronto is local-first and read-only by default. The GitHub repository visibility
+action is the sole provider-write exception and remains approval-gated. Never commit credentials,
 tokens, raw keychain values, local SQLite databases, or provider response
-caches. Do not log secrets or include them in fixtures. `gh` authentication is
-provider access evidence, not permission to mutate GitHub.
+caches. Do not log secrets or include them in fixtures. GitHub CLI
+authentication is provider access evidence, not permission to mutate GitHub:
+the native command must perform a fresh repository read, require
+permissions.admin=true, require exact repository-name confirmation, submit
+through GitHub CLI, and read the result back before updating the local projection.
 
 Quality evidence is fresh only when its observation is inside the configured
 freshness window and its scanned commit equals the current repository commit.
@@ -264,7 +268,9 @@ before:
 - committing, merging, rebasing, pushing, pruning, deleting, or rewriting Git
   state;
 - refreshing provider data, creating or merging pull requests, publishing a
-  release, or changing provider permissions;
+  release, or changing provider permissions. The bounded GitHub repository
+  visibility action is permitted only through its dedicated fresh-preflight,
+  exact-confirmation, readback, and audit contract;
 - changing credentials, security settings, privacy boundaries, or AI data
   access.
 

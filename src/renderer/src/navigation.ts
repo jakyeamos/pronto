@@ -80,9 +80,9 @@ export const pageCopy: Record<
     body: "Inspect sources, provider compatibility, hosting, and verified usage availability without treating prompts or skill catalogs as telemetry.",
   },
   remote: {
-    eyebrow: "Read-only provider boundary",
+    eyebrow: "Approval-gated provider boundary",
     title: "Remote context comes second.",
-    body: "The local portfolio is ready first; a read-only GitHub catalog will add remote context after durable state is in place.",
+    body: "The local portfolio is ready first; GitHub adds remote context plus one approval-gated visibility action after durable state is in place.",
   },
   activity: {
     eyebrow: "Local action history",

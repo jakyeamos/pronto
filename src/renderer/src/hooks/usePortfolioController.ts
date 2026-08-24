@@ -4,6 +4,7 @@ import * as api from "../api";
 import type {
   AnalyticsSnapshot,
   CreatePapercutInput,
+  GitHubVisibility,
   PapercutBacklog,
   PapercutStatus,
   MultiplierProposalStatus,
@@ -413,6 +414,48 @@ export function usePortfolioController() {
     await loadSnapshot(api.refreshGithub);
   }, [loadSnapshot]);
 
+  const handleChangeGithubVisibility = useCallback(
+    async (
+      repositoryId: string,
+      targetVisibility: GitHubVisibility,
+      confirmation: string,
+    ): Promise<void> => {
+      setIsRefreshing(true);
+      setError(null);
+      setNotice(null);
+      try {
+        const updated = await api.changeGithubRepositoryVisibility(
+          repositoryId,
+          targetVisibility,
+          confirmation,
+        );
+        setSnapshot(updated);
+        await loadAnalytics(setAnalytics, setError);
+        const audit = updated.action_audits.find(
+          (candidate) =>
+            candidate.action === "github_visibility" &&
+            candidate.target_ids.includes(repositoryId),
+        );
+        setNotice(
+          audit?.summary ??
+            "GitHub visibility changed to " +
+              targetVisibility +
+              " and read back successfully.",
+        );
+      } catch (caught) {
+        const message = messageFromCaught(
+          caught,
+          "Pronto could not change the GitHub repository visibility.",
+        );
+        setError(message);
+        throw new Error(message, { cause: caught });
+      } finally {
+        setIsRefreshing(false);
+      }
+    },
+    [],
+  );
+
   const handleRefreshRemediation = useCallback(async (): Promise<void> => {
     await loadSnapshot(api.refreshRemediation);
   }, [loadSnapshot]);
@@ -487,6 +530,7 @@ export function usePortfolioController() {
     handleSaveGroup,
     handleDeleteGroup,
     handleRefreshGithub,
+    handleChangeGithubVisibility,
     handleRefreshRemediation,
     handleExportRemediation,
     handleRemediationStatus,

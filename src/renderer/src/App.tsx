@@ -75,6 +75,7 @@ export function App(): ReactElement {
     handleSaveGroup,
     handleDeleteGroup,
     handleRefreshGithub,
+    handleChangeGithubVisibility,
     handleRefreshRemediation,
     handleExportRemediation,
     handleRemediationStatus,
@@ -470,6 +471,7 @@ export function App(): ReactElement {
               repositories={snapshot.remote_repositories}
               isRefreshing={isRefreshing}
               onRefresh={handleRefreshGithub}
+              onChangeVisibility={handleChangeGithubVisibility}
             />
           ) : (
             <RemoteDeferredSurface />

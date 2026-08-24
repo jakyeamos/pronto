@@ -15,7 +15,7 @@ The PRD is a strong product definition for a local-first portfolio command cente
 
 The scope is also deliberately broad: 117 functional requirements, 33 acceptance criteria, a cross-platform desktop shell, a local database, GitHub identity management, process inspection, a CLI, pull requests, release preparation, and optional AI. This repository is currently empty, so implementing all of V1 in one unvalidated pass would create a large amount of unproven surface area.
 
-The first build therefore establishes a runnable vertical slice around the most differentiating local behavior: discovery, Git evidence, explainable portfolio conditions, expected-state handling, and safe read-only handoff. Provider actions and release automation are represented as explicit unavailable states until their permissions, persistence, and preflight contracts can be implemented and tested.
+The first build therefore establishes a runnable vertical slice around the most differentiating local behavior: discovery, Git evidence, explainable portfolio conditions, expected-state handling, and safe handoff. Provider actions remain explicit unavailable states except for the bounded GitHub visibility action, which has its own permission, persistence, preflight, confirmation, and readback contract.
 
 ## Architecture decision
 
@@ -51,7 +51,7 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
    - branch role, target, confidence, and local integration state.
 6. Derive grouped conditions with deterministic priorities and evidence.
 7. Persist transition-only events and expected-condition fingerprints.
-8. Persist explicit read-only action preflights and audit outcomes, including rejected unsupported actions and exact local target IDs; keep modifying Git/provider actions absent.
+8. Persist explicit action preflights and audit outcomes, including rejected unsupported actions and exact target IDs; keep Git mutation and all provider writes except the dedicated GitHub visibility contract absent.
 9. Build the command center, repository detail drawer, evidence panel, onboarding, and unavailable provider/release states.
 10. Expose `pronto status` and JSON output through the same core modules.
 
@@ -60,7 +60,9 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
 - Polish local navigation, freshness, settings, keyboard access, and empty states before expanding the data boundary.
 - Continue the versioned SQLite contract while preserving the domain contracts and CLI/renderer snapshot shapes; the initial JSON store has already been imported non-destructively.
 - Add GitHub identities, explicit per-repository mapping, refresh freshness,
-  GitHub-only candidate quantification, and clone preflight.
+  GitHub-only candidate quantification, clone preflight, and the approval-gated
+  repository visibility action with fresh admin preflight, exact confirmation,
+  provider readback, and local audit persistence.
 - Add process/terminal metadata adapters and structured agent manifests.
 - Extend the read-only action contract into authorized bounded workspace actions only after permission, target, failure, and review semantics are explicit; destructive/history-rewriting Git operations remain prohibited.
 

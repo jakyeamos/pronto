@@ -51,6 +51,8 @@ export interface ProviderIdentity {
   updated_at: string;
 }
 
+export type GitHubVisibility = "public" | "private" | "internal";
+
 export interface RemoteRepositorySnapshot {
   id: string;
   provider: string;
@@ -68,6 +70,9 @@ export interface RemoteRepositorySnapshot {
   ci_checks: CheckSnapshot[];
   ci_branch?: string;
   ci_commit?: string;
+  visibility?: GitHubVisibility;
+  viewer_can_administer?: boolean;
+  viewer_permission?: string;
 }
 
 interface CheckSnapshot {

@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-17",
+  "last_reviewed": "2026-08-23",
   "reviewed_no_impact": [
     {
       "change": "Split the renderer API barrel into defaults, review commands, and portfolio commands.",
@@ -83,6 +83,26 @@
         "Verify the Dock Refresh action invokes refresh_batch and renders the returned merged snapshot.",
         "Verify startup retains the cached portfolio immediately and automatically recovers an unavailable canonical quality audit without conflating Pronto's consolidated score with the Quality Runner source score.",
         "Verify the command center presents the Mac Control maturity score as the primary value and does not duplicate semantic-coverage counts."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "github-visibility-contract",
+      "scope": "local and provider-facing action contract",
+      "path": "src-tauri/src/core.rs, src-tauri/src/lib.rs, src/renderer/src/api.ts, src/renderer/src/types.ts, src/renderer/src/navigation.ts, src/renderer/src/components/RemoteCatalogSurface.tsx, src/renderer/src/components/GitHubVisibilityDialog.tsx, src/renderer/src/hooks/usePortfolioController.ts, src/renderer/src/styles.css, docs/product-decisions.md, docs/repository-contract.md, docs/implementation-plan.md",
+      "owner": "Pronto repository maintainers",
+      "condition": "The approval-gated GitHub repository visibility action, its fresh administration preflight, exact confirmation, provider readback, audit record, local projection, or user-facing contract changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check",
+        "cargo check --manifest-path src-tauri/Cargo.toml --lib",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::github_visibility",
+        "pnpm vitest run src/renderer/src/components/RemoteCatalogSurface.test.tsx",
+        "pnpm typecheck",
+        "pnpm build:web",
+        "Verify a visibility change requires a stored GitHub repository target, fresh permissions.admin=true, an exact full-name confirmation, a provider mutation, and a matching post-mutation readback before local state is changed.",
+        "Verify unavailable network, authentication, permission, archived, no-op, and readback-mismatch outcomes remain explicit in the audit and UI.",
+        "Verify credentials remain in the GitHub CLI boundary and are not persisted, rendered, or logged."
       ],
       "status": "applicable"
     },

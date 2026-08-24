@@ -19,7 +19,7 @@ use std::ffi::OsStr;
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Command, Output, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -239,6 +239,12 @@ pub struct RemoteRepositorySnapshot {
     pub ci_branch: Option<String>,
     #[serde(default)]
     pub ci_commit: Option<String>,
+    #[serde(default)]
+    pub visibility: Option<String>,
+    #[serde(default)]
+    pub viewer_can_administer: Option<bool>,
+    #[serde(default)]
+    pub viewer_permission: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3871,23 +3877,166 @@ impl GitHubCliAdapter {
         }
     }
 
-    fn json(&self, arguments: &[&str]) -> Result<serde_json::Value, String> {
+    fn run(&self, arguments: &[&str]) -> Result<Output, String> {
         let output = Command::new(&self.executable)
             .args(arguments)
             .output()
             .map_err(|_| {
-                "GitHub provider unavailable: install GitHub CLI and authenticate it before refreshing."
+                "GitHub provider unavailable: install GitHub CLI and authenticate it before using GitHub actions."
                     .to_string()
             })?;
         if !output.status.success() {
-            return Err(
-                "GitHub provider unavailable: GitHub CLI authentication is missing or expired."
-                    .to_string(),
-            );
+            return Err(classify_github_cli_failure(&output.stderr));
         }
+        Ok(output)
+    }
+
+    fn json(&self, arguments: &[&str]) -> Result<serde_json::Value, String> {
+        let output = self.run(arguments)?;
         serde_json::from_slice(&output.stdout)
             .map_err(|_| "GitHub provider returned invalid JSON.".to_string())
     }
+
+    fn repository_control(&self, full_name: &str) -> Result<GitHubRepositoryControl, String> {
+        let endpoint = format!("repos/{full_name}");
+        let payload = self.json(&["api", endpoint.as_str()])?;
+        parse_github_repository_control(&payload, full_name)
+    }
+
+    fn edit_repository_visibility(
+        &self,
+        full_name: &str,
+        target_visibility: &str,
+    ) -> Result<(), String> {
+        let target_visibility = normalize_github_visibility(target_visibility)?;
+        let output = self.run(&[
+            "repo",
+            "edit",
+            full_name,
+            "--visibility",
+            target_visibility.as_str(),
+            "--accept-visibility-change-consequences",
+        ]);
+        output.map(|_| ()).map_err(|error| {
+            if error.starts_with("GitHub provider unavailable:") {
+                error
+            } else {
+                "GitHub visibility change rejected: the provider rejected this repository action."
+                    .to_string()
+            }
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct GitHubRepositoryControl {
+    full_name: String,
+    visibility: String,
+    archived: bool,
+    viewer_can_administer: Option<bool>,
+    viewer_permission: Option<String>,
+}
+
+fn classify_github_cli_failure(stderr: &[u8]) -> String {
+    let message = String::from_utf8_lossy(stderr).to_ascii_lowercase();
+    if [
+        "could not resolve host",
+        "error connecting",
+        "network",
+        "timed out",
+        "timeout",
+        "connection refused",
+        "connection reset",
+    ]
+    .iter()
+    .any(|term| message.contains(term))
+    {
+        return "GitHub provider unavailable: GitHub API network request failed.".to_string();
+    }
+    if [
+        "forbidden",
+        "permission",
+        "insufficient",
+        "http 403",
+        "status 403",
+    ]
+    .iter()
+    .any(|term| message.contains(term))
+    {
+        return "GitHub provider rejected the request: the connected identity or repository policy may not permit it."
+            .to_string();
+    }
+    if ["auth", "token", "login", "not logged in"]
+        .iter()
+        .any(|term| message.contains(term))
+    {
+        return "GitHub provider unavailable: GitHub CLI authentication is missing or expired."
+            .to_string();
+    }
+    "GitHub provider unavailable: GitHub CLI request failed.".to_string()
+}
+
+fn normalize_github_visibility(value: &str) -> Result<String, String> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "public" | "private" | "internal" => Ok(value.trim().to_ascii_lowercase()),
+        _ => Err("GitHub visibility must be public, private, or internal.".to_string()),
+    }
+}
+
+fn github_permission_from_payload(repository: &serde_json::Value) -> Option<String> {
+    ["admin", "maintain", "push", "triage", "pull"]
+        .iter()
+        .find(|permission| {
+            repository
+                .get("permissions")
+                .and_then(|permissions| permissions.get(**permission))
+                .and_then(serde_json::Value::as_bool)
+                .unwrap_or(false)
+        })
+        .map(|permission| (*permission).to_string())
+}
+
+fn repository_visibility_from_payload(repository: &serde_json::Value) -> Option<String> {
+    repository
+        .get("visibility")
+        .and_then(serde_json::Value::as_str)
+        .and_then(|visibility| normalize_github_visibility(visibility).ok())
+        .or_else(|| {
+            repository
+                .get("private")
+                .and_then(serde_json::Value::as_bool)
+                .map(|private| if private { "private" } else { "public" }.to_string())
+        })
+}
+
+fn parse_github_repository_control(
+    payload: &serde_json::Value,
+    expected_full_name: &str,
+) -> Result<GitHubRepositoryControl, String> {
+    let full_name = payload
+        .get("full_name")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| "GitHub provider did not return the repository identity.".to_string())?;
+    let expected_full_name = normalize_github_repository_name(expected_full_name)?;
+    let actual_full_name = normalize_github_repository_name(full_name)?;
+    if actual_full_name != expected_full_name {
+        return Err("GitHub provider returned a different repository identity.".to_string());
+    }
+    let visibility = repository_visibility_from_payload(payload)
+        .ok_or_else(|| "GitHub provider did not return the repository visibility.".to_string())?;
+    Ok(GitHubRepositoryControl {
+        full_name: full_name.to_string(),
+        visibility,
+        archived: payload
+            .get("archived")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false),
+        viewer_can_administer: payload
+            .get("permissions")
+            .and_then(|permissions| permissions.get("admin"))
+            .and_then(serde_json::Value::as_bool),
+        viewer_permission: github_permission_from_payload(payload),
+    })
 }
 
 impl ProviderAdapter for GitHubCliAdapter {
@@ -4074,6 +4223,12 @@ fn parse_github_repositories(
                 ci_checks: Vec::new(),
                 ci_branch: None,
                 ci_commit: None,
+                visibility: repository_visibility_from_payload(repository),
+                viewer_can_administer: repository
+                    .get("permissions")
+                    .and_then(|permissions| permissions.get("admin"))
+                    .and_then(serde_json::Value::as_bool),
+                viewer_permission: github_permission_from_payload(repository),
             })
         })
         .collect())
@@ -4318,6 +4473,24 @@ fn normalize_remote_name(value: &str) -> Option<String> {
     Some(normalized.trim_end_matches(".git").to_string())
 }
 
+fn normalize_github_repository_name(value: &str) -> Result<String, String> {
+    let normalized = normalize_remote_name(value)
+        .ok_or_else(|| "GitHub repository name is required.".to_string())?;
+    let mut parts = normalized.split('/');
+    let owner = parts.next().unwrap_or_default();
+    let repository = parts.next().unwrap_or_default();
+    if parts.next().is_some()
+        || owner.is_empty()
+        || repository.is_empty()
+        || !owner.chars().chain(repository.chars()).all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | '.')
+        })
+    {
+        return Err("GitHub repository name must use the owner/repository form.".to_string());
+    }
+    Ok(format!("{owner}/{repository}"))
+}
+
 fn quality_runner_identity_key(repository: &RepositorySnapshot) -> String {
     if let Some(remote) = repository.remote_url.as_deref() {
         let mut normalized = remote.trim().trim_end_matches('/').to_ascii_lowercase();
@@ -4470,7 +4643,9 @@ fn apply_provider_refresh_at(
     state.provider_status = ProviderStatus {
         provider: "GitHub".to_string(),
         state: "Ready".to_string(),
-        message: "Read-only GitHub context refreshed for connected local repositories and GitHub-only candidates.".to_string(),
+        message:
+            "GitHub context refreshed for connected local repositories and GitHub-only candidates."
+                .to_string(),
         last_refresh_at: Some(refresh.refreshed_at),
         identity_count: state.provider_identities.len(),
         repository_count: state.remote_repositories.len(),
@@ -5082,6 +5257,217 @@ fn refresh_github_scoped_at(
             Err(error)
         }
     }
+}
+
+fn fail_github_visibility_action(
+    path: &Path,
+    audit_id: &str,
+    status: &str,
+    error: String,
+) -> Result<PortfolioSnapshot, String> {
+    match update_github_visibility_audit(path, audit_id, status, error.clone(), true) {
+        Ok(()) => Err(error),
+        Err(audit_error) => Err(format!(
+            "{error} (local audit update failed: {audit_error})"
+        )),
+    }
+}
+
+fn change_github_repository_visibility_at(
+    path: &Path,
+    repository_id: &str,
+    target_visibility: &str,
+    confirmation: &str,
+) -> Result<PortfolioSnapshot, String> {
+    let created_at = iso_now();
+    let audit_id = action_audit_id("github_visibility", &created_at);
+    let requested_target = target_visibility.trim().to_ascii_lowercase();
+    let audit = ActionAudit {
+        id: audit_id.clone(),
+        action: "github_visibility".to_string(),
+        target_ids: vec![repository_id.to_string()],
+        risk: "provider-write".to_string(),
+        status: "Started".to_string(),
+        summary: format!(
+            "Requested GitHub visibility change for repository {repository_id} to {requested_target}."
+        ),
+        created_at,
+        completed_at: None,
+    };
+    with_store_write_state(path, |state| {
+        state.action_audits.push(audit);
+        prune_action_audits(state);
+        save_store(path, state)
+    })?;
+
+    let target_visibility = match normalize_github_visibility(target_visibility) {
+        Ok(target_visibility) => target_visibility,
+        Err(error) => {
+            return fail_github_visibility_action(path, &audit_id, "Rejected", error);
+        }
+    };
+    let state = match load_store(path) {
+        Ok(state) => state,
+        Err(error) => {
+            return fail_github_visibility_action(path, &audit_id, "Rejected", error);
+        }
+    };
+    let repository = match state
+        .remote_repositories
+        .iter()
+        .find(|repository| repository.id == repository_id)
+        .cloned()
+    {
+        Some(repository) => repository,
+        None => {
+            return fail_github_visibility_action(
+                path,
+                &audit_id,
+                "Rejected",
+                "GitHub repository is not present in the current provider snapshot; refresh GitHub and try again."
+                    .to_string(),
+            );
+        }
+    };
+    if !repository.provider.eq_ignore_ascii_case("github") {
+        return fail_github_visibility_action(
+            path,
+            &audit_id,
+            "Rejected",
+            "Visibility changes are only supported for GitHub repositories.".to_string(),
+        );
+    }
+    let full_name = match normalize_github_repository_name(&repository.full_name) {
+        Ok(full_name) => full_name,
+        Err(error) => {
+            return fail_github_visibility_action(path, &audit_id, "Rejected", error);
+        }
+    };
+    if confirmation.trim() != repository.full_name {
+        return fail_github_visibility_action(
+            path,
+            &audit_id,
+            "Rejected",
+            format!(
+                "Type the exact repository name {} to confirm this provider change.",
+                repository.full_name
+            ),
+        );
+    }
+
+    let adapter = GitHubCliAdapter::default();
+    let control = match adapter.repository_control(&full_name) {
+        Ok(control) => control,
+        Err(error) => {
+            return fail_github_visibility_action(path, &audit_id, "Rejected", error);
+        }
+    };
+    if normalize_github_repository_name(&control.full_name)
+        .ok()
+        .as_deref()
+        != Some(&full_name)
+    {
+        return fail_github_visibility_action(
+            path,
+            &audit_id,
+            "Rejected",
+            "GitHub provider returned a different repository identity.".to_string(),
+        );
+    }
+    if control.archived {
+        return fail_github_visibility_action(
+            path,
+            &audit_id,
+            "Rejected",
+            "Archived GitHub repositories cannot change visibility from Pronto.".to_string(),
+        );
+    }
+    if control.viewer_can_administer != Some(true) {
+        return fail_github_visibility_action(
+            path,
+            &audit_id,
+            "Rejected",
+            "The connected GitHub identity does not have repository administration permission."
+                .to_string(),
+        );
+    }
+    if control.visibility == target_visibility {
+        return fail_github_visibility_action(
+            path,
+            &audit_id,
+            "Rejected",
+            format!("GitHub repository is already {target_visibility}."),
+        );
+    }
+    if let Err(error) = update_github_visibility_audit(
+        path,
+        &audit_id,
+        "Preflighted",
+        format!(
+            "Fresh GitHub preflight passed for {full_name}: {current} to {target_visibility}; administration permission confirmed.",
+            current = control.visibility
+        ),
+        false,
+    ) {
+        return Err(error);
+    }
+
+    if let Err(error) = adapter.edit_repository_visibility(&full_name, &target_visibility) {
+        return fail_github_visibility_action(path, &audit_id, "Failed", error);
+    }
+    let readback = match adapter.repository_control(&full_name) {
+        Ok(control) => control,
+        Err(error) => {
+            return fail_github_visibility_action(
+                path,
+                &audit_id,
+                "Unknown",
+                format!(
+                    "GitHub visibility change was submitted, but post-change readback failed: {error}"
+                ),
+            );
+        }
+    };
+    if readback.visibility != target_visibility {
+        return fail_github_visibility_action(
+            path,
+            &audit_id,
+            "Unknown",
+            format!(
+                "GitHub visibility change was submitted, but readback reported {} instead of {target_visibility}.",
+                readback.visibility
+            ),
+        );
+    }
+
+    let refreshed_at = iso_now();
+    let snapshot = with_store_write_state(path, |state| {
+        let remote = state
+            .remote_repositories
+            .iter_mut()
+            .find(|remote| remote.id == repository_id)
+            .ok_or_else(|| "GitHub repository disappeared from the local snapshot.".to_string())?;
+        remote.visibility = Some(readback.visibility.clone());
+        remote.viewer_can_administer = readback.viewer_can_administer;
+        remote.viewer_permission = readback.viewer_permission.clone();
+        remote.archived = readback.archived;
+        remote.last_refreshed_at = refreshed_at;
+        state.provider_status.message = format!(
+            "GitHub visibility for {full_name} changed to {target_visibility}; fresh provider readback confirmed it."
+        );
+        update_action_audit(
+            state,
+            &audit_id,
+            "Completed",
+            format!(
+                "GitHub visibility for {full_name} changed from {} to {target_visibility}; fresh provider readback confirmed it.",
+                control.visibility,
+            ),
+        )?;
+        save_store(path, state)?;
+        Ok(snapshot_from_store(path, state))
+    })?;
+    Ok(snapshot)
 }
 
 fn remediation_refresh_steps() -> Vec<remediation::RemediationRefreshStep> {
@@ -10443,6 +10829,26 @@ fn update_action_audit(
     Ok(())
 }
 
+fn update_github_visibility_audit(
+    path: &Path,
+    audit_id: &str,
+    status: &str,
+    summary: String,
+    completed: bool,
+) -> Result<(), String> {
+    with_store_write_state(path, |state| {
+        let audit = state
+            .action_audits
+            .iter_mut()
+            .find(|audit| audit.id == audit_id)
+            .ok_or_else(|| "GitHub visibility audit record is no longer available".to_string())?;
+        audit.status = status.to_string();
+        audit.summary = summary;
+        audit.completed_at = completed.then(iso_now);
+        save_store(path, state)
+    })
+}
+
 fn preflight_action_at(
     path: &Path,
     action: &str,
@@ -12036,6 +12442,20 @@ pub async fn refresh_repository_target_evidence(
 #[tauri::command]
 pub fn refresh_github() -> Result<PortfolioSnapshot, String> {
     refresh_github_at(&store_path())
+}
+
+#[tauri::command]
+pub fn change_github_repository_visibility(
+    repository_id: String,
+    target_visibility: String,
+    confirmation: String,
+) -> Result<PortfolioSnapshot, String> {
+    change_github_repository_visibility_at(
+        &store_path(),
+        &repository_id,
+        &target_visibility,
+        &confirmation,
+    )
 }
 
 #[tauri::command]
@@ -20157,7 +20577,9 @@ mod tests {
                 "owner": {"login": "Acme"},
                 "html_url": "https://github.com/Acme/Portfolio",
                 "default_branch": "main",
-                "archived": false
+                "archived": false,
+                "visibility": "private",
+                "permissions": {"admin": true, "push": true}
             }],
             [{
                 "full_name": "Acme/Archive",
@@ -20174,8 +20596,50 @@ mod tests {
         assert_eq!(repositories[0].full_name, "Acme/Portfolio");
         assert_eq!(repositories[0].owner, "Acme");
         assert_eq!(repositories[0].locality, "Remote only");
+        assert_eq!(repositories[0].visibility.as_deref(), Some("private"));
+        assert_eq!(repositories[0].viewer_can_administer, Some(true));
+        assert_eq!(repositories[0].viewer_permission.as_deref(), Some("admin"));
         assert_eq!(repositories[1].name, "Archive");
         assert!(repositories[1].archived);
+    }
+
+    #[test]
+    fn github_visibility_preflight_parses_identity_permission_and_visibility() {
+        let control = parse_github_repository_control(
+            &serde_json::json!({
+                "full_name": "Acme/Portfolio",
+                "visibility": "internal",
+                "archived": false,
+                "permissions": {"admin": true, "push": true}
+            }),
+            "acme/portfolio",
+        )
+        .expect("GitHub repository control should parse");
+
+        assert_eq!(control.full_name, "Acme/Portfolio");
+        assert_eq!(control.visibility, "internal");
+        assert_eq!(control.viewer_can_administer, Some(true));
+        assert_eq!(control.viewer_permission.as_deref(), Some("admin"));
+        assert_eq!(
+            normalize_github_visibility(" PRIVATE ").expect("private is valid"),
+            "private"
+        );
+        assert!(normalize_github_visibility("secret").is_err());
+        assert!(normalize_github_repository_name("acme/portfolio/extra").is_err());
+    }
+
+    #[test]
+    fn github_cli_failures_preserve_network_auth_and_permission_boundaries() {
+        assert!(
+            classify_github_cli_failure(b"error connecting to api.github.com")
+                .contains("network request failed")
+        );
+        assert!(
+            classify_github_cli_failure(b"gh: not logged in to github.com")
+                .contains("authentication is missing")
+        );
+        assert!(classify_github_cli_failure(b"HTTP 403 Forbidden")
+            .contains("provider rejected the request"));
     }
 
     #[test]
@@ -20292,6 +20756,9 @@ mod tests {
                     ci_checks: Vec::new(),
                     ci_branch: None,
                     ci_commit: None,
+                    visibility: Some("private".to_string()),
+                    viewer_can_administer: Some(true),
+                    viewer_permission: Some("admin".to_string()),
                 },
                 RemoteRepositorySnapshot {
                     id: "github:99".to_string(),
@@ -20310,6 +20777,9 @@ mod tests {
                     ci_checks: Vec::new(),
                     ci_branch: None,
                     ci_commit: None,
+                    visibility: Some("public".to_string()),
+                    viewer_can_administer: Some(false),
+                    viewer_permission: Some("pull".to_string()),
                 },
             ],
             pull_requests: Vec::new(),
