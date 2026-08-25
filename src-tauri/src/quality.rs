@@ -22,4 +22,5 @@ mod tests {
     include!("quality/tests-04.rs");
     include!("quality/tests-05.rs");
     include!("quality/tests-06.rs");
+    include!("quality/tests-07.rs");
 }
