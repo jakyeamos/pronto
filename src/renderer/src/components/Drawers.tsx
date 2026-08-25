@@ -16,39 +16,22 @@ import type {
   QualityGate,
   RepositorySnapshot,
 } from "../types";
-import type { RemediationRun } from "../types/remediation";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
 import {
-  QualityFindingsSummary,
   QualityGateCell,
   QualityGateStatusPill,
-  QualityRunnerCommandRunsSummary,
-  TestPortfolioSummary,
-  WebReadinessSummary,
   projectQualityGateForTarget,
-  projectQualityReadinessForTarget,
   qualityGateDisplayLabel,
 } from "./QualityComponents";
-import { QualityMaturityWithCacheSummary } from "./CacheDesignSummary";
 import { targetScopeForRepository } from "../branchEvidence";
 import { ProjectCompassDetail } from "./ProjectCompassDetail";
 import { InstalledRuntimeParityDetail } from "./InstalledRuntimeParityDetail";
 import { RepositoryAnalyticsPanel } from "./RepositoryAnalyticsPanel";
 import { RepositoryInventoryPanels } from "./RepositoryInventoryPanels";
 import { TelescopeSurface } from "./TelescopeSurface";
-
-const EMPTY_REMEDIATION_RUN: RemediationRun = {
-  schema_version: "unavailable",
-  id: "unavailable",
-  generated_at: "",
-  status: "Unavailable",
-  eligible_repository_ids: [],
-  eligible_repository_paths: [],
-  refresh_steps: [],
-  excluded_repositories: [],
-  closures: [],
-  plans: [],
-};
+import { RepositoryQualityOverview } from "./RepositoryQualityOverview";
+import { EMPTY_REMEDIATION_RUN } from "./emptyRemediationRun";
+import type { RemediationRun } from "../types/remediation";
 
 export function RepositoryDetailSurface({
   repository,
@@ -97,12 +80,6 @@ export function RepositoryDetailSurface({
         ?.last_commit
     : selectedTargetCommit;
   const targetEvidenceRefreshing = isRefreshing && pendingTargetBranch !== null;
-  const targetReadiness = projectQualityReadinessForTarget(
-    repository.quality.ci_readiness,
-    repository.quality.gates,
-    target.branch,
-    target.commit,
-  );
   const targetBranches = Array.from(
     new Set(
       [
@@ -336,30 +313,10 @@ export function RepositoryDetailSurface({
             ) : (
               <>
                 <div className="quality-detail-overview">
-                  <QualityMaturityWithCacheSummary
-                    maturity={repository.quality.maturity}
-                    readiness={targetReadiness.readiness}
+                  <RepositoryQualityOverview
+                    repository={repository}
                     targetBranch={target.branch}
                     targetCommit={target.commit}
-                    targetReadinessState={targetReadiness.state}
-                    onOpenReport={onOpenReport}
-                  />
-                  <QualityFindingsSummary
-                    findings={repository.quality.findings}
-                    targetBranch={selectedTargetBranch || undefined}
-                    targetCommit={selectedTargetCommit}
-                    onOpenReport={onOpenReport}
-                  />
-                  <WebReadinessSummary
-                    webReadiness={repository.quality.web_readiness}
-                    onOpenReport={onOpenReport}
-                  />
-                  <TestPortfolioSummary
-                    testPortfolio={repository.quality.test_portfolio}
-                    onOpenReport={onOpenReport}
-                  />
-                  <QualityRunnerCommandRunsSummary
-                    commandRuns={repository.quality.qr_command_runs}
                     onOpenReport={onOpenReport}
                   />
                 </div>
