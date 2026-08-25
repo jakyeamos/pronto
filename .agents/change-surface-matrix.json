@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-24",
+  "last_reviewed": "2026-08-25",
   "reviewed_no_impact": [
     {
       "change": "Split the renderer API barrel into defaults, review commands, and portfolio commands.",
@@ -17,6 +17,23 @@
     }
   ],
   "surfaces": [
+    {
+      "id": "behavior-assurance-systemic-resilience",
+      "scope": "local and external consumer contract",
+      "path": "src-tauri/src/behavior_assurance.rs, src-tauri/src/behavior_assurance/, src-tauri/src/core/cli-07.rs, src-tauri/src/core/part-38.rs, .pronto/behavior-assurance.json, docs/behavior-assurance.md, Quality Runner behavior-assurance producer, and .agents/change-surface-matrix.json",
+      "owner": "Pronto and Quality Runner integration owners",
+      "condition": "Systemic-resilience dimensions, profile status, bounded dimension counts, scenario projection, fleet filtering, or release-boundary separation changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml behavior_assurance::tests",
+        "cargo check --manifest-path src-tauri/Cargo.toml --lib",
+        "pnpm --silent run cli behavior --filter resilience_unprofiled --json",
+        "Validate .pronto/behavior-assurance.json through Quality Runner and confirm malformed declared profiles fail closed.",
+        "Confirm missing resilience profiles remain visible without changing state, Tier-0 release_ready, score, or receipt freshness.",
+        "Confirm the Pronto skill was reviewed and needs no command update because it does not document the behavior-audit CLI."
+      ],
+      "status": "applicable"
+    },
     {
       "id": "matrix-maintenance",
       "scope": "local",

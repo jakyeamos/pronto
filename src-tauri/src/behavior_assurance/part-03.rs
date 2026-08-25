@@ -13,6 +13,8 @@ pub struct BehaviorAssurancePortfolioState {
     #[serde(default)]
     pub edge_profile_status_counts: BTreeMap<String, usize>,
     #[serde(default)]
+    pub resilience_profile_status_counts: BTreeMap<String, usize>,
+    #[serde(default)]
     pub state_counts: BTreeMap<String, usize>,
     #[serde(default)]
     pub required_scenario_count: usize,
@@ -35,6 +37,7 @@ impl Default for BehaviorAssurancePortfolioState {
             result_status_counts: Default::default(),
             contract_schema_counts: Default::default(),
             edge_profile_status_counts: Default::default(),
+            resilience_profile_status_counts: Default::default(),
             state_counts: Default::default(),
             required_scenario_count: 0,
             passed_scenario_count: 0,
@@ -64,6 +67,9 @@ pub struct BehaviorAssuranceAuditReport {
     pub ready_repository_count: usize,
     pub gap_count: usize,
     pub coverage: BehaviorCoverageCounts,
+    pub resilience_profiled_scenario_count: usize,
+    pub resilience_profile_status_counts: BTreeMap<String, usize>,
+    pub resilience_dimension_counts: BTreeMap<String, BehaviorResilienceDimensionCounts>,
     pub repositories: Vec<BehaviorAssuranceAuditRepository>,
     pub next_safe_step: String,
 }
@@ -72,6 +78,7 @@ pub const AUDIT_FILTERS: &[&str] = &[
     "missing",
     "legacy",
     "unprofiled",
+    "resilience_unprofiled",
     "partially_verified",
     "stale",
     "failed",
@@ -99,10 +106,21 @@ pub fn audit_report(
         .map(|repository| repository.quality.behavior_assurance.gaps.len())
         .sum();
     let mut coverage = BehaviorCoverageCounts::default();
+    let mut resilience_profiled_scenario_count = 0;
+    let mut resilience_profile_status_counts = BTreeMap::new();
+    let mut resilience_dimension_counts = BTreeMap::new();
     for repository in &selected {
         let mut assurance = repository.quality.behavior_assurance.clone();
         assurance.normalize_state();
         add_counts(&mut coverage, &assurance.coverage.counts);
+        resilience_profiled_scenario_count += assurance.coverage.resilience_profiled;
+        *resilience_profile_status_counts
+            .entry(normalized_resilience_status(&assurance).to_string())
+            .or_insert(0) += 1;
+        add_resilience_dimensions(
+            &mut resilience_dimension_counts,
+            &assurance.coverage.per_resilience_dimension,
+        );
     }
     let ready = if filter.is_some() {
         repository_count == 0 || ready_repository_count == repository_count
@@ -127,6 +145,9 @@ pub fn audit_report(
         ready_repository_count,
         gap_count,
         coverage,
+        resilience_profiled_scenario_count,
+        resilience_profile_status_counts,
+        resilience_dimension_counts,
         repositories: selected
             .iter()
             .map(|repository| BehaviorAssuranceAuditRepository {
@@ -143,7 +164,7 @@ pub fn audit_report(
         next_safe_step: if ready {
             "No selected behavior-assurance action is required."
         } else {
-            "Review release gaps and edge-coverage gaps separately, then publish a fresh Quality Runner fleet feed."
+            "Review release, edge-coverage, and systemic-resilience gaps separately, then publish a fresh Quality Runner fleet feed."
         }
         .to_string(),
     }
@@ -161,6 +182,10 @@ fn matches_filter(state: &BehaviorAssuranceRepositoryState, filter: Option<&str>
                 || state.edge_profile_status == "legacy"
         }
         Some("unprofiled") => state.state == "unprofiled",
+        Some("resilience_unprofiled") => matches!(
+            normalized_resilience_status(&state),
+            "missing" | "unprofiled" | "partially_profiled" | "legacy"
+        ),
         Some("partially_verified") => state.state == "partially_verified",
         Some("stale") => {
             state.state == "stale"
@@ -181,6 +206,27 @@ fn matches_filter(state: &BehaviorAssuranceRepositoryState, filter: Option<&str>
         Some("current") => state.state == "current",
         Some("not_applicable") => state.state == "not_applicable",
         Some(_) => false,
+    }
+}
+
+pub(crate) fn normalized_resilience_status(state: &BehaviorAssuranceRepositoryState) -> &str {
+    if !state.resilience_profile_status.is_empty() {
+        state.resilience_profile_status.as_str()
+    } else if !state.coverage.resilience_profile_status.is_empty() {
+        state.coverage.resilience_profile_status.as_str()
+    } else {
+        "missing"
+    }
+}
+
+fn add_resilience_dimensions(
+    target: &mut BTreeMap<String, BehaviorResilienceDimensionCounts>,
+    source: &BTreeMap<String, BehaviorResilienceDimensionCounts>,
+) {
+    for (dimension, counts) in source {
+        let entry = target.entry(dimension.clone()).or_default();
+        entry.scenario_count += counts.scenario_count;
+        entry.item_count += counts.item_count;
     }
 }
 

@@ -80,9 +80,15 @@ fn run_cli_arm_07(
             report.coverage.blocked,
             report.coverage.unknown
         );
+        println!(
+            "Systemic resilience: {}/{} scenarios profiled · {} dimensions represented",
+            report.resilience_profiled_scenario_count,
+            report.coverage.total,
+            report.resilience_dimension_counts.len()
+        );
         for repository in &report.repositories {
             println!(
-                "  {} · state {} · release {} · {}/{} Tier-0 · edge {}/{} verified · {}/{} profiled",
+                "  {} · state {} · release {} · {}/{} Tier-0 · edge {}/{} verified · {}/{} profiled · resilience {}",
                 repository.repository_name,
                 repository.assurance.state,
                 if repository.assurance.release_ready {
@@ -95,7 +101,8 @@ fn run_cli_arm_07(
                 repository.assurance.coverage.counts.verified,
                 repository.assurance.coverage.counts.total,
                 repository.assurance.coverage.counts.profiled,
-                repository.assurance.coverage.counts.total
+                repository.assurance.coverage.counts.total,
+                crate::behavior_assurance::normalized_resilience_status(&repository.assurance)
             );
             for gap in repository.assurance.gaps.iter().take(5) {
                 println!("    {} · {}", gap.kind, gap.message);

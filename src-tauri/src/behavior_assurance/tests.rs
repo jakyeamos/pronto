@@ -80,3 +80,76 @@
         assert!(!state.gaps.iter().any(|gap| gap.kind == "target_mismatch"));
         assert!(!matches_filter(&state, Some("stale")));
     }
+
+    #[test]
+    fn resilience_profiles_remain_separate_from_release_readiness() {
+        let state = BehaviorAssuranceRepositoryState {
+            applicability: "applicable".to_string(),
+            state: "current".to_string(),
+            contract_status: "current".to_string(),
+            edge_profile_status: "profiled".to_string(),
+            resilience_profile_status: "partially_profiled".to_string(),
+            result_status: "passed".to_string(),
+            freshness: "current".to_string(),
+            release_ready: true,
+            gaps: Vec::new(),
+            coverage: BehaviorCoverage {
+                counts: BehaviorCoverageCounts {
+                    total: 2,
+                    profiled: 2,
+                    verified: 1,
+                    unknown: 1,
+                    ..BehaviorCoverageCounts::default()
+                },
+                resilience_profiled: 1,
+                resilience_profile_status: "partially_profiled".to_string(),
+                per_resilience_dimension: BTreeMap::from([(
+                    "defenses".to_string(),
+                    BehaviorResilienceDimensionCounts {
+                        scenario_count: 1,
+                        item_count: 2,
+                    },
+                )]),
+                ..BehaviorCoverage::default()
+            },
+            ..BehaviorAssuranceRepositoryState::default()
+        };
+
+        assert!(state.release_ready);
+        assert_eq!(state.state, "current");
+        assert!(matches_filter(&state, Some("resilience_unprofiled")));
+        assert!(!matches_filter(&state, Some("unprofiled")));
+    }
+
+    #[test]
+    fn resilience_dimension_aggregation_preserves_scenarios_and_items() {
+        let mut target = BTreeMap::from([(
+            "defenses".to_string(),
+            BehaviorResilienceDimensionCounts {
+                scenario_count: 1,
+                item_count: 2,
+            },
+        )]);
+        let source = BTreeMap::from([
+            (
+                "defenses".to_string(),
+                BehaviorResilienceDimensionCounts {
+                    scenario_count: 2,
+                    item_count: 3,
+                },
+            ),
+            (
+                "near_misses".to_string(),
+                BehaviorResilienceDimensionCounts {
+                    scenario_count: 1,
+                    item_count: 1,
+                },
+            ),
+        ]);
+
+        add_resilience_dimensions(&mut target, &source);
+
+        assert_eq!(target["defenses"].scenario_count, 3);
+        assert_eq!(target["defenses"].item_count, 5);
+        assert_eq!(target["near_misses"].scenario_count, 1);
+    }

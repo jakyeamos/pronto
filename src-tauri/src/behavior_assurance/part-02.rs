@@ -7,6 +7,7 @@ impl Default for BehaviorAssuranceRepositoryState {
             contract_status: "missing".to_string(),
             contract_schema: None,
             edge_profile_status: "missing".to_string(),
+            resilience_profile_status: "missing".to_string(),
             result_status: "unknown".to_string(),
             freshness: "unknown".to_string(),
             release_ready: false,

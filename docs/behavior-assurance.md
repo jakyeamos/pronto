@@ -1,4 +1,4 @@
-# Behavior assurance and edge durability
+# Behavior assurance, edge durability, and systemic resilience
 
 Pronto presents two related but separate claims:
 
@@ -6,6 +6,9 @@ Pronto presents two related but separate claims:
   trusted evidence for the selected target.
 - Edge durability asks how much of the full Tier 0-2 scenario inventory is
   profiled and verified under careless, hostile, and unexpected use.
+- Systemic resilience asks whether scenarios preserve plural failure
+  trajectories, defenses, degraded modes, near misses, operator adaptations,
+  and change risks without reducing them to a single root cause.
 
 Completing more inventory never silently widens the release gate.
 
@@ -43,12 +46,31 @@ Risk is routine or hostile. Side effects are none, reversible, or destructive.
 A missing profile remains an auditable gap instead of making the contract
 invalid, allowing deliberate incremental adoption.
 
+A v2 scenario may also declare a systemic-resilience profile:
+
+    "resilience_profile": {
+      "failure_trajectories": ["A stale feed and target mismatch can combine."],
+      "defenses": ["Typed fail-closed fields preserve uncertainty."],
+      "degraded_modes": ["Cached evidence remains visibly stale."],
+      "near_misses": ["A missing field defaulted to unknown instead of current."],
+      "operator_adaptations": ["Operators refresh evidence before acting."],
+      "change_risks": ["Combining profile coverage with release readiness would widen the gate."]
+    }
+
+When present, all six dimensions must contain at least one observation. Quality
+Runner projects only dimension names and bounded item counts; the descriptive
+contract text stays repository-owned. A missing profile is visible as missing,
+unprofiled, or partially profiled, but never changes Tier-0 release readiness,
+score, or receipt trust. The adjacent scenario receipt status distinguishes a
+documented resilience model from verified behavior.
+
 ## Projection semantics
 
 Tier-0 required and passed counts, gaps, and release_ready retain their original
 meaning. The separate coverage object evaluates every declared Tier 0-2
 scenario and reports total, profiled, verified, stale, failed, blocked, and
-unknown counts, with per-tier, per-category, and bounded per-scenario records.
+unknown counts, with per-tier, per-category, per-resilience-dimension, and
+bounded per-scenario records.
 
 Contract, profile, result, freshness, verification level, and automation state
 remain independent. Target mismatch removes release readiness and converts
@@ -93,6 +115,7 @@ The CLI and installed app show release and edge assurance separately:
     pnpm --silent run cli behavior --filter missing --json
     pnpm --silent run cli behavior --filter legacy --json
     pnpm --silent run cli behavior --filter unprofiled --json
+    pnpm --silent run cli behavior --filter resilience_unprofiled --json
     pnpm --silent run cli behavior --filter partially_verified --json
     pnpm --silent run cli behavior --filter stale --json
     pnpm --silent run cli behavior --filter failed --json
@@ -101,7 +124,8 @@ The CLI and installed app show release and edge assurance separately:
     pnpm --silent run cli behavior --filter current --json
     pnpm --silent run cli behavior --filter not_applicable --json
 
-The Quality workspace exposes the same fleet filters and counts. The CLI exits
+The CLI JSON and text output expose resilience profile status and bounded
+dimension counts beside release and edge evidence. The CLI exits
 non-zero when selected repositories contain Tier-0 release gaps. Filters select
 repositories; they never mutate or reinterpret evidence.
 

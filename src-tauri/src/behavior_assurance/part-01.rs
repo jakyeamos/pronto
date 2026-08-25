@@ -88,6 +88,12 @@ pub struct BehaviorScenarioCoverage {
     pub risk: Option<String>,
     #[serde(default)]
     pub side_effects: Option<String>,
+    #[serde(default)]
+    pub resilience_profiled: bool,
+    #[serde(default)]
+    pub resilience_dimensions: Vec<String>,
+    #[serde(default)]
+    pub resilience_item_counts: BTreeMap<String, usize>,
     pub status: String,
     #[serde(default)]
     pub verification_level: Option<String>,
@@ -103,17 +109,39 @@ pub struct BehaviorCategoryGap {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BehaviorResilienceDimensionCounts {
+    #[serde(default)]
+    pub scenario_count: usize,
+    #[serde(default)]
+    pub item_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BehaviorResilienceGap {
+    pub dimension: String,
+    pub scenario_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BehaviorCoverage {
     #[serde(flatten)]
     pub counts: BehaviorCoverageCounts,
     #[serde(default)]
     pub profile_status: String,
     #[serde(default)]
+    pub resilience_profiled: usize,
+    #[serde(default)]
+    pub resilience_profile_status: String,
+    #[serde(default)]
     pub per_tier: BTreeMap<String, BehaviorCoverageCounts>,
     #[serde(default)]
     pub per_edge_category: BTreeMap<String, BehaviorCoverageCounts>,
     #[serde(default)]
+    pub per_resilience_dimension: BTreeMap<String, BehaviorResilienceDimensionCounts>,
+    #[serde(default)]
     pub category_gaps: Vec<BehaviorCategoryGap>,
+    #[serde(default)]
+    pub resilience_gaps: Vec<BehaviorResilienceGap>,
     #[serde(default)]
     pub scenarios: Vec<BehaviorScenarioCoverage>,
     #[serde(default)]
@@ -131,6 +159,8 @@ pub struct BehaviorAssuranceRepositoryState {
     pub contract_schema: Option<String>,
     #[serde(default)]
     pub edge_profile_status: String,
+    #[serde(default)]
+    pub resilience_profile_status: String,
     pub result_status: String,
     pub freshness: String,
     pub release_ready: bool,

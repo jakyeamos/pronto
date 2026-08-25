@@ -70,6 +70,26 @@
             "categories": ["state_and_ordering"],
             "risk": "routine",
             "side_effects": "none"
+          },
+          "resilience_profile": {
+            "failure_trajectories": [
+              "A stale producer feed, target mismatch, and conservative defaults can combine into a fleet gap without any single root cause."
+            ],
+            "defenses": [
+              "Typed dimensional fields and fail-closed filters keep missing evidence from becoming ready."
+            ],
+            "degraded_modes": [
+              "The CLI can report cached evidence only with its stale or unknown state preserved."
+            ],
+            "near_misses": [
+              "A missing producer field defaults to missing instead of being interpreted as current evidence."
+            ],
+            "operator_adaptations": [
+              "Operators inspect exact repository gaps and refresh Quality Runner evidence before acting."
+            ],
+            "change_risks": [
+              "Collapsing resilience completeness into release readiness would silently widen the Tier-0 gate."
+            ]
           }
         }
       ]
@@ -227,7 +247,7 @@
           "oracle": "Renderer tests prove semantic overview clustering, district-local expansion, building-local source detail, fixed nodes, fit-on-scope-change, and an action-guided tour over stable canonical geometry.",
           "verification_level": "automated",
           "edge_profile": {
-            "categories": ["scale_and_capacity", "state_and_ordering", "input_and_encoding"],
+            "categories": ["resource_pressure", "state_and_ordering", "input_and_encoding"],
             "risk": "routine",
             "side_effects": "none"
           }
@@ -238,7 +258,7 @@
           "oracle": "A representative dense projection enters a split building-local workspace, progressively reveals files and symbols, and remains interactive without mounting the global dependency graph.",
           "verification_level": "direct_surface",
           "edge_profile": {
-            "categories": ["scale_and_capacity", "resource_and_time", "interruption_and_recovery"],
+            "categories": ["resource_pressure", "interruption_and_recovery"],
             "risk": "hostile",
             "side_effects": "none"
           }
