@@ -105,6 +105,10 @@ pub struct QualitySnapshot {
     pub release_boundary: ReleaseBoundarySnapshot,
     #[serde(default)]
     pub installed_runtime: InstalledRuntimeSnapshot,
+    #[serde(default)]
+    pub qr_command_runs: QrCommandRunLedgerSnapshot,
+    #[serde(default)]
+    pub test_portfolio: TestPortfolioSnapshot,
     pub last_ingested_at: Option<String>,
     pub ingestion_status: String,
     pub ingestion_message: Option<String>,
@@ -125,9 +129,94 @@ impl Default for QualitySnapshot {
             web_readiness: WebReadinessSnapshot::default(),
             release_boundary: ReleaseBoundarySnapshot::default(),
             installed_runtime: InstalledRuntimeSnapshot::default(),
+            qr_command_runs: QrCommandRunLedgerSnapshot::default(),
+            test_portfolio: TestPortfolioSnapshot::default(),
             last_ingested_at: None,
             ingestion_status: "No evidence".to_string(),
             ingestion_message: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QrCommandRunSnapshot {
+    pub run_id: String,
+    pub mode: String,
+    pub status: String,
+    pub freshness: QualityFreshness,
+    pub observed_at: Option<String>,
+    pub scanned_commit: Option<String>,
+    pub scanned_branch: Option<String>,
+    pub artifact_count: u64,
+    pub manifest_path: String,
+    pub detail: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QrCommandRunLedgerSnapshot {
+    pub status: String,
+    pub implementation_allowed: bool,
+    pub total_count: u64,
+    pub visible_count: u64,
+    pub invalid_count: u64,
+    pub mode_counts: BTreeMap<String, u64>,
+    pub runs: Vec<QrCommandRunSnapshot>,
+    pub detail: String,
+}
+
+impl Default for QrCommandRunLedgerSnapshot {
+    fn default() -> Self {
+        Self {
+            status: "No evidence".to_string(),
+            implementation_allowed: false,
+            total_count: 0,
+            visible_count: 0,
+            invalid_count: 0,
+            mode_counts: BTreeMap::new(),
+            runs: Vec::new(),
+            detail: "No Quality Runner command runs have been imported.".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TestPortfolioRunSnapshot {
+    pub schema: String,
+    pub run_id: String,
+    pub operation: String,
+    pub status: String,
+    pub freshness: QualityFreshness,
+    pub observed_at: Option<String>,
+    pub scanned_commit: Option<String>,
+    pub scanned_branch: Option<String>,
+    pub report_path: String,
+    pub artifact_hash: Option<String>,
+    pub source_audit_hash: Option<String>,
+    pub removal_candidate_count: u64,
+    pub insufficient_evidence_count: u64,
+    pub removed_test_count: u64,
+    pub blocker_ids: Vec<String>,
+    pub detail: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TestPortfolioSnapshot {
+    pub status: String,
+    pub implementation_allowed: bool,
+    pub audit: Option<TestPortfolioRunSnapshot>,
+    pub removal_proof: Option<TestPortfolioRunSnapshot>,
+    pub detail: String,
+}
+
+impl Default for TestPortfolioSnapshot {
+    fn default() -> Self {
+        Self {
+            status: "No evidence".to_string(),
+            implementation_allowed: false,
+            audit: None,
+            removal_proof: None,
+            detail: "No Quality Runner test-portfolio command run has been imported."
+                .to_string(),
         }
     }
 }

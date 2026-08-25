@@ -13,6 +13,7 @@ fn build_plan(
     add_release_evidence_seeds(repository, &goal, &mut seeds);
     add_project_compass_seeds(repository, &mut seeds);
     add_installed_runtime_seed(repository, &mut seeds);
+    add_test_portfolio_seed(repository, &mut seeds);
     if goal_requires_provider(&goal) {
         add_provider_seed(repository, &mut seeds);
         add_pull_request_seeds(repository, &mut seeds);
@@ -186,6 +187,64 @@ fn add_installed_runtime_seed(repository: &RepositorySnapshot, seeds: &mut Vec<A
         )],
         related_finding_ids: Vec::new(),
         source_run_id: None,
+    });
+}
+
+fn add_test_portfolio_seed(repository: &RepositorySnapshot, seeds: &mut Vec<ActionSeed>) {
+    let portfolio = &repository.quality.test_portfolio;
+    if !matches!(
+        portfolio.status.as_str(),
+        "Review required" | "Blocked" | "Invalid"
+    ) {
+        return;
+    }
+    let source = if matches!(portfolio.status.as_str(), "Blocked" | "Invalid") {
+        portfolio.removal_proof.as_ref().or(portfolio.audit.as_ref())
+    } else {
+        portfolio.audit.as_ref()
+    };
+    let Some(source) = source else {
+        return;
+    };
+    seeds.push(ActionSeed {
+        stable_key: "qr_findings:test-portfolio-review".to_string(),
+        domain: "qr_findings".to_string(),
+        title: if portfolio.status == "Blocked" {
+            "Resolve the blocked test-removal proof".to_string()
+        } else if portfolio.status == "Invalid" {
+            "Repair the test-portfolio evidence contract".to_string()
+        } else {
+            "Review the test-portfolio dispositions".to_string()
+        },
+        summary: portfolio.detail.clone(),
+        severity: "review".to_string(),
+        priority: "P2".to_string(),
+        weight: 1,
+        acceptance_criteria: vec![
+            "Review every candidate and insufficient-evidence disposition against its protected behaviors and unique signals.".to_string(),
+            "Keep reviewer agreement advisory; do not treat it as deletion authority."
+                .to_string(),
+            "If tests changed, produce a matching exact-revision removal proof with passing suite and dynamic evidence.".to_string(),
+            "Retain implementation authority with the repository owner even when the proof passes."
+                .to_string(),
+        ],
+        evidence: vec![evidence_with_provenance(
+            "Quality Runner",
+            if source.operation == "portfolio-audit" {
+                "Test portfolio audit"
+            } else {
+                "Test removal proof"
+            },
+            &source.status,
+            source.freshness.as_str(),
+            source.observed_at.as_deref(),
+            Some(&source.report_path),
+            &source.detail,
+            source.scanned_branch.as_deref(),
+            source.scanned_commit.as_deref(),
+        )],
+        related_finding_ids: Vec::new(),
+        source_run_id: Some(source.run_id.clone()),
     });
 }
 

@@ -224,6 +224,47 @@
     }
 
 #[test]
+    fn test_portfolio_review_creates_one_advisory_action() {
+        let mut repository = fixture_repository("test-portfolio-review");
+        repository.quality.test_portfolio = crate::quality::TestPortfolioSnapshot {
+            status: "Review required".to_string(),
+            implementation_allowed: false,
+            audit: Some(crate::quality::TestPortfolioRunSnapshot {
+                schema: "quality-runner-test-portfolio-audit/v1".to_string(),
+                run_id: "portfolio-1".to_string(),
+                operation: "portfolio-audit".to_string(),
+                status: "review-required".to_string(),
+                freshness: crate::quality::QualityFreshness::Fresh,
+                observed_at: Some("2026-08-25T12:00:00Z".to_string()),
+                scanned_commit: Some("abc".to_string()),
+                scanned_branch: Some("main".to_string()),
+                report_path: "/tmp/test-portfolio-audit.json".to_string(),
+                artifact_hash: Some("audit-hash".to_string()),
+                source_audit_hash: None,
+                removal_candidate_count: 1,
+                insufficient_evidence_count: 1,
+                removed_test_count: 0,
+                blocker_ids: Vec::new(),
+                detail: "Reviewer judgments are advisory.".to_string(),
+            }),
+            removal_proof: None,
+            detail: "Review the candidate dispositions.".to_string(),
+        };
+        let mut seeds = Vec::new();
+
+        add_test_portfolio_seed(&repository, &mut seeds);
+
+        assert_eq!(seeds.len(), 1);
+        assert_eq!(seeds[0].stable_key, "qr_findings:test-portfolio-review");
+        assert_eq!(seeds[0].priority, "P2");
+        assert_eq!(seeds[0].source_run_id.as_deref(), Some("portfolio-1"));
+        assert!(seeds[0]
+            .acceptance_criteria
+            .iter()
+            .any(|criterion| criterion.contains("deletion authority")));
+    }
+
+#[test]
     fn receipt_blockers_drive_remediation_and_manual_status_cannot_bypass_them() {
         let mut repository = fixture_repository("public-boundary-blocked");
         repository.quality.release_boundary.status = "Blocked".to_string();

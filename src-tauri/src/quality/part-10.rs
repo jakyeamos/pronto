@@ -10,9 +10,21 @@ pub fn ingest_repository_quality(
     let mut configured_gate_ids = Vec::new();
     let (web_readiness, web_readiness_evidence) = import_web_readiness(repository);
     let release_boundary = release_boundary::import_release_boundary(repository);
+    let qr_command_runs = import_qr_command_runs(repository);
+    let test_portfolio = import_test_portfolio(repository);
+
+    if let Some(observed_at) = qr_command_runs
+        .runs
+        .first()
+        .and_then(|run| run.observed_at.as_ref())
+    {
+        last_ingested_at = Some(observed_at.clone());
+    }
 
     if let Some(run) = latest_qr_run(Path::new(&repository.path)) {
-        last_ingested_at = run.observed_at.clone();
+        if last_ingested_at.as_deref() < run.observed_at.as_deref() {
+            last_ingested_at = run.observed_at.clone();
+        }
         configured_gate_ids.extend(run.configured_gate_ids());
         for evidence in run.gate_evidence(repository) {
             configured_gate_ids.push(evidence.id.clone());
@@ -38,6 +50,23 @@ pub fn ingest_repository_quality(
         add_evidence(&mut gates, evidence);
         if last_ingested_at.as_deref() < web_readiness.observed_at.as_deref() {
             last_ingested_at = web_readiness.observed_at.clone();
+        }
+    }
+    for observed_at in [
+        test_portfolio
+            .audit
+            .as_ref()
+            .and_then(|run| run.observed_at.as_ref()),
+        test_portfolio
+            .removal_proof
+            .as_ref()
+            .and_then(|run| run.observed_at.as_ref()),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if last_ingested_at.as_deref() < Some(observed_at.as_str()) {
+            last_ingested_at = Some(observed_at.clone());
         }
     }
     if let Some(profile) = ci_gate_profile {
@@ -82,7 +111,10 @@ pub fn ingest_repository_quality(
     let runtime_available = installed_runtime.applicability == "applicable";
     let evidence_available = gates.iter().any(|gate| !gate.evidence.is_empty())
         || findings.total > 0
-        || runtime_available;
+        || runtime_available
+        || qr_command_runs.total_count > 0
+        || test_portfolio.audit.is_some()
+        || test_portfolio.removal_proof.is_some();
     QualitySnapshot {
         gates,
         findings,
@@ -96,6 +128,8 @@ pub fn ingest_repository_quality(
         web_readiness,
         release_boundary,
         installed_runtime,
+        qr_command_runs,
+        test_portfolio,
         last_ingested_at,
         ingestion_status: if evidence_available || maturity_available {
             "Available".to_string()
@@ -200,6 +234,8 @@ pub fn project_quality_snapshot_for_target(
         target_branch,
         target_commit,
     );
+    project_test_portfolio_for_target(&mut snapshot.test_portfolio, target_branch, target_commit);
+    project_qr_command_runs_for_target(&mut snapshot.qr_command_runs, target_branch, target_commit);
 
     let configured_gate_ids = snapshot
         .gates
@@ -215,6 +251,9 @@ pub fn project_quality_snapshot_for_target(
     snapshot.ingestion_status = if snapshot.maturity.score.is_some()
         || snapshot.findings.source.is_some()
         || snapshot.gates.iter().any(|gate| !gate.evidence.is_empty())
+        || snapshot.qr_command_runs.total_count > 0
+        || snapshot.test_portfolio.audit.is_some()
+        || snapshot.test_portfolio.removal_proof.is_some()
     {
         "Available".to_string()
     } else {

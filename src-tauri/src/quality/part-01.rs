@@ -123,6 +123,12 @@ const WEB_READINESS_SCHEMA: &str = "quality-runner-web-readiness/v1";
 
 const WEB_READINESS_RELATIVE_PATH: &str = ".quality-runner/web-readiness.json";
 
+const QR_RUN_MANIFEST_SCHEMA: &str = "quality-runner-run-manifest-v0.1";
+
+const TEST_PORTFOLIO_AUDIT_SCHEMA: &str = "quality-runner-test-portfolio-audit/v1";
+
+const TEST_REMOVAL_PROOF_SCHEMA: &str = "quality-runner-test-removal-proof/v1";
+
 pub const CI_STANDARD_GATE_IDS: [&str; 9] = [
     "build",
     "tests",

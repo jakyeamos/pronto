@@ -514,6 +514,23 @@
       "status": "applicable"
     },
     {
+      "id": "quality-runner-test-portfolio-runs",
+      "scope": "external producer and local projection",
+      "path": "<repository>/.quality-runner/runs/<run-id>/run-manifest.json, test-portfolio-audit.json, test-removal-proof.json, src-tauri/src/quality.rs, src-tauri/src/remediation.rs, and the Quality detail renderer",
+      "owner": "Quality Runner and Pronto integration owners",
+      "condition": "Test-portfolio command persistence, artifact selection, provenance, freshness, hash binding, advisory remediation, or renderer behavior changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "qr tests portfolio-audit <repository> --run-id <run-id> --manifest <manifest> --json",
+        "qr tests removal-proof <repository> --run-id <run-id> --manifest <manifest> --json",
+        "cargo test --manifest-path src-tauri/Cargo.toml test_portfolio",
+        "pnpm vitest run src/renderer/src/components/QualityReadinessSurfaces.test.tsx",
+        "pnpm cli quality <repository> --json",
+        "Verify audit and proof are selected independently, unrelated later QR runs do not hide them, malformed or stale evidence remains visible, and no run creates mutation authority or a quality gate."
+      ],
+      "status": "applicable"
+    },
+    {
       "id": "mac-control-ideal-state-feed",
       "scope": "external",
       "path": "~/.quality-runner/fleet-audit/current/mac-control-ideal-state.json, src-tauri/src/mac_control_maturity.rs, and the Quality Gates renderer",

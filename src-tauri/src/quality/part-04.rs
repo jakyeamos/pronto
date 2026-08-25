@@ -366,7 +366,21 @@ pub fn target_evidence_is_current(
         snapshot.maturity.scanned_commit.as_deref(),
         target_branch,
         target_commit,
-    )
+    ) || snapshot.test_portfolio.audit.as_ref().is_some_and(|run| {
+        target_provenance_matches(
+            run.scanned_branch.as_deref(),
+            run.scanned_commit.as_deref(),
+            target_branch,
+            target_commit,
+        )
+    }) || snapshot.test_portfolio.removal_proof.as_ref().is_some_and(|run| {
+        target_provenance_matches(
+            run.scanned_branch.as_deref(),
+            run.scanned_commit.as_deref(),
+            target_branch,
+            target_commit,
+        )
+    })
 }
 
 pub fn scope_fleet_audit_evidence_to_target(

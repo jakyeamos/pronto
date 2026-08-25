@@ -159,6 +159,19 @@ When comparable commit provenance is unavailable, a matching branch reports
 unknown and a differing branch reports stale; an exact commit match remains
 authoritative even if that commit is checked out through another branch name.
 
+Every Quality Runner command run has a generic Pronto destination through the
+repository's canonical `.quality-runner/runs/<run-id>/run-manifest.json`
+ledger. Pronto counts all run directories, rolls valid manifests up by mode,
+retains invalid entries as warnings, and exposes the newest 25 records while
+preserving the uncapped total. Known artifacts can add richer projections:
+Pronto imports the newest `test-portfolio-audit.json` and newest
+`test-removal-proof.json` independently, so a later unrelated QR command cannot
+hide either record. Malformed and target-stale records remain visible as such.
+A removal proof counts as matching only when its source-audit hash equals the
+current audit hash. The resulting `test_portfolio` quality projection and P2
+remediation item are advisory: neither creates a quality gate, authorizes a
+source mutation, nor approves test deletion.
+
 Fleet maturity and measurement confidence are separate claims. Pronto imports
 Quality Runner's replay-validated score and, when present, its confidence level,
 exact population coverage, limitations, and unresolved measurement-gap count.

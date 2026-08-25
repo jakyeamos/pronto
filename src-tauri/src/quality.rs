@@ -13,6 +13,7 @@ include!("quality/part-12.rs");
 include!("quality/part-13.rs");
 include!("quality/part-14.rs");
 include!("quality/part-15.rs");
+include!("quality/part-16.rs");
 #[cfg(test)]
 mod tests {
     include!("quality/tests-01.rs");
