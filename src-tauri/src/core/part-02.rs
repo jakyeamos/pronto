@@ -474,6 +474,8 @@ pub struct PortfolioSnapshot {
     pub remediation: RemediationRun,
     #[serde(default)]
     pub showcase: ShowcasePortfolioSnapshot,
+    #[serde(default)]
+    pub release_radar: ReleaseRadarSnapshot,
     pub retention_days: i64,
     pub generated_at: String,
     pub storage_path: String,

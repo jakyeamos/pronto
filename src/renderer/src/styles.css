@@ -3566,6 +3566,232 @@ h1 {
   flex: 0 0 auto;
   text-decoration: none;
 }
+.remote-repository-card > div:first-child {
+  flex: 1 1 auto;
+}
+.remote-repository-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.remote-visibility-badge,
+.remote-permission-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 21px;
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(119, 168, 255, 0.06);
+  font-size: 9px;
+  line-height: 1;
+}
+.remote-visibility-badge {
+  color: #bcd1f8;
+  border-color: rgba(119, 168, 255, 0.25);
+  background: rgba(119, 168, 255, 0.1);
+  text-transform: capitalize;
+}
+.remote-repository-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.button-compact {
+  min-height: 28px;
+  padding: 5px 9px;
+  font-size: 9px;
+}
+.visibility-dialog-field {
+  display: grid;
+  gap: 6px;
+  margin-top: var(--space-lg);
+  color: var(--muted);
+  font-size: 11px;
+}
+.visibility-dialog-field code {
+  color: #dbe6f8;
+}
+.visibility-dialog-select,
+.visibility-dialog-input {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: rgba(6, 16, 29, 0.8);
+  font: inherit;
+}
+.visibility-dialog-select:focus,
+.visibility-dialog-input:focus {
+  outline: 2px solid rgba(119, 168, 255, 0.45);
+  outline-offset: 1px;
+}
+.visibility-dialog-error {
+  margin: var(--space-md) 0 0;
+  color: #f0a096;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.release-radar-layout {
+  display: grid;
+  gap: var(--space-md);
+}
+.release-radar-hero {
+  display: grid;
+  gap: var(--space-md);
+}
+.release-radar-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin: 0 20px;
+  padding: var(--space-md);
+  border: 1px solid rgba(183, 139, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(183, 139, 255, 0.08);
+}
+.release-radar-summary-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  color: #c9b2ff;
+  background: rgba(183, 139, 255, 0.15);
+}
+.release-radar-summary > div:last-child {
+  min-width: 0;
+}
+.release-radar-summary strong {
+  color: #ded4f7;
+  font-size: 12px;
+  font-weight: 650;
+}
+.release-radar-summary p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+.release-radar-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 0 20px var(--space-lg);
+}
+.release-radar-counts span {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--faint);
+  background: rgba(18, 34, 55, 0.48);
+  font-size: 9px;
+}
+.release-radar-counts strong {
+  margin-right: 3px;
+  color: #cbd8ea;
+  font-size: 11px;
+}
+.release-radar-toolbar {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-lg) 20px 0;
+}
+.release-radar-search input {
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: rgba(6, 16, 29, 0.62);
+  font: inherit;
+}
+.release-radar-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.release-radar-table-wrap {
+  overflow-x: auto;
+  padding: var(--space-lg) 20px 20px;
+}
+.release-radar-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+.release-radar-table th {
+  padding: 0 9px 8px;
+  color: var(--faint);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-align: left;
+  text-transform: uppercase;
+}
+.release-radar-table td {
+  padding: 10px 9px;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+}
+.release-radar-repository,
+.release-radar-next-action {
+  display: grid;
+  min-width: 118px;
+  gap: 5px;
+}
+.release-radar-repository strong,
+.release-radar-next-action strong {
+  color: #cfdbeb;
+  font-size: 10px;
+  font-weight: 650;
+}
+.release-radar-repository small,
+.release-radar-next-action small {
+  max-width: 190px;
+  color: var(--faint);
+  font-size: 9px;
+  line-height: 1.4;
+}
+.release-radar-row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+.release-radar-row-actions a {
+  text-decoration: none;
+}
+@media (max-width: 760px) {
+  .remote-repository-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .remote-repository-actions {
+    justify-content: flex-start;
+  }
+  .release-radar-summary {
+    margin-right: 14px;
+    margin-left: 14px;
+  }
+  .release-radar-counts,
+  .release-radar-toolbar,
+  .release-radar-table-wrap {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+}
 .surface-settings {
   display: grid;
   gap: var(--space-md);
@@ -7233,7 +7459,8 @@ h1 {
 .telescope-frame:has(.telescope-canvas.is-source-detail) {
   grid-template-columns: 218px minmax(0, 1fr);
 }
-.telescope-frame:has(.telescope-canvas.is-source-detail) > .telescope-inspector {
+.telescope-frame:has(.telescope-canvas.is-source-detail)
+  > .telescope-inspector {
   display: none;
 }
 .telescope-breadcrumbs {

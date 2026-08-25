@@ -21,6 +21,7 @@ const fixtureFiles = [
   "package.json",
   "docs/implementation-examples.md",
   "docs/implementation-plan.md",
+  "docs/release-radar-contract.md",
   "docs/agent-usability-maturity.md",
   "docs/ci-gate-profiles.md",
   "docs/quality-gate-recommendation-matrix.md",

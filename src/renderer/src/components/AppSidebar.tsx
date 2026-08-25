@@ -124,7 +124,10 @@ export function AppSidebar({
     );
   }, [eligibleRepositories, repositoryQuery]);
   const navigationGroups: Array<{ label: string; items: NavItem[] }> = [
-    { label: "Portfolio", items: ["portfolio", "showcase", "groups"] },
+    {
+      label: "Portfolio",
+      items: ["portfolio", "releaseRadar", "showcase", "groups"],
+    },
     { label: "Work", items: ["remediation", "promotions"] },
     { label: "Evidence", items: ["analytics", "ci", "remote"] },
     { label: "Intelligence", items: ["skills", "activity"] },

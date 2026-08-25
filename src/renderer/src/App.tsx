@@ -61,6 +61,7 @@ export function App(): ReactElement {
     handleSaveGroup,
     handleDeleteGroup,
     handleRefreshGithub,
+    handleChangeGithubVisibility,
     handleRefreshRemediation,
     handleExportRemediation,
     handleRemediationStatus,
@@ -388,6 +389,7 @@ export function App(): ReactElement {
             onExportRemediation={handleExportRemediation}
             onUpdateRemediationStatus={handleRemediationStatus}
             onRefreshGithub={handleRefreshGithub}
+            onChangeGithubVisibility={handleChangeGithubVisibility}
             onStartCiCodex={handleStartCiCodex}
             settingsActions={{
               onSaveRoot: handleSaveRoot,

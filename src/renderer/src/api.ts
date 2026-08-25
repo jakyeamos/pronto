@@ -25,6 +25,7 @@ import type {
   ReleaseRecipeConfig,
   ReleaseRuleConfig,
   CiCodexHandoffReceipt,
+  GitHubVisibility,
 } from "./types";
 import type { TelescopeProjection } from "./types/telescope";
 
@@ -99,6 +100,23 @@ export async function refreshGithub(): Promise<PortfolioSnapshot> {
     throw new Error("GitHub refresh is available in the Pronto desktop app.");
   }
   return invoke<PortfolioSnapshot>("refresh_github");
+}
+
+export async function changeGithubRepositoryVisibility(
+  repositoryId: string,
+  targetVisibility: GitHubVisibility,
+  confirmation: string,
+): Promise<PortfolioSnapshot> {
+  if (!isDesktopBridgeAvailable()) {
+    throw new Error(
+      "GitHub visibility changes are available in the Pronto desktop app.",
+    );
+  }
+  return invoke<PortfolioSnapshot>("change_github_repository_visibility", {
+    repositoryId,
+    targetVisibility,
+    confirmation,
+  });
 }
 
 export async function startCiCodexHandoff(

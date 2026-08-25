@@ -721,7 +721,7 @@
       "scope": "external",
       "path": "github.com/jakyeamos/pronto",
       "owner": "GitHub provider adapter and repository maintainers",
-      "condition": "Remote identity, branch, pull request, release, or check-run evidence changes.",
+      "condition": "Remote identity, branch, pull request, release, check-run evidence, GitHub visibility, or provider freshness changes.",
       "operations": [
         "add",
         "change",
@@ -732,7 +732,47 @@
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::github_cli_json_distinguishes_failure_causes_without_overclaiming_authentication",
         "pnpm cli refresh-github \"$(git rev-parse --show-toplevel)\" --json",
         "pnpm cli repo \"$(git rev-parse --show-toplevel)\" --json",
+        "For visibility changes, confirm the exact repository name, fresh control read, permissions.admin=true, archived=false, non-no-op target, explicit consequence acknowledgement, and matching post-change readback before local projection changes.",
         "Verify workflow-run, job, and prompt-artifact evidence remains bounded and provider-unavailable states stay explicit."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "release-radar-contract",
+      "scope": "local",
+      "path": "src-tauri/src/core/part-41.rs, src-tauri/src/core/part-42.rs, src-tauri/src/core/tests-14.rs, src-tauri/src/core.rs, src-tauri/src/lib.rs, src/renderer/src/types.ts, src/renderer/src/types/remote.ts, src/renderer/src/types/releaseRadar.ts, src/renderer/src/apiDefaults.ts, src/renderer/src/components/ReleaseRadarSurface.tsx, src/renderer/src/components/ReleaseRadarSurface.test.tsx, src/renderer/src/components/PortfolioNavigationSurfaces.test.tsx, src/renderer/src/components/AppRouteSurface.tsx, src/renderer/src/components/AppSidebar.tsx, src/renderer/src/App.tsx, src/renderer/src/navigation.ts, src/renderer/src/styles.css, docs/release-radar-contract.md, .agents/context/README.md, .agents/context/commands.md",
+      "owner": "Pronto Release Radar maintainers",
+      "condition": "The full-fleet Release Radar projection, provider visibility state, independent readiness dimensions, profile-link state, or conditional public presentation changes.",
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::release_radar",
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::github_visibility",
+        "pnpm typecheck",
+        "pnpm vitest run src/renderer/src/components/ReleaseRadarSurface.test.tsx src/renderer/src/components/PortfolioNavigationSurfaces.test.tsx",
+        "pnpm build:web",
+        "Exercise the running Release Radar surface and verify public, private/internal, stale, unknown, local-only, GitHub-only, and profile-drift rows remain visibly conditional."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "github-visibility-control",
+      "scope": "external",
+      "path": "src-tauri/src/core/part-41.rs, src-tauri/src/core/part-42.rs, src-tauri/src/core/tests-14.rs, src-tauri/src/core/part-10.rs, src-tauri/src/lib.rs, src/renderer/src/api.ts, src/renderer/src/hooks/usePortfolioController.ts, src/renderer/src/components/GitHubVisibilityDialog.tsx, src/renderer/src/components/ReleaseRadarSurface.tsx, src/renderer/src/components/ReleaseRadarSurface.test.tsx, src/renderer/src/components/RemoteCatalogSurface.tsx, src/renderer/src/components/AppRouteSurface.tsx, docs/release-radar-contract.md, docs/repository-contract.md",
+      "owner": "Pronto GitHub visibility-control maintainers",
+      "condition": "The approval-gated GitHub repository visibility control or its consequence/readback audit changes.",
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml core::tests::github_visibility",
+        "Verify exact-name, admin, archived, no-op, consequence-acknowledgement, provider-failure, and post-write-readback gates remain fail-closed.",
+        "Exercise the visibility dialog with a fresh admin fixture and confirm provider failures leave the dialog open and do not update local projection state."
       ],
       "status": "applicable"
     },

@@ -66,6 +66,20 @@ impl GitHubCliAdapter {
         serde_json::from_slice(&output.stdout)
             .map_err(|_| "GitHub provider returned invalid JSON.".to_string())
     }
+
+    fn run(&self, arguments: &[&str]) -> Result<std::process::Output, String> {
+        Command::new(&self.executable)
+            .args(arguments)
+            .output()
+            .map_err(|error| {
+                if error.kind() == std::io::ErrorKind::NotFound {
+                    "GitHub provider unavailable: GitHub CLI is not installed or not on PATH."
+                        .to_string()
+                } else {
+                    format!("GitHub provider unavailable: could not start GitHub CLI ({error}).")
+                }
+            })
+    }
 }
 
 impl ProviderAdapter for GitHubCliAdapter {
@@ -289,6 +303,10 @@ fn parse_github_repositories(
                     .get("archived")
                     .and_then(serde_json::Value::as_bool)
                     .unwrap_or(false),
+                visibility: repository_visibility_from_payload(repository),
+                viewer_can_administer: github_permission_from_payload(repository)
+                    .map(|permission| permission == "admin"),
+                viewer_permission: github_permission_from_payload(repository),
                 locality: "Remote only".to_string(),
                 identity_id: identity_id.to_string(),
                 last_refreshed_at: refreshed_at.to_string(),

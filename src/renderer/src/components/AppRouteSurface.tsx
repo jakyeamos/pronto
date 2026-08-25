@@ -4,6 +4,7 @@ import type {
   CiRunSnapshot,
   Condition,
   ExternalTool,
+  GitHubVisibility,
   PortfolioSnapshot,
   PromotionInbox,
   RemediationActionStatus,
@@ -11,13 +12,11 @@ import type {
   RepositorySnapshot,
 } from "../types";
 import { type NavItem } from "../navigation";
-import {
-  CommandCenterSurface,
-  type Filter,
-} from "./CommandCenterSurface";
+import { CommandCenterSurface, type Filter } from "./CommandCenterSurface";
 import { RepositoryDetailSurface } from "./Drawers";
 import { PortfolioCollectionsSurface } from "./PortfolioCollectionsSurface";
 import { ShowcaseSurface } from "./ShowcaseSurface";
+import { ReleaseRadarSurface } from "./ReleaseRadarSurface";
 import { RemediationSurface } from "./RemediationSurface";
 import { PromotionSurface } from "./PromotionSurface";
 import { AnalyticsRoute } from "./AnalyticsRoute";
@@ -61,6 +60,7 @@ export function AppRouteSurface({
   onExportRemediation,
   onUpdateRemediationStatus,
   onRefreshGithub,
+  onChangeGithubVisibility,
   onStartCiCodex,
   settingsActions,
   collectionActions,
@@ -102,6 +102,11 @@ export function AppRouteSurface({
     status: RemediationActionStatus,
   ) => Promise<void>;
   onRefreshGithub: () => Promise<void>;
+  onChangeGithubVisibility: (
+    repositoryId: string,
+    targetVisibility: GitHubVisibility,
+    confirmation: string,
+  ) => Promise<void>;
   onStartCiCodex: (
     repository: RemoteRepositorySnapshot,
     run: CiRunSnapshot,
@@ -117,8 +122,8 @@ export function AppRouteSurface({
 }): ReactElement {
   const showingRepositoryDetail = Boolean(
     selectedRepository &&
-      activeNav !== "remediation" &&
-      activeNav !== "promotions",
+    activeNav !== "remediation" &&
+    activeNav !== "promotions",
   );
 
   return (
@@ -140,7 +145,9 @@ export function AppRouteSurface({
           onPrepareRepository={onPrepareRepository}
           onTargetBranchChange={onTargetBranchChange}
           onLifecycleChange={onLifecycleChange}
-          onCondition={(condition) => onCondition(selectedRepository, condition)}
+          onCondition={(condition) =>
+            onCondition(selectedRepository, condition)
+          }
           onOpenReport={onOpenReport}
         />
       ) : activeNav === "portfolio" ? (
@@ -180,6 +187,14 @@ export function AppRouteSurface({
           showcase={snapshot.showcase}
           repositories={snapshot.repositories}
           onOpenRepository={onOpenRepository}
+        />
+      ) : activeNav === "releaseRadar" ? (
+        <ReleaseRadarSurface
+          snapshot={snapshot.release_radar}
+          remoteRepositories={snapshot.remote_repositories}
+          isRefreshing={isRefreshing}
+          onRefresh={onRefreshGithub}
+          onChangeVisibility={onChangeGithubVisibility}
         />
       ) : activeNav === "remediation" ? (
         <RemediationSurface
@@ -240,6 +255,7 @@ export function AppRouteSurface({
           repositories={snapshot.remote_repositories}
           isRefreshing={isRefreshing}
           onRefresh={onRefreshGithub}
+          onChangeVisibility={onChangeGithubVisibility}
         />
       ) : activeNav === "ci" ? (
         <CiTrackerSurface

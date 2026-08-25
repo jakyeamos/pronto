@@ -208,6 +208,7 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
     let mut remediation_run = state.remediation.clone();
     remediation::sync_github_only_candidates(&mut remediation_run, &state.remote_repositories);
     let showcase = showcase::inspect(&repositories);
+    let release_radar = build_release_radar(state, &repositories, &showcase);
     PortfolioSnapshot {
         roots: state.roots.clone(),
         repositories,
@@ -221,6 +222,7 @@ fn snapshot_from_store(path: &Path, state: &StoreState) -> PortfolioSnapshot {
         quality: state.quality.clone(),
         remediation: remediation_run,
         showcase,
+        release_radar,
         retention_days: state.retention_days,
         generated_at: iso_now(),
         storage_path: path.to_string_lossy().to_string(),

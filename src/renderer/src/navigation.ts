@@ -8,12 +8,14 @@ import {
   Inbox,
   LayoutDashboard,
   Film,
+  Radar,
   Settings2,
   Sparkles,
 } from "lucide-react";
 
 export type NavItem =
   | "portfolio"
+  | "releaseRadar"
   | "showcase"
   | "remediation"
   | "promotions"
@@ -31,6 +33,7 @@ export const navItems: Array<{
   icon: typeof LayoutDashboard;
 }> = [
   { id: "portfolio", label: "Portfolio", icon: LayoutDashboard },
+  { id: "releaseRadar", label: "Release Radar", icon: Radar },
   { id: "showcase", label: "AI showcase", icon: Film },
   { id: "remediation", label: "Remediation", icon: ClipboardCheck },
   { id: "promotions", label: "Promotion inbox", icon: Inbox },
@@ -51,6 +54,11 @@ export const pageCopy: Record<
     eyebrow: "Local evidence",
     title: "Know what needs attention.",
     body: "A factual view of your projects, workspaces, and Git state—freshness included.",
+  },
+  releaseRadar: {
+    eyebrow: "Visibility → distribution",
+    title: "Release Radar keeps public eligibility honest.",
+    body: "Review the full local and GitHub fleet while visibility drives public framing and profile links without standing in for product, demo-material, or release readiness.",
   },
   showcase: {
     eyebrow: "Recruiter-facing proof",

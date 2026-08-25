@@ -39,6 +39,9 @@ Read the deeper file only when the task matches it:
 - [CI tracker](../../docs/ci-tracker.md) — GitHub Actions failure projection,
   prompt-artifact availability, and the user-controlled read-only Codex
   handoff.
+- [Release Radar contract](../../docs/release-radar-contract.md) — the
+  full-fleet local/GitHub union, visibility-to-framing rules, approval-gated
+  visibility control, and profile README publication boundary.
 - [Branch-sensitive quality verification](branch-sensitive-quality-verification.md)
   — required when a branch or commit selector is adjacent to displayed quality
   or tenure statistics.

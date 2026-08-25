@@ -20,6 +20,7 @@ fn run_cli_arm_35(
             quality: QualityPortfolioSnapshot::default(),
             remediation: remediation::empty_run(),
             showcase: ShowcasePortfolioSnapshot::default(),
+            release_radar: ReleaseRadarSnapshot::default(),
             retention_days: DEFAULT_RETENTION_DAYS,
             generated_at: iso_now(),
             storage_path: path.to_string_lossy().to_string(),

@@ -158,6 +158,7 @@ pub fn run() {
             core::refresh_quality,
             core::refresh_repository_target_evidence,
             core::refresh_github,
+            core::change_github_repository_visibility,
             core::start_ci_codex_handoff,
             core::refresh_remediation,
             core::set_remediation_action_status,

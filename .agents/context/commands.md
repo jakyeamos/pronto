@@ -131,7 +131,7 @@ stale/unknown until it is refreshed from the exact target commit.
 | Skill change matrix                  | `change-matrix skill <skill-id> [--operation <add\|change\|remove>] --json`                                                                                       | `pronto-change-matrix/v1`                                                                                        |
 | Active remediation                   | `remediation [<repository>] --json`                                                                                                                               | `pronto-remediation/v3`                                                                                          |
 | Remediation execution gate           | `remediation gate <repository> [--workspace <id>] --json`                                                                                                         | `pronto-remediation-execution-gate/v1`                                                                           |
-| Work requiring attention             | `attention [<repository>] --json`                                                                                                                                  | `pronto-agent-attention/v1`                                                                                      |
+| Work requiring attention             | `attention [<repository>] --json`                                                                                                                                 | `pronto-agent-attention/v1`                                                                                      |
 | Recent transitions/audits            | `activity [<repository>] --limit <n> --json`                                                                                                                      | `pronto-agent-activity/v1`                                                                                       |
 | Preparation preflight                | `prepare <repository> [--workspace <id>] [--fresh] --json`                                                                                                        | `pronto-agent-preparation/v1`                                                                                    |
 | Release preflight                    | `release preview <repository> [--workspace <id>] [--fresh] --json`                                                                                                | `pronto-agent-release/v2`                                                                                        |
@@ -384,6 +384,15 @@ public priority:
 a public priority, counts toward the public goal, or enters the public queue.
 `unknown`, `blocked`, and `not_applicable` remain categorical rather than
 becoming zero scores.
+
+The fleet summary also includes `release_radar` with schema
+`pronto-release-radar/v1`. It is a union of the registered local fleet and the
+fresh GitHub repository snapshot, joined by normalized provider identity. The
+projection keeps visibility/freshness, public-framing eligibility, profile-link
+sync, product readiness, demo-material readiness, and release readiness as
+separate fields. Public visibility never creates demo evidence. Local-only and
+GitHub-only rows remain visible, and stale, unknown, blocked, private, and
+internal rows remain explicit.
 
 Repositories may also declare `.pronto/installed-runtime-parity.json` to make
 source, packaged-build, installed-artifact, and running-process drift visible.
@@ -650,6 +659,14 @@ The persisted provider status distinguishes a missing GitHub CLI, unreachable
 GitHub, invalid or expired authentication, and an otherwise unclassified CLI
 failure. A network failure leaves authentication unverified and is not a reason
 to reauthenticate by itself.
+
+`change_github_repository_visibility` is the approval-gated provider write
+surface exposed by Release Radar and Remote catalog. It requires a fresh exact
+repository control read, exact full-name confirmation, `permissions.admin=true`,
+an active non-archived repository, a non-no-op target, the GitHub CLI consequence
+acknowledgement, and matching post-write readback. The local remote snapshot and
+the `release_radar` projection update only after that readback. Provider writes do
+not authorize profile publication.
 
 `fold preview` is an advisory projection only; it does not clean branches,
 fold dev, delete branches, or push. Use it for persisted branch/worktree

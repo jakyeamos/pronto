@@ -55,9 +55,7 @@ describe("portfolio navigation surfaces", () => {
       }),
     });
     const markup = renderToStaticMarkup(
-      <AttentionQueue
-        repositories={[repository]}
-      />,
+      <AttentionQueue repositories={[repository]} />,
     );
     expect(markup).toContain("Attention queue");
     expect(markup).toContain('class="rail-section attention-queue"');
@@ -94,6 +92,23 @@ describe("portfolio navigation surfaces", () => {
     expect(markup).not.toContain("sidebar-rule");
     expect(markup).not.toContain("Local evidence only");
     expect(markup).not.toContain("Private by default");
+  });
+
+  it("exposes Release Radar beside Showcase as the full-fleet distribution surface", () => {
+    const markup = renderToStaticMarkup(
+      <AppSidebar
+        activeNav="releaseRadar"
+        activeConditionCount={0}
+        repositories={[]}
+        remediation={makePortfolio([]).remediation}
+        selectedRepositoryId={null}
+        onNavigate={() => undefined}
+        onOpenRepository={noopRepository}
+      />,
+    );
+    expect(markup).toContain("Release Radar");
+    expect(markup).toContain("AI showcase");
+    expect(markup).toContain('aria-current="page"');
   });
 
   it("keeps remediation-excluded repositories out of the sidebar", () => {

@@ -293,6 +293,12 @@ pub struct RemoteRepositorySnapshot {
     pub html_url: String,
     pub default_branch: Option<String>,
     pub archived: bool,
+    #[serde(default)]
+    pub visibility: Option<String>,
+    #[serde(default)]
+    pub viewer_can_administer: Option<bool>,
+    #[serde(default)]
+    pub viewer_permission: Option<String>,
     pub locality: String,
     pub identity_id: String,
     pub last_refreshed_at: String,
