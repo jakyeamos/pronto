@@ -5897,6 +5897,132 @@ h1 {
   color: var(--faint);
   font-size: 8px;
 }
+.test-portfolio-summary {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
+.test-portfolio-heading,
+.test-portfolio-heading > span,
+.test-portfolio-run > div:first-child,
+.test-portfolio-run > div:first-child > span,
+.test-portfolio-run-counts {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.test-portfolio-heading,
+.test-portfolio-run > div:first-child {
+  justify-content: space-between;
+}
+.test-portfolio-heading strong,
+.test-portfolio-run strong {
+  color: #cbd8e9;
+  font-size: 10px;
+}
+.test-portfolio-summary > p,
+.test-portfolio-run p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+.test-portfolio-authority {
+  color: #c7ae89;
+  font-size: 8px;
+}
+.test-portfolio-runs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-xs);
+}
+.test-portfolio-run {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: rgba(9, 17, 30, 0.34);
+}
+.test-portfolio-run small,
+.test-portfolio-run-counts {
+  color: var(--faint);
+  font-size: 8px;
+}
+.test-portfolio-run-empty span {
+  color: var(--faint);
+  font-size: 9px;
+}
+.qr-command-runs-summary {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
+.qr-command-runs-heading,
+.qr-command-runs-heading > span,
+.qr-command-runs-list article > div,
+.qr-command-runs-list article > div > span {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.qr-command-runs-heading,
+.qr-command-runs-list article > div {
+  justify-content: space-between;
+}
+.qr-command-runs-heading strong,
+.qr-command-runs-list strong {
+  color: #cbd8e9;
+  font-size: 10px;
+}
+.qr-command-runs-summary > p,
+.qr-command-runs-list p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+.qr-command-runs-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--space-sm);
+  color: var(--faint);
+  font-size: 8px;
+}
+.qr-command-runs-list summary {
+  color: var(--blue);
+  cursor: pointer;
+  font-size: 9px;
+}
+.qr-command-runs-list > div {
+  display: grid;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+.qr-command-runs-list article {
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: rgba(9, 17, 30, 0.34);
+}
+.qr-command-runs-list article > div > span:first-child {
+  min-width: 0;
+}
+.qr-command-runs-list article small {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .quality-detail-gates {
   display: grid;
   gap: var(--space-xs);
@@ -7233,7 +7359,8 @@ h1 {
 .telescope-frame:has(.telescope-canvas.is-source-detail) {
   grid-template-columns: 218px minmax(0, 1fr);
 }
-.telescope-frame:has(.telescope-canvas.is-source-detail) > .telescope-inspector {
+.telescope-frame:has(.telescope-canvas.is-source-detail)
+  > .telescope-inspector {
   display: none;
 }
 .telescope-breadcrumbs {

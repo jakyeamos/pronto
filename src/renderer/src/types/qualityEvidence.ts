@@ -216,6 +216,57 @@ interface ReleaseBoundarySnapshot {
   detail: string;
 }
 
+export interface TestPortfolioRunSnapshot {
+  schema: string;
+  run_id: string;
+  operation: string;
+  status: string;
+  freshness: QualityFreshness;
+  observed_at?: string;
+  scanned_commit?: string;
+  scanned_branch?: string;
+  report_path: string;
+  artifact_hash?: string;
+  source_audit_hash?: string;
+  removal_candidate_count: number;
+  insufficient_evidence_count: number;
+  removed_test_count: number;
+  blocker_ids: string[];
+  detail: string;
+}
+
+export interface QrCommandRunSnapshot {
+  run_id: string;
+  mode: string;
+  status: string;
+  freshness: QualityFreshness;
+  observed_at?: string;
+  scanned_commit?: string;
+  scanned_branch?: string;
+  artifact_count: number;
+  manifest_path: string;
+  detail: string;
+}
+
+export interface QrCommandRunLedgerSnapshot {
+  status: string;
+  implementation_allowed: false;
+  total_count: number;
+  visible_count: number;
+  invalid_count: number;
+  mode_counts: Record<string, number>;
+  runs: QrCommandRunSnapshot[];
+  detail: string;
+}
+
+export interface TestPortfolioSnapshot {
+  status: string;
+  implementation_allowed: false;
+  audit?: TestPortfolioRunSnapshot;
+  removal_proof?: TestPortfolioRunSnapshot;
+  detail: string;
+}
+
 export interface QualitySnapshot {
   gates: QualityGate[];
   findings: QualityFindings;
@@ -227,6 +278,8 @@ export interface QualitySnapshot {
   behavior_assurance: BehaviorAssuranceRepositoryState;
   evidence_contracts?: EvidenceContractRepositoryStatus[];
   web_readiness?: WebReadinessSnapshot;
+  qr_command_runs?: QrCommandRunLedgerSnapshot;
+  test_portfolio?: TestPortfolioSnapshot;
   release_boundary?: ReleaseBoundarySnapshot;
   installed_runtime?: InstalledRuntimeSnapshot;
   last_ingested_at?: string;

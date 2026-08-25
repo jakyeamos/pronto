@@ -22,7 +22,11 @@ export type QualityRequirementPolicy = "block" | "warn";
 
 export type {
   QualityPortfolioSnapshot,
+  QrCommandRunLedgerSnapshot,
+  QrCommandRunSnapshot,
   QualitySnapshot,
+  TestPortfolioRunSnapshot,
+  TestPortfolioSnapshot,
 } from "./qualityEvidence";
 
 export interface QualityGateRequirement {

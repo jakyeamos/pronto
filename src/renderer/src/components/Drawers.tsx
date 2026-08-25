@@ -22,6 +22,8 @@ import {
   QualityFindingsSummary,
   QualityGateCell,
   QualityGateStatusPill,
+  QualityRunnerCommandRunsSummary,
+  TestPortfolioSummary,
   WebReadinessSummary,
   projectQualityGateForTarget,
   projectQualityReadinessForTarget,
@@ -350,6 +352,14 @@ export function RepositoryDetailSurface({
                   />
                   <WebReadinessSummary
                     webReadiness={repository.quality.web_readiness}
+                    onOpenReport={onOpenReport}
+                  />
+                  <TestPortfolioSummary
+                    testPortfolio={repository.quality.test_portfolio}
+                    onOpenReport={onOpenReport}
+                  />
+                  <QualityRunnerCommandRunsSummary
+                    commandRuns={repository.quality.qr_command_runs}
                     onOpenReport={onOpenReport}
                   />
                 </div>

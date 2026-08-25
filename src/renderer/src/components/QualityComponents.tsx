@@ -342,6 +342,8 @@ export function qualityProfileSummary(
 
 export { QualityFindingsSummary } from "./QualityFindingsSummary";
 export { WebReadinessSummary } from "./WebReadinessSummary";
+export { TestPortfolioSummary } from "./TestPortfolioSummary";
+export { QualityRunnerCommandRunsSummary } from "./QualityRunnerCommandRunsSummary";
 export {
   macControlFreshnessLabel,
   projectQualityGateForTarget,

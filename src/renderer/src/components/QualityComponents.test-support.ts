@@ -29,8 +29,10 @@ export type {
   QualityGate,
   QualityMaturity,
   QualityPortfolioSnapshot,
+  QrCommandRunLedgerSnapshot,
   QualityReadiness,
   QualitySnapshot,
+  TestPortfolioSnapshot,
   QualityGateStatus,
   RemediationRun,
   ReleaseRuleConfig,
@@ -58,6 +60,8 @@ export { PortfolioCollectionsSurface } from "./PortfolioCollectionsSurface";
 export { navItems } from "../navigation";
 export { ProjectCompassDetail } from "./ProjectCompassDetail";
 export { WebReadinessSummary } from "./WebReadinessSummary";
+export { TestPortfolioSummary } from "./TestPortfolioSummary";
+export { QualityRunnerCommandRunsSummary } from "./QualityRunnerCommandRunsSummary";
 
 export const canonicalGateDefinitions = [
   ["build", "Build"],
