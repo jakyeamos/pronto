@@ -3,6 +3,25 @@ default_profile = "pronto"
 allowed_package_managers = ["pnpm"]
 required_capabilities = ["formatter", "lint", "typecheck", "tests", "build", "dead_code", "runtime_smoke", "pre_pr", "pre_cr"]
 
+[quality_runner.cache_design]
+measurement_max_seconds = 60
+
+[[quality_runner.cache_design.paths]]
+path = "showcase-materials/fleet-radar/site/build"
+class = "durable_state"
+lifecycle = "durable"
+reason = "Nested Fleet Radar site build modules are repository-owned source, not disposable derived storage."
+
+[[quality_runner.cache_design.paths]]
+path = "showcase-materials/fleet-radar/site/dist"
+class = "build_output"
+lifecycle = "rebuildable"
+
+[[quality_runner.cache_design.paths]]
+path = "src-tauri/target/debug/build"
+class = "build_output"
+lifecycle = "rebuildable"
+
 [quality_runner.web_readiness]
 applicability = "not_applicable"
 reason = "Pronto ships as a native Tauri application, not a deployed web surface"
