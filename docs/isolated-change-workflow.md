@@ -1,8 +1,10 @@
 # Isolated change workflow
 
-Pronto treats a dirty or owner-active primary checkout as a reason to route new
-work into a clean task worktree. It is not, by itself, a reason to leave an
-otherwise completed feature uncommitted.
+Pronto routes new work into a clean task worktree when the lane-selection
+contract chooses `short_lived`: for example, because of active ownership,
+mixed intent, an exact conflict, an interrupted operation, a required review
+boundary, or a risky/multi-repository change. A dirty primary checkout alone
+does not choose isolation; inspect and classify its paths first.
 
 The canonical workflow is distributed as the `isolated-change-workflow` skill.
 Its bundled command records an exact base, creates a locked `codex/*` worktree,
@@ -17,6 +19,10 @@ probe.
   blame history.
 - Untracked receipts under the common Git directory preserve task/base/worktree
   custody without adding product files to commits.
+- [Branch lane selection](branch-lane-selection.md) owns the choice between
+  direct integration work, a short-lived task lane, and an explicitly
+  designated long-lived target. This workflow is the executor after a
+  short-lived lane is selected.
 - The existing Pronto fold preview and `fold-feature-branches` workflow remain
   the integration queue.
 - An optional managed pre-commit hook rejects commits outside receipt-backed

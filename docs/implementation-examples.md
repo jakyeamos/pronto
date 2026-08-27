@@ -132,6 +132,11 @@ after equivalence and ownership checks.
 
 ## Bound feature-branch lifecycle
 
+Use [branch-lane-selection.md](branch-lane-selection.md) before creating a
+branch. Direct `dev` work is the default for bounded, reversible changes; the
+isolated workflow is reserved for explicit short-lived predicates or a named
+long-lived target. A dirty `dev` alone does not justify a new branch.
+
 The repository projects `branch_lifecycle` as read-only evidence, while the
 installed global isolated-change workflow owns creation enforcement. It takes
 a per-repository admission lock, warns at five counted feature or agent-task

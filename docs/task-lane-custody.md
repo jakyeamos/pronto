@@ -1,9 +1,13 @@
 # Task-lane custody
 
-Pronto treats concurrent feature work as task lanes, not as a tree of long-lived
-reference branches. One feature owns one `codex/*` branch and one linked Git
-worktree. The repository's configured `dev` branch is the integration lane;
-`main` or `master` remains the release lane.
+Pronto distinguishes routine direct integration work, short-lived task lanes,
+and explicitly designated long-lived lines. One short-lived task owns one
+`codex/*` branch and one linked Git worktree. The repository's configured `dev`
+branch is the default integration lane; `main` or `master` remains the release
+lane. A long-lived line is a named product, release, compatibility, or
+experiment track, not the default destination for ordinary work.
+
+The selection rules are in [branch-lane-selection.md](branch-lane-selection.md).
 
 The isolated-change workflow owns lane creation, signed custody receipts,
 heartbeats, guards, release, and cleanup. Pronto only projects that evidence in
@@ -67,15 +71,24 @@ they are resolved.
 
 ## Branch and integration policy
 
-1. Create one task lane from the current configured integration head.
-2. Renew its lease while work or review is active.
-3. Reuse the same lane through fixes and retries; do not create child feature
-   branches merely to continue the same feature.
-4. Fold completed work into `dev` through the repository's normal integration
-   gates.
-5. Promote `dev` to `main` or `master` only through the release workflow.
-6. Close and remove the worktree only after preservation and integration are
-   proven.
+1. Select `direct_dev` for bounded, reversible work that has no hard isolation
+   predicate, and commit it atomically on the configured integration branch.
+2. Select `short_lived` only for a documented isolation predicate. Create one
+   receipt-backed task lane from the current integration or explicitly named
+   long-lived target, and record its fold condition before editing.
+3. Renew the short-lived lease while work or review is active. Reuse the same
+   lane through fixes and retries; do not create child branches for the same
+   task.
+4. Fold completed short-lived work promptly into its named target through the
+   normal integration gates. If no long-lived target was explicitly recorded,
+   the target is `dev`.
+5. Select `long_lived` only for a user- or contract-designated sustained track.
+   Record owner, purpose, target, sync cadence, review-by date, and
+   exit/integration condition. Integrate it into `dev` according to that
+   contract.
+6. Promote `dev` to `main` or `master` only through the release workflow.
+7. Close and remove a short-lived worktree only after preservation and
+   integration are proven; never prune a long-lived line from age alone.
 
 ## Incomplete work
 

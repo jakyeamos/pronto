@@ -1,13 +1,17 @@
 # Pronto repository operating contract
 
-Last reviewed: 2026-08-20.
+Last reviewed: 2026-08-27.
 
 This is the repository-specific execution contract for contributors and
-agents. The canonical branch is `main`; work is developed on an isolated
-branch, reviewed through the integration lane, and merged only after required
-gates pass on the exact candidate commit. Dirty, unpublished, active, or
-ambiguous work is preserved before folding. Branch and worktree removal waits
-until integration or patch equivalence and ownership are proven.
+agents. The canonical release branch is `main`; routine work uses the
+documented integration target (`dev` when configured). Select a lane before
+mutation: direct integration work is the default, while isolated branches are
+reserved for explicit review, ownership, parallel, risk, migration, security,
+multi-repository, or separate-track boundaries. Long-lived lines require an
+explicit designation. Dirty, unpublished, active, or ambiguous work is
+preserved before folding. Branch and worktree removal waits until integration
+or patch equivalence and ownership are proven. See
+[branch-lane-selection.md](branch-lane-selection.md) for the decision matrix.
 
 For fleet integration and maturity evidence, Pronto uses an explicit `dev`
 target when one is configured. This target is separate from Git's release or
@@ -26,10 +30,12 @@ unavailable until it is regenerated from the exact `dev` commit.
 - Focused Rust modules such as `quality.rs`, `remediation.rs`,
   `change_matrix.rs`, and `showcase.rs` own their domain rules. Add behavior
   there instead of duplicating it in the renderer or Node adapter.
-- `src-tauri/src/branch_lifecycle.rs` owns the versioned branch-admission
-  policy and read-only lifecycle projection. The installed global
+- `src-tauri/src/branch_lifecycle.rs` owns the versioned short-lived
+  branch-admission policy and read-only lifecycle projection. The lane selector
+  is the documented workflow contract; the installed global
   `isolated-change-workflow` owns creation enforcement and custody receipt
-  recording; Pronto must not duplicate that Git mutation boundary.
+  recording after a short-lived lane is selected. Pronto must not duplicate
+  that Git mutation boundary.
 - `src-tauri/src/telescope.rs` owns the versioned source-derived architecture
   graph, language adapters, workspace binding, uncertainty, and cache privacy.
   `.pronto/telescope-map.json` v2 owns the repository's authored narrative,
@@ -255,16 +261,24 @@ repository or provider scope and preserve the exact source commit and evidence
 timestamp. AI remains disabled by default and must not receive source content,
 credentials, or operational authority without a separately designed contract.
 
-## Parallel task lanes and custody
+## Branch lanes and custody
 
-Concurrent feature work uses one branch and linked worktree per feature, with
-`dev` as the integration lane and `main` or `master` as the release lane. The
-isolated-change workflow owns signed renewable custody; Pronto exposes its
-read-only `pronto-task-lanes/v1` projection through repository detail and scoped
-route responses. A stopped agent loses custody after its lease grace period. A
-verified expired lane becomes adoptable when the recorded worktree and branch
-still match live Git, and adoption must preserve dirty WIP. Unsigned, missing,
-or mismatched evidence remains unknown or stale and cannot authorize takeover.
+Routine bounded work may commit directly to the configured `dev` integration
+branch when the lane-selection predicates are satisfied. Concurrent or
+isolated work uses one short-lived branch and linked worktree per task, with
+`dev` as the default integration target and `main` or `master` as the release
+lane. A long-lived line exists only when the repository contract or user
+explicitly designates it; it records its owner, purpose, target, sync cadence,
+review-by date, and exit/integration condition. A short-lived task folds into
+that line only when it is the named target.
+
+The isolated-change workflow owns signed renewable custody for short-lived
+lanes; Pronto exposes its read-only `pronto-task-lanes/v1` projection through
+repository detail and scoped route responses. A stopped agent loses custody
+after its lease grace period. A verified expired lane becomes adoptable when
+the recorded worktree and branch still match live Git, and adoption must
+preserve dirty WIP. Unsigned, missing, or mismatched evidence remains unknown
+or stale and cannot authorize takeover.
 
 The full state model, incomplete-work fold gate, and failure behavior are in
 [task-lane-custody.md](task-lane-custody.md).

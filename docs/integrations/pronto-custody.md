@@ -5,6 +5,12 @@ workflow owns receipt signing, lease renewal, pause/resume, adoption,
 integration locking, WIP validation, and cleanup. Pronto never adopts a lane,
 merges a branch, deletes a worktree, or pushes a ref from this projection.
 
+Lane choice happens before custody creation. Use the repository's
+[branch-lane-selection](../branch-lane-selection.md) contract for direct
+integration work, short-lived isolated work, and explicitly designated
+long-lived lines. This projection only reports custody after a short-lived lane
+has been selected; it does not select, create, or transfer a lane.
+
 Read one repository:
 
 ```bash
@@ -42,7 +48,7 @@ classifies the repository's protected canonical workspaces by role:
 - `role_unresolved` is explicit and does not produce a baseline target.
 
 The fleet baseline is `2P + 1N`, where `P` is the number of production products
-and `N` is the number of supporting projects. Active feature, agent,
+and `N` is the number of supporting projects. Active short-lived feature, agent,
 verification, adoption, and cleanup worktrees are temporary lanes; they do not
 count toward that baseline and require isolated-change leases. A deliberate
 retention exception is reported separately with its review deadline.

@@ -1,15 +1,17 @@
 # Pronto agent context
 
-Last reviewed: 2026-08-18.
+Last reviewed: 2026-08-27.
 
 Pronto is the local-first portfolio and Git evidence surface for this machine.
 Use this index when a task needs portfolio-wide repository state, workspace
 triage, branch integration evidence, quality evidence, or release preparation.
 
-The canonical branch is `main`. Feature and remediation work must use an
-isolated branch and reach `main` through the repository's reviewed integration
-lane. Preserve unpublished or dirty work before branch folding, and do not
-prune until integration or patch equivalence is proven.
+The canonical release branch is `main`. Routine work uses the documented
+integration branch (`dev` when configured); feature and remediation work is not
+automatically isolated. Select `direct_dev`, `short_lived`, or an explicitly
+designated `long_lived` line before mutation. Preserve unpublished or dirty
+work before branch folding, and do not prune until integration or patch
+equivalence is proven.
 
 Read the deeper file only when the task matches it:
 
@@ -42,6 +44,9 @@ Read the deeper file only when the task matches it:
 - [Branch-sensitive quality verification](branch-sensitive-quality-verification.md)
   — required when a branch or commit selector is adjacent to displayed quality
   or tenure statistics.
+- [Branch lane selection](../../docs/branch-lane-selection.md) — the
+  deterministic choice between direct integration work, short-lived isolated
+  work, and an explicitly designated long-lived line.
 
 The global `$pronto` skill owns the cross-repository workflow. This context
 packet owns the current repository contract and should be updated when the CLI
