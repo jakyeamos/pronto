@@ -991,7 +991,7 @@ h1 {
   background: #a9c8ff;
   box-shadow: 0 6px 18px rgba(83, 125, 209, 0.18);
 }
-.button-primary:hover {
+.button-primary:hover:not(:disabled) {
   background: #bfd5ff;
 }
 .button-secondary {
@@ -3330,6 +3330,13 @@ h1 {
   color: var(--faint);
   font-size: 9px;
 }
+.ci-tracker-summary small {
+  display: block;
+}
+.ci-tracker-dedup-note {
+  margin-top: var(--space-2xs);
+  color: #c89b82;
+}
 .ci-tracker-error {
   display: flex;
   align-items: flex-start;
@@ -3361,8 +3368,40 @@ h1 {
   padding: 12px;
   border-bottom: 1px solid var(--border);
 }
-.ci-tracker-repository-heading > div {
+.ci-tracker-repository-toggle {
+  display: flex;
+  align-items: flex-start;
   min-width: 0;
+  flex: 1 1 auto;
+  gap: var(--space-xs);
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.ci-tracker-repository-toggle:hover .ci-tracker-repository-toggle-icon,
+.ci-tracker-repository-toggle:hover strong {
+  color: var(--text);
+}
+.ci-tracker-repository-toggle-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  min-height: 20px;
+  color: var(--muted);
+  transition: color 150ms ease;
+}
+.ci-tracker-repository-toggle-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.ci-tracker-repository-toggle-copy small {
+  display: block;
+  margin-top: var(--space-2xs);
+  color: var(--faint);
+  font-size: 9px;
 }
 .ci-tracker-repository-heading small {
   display: block;
@@ -3377,6 +3416,9 @@ h1 {
 }
 .ci-tracker-run-list {
   display: grid;
+}
+.ci-tracker-run-list[hidden] {
+  display: none;
 }
 .ci-tracker-run {
   position: relative;
@@ -3446,6 +3488,11 @@ h1 {
 .ci-tracker-action-note {
   grid-column: 1 / -1;
   color: var(--faint);
+  font-size: 9px;
+}
+.ci-tracker-repeat-note {
+  grid-column: 1 / -1;
+  color: #c89b82;
   font-size: 9px;
 }
 @media (max-width: 760px) {

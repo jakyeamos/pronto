@@ -166,6 +166,7 @@ pub fn run() {
             core::export_remediation,
             core::set_maturity_audit_root,
             core::open_quality_report,
+            core::open_external_url,
             core::open_workspace,
             core::prepare_repository,
             core::preflight_action,

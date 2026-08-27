@@ -43,6 +43,38 @@ fn open_external_tool(path: &Path, tool: &str) -> Result<(), String> {
     }
 }
 
+fn validated_github_url(url: &str) -> Result<&str, String> {
+    let trimmed = url.trim();
+    let normalized = trimmed.to_ascii_lowercase();
+    if trimmed.contains(['\r', '\n']) || !normalized.starts_with("https://github.com/") {
+        return Err("Only HTTPS GitHub links can be opened from the CI tracker".to_string());
+    }
+    Ok(trimmed)
+}
+
+fn open_external_url_at(url: &str) -> Result<(), String> {
+    let url = validated_github_url(url)?;
+
+    #[cfg(target_os = "macos")]
+    {
+        let status = Command::new("/usr/bin/open")
+            .arg(url)
+            .status()
+            .map_err(|_| "Could not start the default browser".to_string())?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err("The default browser could not open the GitHub link".to_string())
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = url;
+        Err("Opening GitHub links from Pronto is currently implemented for macOS only".to_string())
+    }
+}
+
 fn open_quality_report_at(path: &Path, report_path: &str) -> Result<PortfolioSnapshot, String> {
     let state = load_store_with_quality(path)?;
     let mut allowed_roots = Vec::new();

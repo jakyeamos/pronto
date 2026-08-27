@@ -61,6 +61,7 @@ export function AppRouteSurface({
   onExportRemediation,
   onUpdateRemediationStatus,
   onRefreshGithub,
+  onOpenExternalUrl,
   onStartCiCodex,
   settingsActions,
   collectionActions,
@@ -102,6 +103,7 @@ export function AppRouteSurface({
     status: RemediationActionStatus,
   ) => Promise<void>;
   onRefreshGithub: () => Promise<void>;
+  onOpenExternalUrl: (url: string) => Promise<void>;
   onStartCiCodex: (
     repository: RemoteRepositorySnapshot,
     run: CiRunSnapshot,
@@ -247,6 +249,7 @@ export function AppRouteSurface({
           repositories={snapshot.remote_repositories}
           isRefreshing={isRefreshing}
           onRefresh={onRefreshGithub}
+          onOpenExternalUrl={onOpenExternalUrl}
           onStartCodex={onStartCiCodex}
         />
       ) : (

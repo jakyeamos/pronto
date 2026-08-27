@@ -751,7 +751,7 @@
         "cargo test --manifest-path src-tauri/Cargo.toml core::tests::parses_ci_runs_with_failure_context_forks_artifacts_and_stable_signatures",
         "pnpm typecheck",
         "pnpm build:web",
-        "Verify successful runs and missing artifacts stay non-actionable, fork runs remain diagnosis-only, and the handoff requires a registered local checkout.",
+        "Verify successful runs stay omitted, local failures can use the bridge fallback when artifacts are missing, fork runs remain diagnosis-only, remote-only repositories remain read-only, repeated stable-signature failures collapse to the latest actionable run, repositories can be collapsed independently or together, external CI links open in the browser, and the handoff requires a registered local checkout.",
         "Exercise the source desktop surface with a failed-run fixture or live GitHub snapshot before claiming behavior verification."
       ],
       "status": "applicable"

@@ -116,6 +116,15 @@ export async function startCiCodexHandoff(
   });
 }
 
+export async function openExternalUrl(url: string): Promise<void> {
+  if (!isDesktopBridgeAvailable()) {
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) throw new Error("The GitHub link could not be opened.");
+    return;
+  }
+  await invoke("open_external_url", { url });
+}
+
 export async function refreshRemediation(): Promise<PortfolioSnapshot> {
   if (!isDesktopBridgeAvailable()) {
     throw new Error(

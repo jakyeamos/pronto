@@ -135,12 +135,6 @@ fn start_ci_codex_handoff_at(
     if !ci_run_needs_artifact(run) {
         return Err("Codex handoff is available only for failed or cancelled CI runs.".to_string());
     }
-    if run.prompt_artifact.is_none() {
-        return Err(
-            "This CI run has no downloadable Codex prompt artifact. Verify the bridge workflow is installed and rerun GitHub refresh."
-                .to_string(),
-        );
-    }
     let checkout = state
         .repositories
         .iter()
@@ -185,11 +179,16 @@ fn start_ci_codex_handoff_at(
     let run_id_text = run_id.to_string();
     let checkout_text = checkout.to_string_lossy().to_string();
     let output_text = output_directory.to_string_lossy().to_string();
-    let download = Command::new(&node)
+    let bridge_action = if run.prompt_artifact.is_some() {
+        "download"
+    } else {
+        "prompt"
+    };
+    let prompt_result = Command::new(&node)
         .current_dir(&bridge)
         .args([
             "./bin/codex-ci.mjs",
-            "download",
+            bridge_action,
             "--run",
             run_id_text.as_str(),
             "--repo",
@@ -201,12 +200,14 @@ fn start_ci_codex_handoff_at(
         ])
         .env("PATH", &child_path)
         .output()
-        .map_err(|error| format!("Could not run the CI bridge download: {error}"))?;
-    if !download.status.success() {
-        return Err(ci_process_failure(
-            "The CI prompt artifact could not be downloaded",
-            &download,
-        ));
+        .map_err(|error| format!("Could not run the CI bridge: {error}"))?;
+    if !prompt_result.status.success() {
+        let failure_prefix = if bridge_action == "download" {
+            "The CI prompt artifact could not be downloaded"
+        } else {
+            "The CI failure prompt could not be generated"
+        };
+        return Err(ci_process_failure(failure_prefix, &prompt_result));
     }
     let prompt_path = output_directory.join("codex-ci-prompt.md");
     if !prompt_path.is_file() {

@@ -56,6 +56,23 @@
     }
 
 #[test]
+    fn external_ci_links_accept_only_https_github_urls() {
+        assert_eq!(
+            validated_github_url(" https://github.com/acme/project/actions/runs/7001 ")
+                .expect("GitHub run URL should be accepted"),
+            "https://github.com/acme/project/actions/runs/7001"
+        );
+        for url in [
+            "http://github.com/acme/project",
+            "https://github.com.evil.example/acme/project",
+            "https://example.com/acme/project",
+            "https://github.com/acme/project\nopen",
+        ] {
+            assert!(validated_github_url(url).is_err(), "unexpectedly accepted {url}");
+        }
+    }
+
+#[test]
     fn classifies_clean_inspected_workspaces_as_idle_instead_of_unknown() {
         assert_eq!(
             workspace_activity_state(false, false, false, true, false, false, 0),

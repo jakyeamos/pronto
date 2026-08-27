@@ -130,6 +130,21 @@ export function App(): ReactElement {
     [setNotice],
   );
 
+  const handleOpenExternalUrl = useCallback(
+    async (url: string): Promise<void> => {
+      try {
+        await api.openExternalUrl(url);
+      } catch (caught) {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Pronto could not open that GitHub link.",
+        );
+      }
+    },
+    [setError],
+  );
+
   const handleOpenRepository = useCallback(
     (repository: RepositorySnapshot): void => {
       setActiveNav("portfolio");
@@ -388,6 +403,7 @@ export function App(): ReactElement {
             onExportRemediation={handleExportRemediation}
             onUpdateRemediationStatus={handleRemediationStatus}
             onRefreshGithub={handleRefreshGithub}
+            onOpenExternalUrl={handleOpenExternalUrl}
             onStartCiCodex={handleStartCiCodex}
             settingsActions={{
               onSaveRoot: handleSaveRoot,

@@ -27,6 +27,11 @@ pub fn open_quality_report(report_path: String) -> Result<PortfolioSnapshot, Str
 }
 
 #[tauri::command]
+pub fn open_external_url(url: String) -> Result<(), String> {
+    open_external_url_at(&url)
+}
+
+#[tauri::command]
 pub fn open_workspace(
     repository_id: String,
     workspace_id: String,
