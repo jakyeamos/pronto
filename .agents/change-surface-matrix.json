@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-20",
+  "last_reviewed": "2026-08-28",
   "reviewed_no_impact": [
     {
       "change": "Split the renderer API barrel into defaults, review commands, and portfolio commands.",
@@ -59,6 +59,28 @@
         "For detector evidence changes, verify blocked or refresh-required receipts never become zero findings and preserve prior raw evidence without a current delta.",
         "Run the parallel refresh coordinator tests and verify the locked merge preserves every scanned repository.",
         "Run cargo test --manifest-path src-tauri/Cargo.toml task_lanes::tests and verify active, adoptable, stale, contested, unknown, closed, and unavailable custody paths remain distinct."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "instruction-drift-audit",
+      "scope": "local and external consumer contract",
+      "path": "src-tauri/src/core/instruction_drift.rs, src-tauri/src/core.rs, src-tauri/src/core/cli.rs, src-tauri/src/core/part-38.rs, .agents/context/commands.md, docs/repository-contract.md, docs/implementation-plan.md, docs/isolated-change-workflow.md, .agents/change-surface-matrix.json",
+      "owner": "Pronto repository maintainers and provider-neutral contract owners",
+      "condition": "Read-only fleet instruction drift classification, source inventory, cached/live freshness evidence, or audit output schema changes.",
+      "operations": [
+        "add",
+        "change",
+        "remove"
+      ],
+      "validation": [
+        "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check",
+        "cargo test --manifest-path src-tauri/Cargo.toml instruction_drift_tests",
+        "cargo check --manifest-path src-tauri/Cargo.toml --bin pronto_cli",
+        "node bin/pronto.mjs instruction-drift --json",
+        "Verify the audit reads the registry read-only, enumerates the registered fleet, observes live Git independently, and includes source path, line, hash, scope, precedence, and confidence.",
+        "Verify compatible, local_stricter_override, direct_conflict, stale_pointer, and needs_review classifications plus blocked and partial evidence paths.",
+        "Verify no refresh, provider call, branch/worktree creation, Git mutation, or repository-file edit occurs."
       ],
       "status": "applicable"
     },

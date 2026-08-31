@@ -38,6 +38,7 @@ include!("core/part-37.rs");
 include!("core/part-38.rs");
 include!("core/part-39.rs");
 include!("core/part-40.rs");
+include!("core/instruction_drift.rs");
 include!("core/cli.rs");
 include!("core/cli-01.rs");
 include!("core/cli-02.rs");

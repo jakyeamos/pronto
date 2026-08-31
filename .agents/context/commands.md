@@ -1,6 +1,6 @@
 # Agent command contract
 
-Last reviewed: 2026-08-18.
+Last reviewed: 2026-08-28.
 
 ## Repository CI gate profile
 
@@ -37,6 +37,15 @@ preferred agent interface. `doctor --json` is the read-only freshness and
 storage gate; it never refreshes or writes the snapshot. `status --json`
 remains the complete legacy snapshot; use a focused projection when one is
 available.
+
+`instruction-drift --json` is a read-only instruction and evidence-freshness
+projection. It enumerates the registered fleet from the SQLite snapshot, scans
+the global instruction roots and repository-local contracts, and observes live
+Git independently. It does not invoke `route`, `doctor`, refresh, providers,
+or any Git, branch, worktree, SQLite, or repository-file mutation. The optional
+`--home <agent-root>` selects an alternate global instruction root for an
+explicit test or alternate local agent home; it does not change the configured
+Pronto storage path.
 
 `pnpm contract:check` also validates `.pronto/cache-lifecycle.json`. That
 contract identifies rebuildable worktree outputs and their rebuild commands;
@@ -104,6 +113,7 @@ stale/unknown until it is refreshed from the exact target commit.
 | Daily orientation                    | `next [<repository>] [--product <name> \| --group <name>] [--limit <n>] --json`                                                                                   | `pronto-agent-next/v1`                                                                                           |
 | Fold preparation                     | `fold preview [<repository>] [--target <branch>] [--product <name> \| --group <name>] [--limit <n>] [--cursor <token>] --json`                                    | `pronto-agent-fold-preview/v2`                                                                                   |
 | Fleet orientation                    | `summary [--product <name> \| --group <name>] --json`                                                                                                             | `pronto-agent-summary/v1`                                                                                        |
+| Instruction drift audit               | `instruction-drift [<repository>] [--home <agent-root>] --json`                                                                                                    | `pronto-instruction-drift/v1`                                                                                    |
 | One repository and task-lane custody | `repo <absolute-repo-path> [--fresh] --json`                                                                                                                      | `pronto-agent-repository/v1` with `pronto-task-lanes/v1`                                                         |
 | Repository architecture map          | `telescope <repository> --json`                                                                                                                                   | `pronto-telescope/v2` plus `pronto-telescope-city/v2`; cached when the workspace fingerprint matches             |
 | Forced architecture refresh          | `telescope refresh <repository> --json`                                                                                                                           | `pronto-telescope/v2`; regenerates measured evidence and reassesses readiness                                    |
@@ -150,6 +160,37 @@ each repository's normal review and integration lane.
 Resolve a repository with `git rev-parse --show-toplevel` and pass the
 absolute path, repository name, ID, or an exact workspace path. Do not pass `.`
 and assume it will resolve.
+
+### Instruction drift audit
+
+`instruction-drift [<repository>] [--home <agent-root>] --json` emits the
+versioned `pronto-instruction-drift/v1` envelope. Without a positional query it
+audits every repository currently registered in the read-only Pronto snapshot;
+the query may be an exact repository ID, name, or path. A missing query is
+reported in `skipped` evidence rather than being silently treated as an empty
+fleet.
+
+The report keeps four evidence lanes separate: `cached_pronto` is the registry
+snapshot and its scan metadata, `live_git` is an independent status and HEAD
+observation, `instruction_findings` is the source comparison, and
+`evidence_freshness` describes coverage and cached/live mismatches. A cached
+row that differs from live Git is not rewritten or folded into an instruction
+finding. The command does not run the storage/route doctor, so unavailable
+doctor or route state remains outside this projection.
+
+Instruction sources are recorded with path, line count, SHA-256, scope, and
+precedence. Findings retain source path, line, hash, scope, precedence,
+confidence, and a bounded excerpt. The bounded policy-atom vocabulary compares
+behavioral subjects rather than raw text and classifies results as
+`compatible`, `local_stricter_override`, `direct_conflict`, `stale_pointer`, or
+`needs_review`. Unrecognized prose is not promoted to a conflict. Stale-pointer
+checks require an anchored or repository-relative instruction path; bare
+filenames, shell variables, URLs, and wildcard templates are not treated as
+missing files.
+
+The audit is observational only: use the explicit `refresh` path when a cached
+Pronto row needs to be changed, and use the documented Git/worktree workflow
+for any repository mutation.
 
 ### Telescope boundary
 

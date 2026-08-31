@@ -1,13 +1,16 @@
 # Pronto repository operating contract
 
-Last reviewed: 2026-08-20.
+Last reviewed: 2026-08-28.
 
 This is the repository-specific execution contract for contributors and
-agents. The canonical branch is `main`; work is developed on an isolated
-branch, reviewed through the integration lane, and merged only after required
-gates pass on the exact candidate commit. Dirty, unpublished, active, or
-ambiguous work is preserved before folding. Branch and worktree removal waits
-until integration or patch equivalence and ownership are proven.
+agents. The canonical branch is `main`; `dev` is the working integration lane
+when configured. Bounded, reversible work defaults to `direct_dev`; explicit
+isolation, review, parallel work, risk, migration, or separate-release needs
+select a `short_lived` lane, while `long_lived` requires an explicit sustained
+track designation with an owner, purpose, sync or review cadence, and exit
+condition. Dirty, unpublished, active, or ambiguous work is preserved before
+folding, but dirty `dev` alone does not select isolation. Branch and worktree
+removal waits until integration or patch equivalence and ownership are proven.
 
 For fleet integration and maturity evidence, Pronto uses an explicit `dev`
 target when one is configured. This target is separate from Git's release or
@@ -30,6 +33,11 @@ unavailable until it is regenerated from the exact `dev` commit.
   policy and read-only lifecycle projection. The installed global
   `isolated-change-workflow` owns creation enforcement and custody receipt
   recording; Pronto must not duplicate that Git mutation boundary.
+- `src-tauri/src/core/instruction_drift.rs` owns the read-only fleet instruction
+  audit. It compares bounded policy atoms across global and repository-local
+  sources, records source evidence, and keeps cached Pronto rows, live Git
+  observations, instruction findings, and freshness status separate. It must
+  not refresh the registry, call providers, or mutate Git or repository files.
 - `src-tauri/src/telescope.rs` owns the versioned source-derived architecture
   graph, language adapters, workspace binding, uncertainty, and cache privacy.
   `.pronto/telescope-map.json` v2 owns the repository's authored narrative,
@@ -249,10 +257,17 @@ repository or provider scope and preserve the exact source commit and evidence
 timestamp. AI remains disabled by default and must not receive source content,
 credentials, or operational authority without a separately designed contract.
 
+`instruction-drift --json` is an observational audit over the configured
+registry and live local repositories. It never substitutes cached Pronto state
+for live Git, never treats a freshness mismatch as an instruction conflict, and
+does not invoke `doctor`, `route`, refresh, providers, or any write surface.
+
 ## Parallel task lanes and custody
 
-Concurrent feature work uses one branch and linked worktree per feature, with
-`dev` as the integration lane and `main` or `master` as the release lane. The
+Concurrent isolated feature work uses one branch and linked worktree per
+feature, with `dev` as the integration lane and `main` or `master` as the
+release lane. The lane gate selects direct `dev` for bounded reversible work;
+dirty integration state alone is not a branch trigger. The
 isolated-change workflow owns signed renewable custody; Pronto exposes its
 read-only `pronto-task-lanes/v1` projection through repository detail and scoped
 route responses. A stopped agent loses custody after its lease grace period. A

@@ -1,8 +1,17 @@
 # Isolated change workflow
 
-Pronto treats a dirty or owner-active primary checkout as a reason to route new
-work into a clean task worktree. It is not, by itself, a reason to leave an
-otherwise completed feature uncommitted.
+Pronto selects a change lane before routing work. A dirty or owner-active
+checkout is evidence to inspect and classify; it is not, by itself, a reason to
+create a task worktree or leave an otherwise completed feature uncommitted.
+
+`direct_dev` is the default for bounded, reversible, single-repository work
+without ownership, review, parallel-work, risk, migration, or separate-release
+conflicts. Select `short_lived` for explicit isolation, review, parallel work,
+risk, migration, or other task-custody requirements. Select `long_lived` only
+for an explicitly designated sustained product or release line with an owner,
+purpose, sync or review cadence, and exit condition. Use this workflow only
+when the lane gate selects an isolated lane or exact custody evidence requires
+one.
 
 The canonical workflow is distributed as the `isolated-change-workflow` skill.
 Its bundled command records an exact base, creates a locked `codex/*` worktree,

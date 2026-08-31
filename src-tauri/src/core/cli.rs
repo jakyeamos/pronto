@@ -40,6 +40,7 @@ pub fn run_cli(arguments: Vec<String>) {
         "clone" => run_cli_arm_34(&arguments, json, &path, command),
         "." => run_cli_arm_35(&arguments, json, &path, command),
         "open" => run_cli_arm_36(&arguments, json, &path, command),
+        "instruction-drift" => run_cli_arm_39(&arguments, json, &path, command),
         _ => run_cli_arm_37(&arguments, json, &path, command),
     }
 }
