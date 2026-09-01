@@ -458,6 +458,15 @@ fn push_policy_atom(
     });
 }
 
+fn explicit_dirty_lane_trigger(line: &str) -> bool {
+    let normalized = line.to_ascii_lowercase().replace('`', "");
+    normalized.contains("dirty dev")
+        || normalized.contains("dev is dirty")
+        || normalized.contains("dirty branch")
+        || normalized.contains("branch is dirty")
+        || normalized.contains("dirty integration")
+}
+
 fn extract_policy_atoms(document: &SourceDocument) -> Vec<PolicyAtom> {
     let mut atoms = Vec::new();
     for (line_index, line) in document.contents.lines().enumerate() {
@@ -561,7 +570,7 @@ fn extract_policy_atoms(document: &SourceDocument) -> Vec<PolicyAtom> {
                 "guard",
                 "high",
             );
-        } else if lower.contains("dirty")
+        } else if explicit_dirty_lane_trigger(line)
             && isolation
             && (lower.contains("must")
                 || lower.contains("requires")
@@ -818,6 +827,30 @@ fn instruction_pointer_candidates(line: &str) -> Vec<String> {
     .collect()
 }
 
+fn contains_symbolic_placeholder(line: &str) -> bool {
+    let mut search_start = 0;
+    while let Some(open_offset) = line[search_start..].find('{') {
+        let open = search_start + open_offset;
+        let Some(close_offset) = line[open + 1..].find('}') else {
+            return false;
+        };
+        let value = &line[open + 1..open + 1 + close_offset];
+        if !value.is_empty()
+            && value
+                .chars()
+                .all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.'))
+        {
+            return true;
+        }
+        search_start = open + 1 + close_offset + 1;
+    }
+    false
+}
+
+fn actionable_stale_pointer_line(line: &str) -> bool {
+    !line.trim_start().starts_with('#') && !contains_symbolic_placeholder(line)
+}
+
 fn unambiguous_instruction_pointer(
     token: &str,
     repository: Option<&AuditRepository>,
@@ -875,6 +908,9 @@ fn stale_pointer_findings(
 ) -> Vec<InstructionFinding> {
     let mut findings = Vec::new();
     for (line_index, line) in document.contents.lines().enumerate() {
+        if !actionable_stale_pointer_line(line) {
+            continue;
+        }
         for token in instruction_pointer_candidates(line) {
             if !unambiguous_instruction_pointer(&token, repository) {
                 continue;
@@ -1669,6 +1705,28 @@ mod instruction_drift_tests {
     }
 
     #[test]
+    fn custody_worktree_wording_does_not_create_a_dirty_lane_rule() {
+        let parsed = extract_policy_atoms(&document(
+            "repository",
+            "quality_context",
+            "A dirty target requires an explicitly disposable worktree for gate execution.\n",
+        ));
+        assert!(!parsed
+            .iter()
+            .any(|atom| atom.id == "lane.dirty_selects_isolation"));
+    }
+
+    #[test]
+    fn extracts_default_dev_integration_target() {
+        let parsed = extract_policy_atoms(&document(
+            "global",
+            "git_policy",
+            "`dev` is the default working integration lane.\n",
+        ));
+        assert!(parsed.iter().any(|atom| atom.id == "target.integration_dev"));
+    }
+
+    #[test]
     fn classifies_scoped_feature_isolation_as_local_stricter_override() {
         let global = extract_policy_atoms(&document(
             "global",
@@ -1757,6 +1815,16 @@ mod instruction_drift_tests {
             instruction_pointer_candidates("See ../../docs/repository-contract.md."),
             vec!["../../docs/repository-contract.md"]
         );
+    }
+
+    #[test]
+    fn pointer_scan_ignores_comments_and_symbolic_placeholders() {
+        let source = document(
+            "global",
+            "global_skill",
+            "# Read ~/.claude/plugins/cache/example/3.8.3/SKILL.md\n- `{GSD_ROOT}/templates/context.md`\n",
+        );
+        assert!(stale_pointer_findings(&source, Path::new("/home/test"), None).is_empty());
     }
 
     #[test]

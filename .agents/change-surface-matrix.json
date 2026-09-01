@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-28",
+  "last_reviewed": "2026-09-01",
   "reviewed_no_impact": [
     {
       "change": "Split the renderer API barrel into defaults, review commands, and portfolio commands.",
@@ -80,6 +80,7 @@
         "node bin/pronto.mjs instruction-drift --json",
         "Verify the audit reads the registry read-only, enumerates the registered fleet, observes live Git independently, and includes source path, line, hash, scope, precedence, and confidence.",
         "Verify compatible, local_stricter_override, direct_conflict, stale_pointer, and needs_review classifications plus blocked and partial evidence paths.",
+        "Verify dirty-target custody wording is not classified as dirty-only lane selection and comment or symbolic-placeholder examples are not stale pointers.",
         "Verify no refresh, provider call, branch/worktree creation, Git mutation, or repository-file edit occurs."
       ],
       "status": "applicable"

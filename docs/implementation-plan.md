@@ -91,8 +91,8 @@ The next slices follow [`product-decisions.md`](./product-decisions.md): local d
     the read-only global-versus-repository instruction audit; it preserves
     source path/line/hash/scope/precedence/confidence, compares bounded policy
     atoms into compatible, local-stricter, conflict, stale-pointer, and review
-    findings, and keeps cached Pronto, live Git, instruction, and freshness
-    evidence separate;
+    findings, filters non-actionable custody/comment/placeholder prose, and
+    keeps cached Pronto, live Git, instruction, and freshness evidence separate;
   - `pronto repo <repository> --json` for one repository plus its product/group memberships;
   - `pronto quality [<repository>] --json` for fleet or repository quality evidence;
   - `pronto quality detector-refresh [--qr-bin <path>] [--timeout-seconds <seconds>] [--agent-review-mode <off|auto|parallel|required>] --json` for full exact-target QR detector publication bracketed by local provenance refreshes, followed by immediate import and published-result reconciliation;

@@ -6,10 +6,14 @@ Pronto is the local-first portfolio and Git evidence surface for this machine.
 Use this index when a task needs portfolio-wide repository state, workspace
 triage, branch integration evidence, quality evidence, or release preparation.
 
-The canonical branch is `main`. Feature and remediation work must use an
-isolated branch and reach `main` through the repository's reviewed integration
-lane. Preserve unpublished or dirty work before branch folding, and do not
-prune until integration or patch equivalence is proven.
+The canonical branch is `main`; `dev` is the working integration lane when
+configured. Bounded, reversible work defaults to `direct_dev`; explicit
+isolation, review, parallel work, risk, migration, or separate-release needs
+select a `short_lived` lane. `long_lived` requires an explicit sustained-track
+designation with an owner, purpose, sync or review cadence, and exit condition.
+Dirty, unpublished, active, or ambiguous work is preserved before folding, but
+dirty `dev` alone does not select isolation. Prune only after integration or
+patch equivalence is proven.
 
 Read the deeper file only when the task matches it:
 

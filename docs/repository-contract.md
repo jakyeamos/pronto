@@ -1,6 +1,6 @@
 # Pronto repository operating contract
 
-Last reviewed: 2026-08-28.
+Last reviewed: 2026-09-01.
 
 This is the repository-specific execution contract for contributors and
 agents. The canonical branch is `main`; `dev` is the working integration lane
@@ -36,8 +36,11 @@ unavailable until it is regenerated from the exact `dev` commit.
 - `src-tauri/src/core/instruction_drift.rs` owns the read-only fleet instruction
   audit. It compares bounded policy atoms across global and repository-local
   sources, records source evidence, and keeps cached Pronto rows, live Git
-  observations, instruction findings, and freshness status separate. It must
-  not refresh the registry, call providers, or mutate Git or repository files.
+  observations, instruction findings, and freshness status separate. It only
+  promotes explicit lane-selection language; dirty-target custody or
+  gate-execution wording is not a branch trigger, and comments or symbolic
+  placeholder examples are not stale pointers. It must not refresh the
+  registry, call providers, or mutate Git or repository files.
 - `src-tauri/src/telescope.rs` owns the versioned source-derived architecture
   graph, language adapters, workspace binding, uncertainty, and cache privacy.
   `.pronto/telescope-map.json` v2 owns the repository's authored narrative,

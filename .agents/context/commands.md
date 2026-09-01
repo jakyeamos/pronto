@@ -183,10 +183,11 @@ precedence. Findings retain source path, line, hash, scope, precedence,
 confidence, and a bounded excerpt. The bounded policy-atom vocabulary compares
 behavioral subjects rather than raw text and classifies results as
 `compatible`, `local_stricter_override`, `direct_conflict`, `stale_pointer`, or
-`needs_review`. Unrecognized prose is not promoted to a conflict. Stale-pointer
-checks require an anchored or repository-relative instruction path; bare
-filenames, shell variables, URLs, and wildcard templates are not treated as
-missing files.
+`needs_review`. Unrecognized prose is not promoted to a conflict, and custody or
+gate-execution wording about dirty worktrees is not treated as a lane-selection
+rule. Stale-pointer checks require an anchored or repository-relative
+instruction path; comments, symbolic placeholder examples, bare filenames,
+shell variables, URLs, and wildcard templates are not treated as missing files.
 
 The audit is observational only: use the explicit `refresh` path when a cached
 Pronto row needs to be changed, and use the documented Git/worktree workflow
