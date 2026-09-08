@@ -104,8 +104,7 @@ function useTelescopeWorkspaceModelInternal({
             ? (projection?.nodes.find((node) => node.id === selection.id)
                 ?.group_id ?? null)
             : null,
-      selectedNodeIds:
-        selection?.kind === "node" ? [selection.id] : [],
+      selectedNodeIds: selection?.kind === "node" ? [selection.id] : [],
     }),
     [projection, selection],
   );

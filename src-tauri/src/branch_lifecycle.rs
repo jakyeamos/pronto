@@ -282,8 +282,25 @@ pub fn project(
     target_branch: Option<&str>,
     default_branch: Option<&str>,
 ) -> BranchLifecycleSnapshot {
+    project_at(
+        branches,
+        workspaces,
+        custody,
+        target_branch,
+        default_branch,
+        Utc::now(),
+    )
+}
+
+fn project_at(
+    branches: &[BranchSummary],
+    workspaces: &[WorkspaceSummary],
+    custody: &CustodySnapshot,
+    target_branch: Option<&str>,
+    default_branch: Option<&str>,
+    now: DateTime<Utc>,
+) -> BranchLifecycleSnapshot {
     let policy = BranchLifecyclePolicy::default();
-    let now = Utc::now();
     let mut entries = branches
         .iter()
         .map(|branch| {

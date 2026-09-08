@@ -55,9 +55,7 @@ describe("portfolio navigation surfaces", () => {
       }),
     });
     const markup = renderToStaticMarkup(
-      <AttentionQueue
-        repositories={[repository]}
-      />,
+      <AttentionQueue repositories={[repository]} />,
     );
     expect(markup).toContain("Attention queue");
     expect(markup).toContain('class="rail-section attention-queue"');

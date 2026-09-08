@@ -11,10 +11,7 @@ import type {
   RepositorySnapshot,
 } from "../types";
 import { type NavItem } from "../navigation";
-import {
-  CommandCenterSurface,
-  type Filter,
-} from "./CommandCenterSurface";
+import { CommandCenterSurface, type Filter } from "./CommandCenterSurface";
 import { RepositoryDetailSurface } from "./Drawers";
 import { PortfolioCollectionsSurface } from "./PortfolioCollectionsSurface";
 import { ShowcaseSurface } from "./ShowcaseSurface";
@@ -117,8 +114,8 @@ export function AppRouteSurface({
 }): ReactElement {
   const showingRepositoryDetail = Boolean(
     selectedRepository &&
-      activeNav !== "remediation" &&
-      activeNav !== "promotions",
+    activeNav !== "remediation" &&
+    activeNav !== "promotions",
   );
 
   return (
@@ -140,7 +137,9 @@ export function AppRouteSurface({
           onPrepareRepository={onPrepareRepository}
           onTargetBranchChange={onTargetBranchChange}
           onLifecycleChange={onLifecycleChange}
-          onCondition={(condition) => onCondition(selectedRepository, condition)}
+          onCondition={(condition) =>
+            onCondition(selectedRepository, condition)
+          }
           onOpenReport={onOpenReport}
         />
       ) : activeNav === "portfolio" ? (

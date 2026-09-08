@@ -605,9 +605,7 @@ function TelescopeActionTour({
       {stop?.source_anchors[0] && (
         <code>
           {stop.source_anchors[0].path}
-          {stop.source_anchors[0].line
-            ? `:${stop.source_anchors[0].line}`
-            : ""}
+          {stop.source_anchors[0].line ? `:${stop.source_anchors[0].line}` : ""}
         </code>
       )}
       <div>
@@ -709,14 +707,15 @@ function TelescopeSourceDetail({
           <h3>Immediate handoffs</h3>
           <ul>
             {relationships.map((edge) => {
-              const peerId = edge.source === node.id ? edge.target : edge.source;
+              const peerId =
+                edge.source === node.id ? edge.target : edge.source;
               const peer = projection.nodes.find(
                 (candidate) => candidate.id === peerId,
               );
               return (
                 <li key={edge.id}>
                   <strong>
-                    {edge.source === node.id ? "Sends to" : "Receives from"} {" "}
+                    {edge.source === node.id ? "Sends to" : "Receives from"}{" "}
                     {peer?.label ?? peerId}
                   </strong>
                   <span>

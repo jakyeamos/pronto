@@ -21,7 +21,7 @@ interface BuildingBucket {
 
 export const MAX_SOURCE_DETAIL_BUILDINGS = 96;
 
-export function archetypeForNode(
+function archetypeForNode(
   node: Pick<TelescopeNode, "kind"> & {
     visual_archetype?: string;
   },

@@ -5,7 +5,6 @@ import type {
 } from "../types/telescope";
 import {
   MAX_SOURCE_DETAIL_BUILDINGS,
-  archetypeForNode,
   buildDistricts,
   collectBuckets,
   lowerConfidence,
@@ -15,14 +14,8 @@ import {
 
 export type TelescopeSceneLevel = "overview" | "subsystems" | "source";
 export type TelescopeArchetype =
-  | "fin-row"
-  | "tower"
-  | "slab-stack"
-  | "cube"
-  | "low-slab";
+  "fin-row" | "tower" | "slab-stack" | "cube" | "low-slab";
 export type TelescopeRailKind = "data" | "control" | "event" | "import";
-
-export { archetypeForNode, MAX_SOURCE_DETAIL_BUILDINGS };
 
 export interface TelescopeSceneDistrict {
   id: string;
@@ -280,32 +273,4 @@ function tokenLabelForEdge(edge: TelescopeEdge): string {
   if (edge.kind === "dynamic") return "event";
   if (edge.kind === "uses") return "control";
   return "payload";
-}
-
-export function sourceNodeIdsForSceneBuilding(
-  scene: TelescopeSceneModel,
-  buildingId: string,
-): string[] {
-  return (
-    scene.buildings.find((building) => building.id === buildingId)
-      ?.sourceNodeIds ?? []
-  );
-}
-
-export function sourceEdgeIdsForSceneRail(
-  scene: TelescopeSceneModel,
-  railId: string,
-): string[] {
-  return scene.rails.find((rail) => rail.id === railId)?.sourceEdgeIds ?? [];
-}
-
-export function firstFlowForScene(
-  projection: TelescopeProjection,
-  scene: TelescopeSceneModel,
-): TelescopeFlow | null {
-  return (
-    projection.flows.find((flow) => flow.id === scene.primaryFlowId) ??
-    projection.flows[0] ??
-    null
-  );
 }
