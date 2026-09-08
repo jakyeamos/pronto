@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import { Compass } from "lucide-react";
 import type { RepositorySnapshot } from "../types";
+import { CompassFamilyDetail } from "./CompassFamilyDetail";
 import { StatusPill } from "./ConsolePrimitives";
 import {
   projectCompassCoverageIsIncomplete,
@@ -66,6 +67,7 @@ export function ProjectCompassDetail({
           {contractStatus.label}
         </StatusPill>
       </div>
+      <CompassFamilyDetail compass={compass} />
       {compass.status === "Ready" ? (
         <>
           <div className="compass-product-truth">

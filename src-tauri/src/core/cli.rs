@@ -3,6 +3,7 @@ pub fn run_cli(arguments: Vec<String>) {
     let json = arguments.iter().any(|argument| argument == "--json");
     let path = store_path();
     match command {
+        "compass" => crate::project_compass_bridge::run_cli(&arguments[1..]),
         "help" | "-h" | "--help" => run_cli_arm_01(&arguments, json, &path, command),
         "workspace-policy" => run_cli_arm_02(&arguments, json, &path, command),
         "workspace-manifest" => run_cli_arm_03(&arguments, json, &path, command),

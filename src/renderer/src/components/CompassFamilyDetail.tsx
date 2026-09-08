@@ -1,0 +1,107 @@
+import { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import type { RepositorySnapshot } from "../types";
+
+export function CompassFamilyDetail({
+  compass,
+}: {
+  compass: RepositorySnapshot["project_compass"];
+}) {
+  const family = compass.family;
+  const [sourceError, setSourceError] = useState<string | null>(null);
+  if (!family || family.schema !== "compass-family/v1") {
+    return (
+      <p className="quality-inline-empty">
+        Subsystem projection unavailable. Refresh with the current Compass
+        helper.
+      </p>
+    );
+  }
+  const assessment = compass.modernization_assessment;
+  return (
+    <section className="compass-family" aria-label="Subsystem intent">
+      <p>
+        Subsystem intent · projection{" "}
+        {compass.projection_status ?? family.status}
+      </p>
+      <small>
+        Snapshot captured {family.generated_at}. Refresh to check source
+        freshness. Declared progress does not establish current proof.
+      </small>
+      {assessment && (
+        <aside aria-label="Modernization assessment">
+          <strong>{assessment.disposition.replaceAll("_", " ")}</strong>
+          <p>
+            Assessment only ·{" "}
+            {assessment.remediation_id ?? "No remediation linked"}
+          </p>
+          {assessment.reasons.map((reason) => (
+            <p key={reason}>{reason}</p>
+          ))}
+        </aside>
+      )}
+      {sourceError && <p role="status">{sourceError}</p>}
+      <nav aria-label="Compass subsystems">
+        {family.nodes.map((node) => (
+          <details key={node.id}>
+            <summary>
+              {node.id} · {node.valid ? node.status : "invalid"} · revision{" "}
+              {node.revision ?? "unknown"}
+            </summary>
+            <p>{node.purpose ?? node.error}</p>
+            <small>
+              {node.authority} ·{" "}
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => {
+                  void invoke("open_compass_source", {
+                    workspace: family.source.workspace,
+                    sourceRef: node.source_ref,
+                  })
+                    .then(() => setSourceError(null))
+                    .catch((error) => setSourceError(String(error)));
+                }}
+              >
+                Open source
+              </button>
+            </small>
+            <p id={`compass-source-${node.id}`}>
+              <code>{node.source_ref}</code>
+            </p>
+            {node.constraints.length > 0 && (
+              <ul>
+                {node.constraints.map((constraint) => (
+                  <li key={constraint}>{constraint}</li>
+                ))}
+              </ul>
+            )}
+            {node.error && <p role="status">{node.error}</p>}
+          </details>
+        ))}
+      </nav>
+      {family.relationships.length > 0 && (
+        <div aria-label="Subsystem handoffs">
+          {family.relationships.map((link) => (
+            <p key={link.id}>
+              {link.from} → {link.to} · {link.valid ? link.status : "dangling"}:{" "}
+              {link.summary}
+            </p>
+          ))}
+        </div>
+      )}
+      <p>
+        Path coverage {family.coverage.status}:{" "}
+        {family.coverage.covered_paths.length} accepted,{" "}
+        {family.coverage.proposed_paths.length} proposed,{" "}
+        {family.coverage.unmapped_paths.length} unmapped,{" "}
+        {family.coverage.ambiguous_paths.length} ambiguous.
+      </p>
+      {family.errors.map((error, index) => (
+        <p role="status" key={`${error.scope}-${index}`}>
+          {error.scope}: {error.message}
+        </p>
+      ))}
+    </section>
+  );
+}

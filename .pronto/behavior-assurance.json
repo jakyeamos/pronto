@@ -1,7 +1,10 @@
 {
   "schema": "pronto-behavior-assurance/v2",
   "applicability": "applicable",
-  "approved_producers": ["quality-runner", "codex-direct-validation"],
+  "approved_producers": [
+    "quality-runner",
+    "codex-direct-validation"
+  ],
   "behaviors": [
     {
       "id": "background-service-lifecycle",
@@ -56,7 +59,10 @@
           "oracle": "pronto behavior --json reports selected repositories and gaps and exits non-zero whenever any selected repository is not release-ready.",
           "verification_level": "automated",
           "edge_profile": {
-            "categories": ["input_and_encoding", "environment_and_cross_surface"],
+            "categories": [
+              "input_and_encoding",
+              "environment_and_cross_surface"
+            ],
             "risk": "routine",
             "side_effects": "none"
           }
@@ -67,7 +73,9 @@
           "oracle": "The behavior command filters missing, legacy, unprofiled, stale, failed, and blocked repositories while preserving each repository's exact projected state.",
           "verification_level": "automated",
           "edge_profile": {
-            "categories": ["state_and_ordering"],
+            "categories": [
+              "state_and_ordering"
+            ],
             "risk": "routine",
             "side_effects": "none"
           }
@@ -96,7 +104,10 @@
           "oracle": "Missing, invalid, stale, failed, blocked, and target-mismatched evidence projects as not release-ready; only current passing Tier-0 evidence or an explicit valid not-applicable contract is release-ready.",
           "verification_level": "automated",
           "edge_profile": {
-            "categories": ["state_and_ordering", "interruption_and_recovery"],
+            "categories": [
+              "state_and_ordering",
+              "interruption_and_recovery"
+            ],
             "risk": "routine",
             "side_effects": "none"
           }
@@ -123,7 +134,10 @@
           "oracle": "Release preparation is blocked and explains the Tier-0 behavior-assurance state unless the repository projection is release-ready.",
           "verification_level": "automated",
           "edge_profile": {
-            "categories": ["authorization_and_session", "environment_and_cross_surface"],
+            "categories": [
+              "authorization_and_session",
+              "environment_and_cross_surface"
+            ],
             "risk": "hostile",
             "side_effects": "none"
           }
@@ -153,7 +167,10 @@
           "oracle": "The Quality workspace visibly separates Tier-0 release assurance from all-tier verified and profiled counts, freshness, failed, blocked, and unknown states, and fleet filters.",
           "verification_level": "direct_surface",
           "edge_profile": {
-            "categories": ["environment_and_cross_surface", "input_and_encoding"],
+            "categories": [
+              "environment_and_cross_surface",
+              "input_and_encoding"
+            ],
             "risk": "routine",
             "side_effects": "none"
           }
@@ -185,7 +202,11 @@
           "oracle": "Backend fixtures cover unavailable, measured, needs_information, reviewable, reviewed, stale, unknown, and not-applicable cases while proving stable dependency-ordered gap keys and no silent manifest mutation.",
           "verification_level": "automated",
           "edge_profile": {
-            "categories": ["state_and_ordering", "interruption_and_recovery", "environment_and_cross_surface"],
+            "categories": [
+              "state_and_ordering",
+              "interruption_and_recovery",
+              "environment_and_cross_surface"
+            ],
             "risk": "routine",
             "side_effects": "none"
           }
@@ -196,7 +217,10 @@
           "oracle": "The renderer labels measured previews incomplete, shows the highest-impact source-backed question, and sends Answer next question through the existing repository preparation callback without changing readiness or executing repository mutations.",
           "verification_level": "direct_surface",
           "edge_profile": {
-            "categories": ["authorization_and_session", "state_and_ordering"],
+            "categories": [
+              "authorization_and_session",
+              "state_and_ordering"
+            ],
             "risk": "routine",
             "side_effects": "none"
           }
@@ -227,7 +251,11 @@
           "oracle": "Renderer tests prove semantic overview clustering, district-local expansion, building-local source detail, fixed nodes, fit-on-scope-change, and an action-guided tour over stable canonical geometry.",
           "verification_level": "automated",
           "edge_profile": {
-            "categories": ["scale_and_capacity", "state_and_ordering", "input_and_encoding"],
+            "categories": [
+              "scale_and_capacity",
+              "state_and_ordering",
+              "input_and_encoding"
+            ],
             "risk": "routine",
             "side_effects": "none"
           }
@@ -238,7 +266,11 @@
           "oracle": "A representative dense projection enters a split building-local workspace, progressively reveals files and symbols, and remains interactive without mounting the global dependency graph.",
           "verification_level": "direct_surface",
           "edge_profile": {
-            "categories": ["scale_and_capacity", "resource_and_time", "interruption_and_recovery"],
+            "categories": [
+              "scale_and_capacity",
+              "resource_and_time",
+              "interruption_and_recovery"
+            ],
             "risk": "hostile",
             "side_effects": "none"
           }
@@ -273,7 +305,10 @@
           "oracle": "pronto custody --json emits pronto-custody-cli/v1 with lane states, disposition_counts, next_safe_step, read_only=true, and implementation_allowed=false; a synthetic unleased worktree is surfaced without changing Git state.",
           "verification_level": "automated",
           "edge_profile": {
-            "categories": ["environment_and_cross_surface", "authorization_and_session"],
+            "categories": [
+              "environment_and_cross_surface",
+              "authorization_and_session"
+            ],
             "risk": "hostile",
             "side_effects": "none"
           }
@@ -284,7 +319,11 @@
           "oracle": "Malformed, unsupported-schema, legacy-unsigned, binding-mismatch, dirty, operation-active, and unavailable-evidence fixtures retain distinct dispositions, next actions, and non-adoptable states.",
           "verification_level": "automated",
           "edge_profile": {
-            "categories": ["input_and_encoding", "state_and_ordering", "interruption_and_recovery"],
+            "categories": [
+              "input_and_encoding",
+              "state_and_ordering",
+              "interruption_and_recovery"
+            ],
             "risk": "hostile",
             "side_effects": "none"
           }
@@ -295,7 +334,44 @@
           "oracle": "The repository detail surface displays custody lifecycle counts and each lane's granular disposition and next action without offering mutation controls.",
           "verification_level": "direct_surface",
           "edge_profile": {
-            "categories": ["environment_and_cross_surface", "input_and_encoding"],
+            "categories": [
+              "environment_and_cross_surface",
+              "input_and_encoding"
+            ],
+            "risk": "routine",
+            "side_effects": "none"
+          }
+        }
+      ]
+    },
+    {
+      "id": "compass-development-foundation",
+      "title": "Compass keeps affected intent and proof distinct",
+      "tier": 1,
+      "automation": "permanent",
+      "change_triggers": [
+        "src-tauri/src/project_compass.rs",
+        "src-tauri/src/project_compass_bridge.rs",
+        "src-tauri/src/route_projection.rs",
+        "src/renderer/src/components/CompassFamilyDetail.tsx"
+      ],
+      "invariants": [
+        "Draft and invalid intent remain unaccepted and visible.",
+        "Completion uses the actual diff, current affected intent revisions, and source-bound required proof.",
+        "Assessment never starts implementation."
+      ],
+      "scenarios": [
+        {
+          "id": "bounded-intent-preservation",
+          "title": "Affected scope and proof survive projection without invented readiness",
+          "oracle": "Regression cases preserve legacy root summaries; retain draft, invalid and dangling neighbors; detect stale proof, renamed paths, scope expansion and concurrent intent edits; allow verified bounded changes despite unrelated legacy gaps; and emit no work for rejected modernization.",
+          "verification_level": "automated",
+          "edge_profile": {
+            "categories": [
+              "state_and_ordering",
+              "environment_and_cross_surface",
+              "input_and_encoding"
+            ],
             "risk": "routine",
             "side_effects": "none"
           }

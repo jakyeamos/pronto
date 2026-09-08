@@ -29,6 +29,13 @@
       "path": "release-provider-context.json",
       "parent_id": "project",
       "status": "draft"
+    },
+    {
+      "id": "compass-foundation",
+      "kind": "subsystem",
+      "path": "compasses/compass-foundation.json",
+      "parent_id": "project",
+      "status": "active"
     }
   ],
   "links": [

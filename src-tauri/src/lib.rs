@@ -10,7 +10,9 @@ mod mac_accessibility;
 pub mod mac_control_maturity;
 pub mod papercuts;
 pub mod project_compass;
+pub mod project_compass_bridge;
 pub mod promotion;
+pub mod route_projection;
 
 pub mod quality;
 pub mod release_boundary;
@@ -152,6 +154,7 @@ pub fn run() {
             core::get_skills,
             core::refresh_skills,
             core::open_skill_source,
+            project_compass_bridge::open_compass_source,
             core::register_root,
             core::refresh,
             core::refresh_batch,

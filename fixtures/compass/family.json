@@ -1,0 +1,226 @@
+{
+  "continuity": {
+    "active_commitments": [],
+    "pending_reconciliations": [],
+    "status": "missing"
+  },
+  "coverage": {
+    "ambiguous_paths": [],
+    "covered_paths": [],
+    "excluded_paths": [],
+    "generated_paths": [],
+    "missing_paths": [],
+    "missing_references": [],
+    "proposed_paths": [],
+    "status": "unknown",
+    "unmapped_behaviors": [],
+    "unmapped_paths": []
+  },
+  "development_status": "missing",
+  "errors": [],
+  "generated_at": "2026-09-08T12:00:00Z",
+  "nodes": [
+    {
+      "authority": "legacy-declared",
+      "constraints": ["Excluded: A task counter"],
+      "contract_digest": "4bcf01cff5ef7eb10d9c5983e6938314fe82e113afb28ff22c082002e981b753",
+      "id": "project",
+      "kind": "root",
+      "outcomes": [
+        {
+          "id": "usable-loop",
+          "intended": "required",
+          "name": "Usable Loop"
+        },
+        {
+          "id": "polished-loop",
+          "intended": "required",
+          "name": "Polished Loop"
+        },
+        {
+          "id": "safe-use",
+          "intended": "required",
+          "name": "Safe Use"
+        }
+      ],
+      "parent_id": null,
+      "parent_outcomes": [],
+      "path": "contract.json",
+      "paths": [],
+      "purpose": "A fixture product",
+      "revision": 1,
+      "source_ref": ".project-compass/contract.json",
+      "status": "active",
+      "summary": {
+        "audience": "Testers",
+        "complete_product": {
+          "confidence": "high",
+          "confidence_percent": 87,
+          "covered_pillar_count": 2,
+          "progress_percent": 63,
+          "scored_outcome_count": 3,
+          "total_pillar_count": 2
+        },
+        "contract_path": ".project-compass/contract.json",
+        "error": null,
+        "identity": "A fixture product",
+        "mvp": {
+          "confidence": "high",
+          "confidence_percent": 80,
+          "covered_pillar_count": 2,
+          "progress_percent": 75,
+          "scored_outcome_count": 2,
+          "total_pillar_count": 2
+        },
+        "open_blocker_items": [],
+        "open_blockers": 0,
+        "open_drift": 0,
+        "open_drift_items": [],
+        "project_name": "Fixture",
+        "revision": 1,
+        "status": "Ready",
+        "updated_at": "2026-09-08T12:00:00Z"
+      },
+      "valid": true
+    },
+    {
+      "authority": "draft",
+      "constraints": ["Excluded: Redefining the product identity"],
+      "contract_digest": "2bbeaba5c241e2f4ed50a7ef6b4a39707839baff4954d1cb2b9266204f395916",
+      "id": "playback",
+      "kind": "subsystem",
+      "outcomes": [
+        {
+          "id": "usable-loop",
+          "intended": "required",
+          "name": "Usable Loop"
+        },
+        {
+          "id": "polished-loop",
+          "intended": "required",
+          "name": "Polished Loop"
+        },
+        {
+          "id": "safe-use",
+          "intended": "required",
+          "name": "Safe Use"
+        }
+      ],
+      "parent_id": "project",
+      "parent_outcomes": ["usable-loop"],
+      "path": "compasses/playback.json",
+      "paths": ["src/playback"],
+      "purpose": "Keep playback aligned with its parent outcome.",
+      "revision": 1,
+      "source_ref": ".project-compass/compasses/playback.json",
+      "status": "draft",
+      "summary": {
+        "audience": "Testers",
+        "complete_product": {
+          "confidence": "high",
+          "confidence_percent": 87,
+          "covered_pillar_count": 2,
+          "progress_percent": 63,
+          "scored_outcome_count": 3,
+          "total_pillar_count": 2
+        },
+        "contract_path": ".project-compass/contract.json",
+        "error": null,
+        "identity": "The playback subsystem",
+        "mvp": {
+          "confidence": "high",
+          "confidence_percent": 80,
+          "covered_pillar_count": 2,
+          "progress_percent": 75,
+          "scored_outcome_count": 2,
+          "total_pillar_count": 2
+        },
+        "open_blocker_items": [],
+        "open_blockers": 0,
+        "open_drift": 0,
+        "open_drift_items": [],
+        "project_name": "Playback",
+        "revision": 1,
+        "status": "Ready",
+        "updated_at": "2026-09-08T12:00:00Z"
+      },
+      "valid": true
+    },
+    {
+      "authority": "draft",
+      "constraints": [],
+      "contract_digest": null,
+      "error": "schema_version must be 1",
+      "id": "invalid",
+      "kind": "subsystem",
+      "outcomes": [],
+      "parent_id": "project",
+      "path": "compasses/invalid.json",
+      "paths": [],
+      "purpose": null,
+      "revision": null,
+      "source_ref": ".project-compass/compasses/invalid.json",
+      "status": "draft",
+      "valid": false
+    }
+  ],
+  "producer": "project-compass-python/1",
+  "relationships": [
+    {
+      "from": "playback",
+      "id": "playback-project",
+      "kind": "shared-invariant",
+      "status": "unknown",
+      "summary": "Playback preserves the root listening outcome.",
+      "to": "project",
+      "valid": true
+    }
+  ],
+  "root_id": "project",
+  "root_summary": {
+    "audience": "Testers",
+    "complete_product": {
+      "confidence": "high",
+      "confidence_percent": 87,
+      "covered_pillar_count": 2,
+      "progress_percent": 63,
+      "scored_outcome_count": 3,
+      "total_pillar_count": 2
+    },
+    "contract_path": ".project-compass/contract.json",
+    "error": null,
+    "identity": "A fixture product",
+    "mvp": {
+      "confidence": "high",
+      "confidence_percent": 80,
+      "covered_pillar_count": 2,
+      "progress_percent": 75,
+      "scored_outcome_count": 2,
+      "total_pillar_count": 2
+    },
+    "open_blocker_items": [],
+    "open_blockers": 0,
+    "open_drift": 0,
+    "open_drift_items": [],
+    "project_name": "Fixture",
+    "revision": 1,
+    "status": "Ready",
+    "updated_at": "2026-09-08T12:00:00Z"
+  },
+  "schema": "compass-family/v1",
+  "source": {
+    "head": null,
+    "repository": null,
+    "workspace": "/fixture"
+  },
+  "source_digests": {
+    ".project-compass/compasses.json": "a1d7c87774079a7f546e879fa3ef33e1d3e452a06bee645f9bdbfe7074072aa5",
+    ".project-compass/compasses/invalid.json": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+    ".project-compass/compasses/playback.json": "4e9b5473359f5ea8fce645643b22d2b0c29a59184f0b26f9717264b6c520cb34",
+    ".project-compass/continuity.json": null,
+    ".project-compass/contract.json": "0d5c23620343a4740b71dcb026e2227412b190ef930fee87596f2fe9ccf5b2eb",
+    ".project-compass/development.json": null
+  },
+  "status": "partial",
+  "verification": "Declared maturity is not current proof; use change-context evidence checks."
+}

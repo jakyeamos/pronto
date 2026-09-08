@@ -8,3 +8,6 @@ src-tauri/target
 *.log
 .env*
 showcase-materials/fleet-radar/site/
+
+# Workspace-bound generated proof; never portable release evidence.
+.project-compass/evidence/

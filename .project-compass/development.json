@@ -1,0 +1,174 @@
+{
+  "schema": "compass-development/v1",
+  "revision": 1,
+  "inventory": {
+    "source": "git-tracked",
+    "include": ["src-tauri/src/*", "src/renderer/src/*"],
+    "exclude": [
+      {
+        "pattern": "src-tauri/src/branch_lifecycle.rs",
+        "kind": "excluded",
+        "reason": "Separate behavior-preserving required-gate repair; see docs/compass-development.md validation scope."
+      },
+      {
+        "pattern": "src-tauri/src/branch_lifecycle_tests.rs",
+        "kind": "excluded",
+        "reason": "Separate behavior-preserving required-gate repair; see docs/compass-development.md validation scope."
+      },
+      {
+        "pattern": "src/renderer/src/components/ConsolePrimitives.tsx",
+        "kind": "excluded",
+        "reason": "Separate behavior-preserving required-gate repair; see docs/compass-development.md validation scope."
+      },
+      {
+        "pattern": "src/renderer/src/components/QualityComponents.test-support.ts",
+        "kind": "excluded",
+        "reason": "Separate behavior-preserving required-gate repair; see docs/compass-development.md validation scope."
+      },
+      {
+        "pattern": "src/renderer/src/components/telescopeSceneModel.ts",
+        "kind": "excluded",
+        "reason": "Separate behavior-preserving required-gate repair; see docs/compass-development.md validation scope."
+      },
+      {
+        "pattern": "src/renderer/src/components/telescopeSceneBuckets.ts",
+        "kind": "excluded",
+        "reason": "Separate behavior-preserving required-gate repair; see docs/compass-development.md validation scope."
+      },
+      {
+        "pattern": "src/renderer/src/components/AppRouteSurface.tsx",
+        "kind": "excluded",
+        "reason": "Mechanical formatting required by the repository gate; no semantic or intent change."
+      },
+      {
+        "pattern": "src/renderer/src/components/PortfolioNavigationSurfaces.test.tsx",
+        "kind": "excluded",
+        "reason": "Mechanical formatting required by the repository gate; no semantic or intent change."
+      },
+      {
+        "pattern": "src/renderer/src/components/TelescopeGraphElements.tsx",
+        "kind": "excluded",
+        "reason": "Mechanical formatting required by the repository gate; no semantic or intent change."
+      },
+      {
+        "pattern": "src/renderer/src/components/TelescopeSurface.test.tsx",
+        "kind": "excluded",
+        "reason": "Mechanical formatting required by the repository gate; no semantic or intent change."
+      },
+      {
+        "pattern": "src/renderer/src/components/TelescopeWorkspaceView.tsx",
+        "kind": "excluded",
+        "reason": "Mechanical formatting required by the repository gate; no semantic or intent change."
+      },
+      {
+        "pattern": "src/renderer/src/components/useTelescopeWorkspaceModel.ts",
+        "kind": "excluded",
+        "reason": "Mechanical formatting required by the repository gate; no semantic or intent change."
+      },
+      {
+        "pattern": "src/renderer/src/types/telescope.ts",
+        "kind": "excluded",
+        "reason": "Mechanical formatting required by the repository gate; no semantic or intent change."
+      },
+      {
+        "pattern": "pnpm-lock.yaml",
+        "kind": "excluded",
+        "reason": "Separate required security-audit repair: resolve the existing nanoid 3.3.18 override; no product intent change."
+      }
+    ],
+    "behavior_ref": ".pronto/behavior-assurance.json"
+  },
+  "decisions": [
+    {
+      "id": "foundation-plan",
+      "status": "accepted",
+      "source": "conversation:approved-compass-pronto-foundation-plan",
+      "summary": "Implement the approved development foundation plan with everyday scoped development first, linked canonical specifications, one Python producer, selective intent review, and assessment-only modernization. Preserve existing root constraints and leave older draft intent unresolved."
+    }
+  ],
+  "bindings": [
+    {
+      "id": "project-development",
+      "compass_id": "project",
+      "authority": "accepted",
+      "decision_id": "foundation-plan",
+      "paths": [],
+      "outcomes": ["explainable-next-action"],
+      "references": ["docs/compass-development.md"],
+      "constraints": [
+        "Do not automatically modernize the fleet.",
+        "Do not ratify older draft subsystems through import.",
+        "Do not execute remediation from an assessment."
+      ],
+      "behavior_ids": [],
+      "proof": [
+        {
+          "id": "project-acceptance",
+          "receipt": ".project-compass/evidence/project-acceptance.json",
+          "command": ["node", "scripts/verify-compass.mjs"],
+          "oracle_ref": "docs/compass-development.md"
+        }
+      ]
+    },
+    {
+      "id": "compass-foundation-development",
+      "compass_id": "compass-foundation",
+      "authority": "accepted",
+      "decision_id": "foundation-plan",
+      "paths": [
+        ".agents/change-surface-matrix.json",
+        ".agents/context/commands.md",
+        ".gitignore",
+        ".pre-cr.json",
+        ".project-compass/compasses.json",
+        ".project-compass/compasses/compass-foundation.json",
+        ".project-compass/development.json",
+        ".pronto/behavior-assurance.json",
+        ".quality-runner.toml",
+        "docs/compass-development.md",
+        "docs/repository-contract.md",
+        "fixtures/compass/family.json",
+        "scripts/validate-repository-contract.test.mjs",
+        "scripts/verify-compass.mjs",
+        "skills/pronto/SKILL.md",
+        "skills/pronto/agents/openai.yaml",
+        "skills/pronto/references/cli-contract.md",
+        "src-tauri/src/core/cli-10.rs",
+        "src-tauri/src/core/cli.rs",
+        "src-tauri/src/core/part-38.rs",
+        "src-tauri/src/core/part-39.rs",
+        "src-tauri/src/lib.rs",
+        "src-tauri/src/project_compass.rs",
+        "src-tauri/src/project_compass_bridge.rs",
+        "src-tauri/src/quality/part-02.rs",
+        "src-tauri/src/quality/part-07.rs",
+        "src-tauri/src/remediation/part-05.rs",
+        "src-tauri/src/route_projection.rs",
+        "src/renderer/src/components/CompassFamilyDetail.test.tsx",
+        "src/renderer/src/components/CompassFamilyDetail.tsx",
+        "src/renderer/src/components/ProjectCompassDetail.tsx",
+        "src/renderer/src/types.ts",
+        "src/renderer/src/styles.css"
+      ],
+      "outcomes": ["bounded-change"],
+      "references": [
+        "docs/compass-development.md",
+        ".pronto/behavior-assurance.json#/behaviors/8"
+      ],
+      "constraints": [
+        "Do not automatically modernize the fleet.",
+        "Do not ratify older draft subsystems through import.",
+        "Do not execute remediation from an assessment."
+      ],
+      "behavior_ids": ["compass-development-foundation"],
+      "proof": [
+        {
+          "id": "compass-foundation-acceptance",
+          "receipt": ".project-compass/evidence/compass-foundation-acceptance.json",
+          "command": ["node", "scripts/verify-compass.mjs"],
+          "oracle_ref": "docs/compass-development.md"
+        }
+      ]
+    }
+  ]
+}

@@ -51,8 +51,14 @@ fn add_project_compass_seeds(repository: &RepositorySnapshot, seeds: &mut Vec<Ac
             source_run_id: None,
         }),
         "Ready" => {
-            if compass.open_blockers > 0 || compass.open_drift > 0 {
+            let family_items = crate::project_compass::family_attention(compass);
+            if compass.open_blockers > 0 || compass.open_drift > 0 || family_items > 0 {
                 let mut compass_evidence = Vec::new();
+                if family_items > 0 {
+                    compass_evidence.push(evidence("Project Compass", "Subsystem reconciliation",
+                        &family_items.to_string(), "Observed", compass.updated_at.as_deref(),
+                        Some(&compass.contract_path), "Inspect the canonical family projection; drafts and unresolved handoffs remain unaccepted."));
+                }
                 if compass.open_blockers > 0 {
                     compass_evidence.push(evidence(
                         "Project Compass",

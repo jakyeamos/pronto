@@ -409,6 +409,42 @@ interface ProjectCompassDriftSummary {
   observed_at: string;
 }
 
+export interface CompassFamilyProjection {
+  schema: "compass-family/v1";
+  status: string;
+  generated_at: string;
+  source: { workspace: string; head: string | null };
+  nodes: Array<{
+    id: string;
+    status: string;
+    authority: string;
+    valid: boolean;
+    purpose: string | null;
+    source_ref: string;
+    revision: number | null;
+    constraints: string[];
+    error?: string;
+  }>;
+  relationships: Array<{
+    id: string;
+    from: string;
+    to: string;
+    kind: string;
+    status: string;
+    valid: boolean;
+    summary: string;
+  }>;
+  errors: Array<{ scope: string; message: string }>;
+  coverage: {
+    status: string;
+    unmapped_paths: string[];
+    proposed_paths: string[];
+    ambiguous_paths: string[];
+    covered_paths: string[];
+    unmapped_behaviors: string[];
+  };
+}
+
 interface ProjectCompassSummary {
   status: "Ready" | "Missing" | "Invalid";
   contract_path: string;
@@ -423,6 +459,14 @@ interface ProjectCompassSummary {
   open_drift: number;
   open_blocker_items: ProjectCompassBlockerSummary[];
   open_drift_items: ProjectCompassDriftSummary[];
+  family?: CompassFamilyProjection | null;
+  projection_status?: string;
+  modernization_assessment?: {
+    disposition: string;
+    reasons: string[];
+    remediation_id?: string | null;
+    execution_authority: false;
+  } | null;
   error: string | null;
 }
 
