@@ -240,3 +240,15 @@ The distinct summary schema returns counts, not truncated coverage arrays.
 Use `change-context --prepared PREVIOUS --continue --base ORIGINAL_SHA` across
 milestones, then gate the cumulative actual diff. Bootstrap linkage is separate
 from current semantic proof; older snapshots report unknown intent maturity.
+
+### Reviewed modernization alternatives
+
+Compass proposal/v2 compares delete, simplify and retain choices against affected
+outcomes. The Python producer owns review completeness and evidence freshness.
+Pronto preserves its additive assessment/v1 fields: `proposal_complete`, `review`,
+and `benefit_observation`. A legacy missing field is unknown. A current declared
+review is not authenticated approval, execution authority, preservation proof, or
+measured benefit. Retention requires no remediation ticket. Benefit follow-up
+compares the original promise with separately reviewed observations; never infer
+realized benefit from a passing test or a complete proposal. Use `$project-compass` → `references/assessment.md` in the installed Compass
+skill directory for proposal/v2 and review/observation fields.

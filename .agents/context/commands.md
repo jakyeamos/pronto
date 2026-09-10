@@ -740,3 +740,15 @@ branch is `Stale`; an exact commit match remains authoritative.
 Compass bounded orientation: `compass family WORKSPACE --summary --json`.
 For cumulative task handoffs use `change-context --prepared PREVIOUS --continue`
 with the original base. See `docs/compass-development.md` for authority and proof.
+
+### Reviewed modernization alternatives
+
+Compass proposal/v2 compares delete, simplify and retain choices against affected
+outcomes. The Python producer owns review completeness and evidence freshness.
+Pronto preserves its additive assessment/v1 fields: `proposal_complete`, `review`,
+and `benefit_observation`. A legacy missing field is unknown. A current declared
+review is not authenticated approval, execution authority, preservation proof, or
+measured benefit. Retention requires no remediation ticket. Benefit follow-up
+compares the original promise with separately reviewed observations; never infer
+realized benefit from a passing test or a complete proposal. Use `$project-compass` → `references/assessment.md` in the installed Compass
+skill directory for proposal/v2 and review/observation fields.

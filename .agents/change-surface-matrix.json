@@ -675,7 +675,8 @@
         "pnpm exec vitest run src/renderer/src/components/CompassFamilyDetail.test.tsx",
         "Exercise pronto compass family, change-context and assess against the canonical producer fixture and pilot.",
         "Run exact-current Quality Runner release check and direct UI verification.",
-        "Fresh-context dogfood of the repository-owned Pronto skill before canonical promotion."
+        "Fresh-context dogfood of the repository-owned Pronto skill before canonical promotion.",
+        "Verify legacy review unknown, complete but unreviewed proposals, retention without tickets, and unknown realized benefit in the Compass UI."
       ],
       "status": "applicable"
     },

@@ -472,6 +472,9 @@ interface ProjectCompassSummary {
   modernization_assessment?: {
     disposition: string;
     reasons: string[];
+    proposal_complete?: boolean;
+    review?: { status: string; reviewer?: string; rationale?: string };
+    benefit_observation?: { status: string; benefit_realized: string };
     remediation_id?: string | null;
     execution_authority: false;
   } | null;

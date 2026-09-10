@@ -24,6 +24,43 @@ describe("Compass family detail", () => {
     expect(html).toContain("Behavior coverage: unknown");
     expect(html).toContain("Intent documentation: incomplete");
   });
+  it.each([
+    { disposition: "worthwhile_now", expected: "Review: unknown" },
+    {
+      disposition: "insufficient_evidence",
+      proposal_complete: true,
+      review: { status: "missing" },
+      expected: "Review: missing",
+    },
+    {
+      disposition: "retain_current_design",
+      proposal_complete: true,
+      review: { status: "current" },
+      expected: "Review: current",
+    },
+  ])(
+    "keeps review and benefit uncertainty explicit for $disposition",
+    ({ expected, ...assessment }) => {
+      const html = renderToStaticMarkup(
+        <CompassFamilyDetail
+          compass={
+            {
+              family: fixture as CompassFamilyProjection,
+              modernization_assessment: {
+                ...assessment,
+                reasons: [],
+                execution_authority: false,
+              },
+            } as unknown as RepositorySnapshot["project_compass"]
+          }
+        />,
+      );
+      expect(html).toContain(expected);
+      expect(html).toContain("Realized benefit: unknown");
+      expect(html).toContain("Preservation proof is checked separately");
+      expect(html).toContain("Declared review, not execution approval");
+    },
+  );
   it("keeps a legacy cached projection explicitly unavailable", () => {
     const html = renderToStaticMarkup(
       <CompassFamilyDetail

@@ -153,3 +153,15 @@ is owned by the producer's `compass-preservation/v1` enrollment; Pronto never
 ratifies inferred intent or upgrades legacy contracts automatically.
 
 Continuation requires an eligible predecessor and retains original base, cumulative paths and active scoped continuity commitments. A failed assessment is not a replacement intent baseline. Reconcile semantic contradictions between commitments and contract text before development; the helper does not infer prose equivalence. Legacy packets lacking commitment/behavior revisions require explicit preparation.
+
+### Reviewed modernization alternatives
+
+Compass proposal/v2 compares delete, simplify and retain choices against affected
+outcomes. The Python producer owns review completeness and evidence freshness.
+Pronto preserves its additive assessment/v1 fields: `proposal_complete`, `review`,
+and `benefit_observation`. A legacy missing field is unknown. A current declared
+review is not authenticated approval, execution authority, preservation proof, or
+measured benefit. Retention requires no remediation ticket. Benefit follow-up
+compares the original promise with separately reviewed observations; never infer
+realized benefit from a passing test or a complete proposal. Use `$project-compass` → `references/assessment.md` in the installed Compass
+skill directory for proposal/v2 and review/observation fields.

@@ -438,3 +438,8 @@ Across task handoffs retain the original base and previous packet through
 unfinished preservation obligations.
 
 Continuation requires an eligible predecessor and retains original base, cumulative paths and active scoped continuity commitments. A failed assessment is not a replacement intent baseline. Reconcile semantic contradictions between commitments and contract text before development; the helper does not infer prose equivalence. Legacy packets lacking commitment/behavior revisions require explicit preparation.
+
+Modernization readback must distinguish proposal completeness, current declared
+review, realized benefit, and preservation proof. Missing legacy review fields
+remain unknown; retention does not create implementation work. See the
+[CLI contract](references/cli-contract.md#reviewed-modernization-alternatives).

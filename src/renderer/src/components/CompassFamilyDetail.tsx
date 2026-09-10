@@ -30,9 +30,28 @@ export function CompassFamilyDetail({
       </small>
       {assessment && (
         <aside aria-label="Modernization assessment">
-          <strong>{assessment.disposition.replaceAll("_", " ")}</strong>
+          <strong>
+            Recorded assessment: {assessment.disposition.replaceAll("_", " ")}
+          </strong>
           <p>
-            Assessment only ·{" "}
+            Proposal:{" "}
+            {assessment.proposal_complete === undefined
+              ? "unknown"
+              : assessment.proposal_complete
+                ? "complete"
+                : "incomplete"}
+            {" · "}Review: {assessment.review?.status ?? "unknown"}
+          </p>
+          <p>
+            Realized benefit:{" "}
+            {assessment.benefit_observation?.benefit_realized.replaceAll(
+              "_",
+              " ",
+            ) ?? "unknown"}
+            {" · "}Preservation proof is checked separately.
+          </p>
+          <p>
+            Declared review, not execution approval ·{" "}
             {assessment.remediation_id ?? "No remediation linked"}
           </p>
           {assessment.reasons.map((reason) => (
