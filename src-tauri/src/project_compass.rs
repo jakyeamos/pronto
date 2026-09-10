@@ -166,7 +166,10 @@ pub fn family_attention(summary: &ProjectCompassSummary) -> usize {
             .filter(|link| link["valid"] != true || link["status"] != "aligned")
             .count()
     });
-    nodes + links + family["errors"].as_array().map_or(0, Vec::len)
+    let bootstrap = family["bootstrap"]["subsystems"].as_array().map_or(1, |items| {
+        items.iter().filter(|item| item["status"] != "linked").count()
+    });
+    nodes + links + bootstrap + family["errors"].as_array().map_or(0, Vec::len)
 }
 
 #[cfg(test)]

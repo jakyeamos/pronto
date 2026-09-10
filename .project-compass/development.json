@@ -1,6 +1,6 @@
 {
   "schema": "compass-development/v1",
-  "revision": 1,
+  "revision": 2,
   "inventory": {
     "source": "git-tracked",
     "include": ["src-tauri/src/*", "src/renderer/src/*"],
@@ -84,6 +84,12 @@
       "status": "accepted",
       "source": "conversation:approved-compass-pronto-foundation-plan",
       "summary": "Implement the approved development foundation plan with everyday scoped development first, linked canonical specifications, one Python producer, selective intent review, and assessment-only modernization. Preserve existing root constraints and leave older draft intent unresolved."
+    },
+    {
+      "id": "intent-preservation",
+      "status": "accepted",
+      "source": "conversation:01a08207-33a9-7f71-a11c-7ed453677d28",
+      "summary": "Owner requested the three Compass intent-preservation improvements with dogfooding and iteration. Pronto consumes helper-owned bootstrap and bounded task context, preserving original foundation constraints and unrelated draft subsystems."
     }
   ],
   "bindings": [
@@ -91,7 +97,7 @@
       "id": "project-development",
       "compass_id": "project",
       "authority": "accepted",
-      "decision_id": "foundation-plan",
+      "decision_id": "intent-preservation",
       "paths": [],
       "outcomes": ["explainable-next-action"],
       "references": ["docs/compass-development.md"],
@@ -100,21 +106,23 @@
         "Do not ratify older draft subsystems through import.",
         "Do not execute remediation from an assessment."
       ],
-      "behavior_ids": [],
+      "behavior_ids": ["compass-development-foundation"],
       "proof": [
         {
           "id": "project-acceptance",
           "receipt": ".project-compass/evidence/project-acceptance.json",
           "command": ["node", "scripts/verify-compass.mjs"],
-          "oracle_ref": "docs/compass-development.md"
+          "oracle_ref": "src/renderer/src/components/CompassFamilyDetail.test.tsx",
+          "behavior_ids": ["compass-development-foundation"]
         }
-      ]
+      ],
+      "handoff_review": "Python Compass owns validation and maturity semantics; Pronto displays versioned projections and preserves explicit unavailable states."
     },
     {
       "id": "compass-foundation-development",
       "compass_id": "compass-foundation",
       "authority": "accepted",
-      "decision_id": "foundation-plan",
+      "decision_id": "intent-preservation",
       "paths": [
         ".agents/change-surface-matrix.json",
         ".agents/context/commands.md",
@@ -166,9 +174,12 @@
           "id": "compass-foundation-acceptance",
           "receipt": ".project-compass/evidence/compass-foundation-acceptance.json",
           "command": ["node", "scripts/verify-compass.mjs"],
-          "oracle_ref": "docs/compass-development.md"
+          "oracle_ref": "src/renderer/src/components/CompassFamilyDetail.test.tsx",
+          "behavior_ids": ["compass-development-foundation"]
         }
-      ]
+      ],
+      "handoff_review": "Python Compass owns validation and maturity semantics; Pronto displays versioned projections and preserves explicit unavailable states."
     }
-  ]
+  ],
+  "preservation": "compass-preservation/v1"
 }

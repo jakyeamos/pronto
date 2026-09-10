@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-24",
+  "last_reviewed": "2026-09-10",
   "reviewed_no_impact": [
     {
       "change": "Split the renderer API barrel into defaults, review commands, and portfolio commands.",
@@ -676,6 +676,19 @@
         "Exercise pronto compass family, change-context and assess against the canonical producer fixture and pilot.",
         "Run exact-current Quality Runner release check and direct UI verification.",
         "Fresh-context dogfood of the repository-owned Pronto skill before canonical promotion."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "compass-intent-preservation",
+      "scope": "local",
+      "path": "src-tauri/src/project_compass.rs, src-tauri/src/project_compass_bridge.rs, src/renderer/src/components/CompassFamilyDetail.tsx, docs/compass-development.md",
+      "owner": "Compass producer and Pronto projection maintainers",
+      "condition": "Bootstrap traceability, behavior coverage, or cumulative task context changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "Consume canonical bootstrap gaps without recreating producer scoring.",
+        "Verify unknown behavior coverage, legacy snapshots, family summary CLI, and visible subsystem maturity."
       ],
       "status": "applicable"
     }

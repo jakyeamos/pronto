@@ -411,6 +411,12 @@ interface ProjectCompassDriftSummary {
 
 export interface CompassFamilyProjection {
   schema: "compass-family/v1";
+  bootstrap?: {
+    schema: "compass-bootstrap/v1";
+    status: string;
+    verification: string;
+    subsystems: Array<{ compass_id: string; status: string; gaps: string[] }>;
+  };
   status: string;
   generated_at: string;
   source: { workspace: string; head: string | null };
@@ -442,6 +448,8 @@ export interface CompassFamilyProjection {
     ambiguous_paths: string[];
     covered_paths: string[];
     unmapped_behaviors: string[];
+    behavior_status?: string;
+    behavior_reason?: string | null;
   };
 }
 

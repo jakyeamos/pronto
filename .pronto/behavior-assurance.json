@@ -358,7 +358,9 @@
       "invariants": [
         "Draft and invalid intent remain unaccepted and visible.",
         "Completion uses the actual diff, current affected intent revisions, and source-bound required proof.",
-        "Assessment never starts implementation."
+        "Assessment never starts implementation.",
+        "Missing behavior inventory remains unknown in the UI; linked intent documentation never implies current semantic proof.",
+        "The CLI forwards bounded summary and cumulative continuation to the canonical helper without accepting blocked packets."
       ],
       "scenarios": [
         {
@@ -376,7 +378,8 @@
             "side_effects": "none"
           }
         }
-      ]
+      ],
+      "spec_ref": "docs/compass-development.md"
     }
   ]
 }

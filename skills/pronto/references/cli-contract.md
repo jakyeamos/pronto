@@ -234,3 +234,9 @@ Prepare from selected paths at task entry and retain the original packet at
 Run only separately reviewed, task-authorized proof commands through the
 Compass helper; Pronto's bridge never executes them. Modernization assessment
 is read-only for every disposition and never creates a second execution queue.
+
+Compass orientation starts with `compass family WORKSPACE --summary --json`.
+The distinct summary schema returns counts, not truncated coverage arrays.
+Use `change-context --prepared PREVIOUS --continue --base ORIGINAL_SHA` across
+milestones, then gate the cumulative actual diff. Bootstrap linkage is separate
+from current semantic proof; older snapshots report unknown intent maturity.

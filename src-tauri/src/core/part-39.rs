@@ -14,7 +14,7 @@ fn agent_project_compass_attention(repository: &RepositorySnapshot) -> Option<Ag
     }
 
     let mut details = Vec::new();
-    if family_items > 0 { details.push(format!("{family_items} unresolved subsystem or relationship item(s)")); }
+    if family_items > 0 { details.push(format!("{family_items} unresolved subsystem, relationship, or intent documentation item(s)")); }
     if compass.status != "Ready" {
         details.push(format!(
             "contract is {}",

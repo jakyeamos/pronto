@@ -128,3 +128,28 @@ gate and the independent exact-current QR release check; neither substitutes
 for the other.
 
 The dependency audit repair resolves the existing nanoid 3.3.18 override in the lockfile. It is an explicitly excluded validation repair, checked by the full dependency audit and build.
+
+## Intent documentation and continuous preservation
+
+The canonical helper supplies `bootstrap` (`compass-bootstrap/v1`) alongside the
+family. Pronto displays subsystem linkage gaps and independent behavior inventory
+status. Missing bootstrap support in older snapshots is unknown, not mature.
+These assessments join purpose, parent outcomes, exclusions, canonical behavior
+specifications, handoffs, and behavior-specific proof. They do not replace Quality
+Runner documentation evidence or certify semantic correctness. The attention
+surface includes incomplete subsystem intent documentation.
+
+Start with `pronto compass family WORKSPACE --summary --json` for bounded counts
+and subsystem gap summaries. Full family remains explicit drill-down. The summary
+has its own `compass-family-summary/v1` schema, so count fields cannot be mistaken
+for complete path arrays.
+
+For multi-task efforts, preserve the original base and previous packet in the
+existing task/remediation handoff. `pronto compass change-context WORKSPACE
+--base ORIGINAL_SHA --prepared PREVIOUS_PACKET --continue --path NEXT_PATH --json`
+adds scope without dropping prior subsystems or accepted-intent revisions.
+Completion recomputes the cumulative actual diff and proof. Selective enforcement
+is owned by the producer's `compass-preservation/v1` enrollment; Pronto never
+ratifies inferred intent or upgrades legacy contracts automatically.
+
+Continuation requires an eligible predecessor and retains original base, cumulative paths and active scoped continuity commitments. A failed assessment is not a replacement intent baseline. Reconcile semantic contradictions between commitments and contract text before development; the helper does not infer prose equivalence. Legacy packets lacking commitment/behavior revisions require explicit preparation.

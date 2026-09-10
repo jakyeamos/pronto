@@ -1,4 +1,44 @@
 {
+  "bootstrap": {
+    "schema": "compass-bootstrap/v1",
+    "status": "incomplete",
+    "subsystems": [
+      {
+        "behavior_trace": [],
+        "compass_id": "project",
+        "gaps": [
+          "accepted-intent-missing",
+          "behavior-inventory-unknown",
+          "handoff-unresolved"
+        ],
+        "status": "incomplete"
+      },
+      {
+        "behavior_trace": [],
+        "compass_id": "playback",
+        "gaps": [
+          "accepted-intent-missing",
+          "behavior-inventory-unknown",
+          "handoff-unresolved"
+        ],
+        "status": "incomplete"
+      },
+      {
+        "behavior_trace": [],
+        "compass_id": "invalid",
+        "gaps": [
+          "accepted-intent-missing",
+          "behavior-inventory-unknown",
+          "exclusions-missing",
+          "handoff-review-missing",
+          "parent-outcomes-missing",
+          "purpose-or-outcomes-missing"
+        ],
+        "status": "incomplete"
+      }
+    ],
+    "verification": "Linked intent requires reviewed behavior oracles and current proof; structure alone cannot establish semantic preservation."
+  },
   "continuity": {
     "active_commitments": [],
     "pending_reconciliations": [],
@@ -6,6 +46,8 @@
   },
   "coverage": {
     "ambiguous_paths": [],
+    "behavior_reason": "Behavior inventory is not declared",
+    "behavior_status": "unknown",
     "covered_paths": [],
     "excluded_paths": [],
     "generated_paths": [],

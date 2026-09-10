@@ -40,6 +40,27 @@ export function CompassFamilyDetail({
           ))}
         </aside>
       )}
+      <aside aria-label="Intent documentation maturity">
+        <strong>
+          Intent documentation: {family.bootstrap?.status ?? "unknown"}
+        </strong>
+        <p>
+          {family.bootstrap?.verification ??
+            "Refresh with a helper that assesses behavior links and preservation proof."}
+        </p>
+        {family.bootstrap?.subsystems.map((item) => (
+          <p key={item.compass_id}>
+            {item.compass_id}: {item.status}
+            {item.gaps.length > 0 ? ` · ${item.gaps.join(", ")}` : ""}
+          </p>
+        ))}
+        <p>
+          Behavior coverage: {family.coverage.behavior_status ?? "unknown"}.
+          {family.coverage.behavior_status === "measured"
+            ? ` ${family.coverage.unmapped_behaviors.length} unmapped behaviors.`
+            : ` ${family.coverage.behavior_reason ?? "No measured behavior inventory in this snapshot."}`}
+        </p>
+      </aside>
       {sourceError && <p role="status">{sourceError}</p>}
       <nav aria-label="Compass subsystems">
         {family.nodes.map((node) => (

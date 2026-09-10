@@ -93,6 +93,7 @@ pub fn invoke(operation: &str, repository: &Path, arguments: &[String]) -> Resul
             .into());
     }
     let expected = match operation {
+        "family" if arguments.iter().any(|arg| arg == "--summary") => "compass-family-summary/v1",
         "family" => "compass-family/v1",
         "change-context" | "gate" => "compass-change-context/v1",
         _ => "compass-modernization-assessment/v1",

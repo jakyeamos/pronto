@@ -736,3 +736,7 @@ branch is `Stale`; an exact commit match remains authoritative.
   stale rather than silently hiding a recurrence.
 - Preserve `schema_version`, freshness, evidence, and uncertainty fields when
   handing JSON to another agent.
+
+Compass bounded orientation: `compass family WORKSPACE --summary --json`.
+For cumulative task handoffs use `change-context --prepared PREVIOUS --continue`
+with the original base. See `docs/compass-development.md` for authority and proof.

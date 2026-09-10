@@ -429,3 +429,12 @@ End a Pronto-backed handoff with:
 - observed conditions, quality evidence, and freshness/uncertainty;
 - the next safe action and the evidence required before it;
 - any user authorization still needed for Git, provider, or release mutation.
+
+For Compass orientation use the bounded `compass family WORKSPACE --summary --json`
+then affected `change-context` drill-down. Preserve unknown behavior inventory
+and bootstrap gaps as uncertainty; linked intent is not verified behavior.
+Across task handoffs retain the original base and previous packet through
+`change-context --prepared PREVIOUS --continue`; do not reset the effort to hide
+unfinished preservation obligations.
+
+Continuation requires an eligible predecessor and retains original base, cumulative paths and active scoped continuity commitments. A failed assessment is not a replacement intent baseline. Reconcile semantic contradictions between commitments and contract text before development; the helper does not infer prose equivalence. Legacy packets lacking commitment/behavior revisions require explicit preparation.

@@ -21,6 +21,8 @@ describe("Compass family detail", () => {
     );
     expect(html).toContain("Open source");
     expect(html).toContain("proposed");
+    expect(html).toContain("Behavior coverage: unknown");
+    expect(html).toContain("Intent documentation: incomplete");
   });
   it("keeps a legacy cached projection explicitly unavailable", () => {
     const html = renderToStaticMarkup(
