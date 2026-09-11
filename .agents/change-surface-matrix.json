@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-09-10",
+  "last_reviewed": "2026-09-11",
   "reviewed_no_impact": [
     {
       "change": "Split the renderer API barrel into defaults, review commands, and portfolio commands.",
@@ -691,6 +691,21 @@
       "validation": [
         "Consume canonical bootstrap gaps without recreating producer scoring.",
         "Verify unknown behavior coverage, legacy snapshots, family summary CLI, and visible subsystem maturity."
+      ],
+      "status": "applicable"
+    },
+    {
+      "id": "compass-subsystem-bootstrap",
+      "scope": "local intent and consumer projection",
+      "path": ".project-compass/, docs/compass-development.md",
+      "owner": "Pronto owner and subsystem maintainers",
+      "condition": "Subsystem boundary organization, intent provenance, exact source mappings or required proof changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "Run the canonical Compass helper validate and family against the exact candidate workspace.",
+        "Inspect Pronto CLI family and subsystem detail; distinguish accepted boundaries, proposed path associations and current verification.",
+        "Preserve the original prepared packet and reconcile the actual Compass revision changes before adopting a new packet.",
+        "Run exact-current Quality Runner release verification before delivery."
       ],
       "status": "applicable"
     }

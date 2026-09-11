@@ -1,0 +1,81 @@
+{
+  "schema": "compass-behavior-inventory/v1",
+  "behaviors": [
+    {
+      "id": "background-service-lifecycle",
+      "spec_ref": ".pronto/behavior-assurance.json#/behaviors/0"
+    },
+    {
+      "id": "behavior-audit-cli",
+      "spec_ref": ".pronto/behavior-assurance.json#/behaviors/1"
+    },
+    {
+      "id": "behavior-feed-projection",
+      "spec_ref": ".pronto/behavior-assurance.json#/behaviors/2"
+    },
+    {
+      "id": "behavior-release-gate",
+      "spec_ref": ".pronto/behavior-assurance.json#/behaviors/3"
+    },
+    {
+      "id": "behavior-portfolio-visibility",
+      "spec_ref": ".pronto/behavior-assurance.json#/behaviors/4"
+    },
+    {
+      "id": "telescope-living-city-readiness",
+      "spec_ref": ".pronto/behavior-assurance.json#/behaviors/5"
+    },
+    {
+      "id": "telescope-semantic-exploration",
+      "spec_ref": ".pronto/behavior-assurance.json#/behaviors/6"
+    },
+    {
+      "id": "custody-projection",
+      "spec_ref": ".pronto/behavior-assurance.json#/behaviors/7"
+    },
+    {
+      "id": "compass-development-foundation",
+      "spec_ref": ".pronto/behavior-assurance.json#/behaviors/8"
+    },
+    {
+      "id": "skill-evidence-preservation",
+      "spec_ref": "docs/skill-usage-evidence.md"
+    },
+    {
+      "id": "interaction-quality-preservation",
+      "spec_ref": "docs/papercuts.md"
+    },
+    {
+      "id": "analytics-evidence-preservation",
+      "spec_ref": "docs/analytics-workspace.md"
+    },
+    {
+      "id": "desktop-delivery-preservation",
+      "spec_ref": "docs/installed-runtime-parity.md"
+    },
+    {
+      "id": "inventory-routing-boundary-preservation",
+      "spec_ref": "docs/repository-contract.md"
+    },
+    {
+      "id": "quality-remediation-boundary-preservation",
+      "spec_ref": "docs/repository-contract.md"
+    },
+    {
+      "id": "release-provider-context-boundary-preservation",
+      "spec_ref": "docs/product-decisions.md"
+    },
+    {
+      "id": "shared-projection-preservation",
+      "spec_ref": "docs/repository-contract.md"
+    },
+    {
+      "id": "showcase-preservation",
+      "spec_ref": "docs/showcase-contract.md"
+    },
+    {
+      "id": "promotion-inbox-preservation",
+      "spec_ref": "docs/promotion-inbox.md"
+    }
+  ]
+}

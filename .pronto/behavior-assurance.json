@@ -225,7 +225,8 @@
             "side_effects": "none"
           }
         }
-      ]
+      ],
+      "spec_ref": "docs/telescope.md"
     },
     {
       "id": "telescope-semantic-exploration",
@@ -275,7 +276,8 @@
             "side_effects": "none"
           }
         }
-      ]
+      ],
+      "spec_ref": "docs/telescope.md"
     },
     {
       "id": "custody-projection",

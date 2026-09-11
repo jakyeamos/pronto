@@ -53,8 +53,11 @@ This enrolls only the two named pilots.
 
 `.project-compass/development.json` links exact paths, outcome IDs, canonical
 specification references, optional behavior IDs, constraints and proof to stable
-subsystem IDs. The approved foundation plan establishes the new pilot subsystem;
-it does not ratify the three historical drafts or resolve their two handoffs.
+subsystem IDs. The approved foundation plan establishes the Compass foundation subsystem.
+The owner accepted the wider subsystem organization on September 11, 2026;
+that decision is recorded as `fleet-bootstrap-pronto-boundaries-20260911`.
+It ratifies organization and documented preservation obligations, while exact
+path assignments, handoffs, and current proof remain separately reviewed.
 Drafts, missing inventory, broken references and ambiguous ownership remain
 visible. Existing behavior assurance and Telescope documents remain canonical.
 
@@ -95,9 +98,12 @@ and selected source paths; its observed structure does not replace intended trut
 
 ## Validation scope and gate repairs
 
-The Compass pilot accepts only the new foundation subsystem under the approved
-plan. The existing three draft subsystems and two unresolved handoffs retain
-their original authority. Other implementation paths remain visibly unmapped.
+The original Compass pilot accepted the foundation subsystem. The September 11
+owner decision additionally accepts inventory/routing, quality/remediation,
+provider/release context, Telescope, analytics, skill evidence, interaction
+quality, and desktop delivery. Skill evidence is distinct from provider/release
+context. Existing handoff unknowns and unreviewed implementation paths remain
+visible; accepting boundaries does not establish path coverage or current proof.
 
 The required full test suite exposed two clock-dependent branch-lifecycle
 fixtures. Production still uses the real clock; tests inject their historical
@@ -111,11 +117,10 @@ exports were removed. These changes are separate from the Compass feature:
 `src/renderer/src/components/telescopeSceneBuckets.ts`.
 
 Change-surface review: no public interface, command, product intent, persistence,
-provider contract or renderer behavior changes from these repairs. Their exact
-paths are excluded from Compass foundation coverage with this reason; the
-repository's full tests, typecheck, dead-code and release gates still apply.
-This is an explicit pilot enrollment exclusion, not a claim that the paths are
-covered or permission for future intent changes.
+provider contract or renderer behavior changes from these repairs. Those paths were excluded during the initial pilot. The September 11 source
+review now assigns them to their owning subsystems or shared integration and
+retains the full tests, typecheck, dead-code and release gates. Historical
+exclusions do not exempt future changes from affected intent and proof.
 
 `node scripts/verify-compass.mjs` is the reviewed bounded proof command: it
 exercises Rust producer consumption and route projection, then the actual
@@ -140,7 +145,7 @@ isolated-snapshot support for task-local packets. Run the native completion
 gate and the independent exact-current QR release check; neither substitutes
 for the other.
 
-The dependency audit repair resolves the existing nanoid 3.3.18 override in the lockfile. It is an explicitly excluded validation repair, checked by the full dependency audit and build.
+The dependency audit repair resolves the existing nanoid 3.3.18 override in the lockfile. It was a validation repair in the initial pilot. The lockfile is now mapped to shared integration and remains checked by the full dependency audit and build.
 
 ## Intent documentation and continuous preservation
 
@@ -178,3 +183,21 @@ measured benefit. Retention requires no remediation ticket. Benefit follow-up
 compares the original promise with separately reviewed observations; never infer
 realized benefit from a passing test or a complete proposal. Use `$project-compass` → `references/assessment.md` in the installed Compass
 skill directory for proposal/v2 and review/observation fields.
+
+### September 11 source associations
+
+The declared inventory includes native and renderer sources, CLI launchers, build
+configuration, workflow declarations and the Showcase material workspace. Exact
+reviewed paths route to their owning bindings; new files remain detectable gaps.
+Shared dispatch, model and persistence files retain named consumer dependencies.
+Showcase and promotion-inbox behavior is linked under existing root outcomes to
+its designated specification, without inventing or ratifying another child purpose.
+
+Material-workspace ownership is distinct from claim verification: assigning a
+preview, route plan or historical receipt to Showcase does not establish its
+accuracy, publication, or current runtime proof. Promotion tests exercise local
+refusal and mocked UI states; actual AWL/JAS application requires separate owner
+authority and integration evidence. Source tests and Compass linkage never
+upgrade the historical root maturity claims to current release evidence.
+
+Two generated Quality Runner case-study PNG captures exceed the helper’s 1 MiB source-reference limit. They are reported as explicit generated exclusions, with their package manifest still mapped. Source-association proof does not establish their visual content or freshness.

@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "revision": 4,
+  "project": {
+    "name": "Pronto Repository explanation",
+    "identity": "Explain measured repository structure and source-backed journeys while preserving draft meaning, uncertain relationships and guarded handoffs.",
+    "audience": "Developers and repository operators managing multiple local codebases, worktrees, quality signals, and release-preparation workflows.",
+    "core_loop": "Explain measured repository structure and source-backed journeys while preserving draft meaning, uncertain relationships and guarded handoffs.",
+    "north_star": "Explain measured repository structure and source-backed journeys while preserving draft meaning, uncertain relationships and guarded handoffs.",
+    "not_this": [
+      "No repository mutation from a map.",
+      "Authored draft meaning is separate from measured topology.",
+      "AI enrichment remains disabled by default."
+    ]
+  },
+  "scope": {
+    "id": "telescope-explanation",
+    "kind": "subsystem",
+    "parent_id": "project",
+    "purpose": "Explain measured repository structure and source-backed journeys while preserving draft meaning, uncertain relationships and guarded handoffs.",
+    "boundary": "Owner of repository explanation as specified by docs/telescope.md; shared runtime and neighboring contracts remain explicit dependencies.",
+    "non_goals": [
+      "Mutating repositories from a map",
+      "Presenting authored draft meaning as measured topology",
+      "Enabling AI enrichment by default"
+    ],
+    "parent_outcomes": ["explainable-next-action"],
+    "paths": [
+      "src-tauri/src/core/cli-38.rs",
+      "src-tauri/src/core/telescope.rs",
+      "src-tauri/src/telescope.rs",
+      "src-tauri/src/telescope/part-01.rs",
+      "src-tauri/src/telescope/part-01a.rs",
+      "src-tauri/src/telescope/part-02.rs",
+      "src-tauri/src/telescope/part-03.rs",
+      "src-tauri/src/telescope/part-04.rs",
+      "src-tauri/src/telescope/part-05.rs",
+      "src-tauri/src/telescope/part-06.rs",
+      "src-tauri/src/telescope/part-07.rs",
+      "src-tauri/src/telescope/part-08.rs",
+      "src-tauri/src/telescope/part-09.rs",
+      "src-tauri/src/telescope/part-10.rs",
+      "src-tauri/src/telescope/part-11.rs",
+      "src-tauri/src/telescope/part-11a.rs",
+      "src-tauri/src/telescope/tests-01.rs",
+      "src-tauri/src/telescope/tests-02.rs",
+      "src-tauri/src/telescope/tests-03.rs",
+      "src-tauri/src/telescope/tests-04.rs",
+      "src/renderer/src/components/TelescopeActionPalette.tsx",
+      "src/renderer/src/components/TelescopeFlowEdge.tsx",
+      "src/renderer/src/components/TelescopeGraphElements.test.tsx",
+      "src/renderer/src/components/TelescopeGraphElements.tsx",
+      "src/renderer/src/components/TelescopeInspector.tsx",
+      "src/renderer/src/components/TelescopeNavigator.tsx",
+      "src/renderer/src/components/TelescopeSurface.test.tsx",
+      "src/renderer/src/components/TelescopeSurface.tsx",
+      "src/renderer/src/components/TelescopeWorkspaceView.tsx",
+      "src/renderer/src/components/telescopeActionRouting.test.ts",
+      "src/renderer/src/components/telescopeActionRouting.ts",
+      "src/renderer/src/components/telescopeLayout.ts",
+      "src/renderer/src/components/telescopeLayoutCore.test.ts",
+      "src/renderer/src/components/telescopeLayoutCore.ts",
+      "src/renderer/src/components/telescopeSceneBuckets.ts",
+      "src/renderer/src/components/telescopeSceneLayout.test.ts",
+      "src/renderer/src/components/telescopeSceneLayout.ts",
+      "src/renderer/src/components/telescopeSceneModel.test-support.ts",
+      "src/renderer/src/components/telescopeSceneModel.test.ts",
+      "src/renderer/src/components/telescopeSceneModel.ts",
+      "src/renderer/src/components/telescopeSurfaceTypes.ts",
+      "src/renderer/src/components/telescopeSurfaceUtils.ts",
+      "src/renderer/src/components/useTelescopeWorkspaceModel.ts",
+      "src/renderer/src/types/telescope.ts"
+    ]
+  },
+  "targets": {
+    "mvp": {
+      "definition": "Preserve the linked canonical behavior for bounded changes."
+    },
+    "complete_product": {
+      "definition": "Every owned behavior has current source-bound proof; unresolved coverage remains explicit."
+    }
+  },
+  "pillars": [
+    {
+      "id": "telescope-explanation-purpose",
+      "name": "Repository explanation",
+      "outcomes": [
+        {
+          "id": "telescope-explanation-preservation",
+          "name": "Explain measured repository structure and source-backed journeys while preserving draft meaning, uncertain relationships and guarded handoffs.",
+          "targets": ["mvp", "complete_product"],
+          "maturity": 25,
+          "confidence": "medium",
+          "layers": {
+            "intended": "Owner ratified this subsystem organization and its documented preservation obligations on 2026-09-11. Path assignments and current proof remain under review.",
+            "planned": "Complete source ownership, canonical behavior links, neighboring handoffs and repeatable scoped proof.",
+            "implemented": "Source-association review maps the exact owned paths in development.json; shared dispatch, models and transport remain explicit dependencies. This is observed structure, not a maturity upgrade.",
+            "verified": "Current proof is evaluated from workspace-bound receipts in development.json. Historical evidence and declared maturity do not establish current verification."
+          },
+          "evidence": [
+            {
+              "ref": "docs/telescope.md",
+              "observed_at": "2026-09-11T03:38:14.075280+00:00",
+              "note": "Canonical existing specification; proposed subsystem organization does not revise its behavior."
+            },
+            {
+              "ref": "src-tauri/src/telescope.rs",
+              "observed_at": "2026-09-11T03:38:14.075280+00:00",
+              "note": "Observed implementation entry, not product acceptance."
+            }
+          ],
+          "blockers": [
+            {
+              "kind": "verification",
+              "summary": "Direct installed/runtime and semantic proof beyond the declared local oracles remains separate; consult each binding handoff review."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "source_layers": {
+    "intended": [
+      {
+        "ref": "docs/telescope.md",
+        "observed_at": "2026-09-11T03:38:14.075280+00:00",
+        "note": "Canonical existing specification; proposed subsystem organization does not revise its behavior."
+      },
+      {
+        "ref": "conversation:01a08207-33a9-7f71-a11c-7ed453677d28/call_BwmhQGADghaXjjideWN80dTJ",
+        "observed_at": "2026-09-11T03:46:29.448100+00:00",
+        "note": "Explicit owner acceptance of reviewed subsystem organization only; no path or proof acceptance."
+      }
+    ],
+    "planned": [],
+    "implemented": [
+      {
+        "ref": "src-tauri/src/telescope.rs",
+        "observed_at": "2026-09-11T03:38:14.075280+00:00",
+        "note": "Observed implementation entry, not product acceptance."
+      }
+    ],
+    "verified": []
+  },
+  "drift": [],
+  "updated_at": "2026-09-11T04:39:28.210260+00:00"
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": 1,
+  "revision": 3,
   "project": {
     "name": "Pronto provider and release context",
     "identity": "The Pronto external-context and release-preparation surface.",
@@ -17,8 +17,8 @@
     "id": "release-provider-context",
     "kind": "subsystem",
     "parent_id": "project",
-    "purpose": "Bring provider, skill, and release evidence into a read-only preparation boundary with clear provenance and gates.",
-    "boundary": "Owns provider context, skill-use evidence, release-boundary preparation, and their projections; local inventory and quality producer semantics remain outside this child.",
+    "purpose": "Bring provider and release evidence into a read-only preparation boundary with clear provenance and gates.",
+    "boundary": "Owns external provider context, release-boundary preparation, and their projections; local inventory, skill evidence, and quality producer semantics are neighboring responsibilities.",
     "non_goals": [
       "Sending or submitting external changes by default",
       "Replacing live Git evidence",
@@ -30,11 +30,27 @@
       "governed-handoffs"
     ],
     "paths": [
+      "src-tauri/src/core/cli-23.rs",
+      "src-tauri/src/core/cli-26.rs",
+      "src-tauri/src/core/cli-27.rs",
+      "src-tauri/src/core/cli-31.rs",
+      "src-tauri/src/core/part-10.rs",
+      "src-tauri/src/core/part-11.rs",
+      "src-tauri/src/core/part-20.rs",
+      "src-tauri/src/core/part-21.rs",
+      "src-tauri/src/core/part-22.rs",
       "src-tauri/src/release_boundary.rs",
-      "src-tauri/src/skills.rs",
-      "src-tauri/src/skill_usage_collector.rs",
+      "src/renderer/src/components/AiSummaryPreview.tsx",
+      "src/renderer/src/components/CiTrackerSurface.test.tsx",
+      "src/renderer/src/components/CiTrackerSurface.tsx",
+      "src/renderer/src/components/PreparationDrawer.tsx",
       "src/renderer/src/components/ReleaseRecipePanel.tsx",
-      "src/renderer/src/components/SkillsComponents.tsx"
+      "src/renderer/src/components/ReleaseRuleEditor.tsx",
+      "src/renderer/src/components/RemoteCatalogSurface.tsx",
+      "src/renderer/src/components/RemoteDeferredSurface.tsx",
+      "src/renderer/src/hooks/usePreparationActions.ts",
+      "src/renderer/src/types/ci.ts",
+      "src/renderer/src/types/insights.ts"
     ]
   },
   "targets": {
@@ -48,7 +64,7 @@
   "pillars": [
     {
       "id": "release-provider-context-purpose",
-      "name": "Draft scoped purpose",
+      "name": "Scoped purpose",
       "outcomes": [
         {
           "id": "release-provider-context-aligned-boundary",
@@ -57,10 +73,10 @@
           "maturity": 25,
           "confidence": "low",
           "layers": {
-            "intended": "Drafted from explicit repository documentation; pending owner quiz and ratification.",
-            "planned": "Local proof and sibling contracts are pending the boundary decision.",
-            "implemented": "Observed implementation paths: src-tauri/src/release_boundary.rs, src-tauri/src/skills.rs, src-tauri/src/skill_usage_collector.rs, src/renderer/src/components/ReleaseRecipePanel.tsx, src/renderer/src/components/SkillsComponents.tsx.",
-            "verified": "No independently scoped end-to-end proof has been accepted yet."
+            "intended": "Owner ratified this subsystem organization and its documented preservation obligations on 2026-09-11. Path assignments and current proof remain under review.",
+            "planned": "Complete source ownership, canonical behavior links, neighboring handoffs and repeatable scoped proof.",
+            "implemented": "Source-association review maps the exact owned paths in development.json; shared dispatch, models and transport remain explicit dependencies. This is observed structure, not a maturity upgrade.",
+            "verified": "Current proof is evaluated from workspace-bound receipts in development.json. Historical evidence and declared maturity do not establish current verification."
           },
           "evidence": [
             {
@@ -86,12 +102,8 @@
           ],
           "blockers": [
             {
-              "kind": "product-decision",
-              "summary": "Owner must ratify, split, merge, or retire this draft child Compass through the realignment quiz before it becomes active truth."
-            },
-            {
               "kind": "verification",
-              "summary": "An independently scoped local proof and its neighboring handoffs are not yet established."
+              "summary": "Direct installed/runtime and semantic proof beyond the declared local oracles remains separate; consult each binding handoff review."
             }
           ]
         }
@@ -119,6 +131,11 @@
         "ref": "docs/implementation-plan.md",
         "note": "Explicit repository documentation is the current basis for this draft; owner quiz remains open.",
         "observed_at": "2026-08-14T23:31:00Z"
+      },
+      {
+        "ref": "conversation:01a08207-33a9-7f71-a11c-7ed453677d28/call_BwmhQGADghaXjjideWN80dTJ",
+        "observed_at": "2026-09-11T03:46:29.448100+00:00",
+        "note": "Explicit owner acceptance of reviewed subsystem organization only; no path or proof acceptance."
       }
     ],
     "planned": [],
@@ -154,7 +171,7 @@
   "drift": [
     {
       "kind": "verification-gap",
-      "summary": "This child boundary is a draft derived from repository documentation and has not yet been ratified or independently verified.",
+      "summary": "Subsystem organization is owner-ratified; complete source ownership and independent proof remain pending.",
       "status": "open",
       "observed_at": "2026-08-14T23:31:00Z",
       "evidence": [
@@ -166,5 +183,5 @@
       ]
     }
   ],
-  "updated_at": "2026-08-14T23:31:00Z"
+  "updated_at": "2026-09-11T04:39:28.210260+00:00"
 }

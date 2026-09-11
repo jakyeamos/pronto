@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "revision": 4,
+  "project": {
+    "name": "Pronto Skill evidence",
+    "identity": "Explain discoverability, provider projection, parity and attributable invocation evidence without reconstructing usage from conversation text.",
+    "audience": "Developers and repository operators managing multiple local codebases, worktrees, quality signals, and release-preparation workflows.",
+    "core_loop": "Explain discoverability, provider projection, parity and attributable invocation evidence without reconstructing usage from conversation text.",
+    "north_star": "Explain discoverability, provider projection, parity and attributable invocation evidence without reconstructing usage from conversation text.",
+    "not_this": [
+      "Availability and installation do not prove invocation.",
+      "Unsupported provider telemetry remains unavailable.",
+      "No prompt or response collection."
+    ]
+  },
+  "scope": {
+    "id": "skill-evidence",
+    "kind": "subsystem",
+    "parent_id": "project",
+    "purpose": "Explain discoverability, provider projection, parity and attributable invocation evidence without reconstructing usage from conversation text.",
+    "boundary": "Owner of skill evidence as specified by docs/skill-usage-evidence.md; shared runtime and neighboring contracts remain explicit dependencies.",
+    "non_goals": [
+      "Inferring invocation from availability, discovery or installation",
+      "Inventing unsupported provider telemetry",
+      "Collecting prompts or responses"
+    ],
+    "parent_outcomes": ["explainable-next-action"],
+    "paths": [
+      "scripts/skill-usage-collector-lib.mjs",
+      "scripts/skill-usage-collector.mjs",
+      "scripts/skill-usage-collector.test.mjs",
+      "src-tauri/src/core/cli-05.rs",
+      "src-tauri/src/core/cli-09.rs",
+      "src-tauri/src/skill_usage_collector.rs",
+      "src-tauri/src/skills.rs",
+      "src/renderer/src/components/SkillsComponents.test.tsx",
+      "src/renderer/src/components/SkillsComponents.tsx",
+      "src/renderer/src/components/SkillsErrorBoundary.tsx",
+      "src/renderer/src/components/SkillsPresentation.tsx",
+      "src/renderer/src/skillsSnapshot.ts"
+    ]
+  },
+  "targets": {
+    "mvp": {
+      "definition": "Preserve the linked canonical behavior for bounded changes."
+    },
+    "complete_product": {
+      "definition": "Every owned behavior has current source-bound proof; unresolved coverage remains explicit."
+    }
+  },
+  "pillars": [
+    {
+      "id": "skill-evidence-purpose",
+      "name": "Skill evidence",
+      "outcomes": [
+        {
+          "id": "skill-evidence-preservation",
+          "name": "Explain discoverability, provider projection, parity and attributable invocation evidence without reconstructing usage from conversation text.",
+          "targets": ["mvp", "complete_product"],
+          "maturity": 25,
+          "confidence": "medium",
+          "layers": {
+            "intended": "Owner ratified this subsystem organization and its documented preservation obligations on 2026-09-11. Path assignments and current proof remain under review.",
+            "planned": "Complete source ownership, canonical behavior links, neighboring handoffs and repeatable scoped proof.",
+            "implemented": "Source-association review maps the exact owned paths in development.json; shared dispatch, models and transport remain explicit dependencies. This is observed structure, not a maturity upgrade.",
+            "verified": "Current proof is evaluated from workspace-bound receipts in development.json. Historical evidence and declared maturity do not establish current verification."
+          },
+          "evidence": [
+            {
+              "ref": "docs/skill-usage-evidence.md",
+              "observed_at": "2026-09-11T03:38:14.075280+00:00",
+              "note": "Canonical existing specification; proposed subsystem organization does not revise its behavior."
+            },
+            {
+              "ref": "src-tauri/src/skills.rs",
+              "observed_at": "2026-09-11T03:38:14.075280+00:00",
+              "note": "Observed implementation entry, not product acceptance."
+            }
+          ],
+          "blockers": [
+            {
+              "kind": "verification",
+              "summary": "Direct installed/runtime and semantic proof beyond the declared local oracles remains separate; consult each binding handoff review."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "source_layers": {
+    "intended": [
+      {
+        "ref": "docs/skill-usage-evidence.md",
+        "observed_at": "2026-09-11T03:38:14.075280+00:00",
+        "note": "Canonical existing specification; proposed subsystem organization does not revise its behavior."
+      },
+      {
+        "ref": "conversation:01a08207-33a9-7f71-a11c-7ed453677d28/call_BwmhQGADghaXjjideWN80dTJ",
+        "observed_at": "2026-09-11T03:46:29.448100+00:00",
+        "note": "Explicit owner acceptance of reviewed subsystem organization only; no path or proof acceptance."
+      }
+    ],
+    "planned": [],
+    "implemented": [
+      {
+        "ref": "src-tauri/src/skills.rs",
+        "observed_at": "2026-09-11T03:38:14.075280+00:00",
+        "note": "Observed implementation entry, not product acceptance."
+      }
+    ],
+    "verified": []
+  },
+  "drift": [],
+  "updated_at": "2026-09-11T04:39:28.210260+00:00"
+}

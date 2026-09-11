@@ -14,26 +14,61 @@
       "kind": "subsystem",
       "path": "inventory-routing.json",
       "parent_id": "project",
-      "status": "draft"
+      "status": "active"
     },
     {
       "id": "quality-remediation",
       "kind": "subsystem",
       "path": "quality-remediation.json",
       "parent_id": "project",
-      "status": "draft"
+      "status": "active"
     },
     {
       "id": "release-provider-context",
       "kind": "subsystem",
       "path": "release-provider-context.json",
       "parent_id": "project",
-      "status": "draft"
+      "status": "active"
     },
     {
       "id": "compass-foundation",
       "kind": "subsystem",
       "path": "compasses/compass-foundation.json",
+      "parent_id": "project",
+      "status": "active"
+    },
+    {
+      "id": "telescope-explanation",
+      "kind": "subsystem",
+      "path": "compasses/telescope-explanation.json",
+      "parent_id": "project",
+      "status": "active"
+    },
+    {
+      "id": "analytics-evidence",
+      "kind": "subsystem",
+      "path": "compasses/analytics-evidence.json",
+      "parent_id": "project",
+      "status": "active"
+    },
+    {
+      "id": "skill-evidence",
+      "kind": "subsystem",
+      "path": "compasses/skill-evidence.json",
+      "parent_id": "project",
+      "status": "active"
+    },
+    {
+      "id": "interaction-quality",
+      "kind": "subsystem",
+      "path": "compasses/interaction-quality.json",
+      "parent_id": "project",
+      "status": "active"
+    },
+    {
+      "id": "desktop-delivery",
+      "kind": "subsystem",
+      "path": "compasses/desktop-delivery.json",
       "parent_id": "project",
       "status": "active"
     }
@@ -44,17 +79,17 @@
       "from": "quality-remediation",
       "to": "inventory-routing",
       "kind": "handoff",
-      "summary": "Quality evidence informs fleet routing; producer and consumer authority must remain explicit.",
-      "status": "unknown"
+      "summary": "Quality Runner owns evidence semantics and freshness; Pronto quality preserves target/schema/result and passes explicit gates to inventory routing. Routing selects the live workspace and cannot turn stale, missing or blocked evidence into authorization. Reviewed docs/evidence-contract-freshness.md, docs/repository-contract.md, core/part-24.rs, core/part-32.rs and core/tests-06.rs.",
+      "status": "aligned"
     },
     {
       "id": "release-provider-context-to-inventory-routing",
       "from": "release-provider-context",
       "to": "inventory-routing",
       "kind": "depends-on",
-      "summary": "Provider context is interpreted against local inventory; freshness and authority boundaries remain open.",
-      "status": "unknown"
+      "summary": "Provider/release context is read-only and evaluated against inventory-selected local branch and HEAD. Release receipts require matching policy, artifacts and required checks; stale/unsupported context remains visible and grants no mutation authority. Reviewed docs/product-decisions.md, docs/repository-contract.md, release_boundary.rs and core/tests-09.rs/tests-13.rs.",
+      "status": "aligned"
     }
   ],
-  "updated_at": "2026-08-14T23:31:00Z"
+  "updated_at": "2026-09-11T03:46:29.448100+00:00"
 }

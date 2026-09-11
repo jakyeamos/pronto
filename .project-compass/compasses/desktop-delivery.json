@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "revision": 4,
+  "project": {
+    "name": "Pronto Desktop delivery",
+    "identity": "Provide the macOS shell and package/install lifecycle while keeping source, built, installed and running identity separate.",
+    "audience": "Developers and repository operators managing multiple local codebases, worktrees, quality signals, and release-preparation workflows.",
+    "core_loop": "Provide the macOS shell and package/install lifecycle while keeping source, built, installed and running identity separate.",
+    "north_star": "Provide the macOS shell and package/install lifecycle while keeping source, built, installed and running identity separate.",
+    "not_this": [
+      "An ordinary restart is separate from service registration.",
+      "Package identity does not prove visible runtime behavior.",
+      "Bootstrap does not authorize installation or activation."
+    ]
+  },
+  "scope": {
+    "id": "desktop-delivery",
+    "kind": "subsystem",
+    "parent_id": "project",
+    "purpose": "Provide the macOS shell and package/install lifecycle while keeping source, built, installed and running identity separate.",
+    "boundary": "Owner of desktop delivery as specified by docs/installed-runtime-parity.md; shared runtime and neighboring contracts remain explicit dependencies.",
+    "non_goals": [
+      "Treating ordinary restart as service registration",
+      "Claiming visible runtime behavior from package identity",
+      "Installing or activating a runtime as part of metadata bootstrap"
+    ],
+    "parent_outcomes": ["governed-handoffs"],
+    "paths": [
+      "scripts/build-workflow.test.mjs",
+      "scripts/cargo-routing.test.mjs",
+      "scripts/install-app-lib.mjs",
+      "scripts/install-app.mjs",
+      "scripts/install-app.test.mjs",
+      "scripts/pronto-cli-entrypoint.test.mjs",
+      "src-tauri/.gitignore",
+      "src-tauri/build.rs",
+      "src-tauri/capabilities/default.json",
+      "src-tauri/icons/128x128.png",
+      "src-tauri/icons/128x128@2x.png",
+      "src-tauri/icons/32x32.png",
+      "src-tauri/icons/Square107x107Logo.png",
+      "src-tauri/icons/Square142x142Logo.png",
+      "src-tauri/icons/Square150x150Logo.png",
+      "src-tauri/icons/Square284x284Logo.png",
+      "src-tauri/icons/Square30x30Logo.png",
+      "src-tauri/icons/Square310x310Logo.png",
+      "src-tauri/icons/Square44x44Logo.png",
+      "src-tauri/icons/Square71x71Logo.png",
+      "src-tauri/icons/Square89x89Logo.png",
+      "src-tauri/icons/StoreLogo.png",
+      "src-tauri/icons/icon.icns",
+      "src-tauri/icons/icon.ico",
+      "src-tauri/icons/icon.png",
+      "src-tauri/src/installed_runtime.rs",
+      "src-tauri/src/mac_accessibility.rs",
+      "src-tauri/src/main.rs",
+      "src-tauri/tauri.conf.json",
+      "src/renderer/src/App.addRoot.test.tsx",
+      "src/renderer/src/App.tsx",
+      "src/renderer/src/components/AppOverlays.tsx",
+      "src/renderer/src/components/AppRouteSurface.tsx",
+      "src/renderer/src/components/AppSidebar.tsx",
+      "src/renderer/src/components/AppTopbar.tsx",
+      "src/renderer/src/components/ChartPrimitives.tsx",
+      "src/renderer/src/components/ConsolePrimitives.tsx",
+      "src/renderer/src/components/Drawers.tsx",
+      "src/renderer/src/components/FeedbackBanners.tsx",
+      "src/renderer/src/components/InstalledRuntimeParityDetail.test.tsx",
+      "src/renderer/src/components/InstalledRuntimeParityDetail.tsx",
+      "src/renderer/src/components/RefreshConfirmationDialog.tsx",
+      "src/renderer/src/hooks/useAppKeyboardShortcuts.ts",
+      "src/renderer/src/hooks/usePortfolioController.ts",
+      "src/renderer/src/macControlTargets.test.tsx",
+      "src/renderer/src/macControlTargets.ts",
+      "src/renderer/src/main.tsx",
+      "src/renderer/src/navigation.ts",
+      "src/renderer/src/styles.css"
+    ]
+  },
+  "targets": {
+    "mvp": {
+      "definition": "Preserve the linked canonical behavior for bounded changes."
+    },
+    "complete_product": {
+      "definition": "Every owned behavior has current source-bound proof; unresolved coverage remains explicit."
+    }
+  },
+  "pillars": [
+    {
+      "id": "desktop-delivery-purpose",
+      "name": "Desktop delivery",
+      "outcomes": [
+        {
+          "id": "desktop-delivery-preservation",
+          "name": "Provide the macOS shell and package/install lifecycle while keeping source, built, installed and running identity separate.",
+          "targets": ["mvp", "complete_product"],
+          "maturity": 25,
+          "confidence": "medium",
+          "layers": {
+            "intended": "Owner ratified this subsystem organization and its documented preservation obligations on 2026-09-11. Path assignments and current proof remain under review.",
+            "planned": "Complete source ownership, canonical behavior links, neighboring handoffs and repeatable scoped proof.",
+            "implemented": "Source-association review maps the exact owned paths in development.json; shared dispatch, models and transport remain explicit dependencies. This is observed structure, not a maturity upgrade.",
+            "verified": "Current proof is evaluated from workspace-bound receipts in development.json. Historical evidence and declared maturity do not establish current verification."
+          },
+          "evidence": [
+            {
+              "ref": "docs/installed-runtime-parity.md",
+              "observed_at": "2026-09-11T03:38:14.075280+00:00",
+              "note": "Canonical existing specification; proposed subsystem organization does not revise its behavior."
+            },
+            {
+              "ref": "src-tauri/src/lib.rs",
+              "observed_at": "2026-09-11T03:38:14.075280+00:00",
+              "note": "Observed implementation entry, not product acceptance."
+            }
+          ],
+          "blockers": [
+            {
+              "kind": "verification",
+              "summary": "Direct installed/runtime and semantic proof beyond the declared local oracles remains separate; consult each binding handoff review."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "source_layers": {
+    "intended": [
+      {
+        "ref": "docs/installed-runtime-parity.md",
+        "observed_at": "2026-09-11T03:38:14.075280+00:00",
+        "note": "Canonical existing specification; proposed subsystem organization does not revise its behavior."
+      },
+      {
+        "ref": "conversation:01a08207-33a9-7f71-a11c-7ed453677d28/call_BwmhQGADghaXjjideWN80dTJ",
+        "observed_at": "2026-09-11T03:46:29.448100+00:00",
+        "note": "Explicit owner acceptance of reviewed subsystem organization only; no path or proof acceptance."
+      }
+    ],
+    "planned": [],
+    "implemented": [
+      {
+        "ref": "src-tauri/src/lib.rs",
+        "observed_at": "2026-09-11T03:38:14.075280+00:00",
+        "note": "Observed implementation entry, not product acceptance."
+      }
+    ],
+    "verified": []
+  },
+  "drift": [],
+  "updated_at": "2026-09-11T04:39:28.210260+00:00"
+}
