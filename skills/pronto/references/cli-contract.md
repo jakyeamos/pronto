@@ -224,6 +224,13 @@ The updated checkout provides `compass family <workspace> --json`,
 `compass assess <workspace> --proposal <file> --json`.
 They consume the canonical Python helper and return `compass-family/v1`,
 `compass-change-context/v1`, and `compass-modernization-assessment/v1`.
+Explicit `change-context --packet-output .quality-runner/compass/NAME.json`
+also accepts `compass-packet-artifact/v1`; it writes only a complete eligible
+entry packet, at most 1 MiB, for inspection before explicit adoption. Gate may
+return `compass-gate-summary/v1` after full validation. Both are distinct from
+prepared packets; preserve all blockers and nonzero failure exits. Ordinary
+output remains bounded to 32 KiB. See the development contract for safe-path,
+no-clobber and retained-baseline requirements.
 Preserve draft/accepted authority, source identity, captured time, unknowns,
 conflicts and proof freshness. Cached family observations are not current proof.
 The helper prerequisite and full schemas are documented in

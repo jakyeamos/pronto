@@ -16,14 +16,27 @@ node bin/pronto.mjs compass change-context <workspace> --base <revision> --prepa
 node bin/pronto.mjs compass assess <workspace> --proposal <proposal.json> --json
 ```
 
-These commands are live, read-only and require an explicit workspace. They do
+These commands are live and require an explicit workspace. They are read-only
+unless `change-context --packet-output` explicitly requests a task artifact. They do
 not read the portfolio cache, refresh Pronto, execute repository commands, or
 create remediation work. Missing Python, a missing helper, unsupported schema,
 oversized output or a timeout is explicitly unavailable. `PRONTO_COMPASS_HELPER`
 and `PRONTO_PYTHON` are explicit operator overrides for candidate verification;
 repository metadata cannot select an executable. The bridge allows 30 seconds
 and 1 MiB of output. Change-context packets are limited by the producer to
-32 KiB, with explicit narrowing required instead of lost constraints.
+32 KiB. Broad reconciled scopes may use the explicit complete-artifact route below.
+
+`compass change-context WORKSPACE --base ORIGINAL_SHA --path PATH --packet-output
+.quality-runner/compass/reconciled.json --json` writes a complete eligible entry
+packet of at most 1 MiB. The producer refuses existing files, unsafe paths and
+ineligible packets. Its `compass-packet-artifact/v1` descriptor is not a prepared
+packet: inspect the complete file and preserve the previous packet before explicit
+adoption. Gate validation always uses the complete packet and actual diff. An
+oversized result returns `compass-gate-summary/v1` with all blockers, identities,
+proof counts and full-result digest; if that summary exceeds 32 KiB, it fails
+explicitly. Neither descriptor nor summary can serve as an intent baseline.
+Gate failure retains a nonzero exit. Older consumers report these schemas as
+unsupported. This CLI-only addition has no new UI or execution authority.
 
 At task entry, retain the packet in the ignored task evidence directory specified below. At completion compare
 it against the actual diff, preserving scope expansion, renames, removals and

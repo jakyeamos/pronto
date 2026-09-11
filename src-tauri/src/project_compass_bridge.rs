@@ -31,7 +31,7 @@ fn helper_path() -> Result<PathBuf, String> {
 pub fn invoke(operation: &str, repository: &Path, arguments: &[String]) -> Result<Value, String> {
     if !matches!(operation, "family" | "change-context" | "assess" | "gate") {
         return Err(
-            "Pronto Compass supports read-only family, change-context, gate, and assess operations"
+            "Pronto Compass supports family, change-context, gate, and assess operations"
                 .into(),
         );
     }
@@ -98,7 +98,14 @@ pub fn invoke(operation: &str, repository: &Path, arguments: &[String]) -> Resul
         "change-context" | "gate" => "compass-change-context/v1",
         _ => "compass-modernization-assessment/v1",
     };
-    if payload["schema"] != expected {
+    let artifact_requested = arguments
+        .iter()
+        .any(|arg| arg == "--packet-output" || arg.starts_with("--packet-output="));
+    let additive_schema = (operation == "gate" && payload["schema"] == "compass-gate-summary/v1")
+        || (operation == "change-context"
+            && artifact_requested
+            && payload["schema"] == "compass-packet-artifact/v1");
+    if payload["schema"] != expected && !additive_schema {
         return Err(format!("Unsupported projection; expected {expected}"));
     }
     Ok(payload)
