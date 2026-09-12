@@ -1,5 +1,6 @@
 fn agent_project_compass_attention(repository: &RepositorySnapshot) -> Option<AgentAttentionItem> {
     let compass = &repository.project_compass;
+    let family_items = project_compass::family_attention(compass);
     let coverage_incomplete = compass.status == "Ready"
         && (compass.mvp.total_pillar_count == 0
             || compass.mvp.covered_pillar_count < compass.mvp.total_pillar_count);
@@ -7,11 +8,13 @@ fn agent_project_compass_attention(repository: &RepositorySnapshot) -> Option<Ag
         && !coverage_incomplete
         && compass.open_blockers == 0
         && compass.open_drift == 0
+        && family_items == 0
     {
         return None;
     }
 
     let mut details = Vec::new();
+    if family_items > 0 { details.push(format!("{family_items} unresolved subsystem or relationship item(s)")); }
     if compass.status != "Ready" {
         details.push(format!(
             "contract is {}",

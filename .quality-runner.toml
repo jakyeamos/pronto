@@ -232,3 +232,12 @@ evidence_refs = [
   "repeat-pass:docs/quality-prevention.md",
   "local:docs/quality-prevention.md",
 ]
+
+[[quality_runner.gates]]
+id = "compass-development"
+command = "node bin/pronto.mjs compass gate . --json"
+ecosystem = "pnpm"
+source = "Scoped Compass pilot acceptance"
+owner = "repository maintainers"
+required = true
+severity = "blocker"

@@ -55,7 +55,7 @@ fn run_cli_arm_10(
     let positionals = cli_positionals_with_flags(
         &arguments,
         &["--product", "--group", "--max-age", "--limit"],
-        &["--fresh"],
+        &["--fresh", "--full"],
     )
     .unwrap_or_else(|error| {
         eprintln!("Pronto CLI error: {error}");
@@ -126,10 +126,14 @@ fn run_cli_arm_10(
         }
     };
     if json {
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
-        );
+        let payload = serde_json::to_value(&report).unwrap_or_default();
+        let payload = if arguments.iter().any(|argument| argument == "--full") {
+            payload
+        } else {
+            crate::route_projection::compact(payload)
+        };
+        println!("{}", serde_json::to_string_pretty(&payload).unwrap_or_default());
+        if payload["ready"] == false { std::process::exit(1); }
     } else {
         print_human_route(&report);
     }

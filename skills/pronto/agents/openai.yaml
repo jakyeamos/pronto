@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pronto"
+  short_description: "Use Pronto for portfolio and branch evidence"
+  default_prompt: "Use $pronto to orient this repository task with current portfolio evidence, then choose the safest reviewed workflow."

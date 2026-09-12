@@ -30,6 +30,7 @@ const fixtureFiles = [
   "docs/mac-control-maturity-gate.md",
   "docs/remediation-sequential-handoff.md",
   "docs/repository-contract.md",
+  "docs/compass-development.md",
   "docs/task-lane-custody.md",
   "docs/telescope.md",
   ".pronto/cache-lifecycle.json",

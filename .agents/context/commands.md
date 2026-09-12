@@ -42,6 +42,11 @@ available.
 contract identifies rebuildable worktree outputs and their rebuild commands;
 it is evidence for a separately authorized cleanup, not deletion authority.
 
+`route --json` defaults to the bounded `pronto-agent-route/v2` orientation envelope;
+`route --full --json` retains the legacy v1 envelope. See
+[Compass development](../../docs/compass-development.md) for versioned family,
+change-context and assessment commands, source authority and pilot requirements.
+
 `route --json` is the preferred composed entry point for agent orientation. It
 performs the same read-only doctor gate for the selected scope and, only when
 that gate is ready, includes bounded `next`, repository, quality,
@@ -99,7 +104,7 @@ stale/unknown until it is refreshed from the exact target commit.
 
 | Need                                 | Command                                                                                                                                                           | Contract                                                                                                         |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Agent routing envelope               | `route [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] [--limit <n>] [--fresh] --json`                                                  | `pronto-agent-route/v1`                                                                                          |
+| Agent routing envelope               | `route [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] [--limit <n>] [--fresh] --json`                                                  | `pronto-agent-route/v2` (bounded; `--full` retains v1)                                                           |
 | Freshness/storage gate               | `doctor [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] --json`                                                                         | `pronto-agent-doctor/v1`                                                                                         |
 | Daily orientation                    | `next [<repository>] [--product <name> \| --group <name>] [--limit <n>] --json`                                                                                   | `pronto-agent-next/v1`                                                                                           |
 | Fold preparation                     | `fold preview [<repository>] [--target <branch>] [--product <name> \| --group <name>] [--limit <n>] [--cursor <token>] --json`                                    | `pronto-agent-fold-preview/v2`                                                                                   |

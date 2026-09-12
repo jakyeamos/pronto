@@ -672,6 +672,23 @@
         "Exercise a denied-primary capture followed by a permitted flush."
       ],
       "status": "applicable"
+    },
+    {
+      "id": "compass-development-foundation",
+      "scope": "local",
+      "path": "src-tauri/src/project_compass.rs, src-tauri/src/project_compass_bridge.rs, src-tauri/src/route_projection.rs, src/renderer/src/components/CompassFamilyDetail.tsx, docs/compass-development.md, .project-compass/development.json, skills/pronto/SKILL.md, skills/pronto/references/cli-contract.md",
+      "owner": "Pronto and Compass maintainers",
+      "condition": "Family projection, scoped change context, intent evidence, bounded route, source navigation, or modernization assessment changes.",
+      "operations": ["add", "change", "remove", "fold"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml project_compass --lib",
+        "cargo test --manifest-path src-tauri/Cargo.toml route_projection --lib",
+        "pnpm exec vitest run src/renderer/src/components/CompassFamilyDetail.test.tsx",
+        "Exercise pronto compass family, change-context and assess against the canonical producer fixture and pilot.",
+        "Run exact-current Quality Runner release check and direct UI verification.",
+        "Fresh-context dogfood of the repository-owned Pronto skill before canonical promotion."
+      ],
+      "status": "applicable"
     }
   ],
   "operation_evidence": {

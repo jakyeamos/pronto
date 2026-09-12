@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "revision": 1,
+  "project": {
+    "name": "Compass development foundation",
+    "identity": "Make bounded development start with explicit subsystem intent, affected relationships, and current proof.",
+    "audience": "Developers and agents preparing bounded repository changes",
+    "core_loop": "Prepare context, preserve intent, verify actual changes, reconcile evidence.",
+    "north_star": "A bounded change preserves critical constraints without reconstructing the whole repository.",
+    "not_this": [
+      "Automatic fleet modernization",
+      "Ratifying older draft subsystems through import",
+      "Executing remediation from an assessment"
+    ]
+  },
+  "scope": {
+    "id": "compass-foundation",
+    "kind": "subsystem",
+    "parent_id": "project",
+    "purpose": "Make bounded development start with explicit subsystem intent, affected relationships, and current proof.",
+    "boundary": "Owns Compass development projections and their local consumption; canonical detailed specifications and Quality Runner remain separate authorities.",
+    "non_goals": [
+      "Automatic fleet modernization",
+      "Ratifying older draft subsystems through import",
+      "Executing remediation from an assessment"
+    ],
+    "parent_outcomes": ["explainable-next-action"],
+    "paths": [
+      "src-tauri/src/project_compass.rs",
+      "src-tauri/src/project_compass_bridge.rs",
+      "src/renderer/src/components/CompassFamilyDetail.tsx"
+    ]
+  },
+  "targets": {
+    "mvp": {
+      "definition": "Both pilots prepare and verify a bounded change."
+    },
+    "complete_product": {
+      "definition": "Pilot acceptance establishes a dependable development baseline."
+    }
+  },
+  "pillars": [
+    {
+      "id": "dependable-development",
+      "name": "Dependable development",
+      "outcomes": [
+        {
+          "id": "bounded-change",
+          "name": "A bounded change respects subsystem intent and current proof",
+          "targets": ["mvp", "complete_product"],
+          "maturity": 25,
+          "confidence": "low",
+          "layers": {
+            "intended": "Make bounded development start with explicit subsystem intent, affected relationships, and current proof.",
+            "planned": "Approved development foundation plan",
+            "implemented": "Candidate helper and Pronto projection in development",
+            "verified": "Unknown until pilot and independent release checks pass"
+          },
+          "evidence": [],
+          "blockers": []
+        }
+      ]
+    }
+  ],
+  "source_layers": {
+    "intended": [],
+    "planned": [],
+    "implemented": [],
+    "verified": []
+  },
+  "drift": [],
+  "updated_at": "2026-09-08T17:00:00Z"
+}

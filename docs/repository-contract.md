@@ -19,6 +19,14 @@ configured target branch and its current head. Configure the target with
 `pronto refresh <repository> --json`; stale or mismatched evidence remains
 unavailable until it is regenerated from the exact `dev` commit.
 
+## Compass development ownership
+
+The canonical Python Compass helper owns family validation, declared scoring,
+change context and modernization assessments. Pronto consumes versioned payloads;
+its Rust bridge bounds execution and checks schema/workspace identity. See
+[Compass development](compass-development.md). Source opening is a user-clicked
+local operation restricted to files inside the selected workspace's Compass root.
+
 ## Architecture and ownership boundaries
 
 - `src-tauri/src/core.rs` owns repository discovery, durable SQLite state, Git

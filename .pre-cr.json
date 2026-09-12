@@ -32,5 +32,6 @@
     "coverage": true,
     "security": false,
     "checklist": false
-  }
+  },
+  "qualityCommands": ["node bin/pronto.mjs compass gate . --json"]
 }

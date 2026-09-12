@@ -93,6 +93,8 @@ pub fn update_composite_maturity_summary(
             .gaps
             .sort_by(|left, right| left.dimension.cmp(&right.dimension));
         repository.quality.foundation_readiness = derive_foundation_readiness(&repository.quality);
+        repository.quality.foundation_readiness.modernization_assessment =
+            repository.project_compass.modernization_assessment.clone();
     }
 
     portfolio.mac_control_ideal_state.implementation_score =

@@ -4154,6 +4154,42 @@ h1 {
   align-items: center;
   gap: var(--space-xs);
 }
+.compass-family {
+  display: grid;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.compass-family p {
+  margin: 0;
+}
+.compass-family small {
+  color: var(--faint);
+}
+.compass-family nav {
+  display: grid;
+  gap: var(--space-xs);
+}
+.compass-family details {
+  padding: var(--space-xs) 0;
+}
+.compass-family summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.compass-family details[open] > :not(summary) {
+  margin-top: var(--space-xs);
+}
+.compass-family ul {
+  padding-left: var(--space-md);
+}
+.compass-family [aria-label="Subsystem handoffs"] {
+  display: grid;
+  gap: var(--space-sm);
+}
 .compass-product-truth {
   margin-bottom: var(--space-md);
 }

@@ -128,6 +128,7 @@ pub struct FoundationReadinessReason {
 pub struct FoundationReadinessGate {
     pub schema: String,
     pub label: String,
+    pub modernization_assessment: Option<serde_json::Value>,
     pub disposition: String,
     pub confidence: String,
     pub freshness: QualityFreshness,
@@ -148,6 +149,7 @@ impl Default for FoundationReadinessGate {
         Self {
             schema: "pronto-foundation-readiness/v1".to_string(),
             label: "Modernization readiness".to_string(),
+            modernization_assessment: None,
             disposition: "unknown".to_string(),
             confidence: "low".to_string(),
             freshness: QualityFreshness::Unknown,
