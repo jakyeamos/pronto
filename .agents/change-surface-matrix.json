@@ -14,6 +14,14 @@
     {
       "change": "Split the renderer quality regression suite by product surface.",
       "reason": "The exact 32-test behavior set, fixtures, assertions, and runtime components are unchanged; this is a test-ownership refactor that restores the repository file-size contract."
+    },
+    {
+      "change": "Extract the existing reviewed branch-lifecycle fixture clock prerequisite before integrating the Compass bootstrap.",
+      "reason": "The public project function still passes Utc::now; private project_at lets four existing fixtures use their original August20 clock. Production policy, expiration thresholds, branch protection, custody and assertions are unchanged. Root reviewed branch-clock-prerequisite.diff; original two failing live-clock assertions remain recorded outside the repository."
+    },
+    {
+      "change": "Extract reviewed unused-export cleanup and reconcile the existing nanoid override before Compass integration.",
+      "reason": "The four source files retain all used local behavior; only unused exports/helpers are removed. Pinned pnpm resolves the already-declared nanoid3.3.18 override without changing other dependency versions or audit thresholds. This is bounded target prerequisite reconciliation, with original gate failures and exact diffs retained in the task evidence."
     }
   ],
   "surfaces": [
@@ -130,7 +138,10 @@
         "Verify the Dock Refresh action invokes refresh_batch and renders the returned merged snapshot.",
         "Verify startup retains the cached portfolio immediately and automatically recovers an unavailable canonical quality audit without conflating Pronto's consolidated score with the Quality Runner source score.",
         "Verify the command center presents the Mac Control maturity score as the primary value and does not duplicate semantic-coverage counts.",
-        "Verify Portfolio renders one canonical repository list by default; attention, edge durability, and quality matrix repository comparisons stay behind explicit disclosures."
+        "Verify Portfolio renders one canonical repository list by default; attention, edge durability, and quality matrix repository comparisons stay behind explicit disclosures.",
+        "pnpm exec vitest run src/renderer/src/components/QualityScoreGuards.test.ts src/renderer/src/components/QualityPortfolioSurfaces.test.tsx src/renderer/src/components/QualityComponents.test.tsx",
+        "Verify cached fleet/repository/Mac Control numeric scores are withheld when imported evidence is unavailable, stale, blocked, unmeasured, or missing required provenance; retain a genuinely measured numeric zero without calling it passing.",
+        "Verify target branch and commit mismatch or missing provenance suppress repository maturity, cache, pillar, and agent-usability scores; diagnostics and source identity remain visible."
       ],
       "status": "applicable"
     },

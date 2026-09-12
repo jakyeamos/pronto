@@ -7233,7 +7233,8 @@ h1 {
 .telescope-frame:has(.telescope-canvas.is-source-detail) {
   grid-template-columns: 218px minmax(0, 1fr);
 }
-.telescope-frame:has(.telescope-canvas.is-source-detail) > .telescope-inspector {
+.telescope-frame:has(.telescope-canvas.is-source-detail)
+  > .telescope-inspector {
   display: none;
 }
 .telescope-breadcrumbs {

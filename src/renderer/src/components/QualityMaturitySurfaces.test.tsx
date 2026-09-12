@@ -181,6 +181,8 @@ describe("quality maturity surfaces", () => {
         maturity: makeMaturity({
           score: 2,
           score_display: "2.000",
+          audit_id: "audit-dimensions",
+          observed_at: "2026-07-26T11:00:00Z",
           scored_dimension_count: 4,
           freshness: "Fresh",
           dimension_scores: {
@@ -216,6 +218,8 @@ describe("quality maturity surfaces", () => {
         maturity: makeMaturity({
           score: 2,
           score_display: "2.000",
+          audit_id: "audit-pillars",
+          observed_at: "2026-07-26T11:00:00Z",
           scored_dimension_count: 3,
           freshness: "Fresh",
           repository_maturity: {

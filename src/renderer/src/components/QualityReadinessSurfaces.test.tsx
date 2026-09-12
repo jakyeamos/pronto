@@ -44,6 +44,11 @@ describe("quality readiness and release surfaces", () => {
         isRefreshing={false}
         quality={
           makePortfolio([repository], {
+            audit_status: "Ready",
+            latest_audit_id: "audit-readiness",
+            latest_audit_at: "2026-07-26T11:00:00Z",
+            matched_repository_count: 1,
+            maturity_score: 1.933,
             maturity_score_display: "1.933",
             ci_readiness_score: 2.67,
             ci_readiness_score_display: "2.67",
@@ -108,7 +113,9 @@ describe("quality readiness and release surfaces", () => {
     expect(markup).toContain("0/6");
     expect(markup).toContain("Tests (1)");
     expect(markup).toContain("Mac Control semantic evidence");
-    expect(markup).toContain("0.0");
+    expect(markup).toContain(
+      "Score unavailable — fresh semantic evidence required",
+    );
     expect(markup).not.toContain("Semantic coverage");
     expect(markup).not.toContain("Mac Control maturity");
     expect(markup).toContain(
@@ -117,11 +124,13 @@ describe("quality readiness and release surfaces", () => {
     expect(markup).toContain(
       "Fleet freshness incomplete—inspect repository blockers",
     );
-    expect(markup).toContain("Live tasks: 0/5 measured · Blocked");
+    expect(markup).toContain(
+      "Live tasks: 0/5 measured · Blocked (Score unavailable — fresh live task evidence required)",
+    );
     expect(markup).toContain("Repository quality outcomes");
     expect(markup).toContain("Quality verification blocked");
     expect(markup).toContain("Quality audit");
-    expect(markup).toContain("No audit imported");
+    expect(markup).toContain("audit-readiness");
     expect(markup).toContain("Pronto snapshot");
   });
 

@@ -215,6 +215,7 @@ describe("quality evidence surfaces", () => {
       <QualityGatesSurface
         snapshot={makePortfolio([repository], {
           audit_status: "Ready",
+          latest_audit_id: "audit-1",
           maturity_score: 1.933,
           maturity_score_display: "1.933",
           scored_dimension_count: 10,
@@ -299,10 +300,10 @@ describe("quality evidence surfaces", () => {
       "1 applicable repositories · Fleet freshness incomplete—inspect repository blockers",
     );
     expect(markup).toContain(
-      "Semantic source evidence: 7/8 dimensions · 3.5/4 · Failed",
+      "Semantic source evidence: 7/8 dimensions · Score unavailable — fresh semantic evidence required · Failed",
     );
     expect(markup).toContain(
-      "Live tasks: 0/3 measured · 0.0/4 · Review required",
+      "Live tasks: 0/3 measured · Score unavailable — fresh live task evidence required · Review required",
     );
     expect(markup).toContain(
       "Source-grounded semantics and live task evidence are both required for the 4.0/4.0 maturity ideal",

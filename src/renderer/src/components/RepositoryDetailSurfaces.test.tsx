@@ -245,7 +245,7 @@ describe("repository detail surfaces", () => {
     expect(markup).toContain("2/8 feature branches");
     expect(markup).toContain("disposition required");
     expect(markup).toContain("read-only");
-    expect(markup).toContain("Not scored");
+    expect(markup).toContain("Target maturity unavailable");
     expect(markup).toContain("Configured");
     expect(markup).toContain("Dependency audit");
     expect(markup).toContain("Awaiting evidence");

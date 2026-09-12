@@ -370,9 +370,27 @@ export interface TelescopeNarrative {
   identity?: TelescopeNarrativeIdentity;
   actors?: TelescopeActor[];
   payloads?: TelescopePayload[];
-  decisions?: Array<{ id: string; label: string; explanation: string; files: string[]; status: string }>;
-  failures?: Array<{ id: string; label: string; behavior: string; action_ids: string[]; files: string[]; status: string }>;
-  applicability?: Array<{ requirement: string; state: string; reason: string; status: string }>;
+  decisions?: Array<{
+    id: string;
+    label: string;
+    explanation: string;
+    files: string[];
+    status: string;
+  }>;
+  failures?: Array<{
+    id: string;
+    label: string;
+    behavior: string;
+    action_ids: string[];
+    files: string[];
+    status: string;
+  }>;
+  applicability?: Array<{
+    requirement: string;
+    state: string;
+    reason: string;
+    status: string;
+  }>;
   review?: {
     reviewed_fingerprint?: string | null;
     reviewed_at?: string | null;

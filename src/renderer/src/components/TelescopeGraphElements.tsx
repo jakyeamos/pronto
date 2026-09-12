@@ -237,7 +237,12 @@ function BuildingSilhouette({
         left={left}
         right={right}
       />
-      <CityRoleDetails cityRole={cityRole} baseY={baseY} left={left} right={right} />
+      <CityRoleDetails
+        cityRole={cityRole}
+        baseY={baseY}
+        left={left}
+        right={right}
+      />
       {actorLabels.slice(0, 3).map((actor, index) => (
         <g
           className="telescope-city-person"
@@ -271,7 +276,9 @@ function CityRoleDetails({
   if (cityRole.includes("gate") || cityRole.includes("terminal")) {
     return (
       <g className="building-role-gate">
-        <path d={`M ${left + 42} ${baseY} V ${baseY - 36} H ${left + 78} V ${baseY}`} />
+        <path
+          d={`M ${left + 42} ${baseY} V ${baseY - 36} H ${left + 78} V ${baseY}`}
+        />
         <path d={`M ${left + 34} ${baseY - 36} H ${left + 86}`} />
       </g>
     );
@@ -280,7 +287,9 @@ function CityRoleDetails({
     return (
       <g className="building-role-vault">
         <circle cx={left + 60} cy={baseY - 42} r="24" />
-        <path d={`M ${left + 60} ${baseY - 62} V ${baseY - 22} M ${left + 40} ${baseY - 42} H ${left + 80}`} />
+        <path
+          d={`M ${left + 60} ${baseY - 62} V ${baseY - 22} M ${left + 40} ${baseY - 42} H ${left + 80}`}
+        />
       </g>
     );
   }
@@ -288,7 +297,9 @@ function CityRoleDetails({
     return (
       <g className="building-role-port">
         <path d={`M ${right - 24} ${baseY - 8} H ${right + 42}`} />
-        <path d={`M ${right + 4} ${baseY - 8} V ${baseY - 38} M ${right + 30} ${baseY - 8} V ${baseY - 26}`} />
+        <path
+          d={`M ${right + 4} ${baseY - 8} V ${baseY - 38} M ${right + 30} ${baseY - 8} V ${baseY - 26}`}
+        />
       </g>
     );
   }
@@ -301,7 +312,12 @@ function CityRoleDetails({
       </g>
     );
   }
-  return <path className="building-role-entry" d={`M ${left + 48} ${baseY} V ${baseY - 27} H ${left + 72} V ${baseY}`} />;
+  return (
+    <path
+      className="building-role-entry"
+      d={`M ${left + 48} ${baseY} V ${baseY - 27} H ${left + 72} V ${baseY}`}
+    />
+  );
 }
 
 function BuildingDetails({

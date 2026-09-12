@@ -34,6 +34,10 @@ import {
   qualityGateDisplayLabel,
   qualityProfileSummary,
 } from "./QualityComponents";
+import {
+  hasAcceptedFleetMaturityAudit,
+  macControlScoreDisplay,
+} from "./QualityScoreGuards";
 
 export type Filter = "all" | "attention" | "dirty" | "sync";
 
@@ -84,6 +88,13 @@ export function CommandCenterSurface({
   const configuration = qualityConfigurationSummary(quality);
   const evidence = qualityEvidenceSummary(quality);
   const macControl = quality.mac_control_ideal_state;
+  const fleetMaturityAccepted = hasAcceptedFleetMaturityAudit(quality);
+  const implementationScore = macControl
+    ? macControlScoreDisplay(macControl, "implementation")
+    : undefined;
+  const liveScore = macControl
+    ? macControlScoreDisplay(macControl, "live")
+    : undefined;
   const openGateSummary = Object.entries(
     quality.ci_readiness_open_gate_counts ?? {},
   )
@@ -95,7 +106,11 @@ export function CommandCenterSurface({
     ...(quality.maturity_pillars ?? []).map((pillar) => ({
       id: `maturity-${pillar.id}`,
       label: pillar.label,
-      value: pillar.score === undefined ? "Unknown" : `${pillar.score}/4`,
+      value: !fleetMaturityAccepted
+        ? "Unavailable"
+        : pillar.score === undefined
+          ? "Unknown"
+          : `${pillar.score}/4`,
       detail: `${pillar.assessed_repository_count} repositories assessed`,
     })),
     {
@@ -213,15 +228,21 @@ export function CommandCenterSurface({
             label="Consolidated fleet maturity"
             value={
               <>
-                {quality.maturity_score_display ?? "Not scored"}
-                {quality.maturity_score_display && <small>/4</small>}
+                {fleetMaturityAccepted
+                  ? quality.maturity_score_display
+                  : "Unavailable"}
+                {fleetMaturityAccepted && <small>/4</small>}
               </>
             }
-            description="Pronto's evidence-governed score remains separate from the Quality Runner source score."
+            description={
+              fleetMaturityAccepted
+                ? "Pronto's evidence-governed score remains separate from the Quality Runner source score."
+                : "No acceptable imported audit is available; cached maturity scores are withheld."
+            }
             title="Open to see the assessed pillars, evidence coverage, and audit disposition."
             breakdown={maturityBreakdown}
           />
-          {quality.source_maturity_score_display && (
+          {fleetMaturityAccepted && quality.source_maturity_score_display && (
             <small className="command-quality-score-source">
               QR source {quality.source_maturity_score_display}/4
             </small>
@@ -305,13 +326,13 @@ export function CommandCenterSurface({
                   id: "semantic-source-evidence",
                   label: "Semantic source evidence",
                   value: `${macControl.implementation_criteria_passed_count ?? 0}/${macControl.implementation_criteria_total ?? 0}`,
-                  detail: `${macControl.implementation_score_display ?? "Not scored"}/4 · ${macControl.implementation_status ?? macControl.status} · ${macControlFreshnessLabel(macControl.freshness)}`,
+                  detail: `${implementationScore ? `${implementationScore}/4` : "Score unavailable — fresh semantic evidence required"} · ${macControl.implementation_status ?? macControl.status} · ${macControlFreshnessLabel(macControl.freshness)}`,
                 },
                 {
                   id: "live-task-evidence",
                   label: "Live task evidence",
                   value: `${macControl.measured_task_count ?? 0}/${macControl.live_task_count ?? 0}`,
-                  detail: `Live tasks: ${macControl.measured_task_count ?? 0}/${macControl.live_task_count ?? 0} measured · ${macControl.live_status ?? "Not assessed"} (${macControl.live_score_display ?? "Not scored"}/4)`,
+                  detail: `Live tasks: ${macControl.measured_task_count ?? 0}/${macControl.live_task_count ?? 0} measured · ${macControl.live_status ?? "Not assessed"} (${liveScore ? `${liveScore}/4` : "Score unavailable — fresh live task evidence required"})`,
                 },
                 {
                   id: "ideal-state",

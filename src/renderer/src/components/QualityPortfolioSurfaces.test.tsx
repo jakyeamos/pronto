@@ -24,7 +24,13 @@ describe("portfolio quality surfaces", () => {
     const markup = renderToStaticMarkup(
       <QualityGatesSurface
         snapshot={makePortfolio([repository], {
+          audit_status: "Ready",
+          latest_audit_id: "audit-v2",
+          latest_audit_at: "2026-07-26T11:00:00Z",
+          matched_repository_count: 1,
+          maturity_score: 3.25,
           maturity_score_display: "3.250",
+          source_maturity_score: 3.1,
           scored_dimension_count: 6,
           source_maturity_score_display: "3.100",
           feed_schema: "quality-runner-maturity-feed/v2",
@@ -54,6 +60,41 @@ describe("portfolio quality surfaces", () => {
     expect(markup).toContain(
       "Product readiness and Project Compass progress are reported separately",
     );
+  });
+
+  it("withholds cached fleet scores when no acceptable audit is imported", () => {
+    const repository = makeRepository();
+    const markup = renderToStaticMarkup(
+      <QualityGatesSurface
+        snapshot={makePortfolio([repository], {
+          audit_status: "Blocked",
+          latest_audit_path:
+            "/Users/jakyeamos/.quality-runner/fleet-audit/current/maturity.json",
+          maturity_score: 0.18,
+          maturity_score_display: "0.180",
+          source_maturity_score: 0.2,
+          source_maturity_score_display: "0.200",
+          maturity_pillars: [
+            {
+              id: "correctness_reliability",
+              label: "Correctness and reliability",
+              score: 0.56,
+              assessed_repository_count: 35,
+            },
+          ],
+        })}
+        repositories={[repository]}
+        onOpenRepository={noopRepository}
+      />,
+    );
+
+    expect(markup).toContain("Unavailable");
+    expect(markup).toContain(
+      "No acceptable imported audit — cached score withheld",
+    );
+    expect(markup).not.toContain("0.180");
+    expect(markup).not.toContain("0.200");
+    expect(markup).not.toContain("0.56/4");
   });
 
   it("keeps Tenure dev evidence visible while marking its older head stale", () => {
@@ -102,6 +143,7 @@ describe("portfolio quality surfaces", () => {
           score: 1.909,
           score_display: "1.909",
           audit_id: "audit-tenure",
+          observed_at: "2026-07-26T11:00:00Z",
           freshness: "Fresh",
           scanned_branch: undefined,
           scanned_commit: undefined,
@@ -128,7 +170,7 @@ describe("portfolio quality surfaces", () => {
     );
 
     expect(markup).toContain("Target dev @ a6d1dac1");
-    expect(markup).toContain("1.909");
+    expect(markup).toContain("Unavailable");
     expect(markup).toContain("Unscoped maturity evidence");
     expect(markup).toContain("4,022");
     expect(markup).toContain("Detector findings from stale branch evidence");
@@ -182,6 +224,7 @@ describe("portfolio quality surfaces", () => {
           score: 3.4,
           score_display: "3.4",
           audit_id: "audit-stale",
+          observed_at: "2026-07-26T11:00:00Z",
           freshness: "Fresh",
           ...mismatchedEvidence,
         }),
@@ -226,6 +269,7 @@ describe("portfolio quality surfaces", () => {
           score: 3.4,
           score_display: "3.4",
           audit_id: "audit-target",
+          observed_at: "2026-07-26T11:00:00Z",
           freshness: "Fresh",
           ...matchingEvidence,
         }),
@@ -269,6 +313,7 @@ describe("portfolio quality surfaces", () => {
           score: 3.4,
           score_display: "3.4",
           audit_id: "audit-ambiguous",
+          observed_at: "2026-07-26T11:00:00Z",
           freshness: "Fresh",
           scanned_branch: undefined,
           scanned_commit: undefined,

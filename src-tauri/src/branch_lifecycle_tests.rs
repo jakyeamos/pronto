@@ -67,12 +67,15 @@ fn hard_limit_blocks_new_feature_branch_admission() {
         })
         .collect::<Vec<_>>();
 
-    let projection = project(
+    let projection = project_at(
         &branches,
         &[],
         &CustodySnapshot::default(),
         Some("dev"),
         Some("main"),
+        DateTime::parse_from_rfc3339("2026-08-20T13:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc),
     );
 
     assert_eq!(projection.feature_branch_count, FEATURE_BRANCH_HARD_LIMIT);
@@ -94,12 +97,15 @@ fn soft_limit_warns_before_hard_limit() {
         })
         .collect::<Vec<_>>();
 
-    let projection = project(
+    let projection = project_at(
         &branches,
         &[],
         &CustodySnapshot::default(),
         Some("dev"),
         Some("main"),
+        DateTime::parse_from_rfc3339("2026-08-20T13:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc),
     );
 
     assert_eq!(projection.feature_branch_count, FEATURE_BRANCH_SOFT_LIMIT);
@@ -140,12 +146,15 @@ fn protected_and_retirement_branches_do_not_count_as_active_feature_work() {
         ),
     ];
 
-    let projection = project(
+    let projection = project_at(
         &branches,
         &[],
         &CustodySnapshot::default(),
         Some("dev"),
         Some("main"),
+        DateTime::parse_from_rfc3339("2026-08-20T13:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc),
     );
 
     assert_eq!(projection.feature_branch_count, 2);
@@ -180,12 +189,15 @@ fn expired_agent_lease_requires_disposition_without_prune_authority() {
     );
     branch.workspace_id = Some("workspace-expired".to_string());
 
-    let projection = project(
+    let projection = project_at(
         &[branch],
         &[workspace("workspace-expired", "agent/expired", false)],
         &custody,
         Some("dev"),
         Some("main"),
+        DateTime::parse_from_rfc3339("2026-08-20T13:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc),
     );
 
     let entry = &projection.branches[0];

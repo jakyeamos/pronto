@@ -402,8 +402,12 @@ describe("TelescopeSurface", () => {
       />,
     );
 
-    expect(screen.getByText("Who enters this city, and which gates do they use?")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Answer next question" }));
+    expect(
+      screen.getByText("Who enters this city, and which gates do they use?"),
+    ).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Answer next question" }),
+    );
     await waitFor(() => expect(onPrepareRepository).toHaveBeenCalledTimes(1));
   });
 

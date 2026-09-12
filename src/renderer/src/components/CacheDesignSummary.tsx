@@ -1,8 +1,13 @@
 import type { ReactElement } from "react";
 import type { QualityMaturity, QualityReadiness } from "../types";
-import type { TargetEvidenceState } from "../branchEvidence";
+import {
+  hasTargetScope,
+  targetEvidenceState,
+  type TargetEvidenceState,
+} from "../branchEvidence";
 import { StatusPill } from "./ConsolePrimitives";
 import { QualityMaturitySummary } from "./QualityComponents";
+import { hasAcceptedRepositoryMaturityEvidence } from "./QualityScoreGuards";
 
 function readableLabel(value: string): string {
   if (value === "not_applicable") return "Not applicable";
@@ -47,8 +52,10 @@ function formatBytes(value: number): string {
 
 function CacheDesignSummary({
   maturity,
+  scoreAvailable,
 }: {
   maturity: QualityMaturity;
+  scoreAvailable: boolean;
 }): ReactElement {
   const assessment = maturity.cache_design;
   if (!assessment) return <></>;
@@ -67,13 +74,15 @@ function CacheDesignSummary({
       <span>
         {assessment.status === "not_applicable"
           ? "N/A"
-          : assessment.score === undefined
-            ? "Not scored"
+          : !scoreAvailable || assessment.score === undefined
+            ? "Score unavailable"
             : `${assessment.score}/4`}{" "}
         · {formatBytes(assessment.totals.allocated_bytes)} allocated ·{" "}
         {assessment.totals.file_count} files
       </span>
-      <small>{remediation(status, assessment.score)}</small>
+      <small>
+        {remediation(status, scoreAvailable ? assessment.score : undefined)}
+      </small>
       {assessment.risk_flags.length > 0 && (
         <small>
           Risks: {assessment.risk_flags.map(readableLabel).join(", ")}
@@ -100,6 +109,18 @@ export function QualityMaturityWithCacheSummary({
   targetCommit?: string;
   targetReadinessState?: TargetEvidenceState;
 }): ReactElement {
+  const targetMode = hasTargetScope(targetBranch, targetCommit);
+  const maturityState = targetMode
+    ? targetEvidenceState({
+        targetBranch,
+        targetCommit,
+        scannedBranch: maturity.scanned_branch,
+        scannedCommit: maturity.scanned_commit,
+      })
+    : "verified";
+  const scoreAvailable =
+    maturityState === "verified" &&
+    hasAcceptedRepositoryMaturityEvidence(maturity);
   return (
     <>
       <QualityMaturitySummary
@@ -111,7 +132,7 @@ export function QualityMaturityWithCacheSummary({
         targetCommit={targetCommit}
         targetReadinessState={targetReadinessState}
       />
-      <CacheDesignSummary maturity={maturity} />
+      <CacheDesignSummary maturity={maturity} scoreAvailable={scoreAvailable} />
     </>
   );
 }

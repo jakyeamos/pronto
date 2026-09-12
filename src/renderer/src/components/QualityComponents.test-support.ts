@@ -1,7 +1,6 @@
 import type {
   AiPayloadPreview,
   AnalyticsSnapshot,
-  Condition,
   PortfolioSnapshot,
   QualityEvidence,
   QualityFindings,
@@ -349,10 +348,6 @@ export const noop = async (): Promise<void> => undefined;
 export const noopRepository = (_repository: RepositorySnapshot): void =>
   undefined;
 export const noopReport = (_reportPath: string): void => undefined;
-export const noopCondition = (
-  _repository: RepositorySnapshot,
-  _condition: Condition,
-): void => undefined;
 
 export const analyticsSnapshot: AnalyticsSnapshot = {
   schema_version: "pronto-analytics/v1",

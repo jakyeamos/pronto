@@ -18,6 +18,10 @@ import {
   macControlFreshnessLabel,
 } from "./QualityComponents";
 import { QualityMaturityWithCacheSummary } from "./CacheDesignSummary";
+import {
+  hasAcceptedFleetMaturityAudit,
+  macControlScoreDisplay,
+} from "./QualityScoreGuards";
 import { targetScopeForRepository } from "../branchEvidence";
 import { formatTime, StatusPill } from "./ConsolePrimitives";
 
@@ -70,6 +74,13 @@ export function QualityGatesSurface({
   const configuration = qualityConfigurationSummary(portfolioQuality);
   const evidence = qualityEvidenceSummary(portfolioQuality);
   const macControl = portfolioQuality.mac_control_ideal_state;
+  const fleetMaturityAccepted = hasAcceptedFleetMaturityAudit(portfolioQuality);
+  const implementationScore = macControl
+    ? macControlScoreDisplay(macControl, "implementation")
+    : undefined;
+  const liveScore = macControl
+    ? macControlScoreDisplay(macControl, "live")
+    : undefined;
   const maturityCheckpoint = portfolioQuality.maturity_checkpoint;
   const staleEvidenceContracts = (
     portfolioQuality.evidence_contracts ?? []
@@ -85,13 +96,17 @@ export function QualityGatesSurface({
           <div className="quality-overview-card quality-overview-card-accent">
             <span>Consolidated fleet maturity</span>
             <strong>
-              {portfolioQuality.maturity_score_display ?? "—"}
-              <small>/4</small>
+              {fleetMaturityAccepted
+                ? portfolioQuality.maturity_score_display
+                : "Unavailable"}
+              {fleetMaturityAccepted && <small>/4</small>}
             </strong>
             <small>
-              {portfolioQuality.scored_dimension_count
+              {fleetMaturityAccepted && portfolioQuality.scored_dimension_count
                 ? `${portfolioQuality.scored_dimension_count} pillar assessments · `
-                : ""}
+                : !fleetMaturityAccepted
+                  ? "No acceptable imported audit — cached score withheld · "
+                  : ""}
               {portfolioQuality.audit_status}
             </small>
             <MeasurementConfidenceSummary
@@ -104,15 +119,16 @@ export function QualityGatesSurface({
                 ? ` · ${formatTime(maturityCheckpoint.observed_at)}`
                 : ""}
             </small>
-            {portfolioQuality.source_maturity_score_display && (
-              <small>
-                {portfolioQuality.feed_schema ===
-                "quality-runner-maturity-feed/v2"
-                  ? "QR source holistic"
-                  : "Legacy QR dimension mean"}{" "}
-                {portfolioQuality.source_maturity_score_display}/4
-              </small>
-            )}
+            {fleetMaturityAccepted &&
+              portfolioQuality.source_maturity_score_display && (
+                <small>
+                  {portfolioQuality.feed_schema ===
+                  "quality-runner-maturity-feed/v2"
+                    ? "QR source holistic"
+                    : "Legacy QR dimension mean"}{" "}
+                  {portfolioQuality.source_maturity_score_display}/4
+                </small>
+              )}
             {(portfolioQuality.maturity_pillars ?? []).length > 0 && (
               <div
                 className="portfolio-maturity-pillars"
@@ -121,9 +137,11 @@ export function QualityGatesSurface({
                 {(portfolioQuality.maturity_pillars ?? []).map((pillar) => (
                   <span key={pillar.id} title={pillar.label}>
                     <b>{pillar.label}</b>
-                    {pillar.score === undefined
-                      ? "Unknown"
-                      : `${pillar.score}/4`}
+                    {!fleetMaturityAccepted
+                      ? "Unavailable"
+                      : pillar.score === undefined
+                        ? "Unknown"
+                        : `${pillar.score}/4`}
                   </span>
                 ))}
               </div>
@@ -187,8 +205,10 @@ export function QualityGatesSurface({
                   "/" +
                   macControl.implementation_criteria_total +
                   " dimensions · " +
-                  (macControl.implementation_score_display ?? "—") +
-                  "/4 · " +
+                  (implementationScore
+                    ? `${implementationScore}/4`
+                    : "Score unavailable — fresh semantic evidence required") +
+                  " · " +
                   (macControl.implementation_status ?? "—")
                 : "Semantic source-evidence lane not reported"}
             </small>
@@ -209,8 +229,10 @@ export function QualityGatesSurface({
                   "/" +
                   macControl.live_task_count +
                   " measured · " +
-                  (macControl.live_score_display ?? "—") +
-                  "/4 · " +
+                  (liveScore
+                    ? `${liveScore}/4`
+                    : "Score unavailable — fresh live task evidence required") +
+                  " · " +
                   (macControl.live_status ?? "—")
                 : "Live task lane not reported"}
             </small>

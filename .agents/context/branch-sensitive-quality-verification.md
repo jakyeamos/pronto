@@ -42,3 +42,23 @@ For every branch-sensitive change, verify all three paths:
 Then prove the persistence path, source/typecheck/focused tests, production
 build, installed-app identity, and a semantic UI readback. Report configured,
 persisted, loaded, evidence-matching, and visibly exercised as separate states.
+
+## Numeric score availability
+
+`QualityScoreGuards.ts` consumes the Rust importer's freshness/status decision;
+it does not recompute an audit clock. Fleet maturity requires an imported audit
+identity and timestamp, a matched population, a numeric score, and `Ready` or
+`Ready with blockers`. Repository maturity requires its own fresh audit identity
+and observation timestamp as well as the caller's exact target check. Cached
+numbers are withheld from maturity, pillar, cache, and agent-usability surfaces
+when those prerequisites are absent; source identifiers and explicit diagnostic
+states remain available.
+
+Mac Control numeric display additionally requires a fresh, explicitly assessed lane
+(`Passed`, `Failed`, or `Review required`) and an evidence denominator. Missing or
+unrecognized statuses remain unavailable. Live scores require at least one measured task. A
+measured failed zero remains a valid numeric observation; an unmeasured `0/N`
+report is unavailable. These display guards do not turn failing observations
+into passing behavior, refresh source evidence, or establish installed-app parity.
+The guard boundary tests and rendered fixture suites are local evidence;
+independent live surface verification remains a separate step in the ladder above.

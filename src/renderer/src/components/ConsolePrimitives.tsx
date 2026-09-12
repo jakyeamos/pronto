@@ -41,7 +41,7 @@ export function formatExactTime(value?: string): string {
   }).format(new Date(timestamp));
 }
 
-export function toneForCondition(condition: Condition): string {
+function toneForCondition(condition: Condition): string {
   if (condition.kind === "integration-eligible") return "mint";
   if (condition.kind === "remote-stale" || condition.kind === "behind-remote")
     return "amber";

@@ -19,6 +19,7 @@ import {
   qualityGateDisplayLabel,
   readinessOpenGateIds,
 } from "./QualityComponents";
+import { hasAcceptedRepositoryMaturityEvidence } from "./QualityScoreGuards";
 function QualityReadinessSummary({
   readiness,
   compact = false,
@@ -158,6 +159,12 @@ export function QualityMaturitySummary({
         scannedCommit: maturity.scanned_commit,
       })
     : "verified";
+  const maturityScoreAccepted =
+    maturityState === "verified" &&
+    hasAcceptedRepositoryMaturityEvidence(maturity);
+  const displayedScore = maturityScoreAccepted
+    ? maturity.score_display
+    : undefined;
   const qualityOutcome = maturity.quality_outcome
     ? qualityRepositoryOutcome(maturity.quality_outcome)
     : undefined;
@@ -180,7 +187,7 @@ export function QualityMaturitySummary({
           <details className="quality-maturity-raw-details">
             <summary>Raw maturity evidence</summary>
             <span>
-              Raw score: {maturity.score_display ?? "Not scored"} ·{" "}
+              Score withheld until an accepted target audit is available ·{" "}
               {maturity.audit_id ?? "No audit run"} ·{" "}
               {qualityFreshnessLabel(maturity.freshness)}
             </span>
@@ -201,15 +208,15 @@ export function QualityMaturitySummary({
         </>
       ) : (
         <>
-          <strong>{maturity.score_display ?? "Not scored"}</strong>
+          <strong>{displayedScore ?? "Unavailable"}</strong>
           <span>
             {maturityState === "stale"
               ? "Stale branch evidence"
               : maturityState === "unscoped"
                 ? "Unscoped maturity evidence"
-                : maturity.score_display
+                : displayedScore
                   ? "/ 4 maturity"
-                  : "Audit unavailable"}
+                  : "No acceptable audit — score withheld"}
           </span>
           <small>
             {repositoryMaturity
@@ -272,11 +279,13 @@ export function QualityMaturitySummary({
               <div key={pillar.id} data-status={pillar.status}>
                 <span>{pillar.label}</span>
                 <strong>
-                  {pillar.applicability === "not_applicable"
-                    ? "N/A"
-                    : pillar.score === undefined
-                      ? "Unknown"
-                      : `${pillar.score}/4`}
+                  {!maturityScoreAccepted
+                    ? "Unavailable"
+                    : pillar.applicability === "not_applicable"
+                      ? "N/A"
+                      : pillar.score === undefined
+                        ? "Unknown"
+                        : `${pillar.score}/4`}
                 </strong>
                 {!compact && pillar.missing_capabilities.length > 0 && (
                   <small>
@@ -289,9 +298,9 @@ export function QualityMaturitySummary({
               <div className="repository-maturity-cap">
                 <ShieldAlert size={12} />
                 <span>
-                  Score capped at{" "}
-                  {repositoryMaturity.critical_cap.maximum_score}/4 by{" "}
-                  {repositoryMaturity.critical_cap.reasons.join(", ")}
+                  {maturityScoreAccepted
+                    ? `Score capped at ${repositoryMaturity.critical_cap.maximum_score}/4 by ${repositoryMaturity.critical_cap.reasons.join(", ")}`
+                    : "Critical score cap withheld until an accepted audit is available"}
                 </span>
               </div>
             )}
@@ -304,8 +313,10 @@ export function QualityMaturitySummary({
               <li key={`${gap.dimension}-${gap.status}`}>
                 <strong>{maturityDimensionLabel(gap.dimension)}</strong>
                 <span>
-                  {gap.score === undefined ? "not scored" : `${gap.score}/4`} ·{" "}
-                  {readableQualityEvidenceText(gap.message)}
+                  {!maturityScoreAccepted || gap.score === undefined
+                    ? "score unavailable"
+                    : `${gap.score}/4`}{" "}
+                  · {readableQualityEvidenceText(gap.message)}
                 </span>
               </li>
             ))}
@@ -323,23 +334,22 @@ export function QualityMaturitySummary({
           ) : null}
         </div>
       )}
-      {(!targetMode || maturityState !== "unavailable") &&
-        dimensions.length > 0 && (
-          <details className="quality-maturity-dimensions">
-            <summary>{dimensions.length} raw diagnostic dimensions</summary>
-            <div
-              aria-label="Maturity dimension scores"
-              className="quality-maturity-dimension-list"
-            >
-              {dimensions.map(([dimension, score]) => (
-                <span key={dimension} title={dimension}>
-                  <b>{maturityDimensionLabel(dimension)}</b>
-                  <span>{score}/4</span>
-                </span>
-              ))}
-            </div>
-          </details>
-        )}
+      {maturityScoreAccepted && dimensions.length > 0 && (
+        <details className="quality-maturity-dimensions">
+          <summary>{dimensions.length} raw diagnostic dimensions</summary>
+          <div
+            aria-label="Maturity dimension scores"
+            className="quality-maturity-dimension-list"
+          >
+            {dimensions.map(([dimension, score]) => (
+              <span key={dimension} title={dimension}>
+                <b>{maturityDimensionLabel(dimension)}</b>
+                <span>{score}/4</span>
+              </span>
+            ))}
+          </div>
+        </details>
+      )}
       {maturity.agent_usability && (
         <details className="agent-usability-summary">
           <summary>
@@ -362,7 +372,11 @@ export function QualityMaturitySummary({
               <li key={lane.id}>
                 <span>{lane.label}</span>
                 <strong>
-                  {lane.score === undefined ? "—" : `${lane.score}/4`}
+                  {!maturityScoreAccepted
+                    ? "Unavailable"
+                    : lane.score === undefined
+                      ? "—"
+                      : `${lane.score}/4`}
                 </strong>
                 <small>{lane.message}</small>
               </li>
@@ -371,9 +385,11 @@ export function QualityMaturitySummary({
           <div className="agent-usability-growth">
             <span>Growth health</span>
             <strong>
-              {maturity.agent_usability.growth_health.score === undefined
-                ? "—"
-                : `${maturity.agent_usability.growth_health.score}/4`}
+              {!maturityScoreAccepted
+                ? "Unavailable"
+                : maturity.agent_usability.growth_health.score === undefined
+                  ? "—"
+                  : `${maturity.agent_usability.growth_health.score}/4`}
             </strong>
             <StatusPill
               tone={agentUsabilityTone(

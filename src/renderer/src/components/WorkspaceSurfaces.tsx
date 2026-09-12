@@ -21,6 +21,7 @@ import {
   qualityEvidenceSummary,
   qualityProfileSummary,
 } from "./QualityComponents";
+import { hasAcceptedFleetMaturityAudit } from "./QualityScoreGuards";
 
 export function DeferredSurface({
   eyebrow,
@@ -218,6 +219,7 @@ function MaturityAuditCard({
 }): ReactElement {
   const configuration = qualityConfigurationSummary(quality);
   const evidence = qualityEvidenceSummary(quality);
+  const fleetMaturityAccepted = hasAcceptedFleetMaturityAudit(quality);
   return (
     <section className="surface-panel quality-audit-settings">
       <div className="surface-heading">
@@ -275,14 +277,16 @@ function MaturityAuditCard({
         <div>
           <span>Fleet mean</span>
           <strong>
-            {quality.maturity_score_display
+            {fleetMaturityAccepted && quality.maturity_score_display
               ? `${quality.maturity_score_display} / 4`
-              : "Not scored"}
+              : "Unavailable"}
           </strong>
           <small>
-            {quality.scored_dimension_count
+            {fleetMaturityAccepted && quality.scored_dimension_count
               ? `${quality.scored_dimension_count} dimensions`
-              : "Exact audit value"}
+              : fleetMaturityAccepted
+                ? "Exact audit value"
+                : "No acceptable imported audit — cached score withheld"}
           </small>
         </div>
         <div>
