@@ -28,10 +28,21 @@ pub struct AgentDoctorReport {
     pub invalid_scan_repository_ids: Vec<String>,
     pub unavailable_paths: Vec<String>,
     #[serde(default)]
+    pub unavailable_path_details: Vec<UnavailablePathDetail>,
+    #[serde(default)]
     pub workspace_warnings: Vec<String>,
     pub checks: Vec<AgentDoctorCheck>,
     pub next_safe_step: String,
     pub authorization: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct UnavailablePathDetail {
+    pub path: String,
+    pub path_type: String,
+    pub cause: String,
+    pub blocking: bool,
+    pub detail: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

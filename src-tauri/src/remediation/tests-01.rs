@@ -12,6 +12,7 @@ static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
 fn fixture_repository(name: &str) -> RepositorySnapshot {
         RepositorySnapshot {
             id: format!("repo-{name}"),
+            identity: crate::core::RepositoryIdentity::default(),
             name: name.to_string(),
             path: format!("/tmp/{name}"),
             locality: "Local".to_string(),

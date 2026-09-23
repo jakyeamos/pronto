@@ -1,5 +1,5 @@
 #[test]
-    fn doctor_warns_for_missing_clean_temporary_workspace_until_scoped_refresh() {
+    fn doctor_blocks_and_refresh_retains_missing_workspace_without_signed_closure() {
         let root = fixture_root();
         let repository_path = fixture_repository(&root);
         let store = root.join("registry.db");
@@ -38,18 +38,21 @@
         let snapshot = snapshot_from_store(&store, &persisted);
         let report = agent_doctor_report(&snapshot, &store, 60, "repository:fixture");
 
-        assert!(report.ready);
-        assert_eq!(report.status, "Ready with warnings");
-        assert!(report.unavailable_paths.is_empty());
-        assert_eq!(report.workspace_warnings.len(), 1);
-        assert!(report.workspace_warnings[0].contains(missing_path.to_string_lossy().as_ref()));
-        assert!(report.workspace_warnings[0].contains("HEAD"));
-        assert!(report.workspace_warnings[0].contains("task-incident"));
-        assert!(report.workspace_warnings[0].contains("pronto refresh"));
+        assert!(!report.ready);
+        assert_eq!(report.status, "Blocked");
+        assert!(report
+            .unavailable_paths
+            .contains(&missing_path.to_string_lossy().to_string()));
+        assert!(report.workspace_warnings.is_empty());
+        assert!(report.unavailable_path_details.iter().any(|detail| {
+            detail.path == missing_path.to_string_lossy()
+                && detail.cause == "unknown"
+                && detail.blocking
+        }));
         assert!(report
             .checks
             .iter()
-            .any(|check| check.id == "paths" && check.status == "Warning"));
+            .any(|check| check.id == "paths" && check.status == "Blocked"));
 
         let repository_query = repository_path.to_string_lossy().to_string();
         let route_before_refresh = agent_route_report(
@@ -61,7 +64,7 @@
             3,
         )
         .expect("scoped route should inspect the retained stale record");
-        assert!(route_before_refresh.ready);
+        assert!(!route_before_refresh.ready);
         let retained = load_store(&store).expect("route should leave the store readable");
         assert!(retained
             .repositories
@@ -84,7 +87,7 @@
             .iter()
             .find(|repository| repository.id == repository_id)
             .expect("refreshed repository should remain registered");
-        assert!(!refreshed_repository
+        assert!(refreshed_repository
             .workspaces
             .iter()
             .any(|workspace| workspace.path == stale_workspace.path));
@@ -97,12 +100,118 @@
             3,
         )
         .expect("scoped route should read the refreshed snapshot");
-        assert!(route.ready);
-        assert!(route.repository.as_ref().is_some_and(|detail| !detail
-            .repository
-            .workspaces
-            .iter()
-            .any(|workspace| workspace.path == stale_workspace.path)));
+        assert!(!route.ready);
+        assert!(route.repository.is_none());
+
+        fs::remove_dir_all(root).expect("doctor fixture should be removable");
+    }
+
+#[test]
+    fn verified_clean_closed_receipt_allows_safe_workspace_retirement() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let repository = scan_repository(&repository_path, None, &[]);
+        let missing_path = root.join("finished-workspace");
+        let mut stale_workspace = repository.workspace.clone();
+        stale_workspace.path = missing_path.to_string_lossy().to_string();
+        stale_workspace.id = path_id("workspace", &missing_path);
+        stale_workspace.is_primary = false;
+        stale_workspace.provenance = WorkspaceProvenance {
+            kind: "temporary".to_string(),
+            owner: Some("task-finished".to_string()),
+            lease: Some("closed".to_string()),
+            canonical_repository: repository.path.clone(),
+            head: repository.workspace.last_commit.clone(),
+            preservation_evidence: Some("Signed workflow closure is available.".to_string()),
+            cleanup_state: "completed".to_string(),
+        };
+        let head = stale_workspace
+            .provenance
+            .head
+            .clone()
+            .expect("fixture repository should have a head");
+        let task_lanes: TaskLaneReport = serde_json::from_value(serde_json::json!({
+            "schema_version": "pronto-task-lanes/v1",
+            "generated_at": iso_now(),
+            "repository": repository.path,
+            "source": {
+                "status": "available",
+                "workflow_schema_version": "isolated-change-status/v2",
+                "integrity_authority": "isolated-change-workflow status",
+                "adoption_assessment": "lease-and-live-git",
+                "detail": "fixture"
+            },
+            "counts": {"total": 1, "active": 0, "paused": 0, "stale": 0, "adoptable": 0, "contested": 0, "unknown": 0, "integrating": 0, "closed": 1},
+            "lanes": [{
+                "task_id": "task-finished",
+                "task": "fixture",
+                "branch": "codex/fixture",
+                "worktree": missing_path,
+                "thread_id": "thread-fixture",
+                "custody_state": "closed",
+                "custody_reason": "verified terminal lane",
+                "workflow_status": "finished",
+                "workflow_classification": "removed",
+                "integrity_verified": true,
+                "worktree_present": false,
+                "worktree_clean": true,
+                "branch_live": null,
+                "head_sha": head,
+                "last_heartbeat_at": null,
+                "adoption": {"eligible": false, "blockers": []}
+            }],
+            "authorization": "read-only fixture"
+        }))
+        .expect("task lane fixture should deserialize");
+
+        let classification =
+            classify_missing_workspace(&repository_path, &stale_workspace, &task_lanes);
+        assert!(matches!(
+            classification,
+            MissingWorkspaceClassification::Warning { cause, .. } if cause == "safely-closed"
+        ));
+        let mut current = vec![repository.workspace.clone()];
+        retain_unavailable_workspaces(
+            &repository_path,
+            &mut current,
+            &[stale_workspace],
+            &task_lanes,
+        );
+        assert_eq!(current.len(), 1);
+
+        fs::remove_dir_all(root).expect("doctor fixture should be removable");
+    }
+
+#[test]
+    fn repository_identity_rebind_requires_one_unavailable_match() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let mut old = scan_repository(&repository_path, None, &[]);
+        old.path = root.join("old-location").to_string_lossy().to_string();
+        let observed = old.identity.clone();
+        let old_id = old.id.clone();
+        let mut old_by_id = HashMap::from([(old.id.clone(), old.clone())]);
+
+        let matched = existing_repository_for_discovered(
+            "repository:/new-location",
+            &observed,
+            &old_by_id,
+            &HashSet::new(),
+        )
+        .expect("one unavailable identity match should be rebound");
+        assert_eq!(matched.id, old_id);
+
+        let mut duplicate = old;
+        duplicate.id = "repository:duplicate".to_string();
+        duplicate.path = root.join("other-old-location").to_string_lossy().to_string();
+        old_by_id.insert(duplicate.id.clone(), duplicate);
+        assert!(existing_repository_for_discovered(
+            "repository:/new-location",
+            &observed,
+            &old_by_id,
+            &HashSet::new(),
+        )
+        .is_none());
 
         fs::remove_dir_all(root).expect("doctor fixture should be removable");
     }

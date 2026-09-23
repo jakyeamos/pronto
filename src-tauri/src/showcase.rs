@@ -637,6 +637,7 @@ mod tests {
         };
         let repository = RepositorySnapshot {
             id: format!("repository:{path}"),
+            identity: crate::core::RepositoryIdentity::default(),
             name: name.to_string(),
             path,
             locality: "Local".to_string(),

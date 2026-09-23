@@ -261,12 +261,26 @@ fn scan_discovered_and_persist(
         .map(|repository| (repository.id.clone(), repository.clone()))
         .collect::<HashMap<_, _>>();
     let mut repositories = Vec::new();
+    let mut rebound_repository_ids = HashSet::new();
     let mut discovered = discovered.into_iter().collect::<Vec<_>>();
     discovered.sort_by(|left, right| left.0.cmp(&right.0));
     for (id, repository_path) in discovered {
+        let observed_identity = repository_identity(
+            &repository_path,
+            git_static(&repository_path, &["remote", "get-url", "origin"]).as_deref(),
+        );
+        let existing = existing_repository_for_discovered(
+            &id,
+            &observed_identity,
+            &old_by_id,
+            &rebound_repository_ids,
+        );
+        if let Some(existing) = existing.filter(|repository| repository.id != id) {
+            rebound_repository_ids.insert(existing.id.clone());
+        }
         let repository = scan_repository(
             &repository_path,
-            old_by_id.get(&id),
+            existing,
             &state.expected_conditions,
         );
         repositories.push(repository);
@@ -295,6 +309,25 @@ fn scan_discovered_and_persist(
         }
     }
     merge_scanned_and_persist(path, state, target_repository_ids, repositories)
+}
+
+fn existing_repository_for_discovered<'a>(
+    path_id: &str,
+    observed_identity: &RepositoryIdentity,
+    old_by_id: &'a HashMap<String, RepositorySnapshot>,
+    excluded_ids: &HashSet<String>,
+) -> Option<&'a RepositorySnapshot> {
+    if let Some(existing) = old_by_id.get(path_id) {
+        return Some(existing);
+    }
+    let mut matches = old_by_id.values().filter(|repository| {
+        !Path::new(&repository.path).is_dir()
+            && !excluded_ids.contains(&repository.id)
+            && !observed_identity.fingerprint.is_empty()
+            && repository.identity.fingerprint == observed_identity.fingerprint
+    });
+    let candidate = matches.next()?;
+    matches.next().is_none().then_some(candidate)
 }
 
 fn merge_scanned_and_persist(

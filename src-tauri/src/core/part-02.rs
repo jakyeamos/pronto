@@ -30,6 +30,20 @@ impl Default for WorkspaceProvenance {
     }
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RepositoryIdentity {
+    #[serde(default)]
+    pub fingerprint: String,
+    #[serde(default)]
+    pub remote_fingerprint: Option<String>,
+    #[serde(default)]
+    pub root_commits: Vec<String>,
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub previous_path: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceSummary {
     pub id: String,
@@ -91,6 +105,8 @@ pub struct SubmoduleSummary {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RepositorySnapshot {
     pub id: String,
+    #[serde(default)]
+    pub identity: RepositoryIdentity,
     pub name: String,
     pub path: String,
     pub locality: String,

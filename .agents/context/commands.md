@@ -75,6 +75,16 @@ result is blocked and must retain the exact path, dirty files, owner, and
 preservation action; it can never be reported as pruned, completed, or having
 `next_action: none`.
 
+Repository snapshots also carry a path-independent identity fingerprint built
+from hashed normalized remote identity and root commits. A uniquely matching
+unavailable record may be rebound after a move; ambiguous clone matches remain
+unresolved. Doctor exposes typed unavailable-path causes: `moved`,
+`disconnected`, `permission-denied`, `safely-closed`, `dirty`, `active`, or
+`unknown`. Refresh retires a missing temporary workspace only when the signed
+isolated-change status proves a clean closed lane, live Git no longer registers
+it, and its recorded HEAD remains reachable. All other missing records survive
+refresh as blockers.
+
 ## Target branch policy
 
 The fleet integration and maturity target is an explicit repository-level

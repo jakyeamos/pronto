@@ -434,6 +434,44 @@ fn path_id(prefix: &str, path: &Path) -> String {
     format!("{prefix}:{}", path.to_string_lossy())
 }
 
+fn repository_identity(path: &Path, remote_url: Option<&str>) -> RepositoryIdentity {
+    let remote_fingerprint = remote_url.map(|remote| {
+        let normalized = remote.trim().trim_end_matches(".git").to_ascii_lowercase();
+        format!("sha256:{:x}", Sha256::digest(normalized.as_bytes()))
+    });
+    let mut root_commits = git_static(path, &["rev-list", "--max-parents=0", "--all"])
+        .unwrap_or_default()
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+    root_commits.sort();
+    root_commits.dedup();
+    let status = if remote_fingerprint.is_some() || !root_commits.is_empty() {
+        "verified"
+    } else {
+        "unavailable"
+    };
+    let fingerprint = if status == "verified" {
+        let material = format!(
+            "remote={};roots={}",
+            remote_fingerprint.as_deref().unwrap_or("none"),
+            root_commits.join(",")
+        );
+        format!("sha256:{:x}", Sha256::digest(material.as_bytes()))
+    } else {
+        String::new()
+    };
+    RepositoryIdentity {
+        fingerprint,
+        remote_fingerprint,
+        root_commits,
+        status: status.to_string(),
+        previous_path: None,
+    }
+}
+
 fn sort_repositories_by_name(repositories: &mut [RepositorySnapshot]) {
     repositories.sort_by(|left, right| {
         left.name

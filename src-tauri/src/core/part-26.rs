@@ -4,8 +4,15 @@ fn scan_repository(
     expected: &[ExpectedCondition],
 ) -> RepositorySnapshot {
     let observed_at = iso_now();
-    let repository_id = path_id("repository", path);
+    let repository_id = existing
+        .map(|repository| repository.id.clone())
+        .unwrap_or_else(|| path_id("repository", path));
     let remote_url = git_static(path, &["remote", "get-url", "origin"]);
+    let mut identity = repository_identity(path, remote_url.as_deref());
+    if let Some(previous) = existing.filter(|repository| repository.path != path.to_string_lossy()) {
+        identity.status = "rebound".to_string();
+        identity.previous_path = Some(previous.path.clone());
+    }
     let remote_unchanged = existing.is_some_and(|repository| repository.remote_url == remote_url);
     let provider_state = existing
         .filter(|_| remote_unchanged)
@@ -82,6 +89,10 @@ fn scan_repository(
             merge_workspace_provenance(&mut workspace.provenance, &existing_workspace.provenance);
         }
         workspaces.push(workspace);
+    }
+    if let Some(previous) = existing {
+        let task_lanes = task_lanes::inspect(path);
+        retain_unavailable_workspaces(path, &mut workspaces, &previous.workspaces, &task_lanes);
     }
     if workspaces.is_empty() {
         workspaces.push(scan_workspace(
@@ -194,6 +205,7 @@ fn scan_repository(
     };
     RepositorySnapshot {
         id: repository_id,
+        identity,
         name: path
             .file_name()
             .and_then(|name| name.to_str())

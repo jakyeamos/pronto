@@ -60,6 +60,9 @@
         "Verify the explicit fleet-exclusion population remains outside QR checkpoint validation, maturity matching, Mac Control evaluation, and remediation refresh while remaining visible in the local registry.",
         "Run the parallel refresh coordinator tests and verify the locked merge preserves every scanned repository.",
         "Run cargo test --manifest-path src-tauri/Cargo.toml task_lanes::tests and verify active, adoptable, stale, contested, unknown, closed, and unavailable custody paths remain distinct."
+        ,"Verify repository identity rebinding requires exactly one unavailable fingerprint match and reports the prior path as moved."
+        ,"Verify refresh retires only a signed, integrity-verified, clean closed workspace whose HEAD remains reachable; dirty, active, unsigned, ambiguous, and unknown records remain blockers."
+        ,"Verify doctor emits typed unavailable path details without removing the compatibility unavailable_paths list."
       ],
       "status": "applicable"
     },

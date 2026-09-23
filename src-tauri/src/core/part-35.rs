@@ -28,29 +28,68 @@ fn agent_doctor_report_with_thresholds(
     let relevant_roots = agent_doctor_relevant_roots(snapshot, scope);
     let mut missing_root_paths = Vec::new();
     let mut unavailable_paths = BTreeSet::new();
+    let mut unavailable_path_details = Vec::new();
     let mut workspace_blockers = Vec::new();
     let mut workspace_warnings = Vec::new();
     for root in &relevant_roots {
         if !Path::new(&root.path).is_dir() {
             missing_root_paths.push(root.path.clone());
             unavailable_paths.insert(root.path.clone());
+            unavailable_path_details.push(UnavailablePathDetail {
+                path: root.path.clone(),
+                path_type: "root".to_string(),
+                cause: unavailable_filesystem_cause(Path::new(&root.path)),
+                blocking: true,
+                detail: "Registered discovery root is not currently readable as a directory.".to_string(),
+            });
         }
     }
     for repository in &snapshot.repositories {
         let repository_path = Path::new(&repository.path);
+        if let Some(previous_path) = repository.identity.previous_path.as_ref() {
+            unavailable_path_details.push(UnavailablePathDetail {
+                path: previous_path.clone(),
+                path_type: "repository".to_string(),
+                cause: "moved".to_string(),
+                blocking: false,
+                detail: format!("Repository identity was safely rebound to {}.", repository.path),
+            });
+        }
         if !repository_path.is_dir() {
             unavailable_paths.insert(repository.path.clone());
+            unavailable_path_details.push(UnavailablePathDetail {
+                path: repository.path.clone(),
+                path_type: "repository".to_string(),
+                cause: unavailable_filesystem_cause(repository_path),
+                blocking: true,
+                detail: "Registered repository checkout is not currently readable as a directory.".to_string(),
+            });
             continue;
         }
+        let task_lanes = task_lanes::inspect(repository_path);
         for workspace in &repository.workspaces {
             if !Path::new(&workspace.path).is_dir() {
-                match classify_missing_workspace(repository_path, workspace) {
-                    MissingWorkspaceClassification::Blocked(reason) => {
+                match classify_missing_workspace(repository_path, workspace, &task_lanes) {
+                    MissingWorkspaceClassification::Blocked { cause, detail } => {
                         unavailable_paths.insert(workspace.path.clone());
-                        workspace_blockers.push(reason);
+                        unavailable_path_details.push(UnavailablePathDetail {
+                            path: workspace.path.clone(),
+                            path_type: "workspace".to_string(),
+                            cause,
+                            blocking: true,
+                            detail: detail.clone(),
+                        });
+                        workspace_blockers.push(detail);
                     }
-                    MissingWorkspaceClassification::Warning(warning) => {
-                        workspace_warnings.push(warning);
+                    MissingWorkspaceClassification::Warning { cause, detail } => {
+                        unavailable_path_details.push(UnavailablePathDetail {
+                            path: workspace.path.clone(),
+                            path_type: "workspace".to_string(),
+                            cause,
+                            blocking: false,
+                            detail: detail.clone(),
+                        });
+                        workspace_warnings.push(detail);
                     }
                 }
             }
@@ -331,6 +370,7 @@ fn agent_doctor_report_with_thresholds(
         repository_change_deltas,
         invalid_scan_repository_ids,
         unavailable_paths,
+        unavailable_path_details,
         workspace_warnings,
         checks,
         next_safe_step,
@@ -396,6 +436,7 @@ fn agent_doctor_error_report_with_thresholds(
         repository_change_deltas: Vec::new(),
         invalid_scan_repository_ids: Vec::new(),
         unavailable_paths: Vec::new(),
+        unavailable_path_details: Vec::new(),
         workspace_warnings: Vec::new(),
         checks: vec![agent_doctor_check(
             check_id,

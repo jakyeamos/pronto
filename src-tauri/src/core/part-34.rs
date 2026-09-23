@@ -215,8 +215,8 @@ fn agent_doctor_relevant_roots<'a>(
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum MissingWorkspaceClassification {
-    Blocked(String),
-    Warning(String),
+    Blocked { cause: String, detail: String },
+    Warning { cause: String, detail: String },
 }
 
 fn workspace_owner(workspace: &WorkspaceSummary) -> String {
@@ -246,6 +246,7 @@ fn workspace_lease_is_complete(workspace: &WorkspaceSummary) -> bool {
 fn classify_missing_workspace(
     repository_path: &Path,
     workspace: &WorkspaceSummary,
+    task_lanes: &TaskLaneReport,
 ) -> MissingWorkspaceClassification {
     let path = workspace.path.clone();
     let owner = workspace_owner(workspace);
@@ -254,54 +255,97 @@ fn classify_missing_workspace(
         .preservation_evidence
         .clone()
         .unwrap_or_else(|| "No preservation evidence was recorded.".to_string());
-    let blocked = |reason: String| {
-        MissingWorkspaceClassification::Blocked(format!(
-            "Workspace '{path}' is unavailable: {reason} Owner: {owner}. Preservation action: retain the record and inspect ownership before any scoped refresh. {preservation_evidence}"
-        ))
+    let blocked = |cause: &str, reason: String| {
+        MissingWorkspaceClassification::Blocked {
+            cause: cause.to_string(),
+            detail: format!(
+                "Workspace '{path}' is unavailable: {reason} Owner: {owner}. Preservation action: retain the record and inspect ownership before any scoped refresh. {preservation_evidence}"
+            ),
+        }
     };
 
     if workspace.provenance.kind != "temporary" {
-        return blocked(format!(
+        return blocked("unknown", format!(
             "recorded provenance is '{}', not a completed temporary workspace cleanup",
             workspace.provenance.kind
         ));
     }
     if !workspace.status_available {
-        return blocked(
+        return blocked("unknown",
             "the last Git status was unknown, so cleanliness cannot be established".to_string(),
         );
     }
     if workspace.dirty {
-        return blocked(
+        return blocked("dirty",
             "the last Git status was dirty; the legacy snapshot does not contain an exact dirty-file list"
                 .to_string(),
         );
     }
     if let Some(operation) = workspace.operation.as_ref() {
-        return blocked(format!(
+        return blocked("active", format!(
             "the last snapshot recorded an interrupted operation: {operation}"
         ));
     }
     if owner == "unknown owner" {
-        return blocked("the workspace owner is unknown".to_string());
+        return blocked("unknown", "the workspace owner is unknown".to_string());
     }
     if !workspace_lease_is_complete(workspace) {
-        return blocked(format!(
+        return blocked("active", format!(
             "the lease is not recorded as completed (observed {:?})",
             workspace.provenance.lease
         ));
     }
 
+    let lane = task_lanes.lanes.iter().find(|lane| {
+        lane.worktree
+            .as_deref()
+            .is_some_and(|candidate| Path::new(candidate) == Path::new(&path))
+    });
+    let Some(lane) = lane else {
+        return blocked(
+            "unknown",
+            "no signed isolated-change receipt matches the missing workspace".to_string(),
+        );
+    };
+    if !lane.integrity_verified {
+        return blocked(
+            "unknown",
+            "the matching isolated-change receipt failed integrity verification".to_string(),
+        );
+    }
+    if lane.custody_state != "closed" {
+        let cause = if matches!(lane.custody_state.as_str(), "active" | "paused" | "integrating") {
+            "active"
+        } else if lane.worktree_clean == Some(false) || lane.custody_state == "contested" {
+            "dirty"
+        } else {
+            "unknown"
+        };
+        return blocked(
+            cause,
+            format!(
+                "the verified isolated-change receipt reports custody state '{}'",
+                lane.custody_state
+            ),
+        );
+    }
+    if lane.worktree_clean != Some(true) {
+        return blocked(
+            if lane.worktree_clean == Some(false) { "dirty" } else { "unknown" },
+            "the verified closure receipt does not prove that the workspace was clean".to_string(),
+        );
+    }
+
     match live_worktree_contains(repository_path, Path::new(&path)) {
         Some(false) => {}
         Some(true) => {
-            return blocked(
+            return blocked("active",
                 "live Git still registers the path, so the persisted record cannot be classified as stale"
                     .to_string(),
             )
         }
         None => {
-            return blocked(
+            return blocked("unknown",
                 "live Git worktree metadata could not be read, so absence cannot be proven"
                     .to_string(),
             )
@@ -314,29 +358,80 @@ fn classify_missing_workspace(
         .as_deref()
         .or(workspace.last_commit.as_deref())
     else {
-        return blocked("the workspace HEAD was not recorded".to_string());
+        return blocked("unknown", "the workspace HEAD was not recorded".to_string());
     };
+    if lane.head_sha.as_deref().is_some_and(|lane_head| lane_head != head) {
+        return blocked(
+            "unknown",
+            format!("the signed closure HEAD does not match recorded HEAD {head}"),
+        );
+    }
     match git_head_reachable(repository_path, head) {
         Some(true) => {}
         Some(false) => {
-            return blocked(format!(
+            return blocked("unknown", format!(
                 "recorded HEAD {head} is not reachable from the repository's live refs"
             ))
         }
         None => {
-            return blocked(format!(
+            return blocked("unknown", format!(
                 "reachability for recorded HEAD {head} could not be verified"
             ))
         }
     }
 
-    MissingWorkspaceClassification::Warning(format!(
-        "Temporary workspace '{path}' was last clean, is absent from live Git worktree metadata, and recorded HEAD {head} remains reachable. Owner: {owner}; lease: {}. The stale record is retained because route is read-only; run scoped `pronto refresh '{}' --json` to reconstruct workspaces from live Git metadata.",
-        workspace
-            .provenance
-            .lease
-            .as_deref()
-            .unwrap_or("completed"),
-        repository_path.display()
-    ))
+    MissingWorkspaceClassification::Warning {
+        cause: "safely-closed".to_string(),
+        detail: format!(
+            "Temporary workspace '{path}' has a verified clean closure receipt, is absent from live Git worktree metadata, and recorded HEAD {head} remains reachable. Owner: {owner}; lease: {}. A scoped `pronto refresh '{}' --json` may safely retire this record.",
+            workspace.provenance.lease.as_deref().unwrap_or("completed"),
+            repository_path.display()
+        ),
+    }
+}
+
+fn missing_workspace_is_retirable(
+    repository_path: &Path,
+    workspace: &WorkspaceSummary,
+    task_lanes: &TaskLaneReport,
+) -> bool {
+    matches!(
+        classify_missing_workspace(repository_path, workspace, task_lanes),
+        MissingWorkspaceClassification::Warning { cause, .. } if cause == "safely-closed"
+    )
+}
+
+fn retain_unavailable_workspaces(
+    repository_path: &Path,
+    current: &mut Vec<WorkspaceSummary>,
+    previous: &[WorkspaceSummary],
+    task_lanes: &TaskLaneReport,
+) {
+    for workspace in previous {
+        if current.iter().any(|item| item.path == workspace.path)
+            || Path::new(&workspace.path).is_dir()
+        {
+            continue;
+        }
+        if !missing_workspace_is_retirable(repository_path, workspace, task_lanes) {
+            current.push(workspace.clone());
+        }
+    }
+}
+
+fn unavailable_filesystem_cause(path: &Path) -> String {
+    if fs::metadata(path)
+        .err()
+        .is_some_and(|error| error.kind() == std::io::ErrorKind::PermissionDenied)
+    {
+        return "permission-denied".to_string();
+    }
+    let components = path.components().collect::<Vec<_>>();
+    if components.len() >= 3
+        && components[1].as_os_str() == "Volumes"
+        && !Path::new("/Volumes").join(components[2].as_os_str()).exists()
+    {
+        return "disconnected".to_string();
+    }
+    "unknown".to_string()
 }
