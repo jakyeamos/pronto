@@ -33,6 +33,44 @@ fn run_cli_arm_10(
             parsed
         })
         .unwrap_or(DEFAULT_AGENT_DOCTOR_MAX_AGE_MINUTES);
+    let max_change_commits = cli_option(&arguments, "--max-change-commits")
+        .unwrap_or_else(|error| {
+            eprintln!("Pronto CLI error: {error}");
+            std::process::exit(2);
+        })
+        .map(|value| {
+            let parsed = value.parse::<u64>().unwrap_or_else(|_| {
+                eprintln!("Pronto CLI error: --max-change-commits must be a positive integer");
+                std::process::exit(2);
+            });
+            if parsed == 0 || parsed > MAX_AGENT_DOCTOR_MAX_CHANGE_COMMITS {
+                eprintln!(
+                    "Pronto CLI error: --max-change-commits must be between 1 and {MAX_AGENT_DOCTOR_MAX_CHANGE_COMMITS}"
+                );
+                std::process::exit(2);
+            }
+            parsed
+        })
+        .unwrap_or(DEFAULT_AGENT_DOCTOR_MAX_CHANGE_COMMITS);
+    let max_changed_paths = cli_option(&arguments, "--max-changed-paths")
+        .unwrap_or_else(|error| {
+            eprintln!("Pronto CLI error: {error}");
+            std::process::exit(2);
+        })
+        .map(|value| {
+            let parsed = value.parse::<u64>().unwrap_or_else(|_| {
+                eprintln!("Pronto CLI error: --max-changed-paths must be a positive integer");
+                std::process::exit(2);
+            });
+            if parsed == 0 || parsed > MAX_AGENT_DOCTOR_MAX_CHANGED_PATHS {
+                eprintln!(
+                    "Pronto CLI error: --max-changed-paths must be between 1 and {MAX_AGENT_DOCTOR_MAX_CHANGED_PATHS}"
+                );
+                std::process::exit(2);
+            }
+            parsed
+        })
+        .unwrap_or(DEFAULT_AGENT_DOCTOR_MAX_CHANGED_PATHS);
     let limit = cli_option(&arguments, "--limit")
         .unwrap_or_else(|error| {
             eprintln!("Pronto CLI error: {error}");
@@ -54,7 +92,14 @@ fn run_cli_arm_10(
         .unwrap_or(DEFAULT_AGENT_NEXT_LIMIT);
     let positionals = cli_positionals_with_flags(
         &arguments,
-        &["--product", "--group", "--max-age", "--limit"],
+        &[
+            "--product",
+            "--group",
+            "--max-age",
+            "--max-change-commits",
+            "--max-changed-paths",
+            "--limit",
+        ],
         &["--fresh"],
     )
     .unwrap_or_else(|error| {
@@ -63,7 +108,7 @@ fn run_cli_arm_10(
     });
     if positionals.len() > 1 {
         eprintln!(
-            "Usage: pronto route [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] [--limit <n>] [--fresh] [--json]"
+            "Usage: pronto route [<repository>] [--product <name> | --group <name>] [--max-age <minutes>] [--max-change-commits <n>] [--max-changed-paths <n>] [--limit <n>] [--fresh] [--json]"
         );
         std::process::exit(2);
     }
@@ -99,30 +144,50 @@ fn run_cli_arm_10(
                 }
             });
             match scoped_snapshot {
-                Ok(snapshot) => agent_route_report(
+                Ok(snapshot) => agent_route_report_with_thresholds(
                     &snapshot,
                     &path,
                     max_age_minutes,
+                    max_change_commits,
+                    max_changed_paths,
                     &scope,
                     query,
                     limit,
                 )
                 .unwrap_or_else(|error| {
-                    agent_route_error_report(
+                    agent_route_error_report_with_thresholds(
                         &path,
                         max_age_minutes,
+                        max_change_commits,
+                        max_changed_paths,
                         &scope,
                         "projection",
                         error,
                     )
                 }),
                 Err(error) => {
-                    agent_route_error_report(&path, max_age_minutes, &scope, "scope", error)
+                    agent_route_error_report_with_thresholds(
+                        &path,
+                        max_age_minutes,
+                        max_change_commits,
+                        max_changed_paths,
+                        &scope,
+                        "scope",
+                        error,
+                    )
                 }
             }
         }
         Err(error) => {
-            agent_route_error_report(&path, max_age_minutes, &scope, "storage", error)
+            agent_route_error_report_with_thresholds(
+                &path,
+                max_age_minutes,
+                max_change_commits,
+                max_changed_paths,
+                &scope,
+                "storage",
+                error,
+            )
         }
     };
     if json {

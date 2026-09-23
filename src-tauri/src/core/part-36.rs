@@ -1,3 +1,4 @@
+#[cfg(test)]
 fn agent_route_report(
     snapshot: &PortfolioSnapshot,
     storage_path: &Path,
@@ -6,7 +7,36 @@ fn agent_route_report(
     query: Option<&str>,
     limit: usize,
 ) -> Result<AgentRouteReport, String> {
-    let doctor = agent_doctor_report(snapshot, storage_path, max_age_minutes, scope);
+    agent_route_report_with_thresholds(
+        snapshot,
+        storage_path,
+        max_age_minutes,
+        DEFAULT_AGENT_DOCTOR_MAX_CHANGE_COMMITS,
+        DEFAULT_AGENT_DOCTOR_MAX_CHANGED_PATHS,
+        scope,
+        query,
+        limit,
+    )
+}
+
+fn agent_route_report_with_thresholds(
+    snapshot: &PortfolioSnapshot,
+    storage_path: &Path,
+    max_age_minutes: i64,
+    max_change_commits: u64,
+    max_changed_paths: u64,
+    scope: &str,
+    query: Option<&str>,
+    limit: usize,
+) -> Result<AgentRouteReport, String> {
+    let doctor = agent_doctor_report_with_thresholds(
+        snapshot,
+        storage_path,
+        max_age_minutes,
+        max_change_commits,
+        max_changed_paths,
+        scope,
+    );
     if !doctor.ready {
         return Ok(agent_route_from_doctor(
             doctor, scope, None, None, None, None,
@@ -34,6 +64,7 @@ fn agent_route_report(
     ))
 }
 
+#[cfg(test)]
 fn agent_route_error_report(
     storage_path: &Path,
     max_age_minutes: i64,
@@ -42,6 +73,27 @@ fn agent_route_error_report(
     error: String,
 ) -> AgentRouteReport {
     let doctor = agent_doctor_error_report(storage_path, max_age_minutes, scope, check_id, error);
+    agent_route_from_doctor(doctor, scope, None, None, None, None)
+}
+
+fn agent_route_error_report_with_thresholds(
+    storage_path: &Path,
+    max_age_minutes: i64,
+    max_change_commits: u64,
+    max_changed_paths: u64,
+    scope: &str,
+    check_id: &str,
+    error: String,
+) -> AgentRouteReport {
+    let doctor = agent_doctor_error_report_with_thresholds(
+        storage_path,
+        max_age_minutes,
+        max_change_commits,
+        max_changed_paths,
+        scope,
+        check_id,
+        error,
+    );
     agent_route_from_doctor(doctor, scope, None, None, None, None)
 }
 
@@ -378,8 +430,12 @@ fn print_human_fold_preview(report: &AgentFoldPreview) {
 fn print_human_doctor(report: &AgentDoctorReport) {
     println!("PRONTO DOCTOR · {} · {}", report.status, report.scope);
     println!(
-        "Snapshot: {} roots · {} repositories · {} workspaces · max age {} minutes",
-        report.root_count, report.repository_count, report.workspace_count, report.max_age_minutes
+        "Snapshot: {} roots · {} repositories · {} workspaces · max age {} minutes · max change {} commits",
+        report.root_count,
+        report.repository_count,
+        report.workspace_count,
+        report.max_age_minutes,
+        report.max_change_commits
     );
     if let (Some(oldest_scan_at), Some(oldest_scan_age_minutes)) = (
         report.oldest_scan_at.as_deref(),

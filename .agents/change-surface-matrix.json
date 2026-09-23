@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-24",
+  "last_reviewed": "2026-09-23",
   "reviewed_no_impact": [
     {
       "change": "Split the renderer API barrel into defaults, review commands, and portfolio commands.",
@@ -278,6 +278,7 @@
       "operations": ["add", "change", "remove"],
       "validation": [
         "Validate every documented command against node bin/pronto.mjs help.",
+        "Verify route and doctor bind fleet freshness to the persisted and current canonical target ref, with 30-day, first-parent-commit, and changed-path thresholds; feature-worktree HEAD changes remain task-scoped and custody topology remains separately governed.",
         "Verify refresh-batch documents its parallel scan, serialized merge, and conflict-retry boundary.",
         "Verify release preview documents the v2 advisory recommendation dispositions and no-publication boundary.",
         "Verify repo and scoped route document the pronto-task-lanes/v1 read-only custody projection and its no-mutation authorization boundary.",

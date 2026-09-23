@@ -99,8 +99,8 @@ stale/unknown until it is refreshed from the exact target commit.
 
 | Need                                 | Command                                                                                                                                                           | Contract                                                                                                         |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Agent routing envelope               | `route [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] [--limit <n>] [--fresh] --json`                                                  | `pronto-agent-route/v1`                                                                                          |
-| Freshness/storage gate               | `doctor [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] --json`                                                                         | `pronto-agent-doctor/v1`                                                                                         |
+| Agent routing envelope               | `route [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] [--max-change-commits <n>] [--max-changed-paths <n>] [--limit <n>] [--fresh] --json` | `pronto-agent-route/v1`                                                                                       |
+| Freshness/storage gate               | `doctor [<repository>] [--product <name> \| --group <name>] [--max-age <minutes>] [--max-change-commits <n>] [--max-changed-paths <n>] --json`                      | `pronto-agent-doctor/v1`                                                                                      |
 | Daily orientation                    | `next [<repository>] [--product <name> \| --group <name>] [--limit <n>] --json`                                                                                   | `pronto-agent-next/v1`                                                                                           |
 | Fold preparation                     | `fold preview [<repository>] [--target <branch>] [--product <name> \| --group <name>] [--limit <n>] [--cursor <token>] --json`                                    | `pronto-agent-fold-preview/v2`                                                                                   |
 | Fleet orientation                    | `summary [--product <name> \| --group <name>] --json`                                                                                                             | `pronto-agent-summary/v1`                                                                                        |
@@ -670,9 +670,20 @@ they must not be treated as enforced by this projection.
 
 ## Evidence interpretation
 
-The default snapshot freshness window for `route` and `doctor` is 48 hours
-(`2,880` minutes). Use `--max-age` for an explicitly different review window;
-operations that depend on current Git state still require live verification.
+The default snapshot freshness boundary for `route` and `doctor` is the first
+of 30 days (`43,200` minutes), 25 first-parent commits on the repository's
+explicit target branch, or 100 paths changed on that target branch. Use
+`--max-age`, `--max-change-commits`, and `--max-changed-paths` for an explicit
+review boundary. The comparison resolves `refs/heads/<target>` from the
+canonical repository and compares it with the target commit persisted by the
+scan. Activity on an unmerged feature branch does not stale the fleet
+projection. Missing target evidence, an unresolvable target ref, or rewritten
+or diverged target history blocks routing instead of guessing.
+
+This is fleet/code freshness only. QR task freshness compares the task
+baseline with the task worktree's HEAD and dirty-tree fingerprint. Workspace
+and custody freshness separately tracks worktree creation, removal, ownership,
+and lease events; branch commits do not establish workspace-topology freshness.
 
 Quality gate and finding evidence uses a separate commit-bound rule: an
 in-window observation is `Fresh` only when its scanned commit equals the
@@ -682,8 +693,10 @@ branch is `Stale`; an exact commit match remains authoritative.
 
 - `generated_at` identifies the snapshot time; re-check it after a meaningful
   state change.
-- `doctor` reports storage, registered roots, per-repository scan freshness,
-  local path availability, and quality warnings without changing local state.
+- `doctor` reports storage, registered roots, per-repository target ref,
+  scanned/current target SHAs, ancestry, first-parent commit and changed-path
+  deltas, local path availability, and quality warnings without changing local
+  state.
 - Workspace `sync_state` is healthy only when it is exactly `Synced`.
 - `Ahead by N`, `Behind by N`, divergence, `No upstream`, dirty workspaces,
   active operations, missing/stale quality evidence, `Unknown`, and `Blocked`

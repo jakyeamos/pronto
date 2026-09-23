@@ -1,7 +1,26 @@
+#[cfg(test)]
 fn agent_doctor_report(
     snapshot: &PortfolioSnapshot,
     storage_path: &Path,
     max_age_minutes: i64,
+    scope: &str,
+) -> AgentDoctorReport {
+    agent_doctor_report_with_thresholds(
+        snapshot,
+        storage_path,
+        max_age_minutes,
+        DEFAULT_AGENT_DOCTOR_MAX_CHANGE_COMMITS,
+        DEFAULT_AGENT_DOCTOR_MAX_CHANGED_PATHS,
+        scope,
+    )
+}
+
+fn agent_doctor_report_with_thresholds(
+    snapshot: &PortfolioSnapshot,
+    storage_path: &Path,
+    max_age_minutes: i64,
+    max_change_commits: u64,
+    max_changed_paths: u64,
     scope: &str,
 ) -> AgentDoctorReport {
     let max_age_minutes = max_age_minutes.max(0);
@@ -38,7 +57,11 @@ fn agent_doctor_report(
         }
     }
 
-    let mut stale_repository_ids = Vec::new();
+    let mut stale_repository_ids = BTreeSet::new();
+    let mut time_stale_repository_ids = Vec::new();
+    let mut change_stale_repository_ids = Vec::new();
+    let mut change_delta_unavailable_repository_ids = Vec::new();
+    let mut repository_change_deltas = Vec::new();
     let mut invalid_scan_repository_ids = Vec::new();
     let mut oldest_scan: Option<(DateTime<Utc>, i64)> = None;
     for repository in &snapshot.repositories {
@@ -52,8 +75,9 @@ fn agent_doctor_report(
             invalid_scan_repository_ids.push(repository.id.clone());
             continue;
         }
-        if age_minutes > max_age_minutes {
-            stale_repository_ids.push(repository.id.clone());
+        if age_minutes >= max_age_minutes {
+            stale_repository_ids.insert(repository.id.clone());
+            time_stale_repository_ids.push(repository.id.clone());
         }
         if oldest_scan
             .as_ref()
@@ -61,7 +85,24 @@ fn agent_doctor_report(
         {
             oldest_scan = Some((observed_at, age_minutes));
         }
+
+        if repository_path_available(repository) {
+            let delta =
+                agent_repository_change_delta(repository, max_change_commits, max_changed_paths);
+            match delta.status.as_str() {
+                "stale" => {
+                    stale_repository_ids.insert(repository.id.clone());
+                    change_stale_repository_ids.push(repository.id.clone());
+                }
+                "unavailable" => {
+                    change_delta_unavailable_repository_ids.push(repository.id.clone());
+                }
+                _ => {}
+            }
+            repository_change_deltas.push(delta);
+        }
     }
+    let stale_repository_ids = stale_repository_ids.into_iter().collect::<Vec<_>>();
 
     let mut checks = vec![agent_doctor_check(
         "storage",
@@ -127,20 +168,33 @@ fn agent_doctor_report(
             Vec::new(),
             "Run a scoped refresh after confirming the discovery root; do not infer an empty portfolio from this report.".to_string(),
         ));
-    } else if !stale_repository_ids.is_empty() || !invalid_scan_repository_ids.is_empty() {
+    } else if !stale_repository_ids.is_empty()
+        || !invalid_scan_repository_ids.is_empty()
+        || !change_delta_unavailable_repository_ids.is_empty()
+    {
         let mut evidence = stale_repository_ids.clone();
         evidence.extend(
             invalid_scan_repository_ids
                 .iter()
                 .map(|id| format!("invalid timestamp: {id}")),
         );
+        evidence.extend(
+            repository_change_deltas
+                .iter()
+                .filter(|delta| delta.status == "stale" || delta.status == "unavailable")
+                .map(|delta| format!("{}: {}", delta.repository_id, delta.detail)),
+        );
         checks.push(agent_doctor_check(
             "snapshot",
             "Blocked",
             format!(
-                "{} repository snapshot(s) exceed the {} minute freshness window or have invalid scan timestamps.",
-                stale_repository_ids.len() + invalid_scan_repository_ids.len(),
-                max_age_minutes
+                "{} repository snapshot(s) exceed the {} minute, {} target first-parent commit, or {} target changed-path freshness limits; lack comparable target evidence; or have invalid scan timestamps.",
+                stale_repository_ids.len()
+                    + invalid_scan_repository_ids.len()
+                    + change_delta_unavailable_repository_ids.len(),
+                max_age_minutes,
+                max_change_commits,
+                max_changed_paths,
             ),
             evidence,
             "Run a scoped `pronto refresh <repository> --json` for every stale or invalid repository, then rerun doctor.".to_string(),
@@ -150,9 +204,11 @@ fn agent_doctor_report(
             "snapshot",
             "Passed",
             format!(
-                "All {} repository snapshots are within the {} minute freshness window.",
+                "All {} repository snapshots are within the {} minute, {} target first-parent commit, and {} target changed-path freshness limits.",
                 snapshot.repositories.len(),
-                max_age_minutes
+                max_age_minutes,
+                max_change_commits,
+                max_changed_paths
             ),
             snapshot
                 .repositories
@@ -255,6 +311,8 @@ fn agent_doctor_report(
         ready,
         storage_path: storage_path.to_string_lossy().to_string(),
         max_age_minutes,
+        max_change_commits,
+        max_changed_paths,
         root_count: relevant_roots.len(),
         repository_count: snapshot.repositories.len(),
         workspace_count: snapshot
@@ -267,6 +325,10 @@ fn agent_doctor_report(
             .map(|(observed_at, _)| observed_at.to_rfc3339_opts(SecondsFormat::Secs, true)),
         oldest_scan_age_minutes: oldest_scan.map(|(_, age_minutes)| age_minutes),
         stale_repository_ids,
+        time_stale_repository_ids,
+        change_stale_repository_ids,
+        change_delta_unavailable_repository_ids,
+        repository_change_deltas,
         invalid_scan_repository_ids,
         unavailable_paths,
         workspace_warnings,
@@ -276,9 +338,30 @@ fn agent_doctor_report(
     }
 }
 
+#[cfg(test)]
 fn agent_doctor_error_report(
     storage_path: &Path,
     max_age_minutes: i64,
+    scope: &str,
+    check_id: &str,
+    error: String,
+) -> AgentDoctorReport {
+    agent_doctor_error_report_with_thresholds(
+        storage_path,
+        max_age_minutes,
+        DEFAULT_AGENT_DOCTOR_MAX_CHANGE_COMMITS,
+        DEFAULT_AGENT_DOCTOR_MAX_CHANGED_PATHS,
+        scope,
+        check_id,
+        error,
+    )
+}
+
+fn agent_doctor_error_report_with_thresholds(
+    storage_path: &Path,
+    max_age_minutes: i64,
+    max_change_commits: u64,
+    max_changed_paths: u64,
     scope: &str,
     check_id: &str,
     error: String,
@@ -299,12 +382,18 @@ fn agent_doctor_error_report(
         ready: false,
         storage_path: storage_path.to_string_lossy().to_string(),
         max_age_minutes: max_age_minutes.max(0),
+        max_change_commits,
+        max_changed_paths,
         root_count: 0,
         repository_count: 0,
         workspace_count: 0,
         oldest_scan_at: None,
         oldest_scan_age_minutes: None,
         stale_repository_ids: Vec::new(),
+        time_stale_repository_ids: Vec::new(),
+        change_stale_repository_ids: Vec::new(),
+        change_delta_unavailable_repository_ids: Vec::new(),
+        repository_change_deltas: Vec::new(),
         invalid_scan_repository_ids: Vec::new(),
         unavailable_paths: Vec::new(),
         workspace_warnings: Vec::new(),

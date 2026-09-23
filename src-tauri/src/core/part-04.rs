@@ -7,12 +7,24 @@ pub struct AgentDoctorReport {
     pub ready: bool,
     pub storage_path: String,
     pub max_age_minutes: i64,
+    #[serde(default)]
+    pub max_change_commits: u64,
+    #[serde(default)]
+    pub max_changed_paths: u64,
     pub root_count: usize,
     pub repository_count: usize,
     pub workspace_count: usize,
     pub oldest_scan_at: Option<String>,
     pub oldest_scan_age_minutes: Option<i64>,
     pub stale_repository_ids: Vec<String>,
+    #[serde(default)]
+    pub time_stale_repository_ids: Vec<String>,
+    #[serde(default)]
+    pub change_stale_repository_ids: Vec<String>,
+    #[serde(default)]
+    pub change_delta_unavailable_repository_ids: Vec<String>,
+    #[serde(default)]
+    pub repository_change_deltas: Vec<AgentRepositoryChangeDelta>,
     pub invalid_scan_repository_ids: Vec<String>,
     pub unavailable_paths: Vec<String>,
     #[serde(default)]
@@ -20,6 +32,20 @@ pub struct AgentDoctorReport {
     pub checks: Vec<AgentDoctorCheck>,
     pub next_safe_step: String,
     pub authorization: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentRepositoryChangeDelta {
+    pub repository_id: String,
+    pub projection_type: String,
+    pub target_ref: Option<String>,
+    pub status: String,
+    pub commits_since_scan: Option<u64>,
+    pub changed_paths_since_scan: Option<u64>,
+    pub scanned_commit: Option<String>,
+    pub current_commit: Option<String>,
+    pub ancestry: String,
+    pub detail: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

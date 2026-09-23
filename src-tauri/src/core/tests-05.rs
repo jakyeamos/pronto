@@ -185,7 +185,7 @@
     }
 
 #[test]
-    fn doctor_default_freshness_window_is_two_days() {
+    fn doctor_default_freshness_window_is_thirty_days() {
         let root = fixture_root();
         fixture_repository(&root);
         let store = root.join("registry.db");
@@ -193,7 +193,7 @@
             .expect("fixture portfolio should scan");
 
         snapshot.repositories[0].last_scan_at =
-            (Utc::now() - chrono::Duration::hours(47)).to_rfc3339();
+            (Utc::now() - chrono::Duration::days(29)).to_rfc3339();
         let fresh = agent_doctor_report(
             &snapshot,
             &store,
@@ -201,7 +201,9 @@
             "repository:fixture",
         );
 
-        assert_eq!(fresh.max_age_minutes, 2_880);
+        assert_eq!(fresh.max_age_minutes, 43_200);
+        assert_eq!(fresh.max_change_commits, 25);
+        assert_eq!(fresh.max_changed_paths, 100);
         assert!(fresh.stale_repository_ids.is_empty());
         assert!(fresh
             .checks
@@ -209,7 +211,7 @@
             .any(|check| check.id == "snapshot" && check.status == "Passed"));
 
         snapshot.repositories[0].last_scan_at =
-            (Utc::now() - chrono::Duration::hours(49)).to_rfc3339();
+            (Utc::now() - chrono::Duration::days(31)).to_rfc3339();
         let stale = agent_doctor_report(
             &snapshot,
             &store,
@@ -222,6 +224,70 @@
             .checks
             .iter()
             .any(|check| check.id == "snapshot" && check.status == "Blocked"));
+
+        fs::remove_dir_all(root).expect("doctor fixture should be removable");
+    }
+
+#[test]
+    fn doctor_uses_target_branch_delta_not_active_feature_branch_head() {
+        let root = fixture_root();
+        let repository_path = fixture_repository(&root);
+        let store = root.join("registry.db");
+        let snapshot = register_root_and_scan(&store, &root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+
+        git(&repository_path, &["switch", "-c", "feature"]);
+        fs::write(repository_path.join("feature-only.txt"), "feature\n")
+            .expect("feature file should be writable");
+        git(&repository_path, &["add", "feature-only.txt"]);
+        git(&repository_path, &["commit", "-m", "Feature-only work"]);
+
+        let feature_report = agent_doctor_report_with_thresholds(
+            &snapshot,
+            &store,
+            43_200,
+            1,
+            1,
+            "repository:fixture",
+        );
+        assert!(feature_report.stale_repository_ids.is_empty());
+        assert_eq!(feature_report.repository_change_deltas[0].target_ref.as_deref(), Some("refs/heads/main"));
+        assert_eq!(feature_report.repository_change_deltas[0].commits_since_scan, Some(0));
+
+        git(&repository_path, &["switch", "main"]);
+        fs::write(repository_path.join("target-one.txt"), "one\n")
+            .expect("target file should be writable");
+        fs::write(repository_path.join("target-two.txt"), "two\n")
+            .expect("second target file should be writable");
+        git(&repository_path, &["add", "target-one.txt", "target-two.txt"]);
+        git(&repository_path, &["commit", "-m", "Advance target"]);
+
+        let target_report = agent_doctor_report_with_thresholds(
+            &snapshot,
+            &store,
+            43_200,
+            5,
+            2,
+            "repository:fixture",
+        );
+        assert_eq!(target_report.change_stale_repository_ids.len(), 1);
+        assert_eq!(target_report.repository_change_deltas[0].commits_since_scan, Some(1));
+        assert_eq!(target_report.repository_change_deltas[0].changed_paths_since_scan, Some(2));
+        assert_eq!(target_report.repository_change_deltas[0].ancestry, "ancestor");
+
+        let commit_boundary_report = agent_doctor_report_with_thresholds(
+            &snapshot,
+            &store,
+            43_200,
+            1,
+            100,
+            "repository:fixture",
+        );
+        assert_eq!(commit_boundary_report.change_stale_repository_ids.len(), 1);
+        assert_eq!(
+            commit_boundary_report.repository_change_deltas[0].commits_since_scan,
+            Some(1)
+        );
 
         fs::remove_dir_all(root).expect("doctor fixture should be removable");
     }
