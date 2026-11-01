@@ -377,6 +377,11 @@ fn latest_qr_run(repository_path: &Path) -> Option<QrRun> {
         .filter_map(|entry| {
             let run_dir = entry.path();
             let manifest = read_json(&run_dir.join("run-manifest.json"))?;
+            // Model audits have their own read-only projection; they cannot
+            // replace the latest deterministic gate and maturity evidence.
+            if manifest.get("mode").and_then(Value::as_str) == Some("model-audit") {
+                return None;
+            }
             let verification =
                 read_json(&run_dir.join("gate-verification.json")).unwrap_or(Value::Null);
             let execution_plan =

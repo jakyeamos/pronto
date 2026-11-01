@@ -5,7 +5,7 @@
     "id": "pronto"
   },
   "owner": "Pronto repository maintainers",
-  "last_reviewed": "2026-08-24",
+  "last_reviewed": "2026-11-01",
   "reviewed_no_impact": [
     {
       "change": "Split the renderer API barrel into defaults, review commands, and portfolio commands.",
@@ -672,6 +672,19 @@
         "Exercise a denied-primary capture followed by a permitted flush."
       ],
       "status": "applicable"
+    },
+    {
+      "id": "refreshable-model-audits",
+      "scope": "repository",
+      "path": "src-tauri/src/core/model_audit.rs, CLI help, quality run selection, docs/model-audits.md",
+      "owner": "Pronto repository maintainers",
+      "condition": "Model audit profiles, provenance, verification, retention, comparison or projection changes.",
+      "operations": ["add", "change", "remove"],
+      "validation": [
+        "cargo test --manifest-path src-tauri/Cargo.toml model_audit",
+        "Exercise the Node CLI against compatible and incompatible QR producers."
+      ],
+      "status": "applicable"
     }
   ],
   "operation_evidence": {
@@ -709,5 +722,27 @@
       ]
     }
   },
-  "unresolved_surfaces": []
+  "unresolved_surfaces": [],
+  "change_records": [
+    {
+      "id": "refreshable-model-audits-20261101",
+      "status": "implemented",
+      "owner": "Pronto repository maintainers",
+      "affected_surfaces": ["refreshable-model-audits"],
+      "contracts": [
+        "Model claims require separate verification; omission never resolves findings.",
+        "Fixed-source comparisons record harness, effort, provider, tools and budget confounders.",
+        "Evidence remains local and never grants implementation authority."
+      ],
+      "documentation": ["docs/model-audits.md", ".agents/context/commands.md"],
+      "tests": [
+        "cargo test --manifest-path src-tauri/Cargo.toml model_audit",
+        "Exercise the Node CLI against compatible and incompatible QR producers."
+      ],
+      "evidence": [
+        "Focused regression fixtures and public-surface verification required before handoff."
+      ],
+      "projections": ["Read-only explicit Pronto model-audit bridge."]
+    }
+  ]
 }

@@ -462,3 +462,20 @@
         update_detector_delta(&prior, &mut comparable);
         assert_eq!(comparable.delta_total, Some(1));
     }
+
+#[test]
+fn model_audit_manifest_does_not_displace_deterministic_quality_evidence() {
+    let root = fixture_root();
+    let repository_path = root.join("repo");
+    let runs = repository_path.join(".quality-runner").join("runs");
+    let gates = runs.join("gates");
+    let model = runs.join("model");
+    fs::create_dir_all(&gates).unwrap();
+    fs::create_dir_all(&model).unwrap();
+    fs::write(gates.join("run-manifest.json"),
+        r#"{"mode":"verify-gates","created_at":"2026-11-01T10:00:00Z"}"#).unwrap();
+    fs::write(model.join("run-manifest.json"),
+        r#"{"mode":"model-audit","created_at":"2026-11-01T11:00:00Z"}"#).unwrap();
+    assert_eq!(latest_qr_run(&repository_path).unwrap().run_dir, gates);
+    fs::remove_dir_all(root).unwrap();
+}

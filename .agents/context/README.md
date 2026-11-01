@@ -1,6 +1,6 @@
 # Pronto agent context
 
-Last reviewed: 2026-08-18.
+Last reviewed: 2026-11-01.
 
 Pronto is the local-first portfolio and Git evidence surface for this machine.
 Use this index when a task needs portfolio-wide repository state, workspace
@@ -13,6 +13,8 @@ prune until integration or patch equivalence is proven.
 
 Read the deeper file only when the task matches it:
 
+- [Refreshable model audits](../../docs/model-audits.md) — explicit QR model
+  comparison projections, coverage and authority boundaries.
 - [Agent command contract](commands.md) — exact CLI invocation, focused JSON
   projections, freshness semantics, and the read/write boundary for agent use.
 - [Quality prevention contract](quality-prevention.md) — task-scoped QR

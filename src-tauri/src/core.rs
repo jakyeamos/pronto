@@ -78,6 +78,7 @@ include!("core/cli-36.rs");
 include!("core/cli-37.rs");
 include!("core/cli-38.rs");
 include!("core/telescope.rs");
+include!("core/model_audit.rs");
 #[cfg(test)]
 mod tests {
     include!("core/tests-01.rs");

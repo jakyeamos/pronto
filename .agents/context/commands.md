@@ -731,3 +731,11 @@ branch is `Stale`; an exact commit match remains authoritative.
   stale rather than silently hiding a recurrence.
 - Preserve `schema_version`, freshness, evidence, and uncertainty fields when
   handing JSON to another agent.
+
+## Model audit evidence
+
+Use `model-audit report ABSOLUTE_REPO --run-id ID --json` or
+`model-audit fleet --selection ABSOLUTE_JSON --json` with a compatible QR build.
+Pass `--qr-bin` to select it explicitly. See
+[the projection contract](../../docs/model-audits.md). Missing and partial
+evidence stays visible; these reports never authorize implementation.

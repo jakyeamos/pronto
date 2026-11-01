@@ -28,6 +28,7 @@ const fixtureFiles = [
   "docs/ci-tracker.md",
   "docs/foundation-readiness.md",
   "docs/mac-control-maturity-gate.md",
+  "docs/model-audits.md",
   "docs/remediation-sequential-handoff.md",
   "docs/repository-contract.md",
   "docs/task-lane-custody.md",

@@ -36,6 +36,22 @@ pub fn run_cli(arguments: Vec<String>) {
         "refresh-batch" => run_cli_arm_30(&arguments, json, &path, command),
         "refresh-github" => run_cli_arm_31(&arguments, json, &path, command),
         "quality" => run_cli_arm_32(&arguments, json, &path, command),
+        "model-audit" => match run_model_audit_cli(&arguments) {
+            Ok((payload, exit_code)) => {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&payload).unwrap_or_default()
+                );
+                std::process::exit(exit_code);
+            }
+            Err(error) => {
+                if json {
+                    print_cli_json_error("model-audit", &error);
+                }
+                eprintln!("Pronto model-audit: {error}");
+                std::process::exit(1);
+            }
+        },
         "root" => run_cli_arm_33(&arguments, json, &path, command),
         "clone" => run_cli_arm_34(&arguments, json, &path, command),
         "." => run_cli_arm_35(&arguments, json, &path, command),
