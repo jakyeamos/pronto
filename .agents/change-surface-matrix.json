@@ -743,6 +743,31 @@
         "Focused regression fixtures and public-surface verification required before handoff."
       ],
       "projections": ["Read-only explicit Pronto model-audit bridge."]
+    },
+    {
+      "id": "model-audit-release-remediation-20261101",
+      "status": "implemented",
+      "owner": "Pronto repository maintainers",
+      "affected_surfaces": ["matrix-maintenance", "refreshable-model-audits"],
+      "contracts": [
+        "Dependency security fixes retain existing gates and runtime behavior.",
+        "Environment controls reviewed against source, automation and tests; review date is backed by docs/environment-review-20261101.md.",
+        "Model-audit fleet readback binds all reported and unavailable pairs, nested authority and coverage to the explicit selection."
+      ],
+      "documentation": [
+        "docs/environment-review-20261101.md",
+        "docs/model-audits.md"
+      ],
+      "tests": [
+        "Run locked dependency audit, repository contract and exact-current authoritative task release check.",
+        "core::model_audit_tests::model_audit_cli_binds_fleet_response_to_the_selection: wrong run, unrequested missing repository, duplicates, authority, totals and omissions are rejected; valid partial payload is preserved."
+      ],
+      "evidence": [
+        "Reviewed no-impact: dependency lock maintenance and documentation corrections do not add application behavior, provider access, or publication authority."
+      ],
+      "projections": [
+        "Read-only explicit Pronto model-audit bridge; no additional authority."
+      ]
     }
   ]
 }

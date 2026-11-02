@@ -1,6 +1,6 @@
 # Pronto implementation examples
 
-Last reviewed: 2026-08-01.
+Last reviewed: 2026-11-01.
 
 These are references to maintained implementation patterns in the repository,
 not copy-and-paste templates. Read the focused files and their tests before
@@ -25,14 +25,15 @@ in React.
 
 Showcase onboarding is the reference for a bounded cross-surface state change:
 
-- `src-tauri/src/core.rs` identifies repository IDs newly admitted by the
-  registration or refresh merge before persisting the registry.
-- `src-tauri/src/showcase.rs` atomically appends one idempotent pending goal
-  row to the existing fleet contract, keeping eligibility, dimensions, scores,
-  and publication authority unknown until review.
+- Registration and refresh persist the ordinary repository registry without
+  modifying the fleet Showcase contract.
+- `src-tauri/src/showcase.rs` projects registered repositories absent from that
+  contract as unranked `unknown` entries. Only an explicit review may add a
+  complete contract entry; discovery never creates a placeholder row.
 - `docs/showcase-contract.md`, `.agents/context/commands.md`, and
   `.agents/change-surface-matrix.json` document the same write boundary, while
-  the native tests cover preservation and retry behavior.
+  `unreviewed_repository_is_projected_without_mutating_showcase_contract`
+  proves the contract bytes are unchanged and readiness remains unknown.
 
 Do not create a contract or infer public readiness as part of repository
 discovery; a missing or invalid contract remains an explicit review state.

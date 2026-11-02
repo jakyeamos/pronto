@@ -1,7 +1,7 @@
 {
   "schema_version": "quality-runner-environment-legibility/v1",
   "owner": "Pronto maintainers",
-  "last_reviewed": "2026-08-01",
+  "last_reviewed": "2026-11-01",
   "dimensions": {
     "architecture_boundaries": {
       "evidence": ["docs/repository-contract.md"],

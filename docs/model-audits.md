@@ -30,7 +30,10 @@ Read the producer's coverage, comparison controls and per-finding status.
 Newly verified, known, disputed, unverified and not reobserved remain distinct.
 Omission never means resolved. Missing evidence remains unavailable; partial
 fleet reports retain their JSON and exit 1. A wrong schema, mismatched
-repository/run, or implementation authority is rejected.
+repository/run, or implementation authority is rejected. For fleet readback,
+Pronto independently binds all reported and unavailable pairs to the saved
+selection, rejects duplicate or omitted pairs, and checks the coverage totals.
+Each nested report must also preserve read-only authority.
 
 This is an explicit CLI projection. It does not import model findings into the
 desktop quality score or remediation queue. Model-audit run manifests are
