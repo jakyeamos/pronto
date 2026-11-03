@@ -60,10 +60,32 @@ unsigned receipts need a bounded one-time reconciliation:
    worktree from that branch. It never resets, force-pushes, deletes, or silently
    integrates the legacy work.
 
-The migration needs dry-run inventory plus explicit apply/claim operations in
-the isolated-change workflow. Until those mutators exist, Pronto intentionally
-keeps legacy receipts `unknown` and reports their count rather than pretending
-they are resolved.
+The installed isolated-change workflow supplies `reconcile-legacy` and
+`claim-legacy` with dry-run and explicit apply boundaries. Pronto keeps legacy
+receipts `unknown` until that producer supplies verified reconciliation evidence;
+the projection does not perform migration itself.
+
+## Missing signed lanes
+
+Use the installed provider-neutral workflow at
+`~/.agents/skills/isolated-change-workflow/SKILL.md` for missing signed lanes.
+`reconcile-missing` requires the live branch to retain the recorded head. Its
+separate `reconcile-missing-published` recovery command can close a missing lane
+whose surviving head is a verified descendant, after checking the exact signed
+generation, both heads, configured remote identity, and live published ref.
+
+The recovery command preserves the original owner and base and records the
+published lineage in the signed closure. It refuses a present or symlinked path,
+divergent or unpublished head, competing custody, or active Git operation. Remote
+verification is a point-in-time observation, not a lease. Closure does not prove
+that absent uncommitted files were recovered and does not remove a branch or Git
+worktree registration. Registration cleanup remains a separate exact-path action
+after rechecking the closure and preserved branch.
+
+The repository's bundled `skills/isolated-change-workflow` is an older unsigned
+implementation; it does not implement this signed recovery contract. Do not use
+that copy to replace the installed producer or claim distribution parity. A
+bundled upgrade requires a separate review of the intervening custody lifecycle.
 
 ## Branch and integration policy
 

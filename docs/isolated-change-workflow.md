@@ -5,6 +5,13 @@ work into a clean task worktree. It is not, by itself, a reason to leave an
 otherwise completed feature uncommitted.
 
 The canonical workflow is distributed as the `isolated-change-workflow` skill.
+The installed provider-neutral copy under
+`~/.agents/skills/isolated-change-workflow` owns the current signed lifecycle.
+This repository's bundled copy predates that lifecycle; its fixture checks below
+cover only the older implementation. See [task-lane-custody.md](task-lane-custody.md)
+for the current recovery boundary. Do not install the bundled copy over the
+signed producer without reviewing the intervening changes.
+
 Its bundled command records an exact base, creates a locked `codex/*` worktree,
 guards mutations and commits against a task receipt, and verifies the resulting
 branch against the current integration target with a non-mutating merge-tree

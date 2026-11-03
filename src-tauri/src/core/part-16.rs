@@ -88,7 +88,12 @@ fn refresh_remediation_at(
     );
     persist_remediation_refresh(path, &refresh_id, "in_progress", None, &steps)?;
 
-    let projects_root = qr_projects_root(&eligible_paths)?;
+    let selected_repositories = state
+        .repositories
+        .iter()
+        .filter(|repository| eligible_ids.contains(&repository.id))
+        .collect::<Vec<_>>();
+    let projects_root = qr_repository_scope_root(&selected_repositories)?;
     let all_projects_scope = !repository_scoped
         && dirs::home_dir()
         .map(|home| projects_root == home.join("projects"))

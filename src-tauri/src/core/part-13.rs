@@ -19,11 +19,7 @@ fn refresh_quality_detectors_at(
             "No registered Git repositories are available for detector refresh.".to_string(),
         );
     }
-    let repository_paths = repositories
-        .iter()
-        .map(|repository| repository.path.clone())
-        .collect::<Vec<_>>();
-    let projects_root = qr_projects_root(&repository_paths)?;
+    let projects_root = qr_repository_scope_root(&repositories)?;
     let qr = resolve_qr_executable(qr_bin);
     let mut arguments = vec![
         "fleet".to_string(),
