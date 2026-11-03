@@ -1,3 +1,4 @@
+    #[test]
     fn normalizes_legacy_missing_and_not_applicable_states_without_collapsing_them() {
         let mut missing = BehaviorAssuranceRepositoryState {
             gaps: vec![BehaviorAssuranceGap {

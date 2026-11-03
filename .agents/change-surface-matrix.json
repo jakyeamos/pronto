@@ -22,6 +22,10 @@
     {
       "change": "Extract reviewed unused-export cleanup and reconcile the existing nanoid override before Compass integration.",
       "reason": "The four source files retain all used local behavior; only unused exports/helpers are removed. Pinned pnpm resolves the already-declared nanoid3.3.18 override without changing other dependency versions or audit thresholds. This is bounded target prerequisite reconciliation, with original gate failures and exact diffs retained in the task evidence."
+    },
+    {
+      "change": "Restore required verification prerequisites during the 2026-11-03 blocker repair.",
+      "reason": "Review the environment-legibility owners and correct the stale Showcase example, enable an existing Rust assertion with its missing test attribute, and update audited development dependencies. Product behavior, public command syntax, custody ownership, and audit severity thresholds are unchanged. The scoped QR path fix has explicit native tests and contract updates; existing Pronto skill routes remain valid."
     }
   ],
   "surfaces": [
