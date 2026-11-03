@@ -247,6 +247,37 @@ fn start_ci_codex_handoff_at(
     })
 }
 
+fn qr_repository_scope_root(repositories: &[&RepositorySnapshot]) -> Result<PathBuf, String> {
+    let mut paths = repositories
+        .iter()
+        .map(|repository| repository.path.clone())
+        .collect::<Vec<_>>();
+    for repository in repositories {
+        let Some(target_branch) = repository.target_branch.as_deref() else {
+            continue;
+        };
+        let Some(target_head) = repository
+            .branches
+            .iter()
+            .find(|branch| branch.name == target_branch)
+            .and_then(|branch| branch.last_commit.as_deref())
+        else {
+            continue;
+        };
+        for workspace in &repository.workspaces {
+            if workspace.branch == target_branch
+                && workspace.last_commit.as_deref() == Some(target_head)
+                && workspace.status_available
+            {
+                if let Some(path) = canonical_path(Path::new(&workspace.path)) {
+                    paths.push(path.to_string_lossy().to_string());
+                }
+            }
+        }
+    }
+    qr_projects_root(&paths)
+}
+
 fn qr_projects_root(repository_paths: &[String]) -> Result<PathBuf, String> {
     let home_projects = dirs::home_dir().map(|home| home.join("projects"));
     if let Some(root) = home_projects.filter(|root| {

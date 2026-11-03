@@ -63,7 +63,8 @@
         "For detector evidence changes, verify blocked or refresh-required receipts never become zero findings and preserve prior raw evidence without a current delta.",
         "Verify the explicit fleet-exclusion population remains outside QR checkpoint validation, maturity matching, Mac Control evaluation, and remediation refresh while remaining visible in the local registry.",
         "Run the parallel refresh coordinator tests and verify the locked merge preserves every scanned repository.",
-        "Run cargo test --manifest-path src-tauri/Cargo.toml task_lanes::tests and verify active, adoptable, stale, contested, unknown, closed, and unavailable custody paths remain distinct."
+        "Run cargo test --manifest-path src-tauri/Cargo.toml task_lanes::tests and verify active, adoptable, stale, contested, unknown, closed, and unavailable custody paths remain distinct.",
+        "Run cargo test --manifest-path src-tauri/Cargo.toml qr_scope_root and verify canonical target workspaces are admitted without widening the explicit repository population."
       ],
       "status": "applicable"
     },
@@ -702,7 +703,9 @@
         "src-tauri/src/core.rs::tests::registering_new_repository_enters_the_normal_fleet_without_mutating_showcase",
         "src-tauri/src/showcase.rs::tests::unreviewed_repository_is_projected_without_mutating_showcase_contract",
         "src-tauri/src/core.rs::tests::fold_preview_paginates_all_candidates_without_duplicates",
-        "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract"
+        "src-tauri/src/change_matrix.rs::tests::available_matrix_filters_operation_and_reports_privacy_contract",
+        "src-tauri/src/core/tests-03.rs::qr_scope_root_covers_target_workspace_without_expanding_repository_selection",
+        "src-tauri/src/core/tests-03.rs::qr_scope_root_ignores_unrelated_and_stale_workspace_bindings"
       ]
     },
     "remove": {

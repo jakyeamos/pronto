@@ -541,6 +541,10 @@ When `<repository>` is supplied, it may be an exact registered repository name,
 ID, absolute path, or workspace path. Pronto scans and audits only that
 repository, imports its replay-validated evidence without republishing the
 canonical fleet feed, and does not change unrelated repository projections.
+The QR path boundary includes available workspaces bound to the selected target
+branch and commit. This permits a canonical target checkout outside the primary
+checkout directory; it does not add that workspace or neighboring repositories
+to the audit population. Unrelated or stale workspace bindings do not widen it.
 Version 2 feeds may additionally publish `measurement_confidence`. Pronto
 accepts only `low`, `medium`, or `high`, requires deterministic replay and an
 exact population count, and rejects a `high` claim that retains measurement

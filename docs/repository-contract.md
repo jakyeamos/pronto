@@ -166,6 +166,12 @@ A conclusive failing quality check can support high measurement confidence even
 though it lowers maturity; incomplete population, disabled dynamic verification,
 or unresolved measurement gaps cannot.
 
+Scoped quality refresh bounds QR paths over the selected primary checkouts and
+available workspaces whose target branch and commit match the current snapshot.
+This admits canonical target checkouts outside the primary directory while
+keeping the explicit repository population unchanged. Unrelated branches and
+stale workspace bindings do not widen that boundary.
+
 An explicit fleet exclusion remains visible in Pronto's local registry but is
 outside the QR checkpoint target and the corresponding maturity, Mac Control,
 and remediation populations. The current permanent exclusion is `codex`; its

@@ -160,6 +160,66 @@
     }
 
 #[test]
+    fn qr_scope_root_covers_target_workspace_without_expanding_repository_selection() {
+        let root = fs::canonicalize(fixture_root()).expect("fixture root should resolve");
+        let primary_root = root.join("Documents");
+        let primary = fixture_repository(&primary_root);
+        let store = root.join("registry.db");
+        let snapshot = register_root_and_scan(&store, &primary_root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        let mut repository = snapshot.repositories[0].clone();
+        let target = root.join("projects/canonical/dev");
+        fs::create_dir_all(&target).expect("target workspace should exist");
+        repository.target_branch = Some("dev".to_string());
+        let mut branch = repository.branches[0].clone();
+        branch.name = "dev".to_string();
+        repository.branches.push(branch);
+        let mut workspace = repository.workspace.clone();
+        workspace.branch = "dev".to_string();
+        workspace.path = target.to_string_lossy().to_string();
+        repository.workspaces.push(workspace);
+
+        let scope_root = qr_repository_scope_root(&[&repository])
+            .expect("the primary and target workspace share a bounded root");
+        assert_eq!(scope_root, root);
+        let arguments = qr_fleet_run_arguments(
+            &[primary.to_string_lossy().to_string()], &scope_root, false, false, true, 120,
+        );
+        assert_eq!(arguments.iter().filter(|value| *value == "--repo-path").count(), 1);
+        assert!(!arguments.iter().any(|value| value == "--all"));
+        assert!(!arguments.iter().any(|value| value == &target.to_string_lossy()));
+
+        fs::remove_dir_all(root).expect("QR scope fixture should be removable");
+    }
+
+#[test]
+    fn qr_scope_root_ignores_unrelated_and_stale_workspace_bindings() {
+        let root = fs::canonicalize(fixture_root()).expect("fixture root should resolve");
+        let primary_root = root.join("Documents");
+        let primary = fixture_repository(&primary_root);
+        let store = root.join("registry.db");
+        let snapshot = register_root_and_scan(&store, &primary_root.to_string_lossy())
+            .expect("fixture portfolio should scan");
+        let mut repository = snapshot.repositories[0].clone();
+        repository.target_branch = Some("dev".to_string());
+        let mut branch = repository.branches[0].clone();
+        branch.name = "dev".to_string();
+        repository.branches.push(branch);
+        let other = root.join("other");
+        fs::create_dir_all(&other).expect("unrelated workspace should exist");
+        let mut workspace = repository.workspace.clone();
+        workspace.path = other.to_string_lossy().to_string();
+        workspace.branch = "feature".to_string();
+        repository.workspaces.push(workspace.clone());
+        workspace.branch = "dev".to_string();
+        workspace.last_commit = Some("0".repeat(40));
+        repository.workspaces.push(workspace);
+
+        assert_eq!(qr_repository_scope_root(&[&repository]).unwrap(), primary);
+        fs::remove_dir_all(root).expect("QR scope fixture should be removable");
+    }
+
+#[test]
     fn cli_repeated_options_are_agent_friendly() {
         let arguments = vec![
             "group".to_string(),
